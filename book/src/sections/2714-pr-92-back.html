@@ -1,0 +1,200 @@
+<h2><span class="part-kicker">Build</span>The project</h2>
+
+<p class="lede">Eight to twelve hours. Someone hands you four broken projects and tells you
+nothing. You diagnose each from the instruments alone, in order, recording what you ruled out
+and what it cost.</p>
+
+<h3><span class="num">P.1</span> What you are building</h3>
+
+<p><b><code>diagnose</code></b>: a reusable instrument panel, and four sabotaged training runs
+to point it at.</p>
+
+<p>The rule: <b>for each broken run, write down your hypothesis before the next measurement.</b>
+A diagnosis you reconstruct afterwards is not a diagnosis, and the discipline this project
+teaches is entirely in the ordering.</p>
+
+<h3><span class="num">P.2</span> Stage 1: the panel</h3>
+
+<p>Build each as a function you can point at any run:</p>
+
+<ol>
+  <li><b>Evaluation check.</b> Score the model on training data through the <i>test-time</i> path.
+  Separates a bad model from a broken measurement.</li>
+  <li><b>Tiny-fit.</b> Ten examples, regularization off, assert zero training error.</li>
+  <li><b>Gradient check.</b> Central difference with a swept $\epsilon$, the random-projection
+  trick for vector functions, and a complex-step version where the operation is analytic.</li>
+  <li><b>Train/test table.</b> §10's four cases, reported as a verdict rather than two numbers.</li>
+  <li><b>Sorted mistakes.</b> Training examples ranked by the probability of the correct answer.</li>
+  <li><b>Instruments.</b> Per-layer gradient norms, dead-unit fraction, and the update-to-parameter
+  ratio.</li>
+  <li><b>Calibration.</b> Reliability diagram, expected calibration error, and a fitted
+  temperature.</li>
+</ol>
+
+<p><b>Deliverable:</b> seven functions with a common interface, each documenting what it does
+<i>not</i> detect.</p>
+
+<h3><span class="num">P.3</span> Stage 2: four sabotaged runs</h3>
+
+<p>Have someone else (or a script you then forget the seed of) introduce exactly one of these
+into each of four copies:</p>
+
+<ul>
+  <li>A <b>bug</b>: labels shifted by one, a detached gradient, a wrong reduction axis.</li>
+  <li><b>Underfitting</b>: capacity or learning rate far too low.</li>
+  <li><b>Overfitting</b>: capacity far too high, regularization off, small training set.</li>
+  <li>A <b>data defect</b>: a subset corrupted, or a shortcut feature added (Part XIII §8).</li>
+</ul>
+
+<p><b>Deliverable:</b> for each run, an ordered log (hypothesis, measurement, what it ruled out,
+next hypothesis) ending in the diagnosis and the fix. Record how many rungs of §34 you needed.
+The bug and the data defect should be reachable in under fifteen minutes; if either took an hour,
+the log will show which instrument you skipped.</p>
+
+<h3><span class="num">P.4</span> Stage 3: the search, honestly</h3>
+
+<ol>
+  <li>Run a random search over at least 50 configurations, keeping every validation score.</li>
+  <li>Report the best validation score, then evaluate the winner on a test set used <b>nowhere</b>
+  in the selection.</li>
+  <li>Plot the best-so-far validation score against the number of configurations tried.</li>
+  <li>Repeat the whole search with a different seed and compare the winners.</li>
+</ol>
+
+<p><b>Deliverable:</b> the gap between the best validation score and the honest test score,
+stated as a number. That gap is §20's inflation, measured on your own experiment rather than
+simulated, and step four tells you whether the "best" configuration is even stable.</p>
+
+<h3><span class="num">P.5</span> Stage 4: grid, random, halving</h3>
+
+<ol>
+  <li>Implement all three at matched total budget.</li>
+  <li>Compare on a problem where one hyperparameter dominates, sweeping the number of
+  hyperparameters.</li>
+  <li>Find the budget at which halving stops being identical to random.</li>
+</ol>
+
+<p><b>Deliverable:</b> Figures 5 and 6 from your own code, including the region where halving
+does <b>not</b> win. Reporting only the favourable region is the failure mode this stage exists
+to inoculate against.</p>
+
+<h3><span class="num">P.6</span> Stage 5: is the difference real</h3>
+
+<ol>
+  <li>Take two configurations whose validation scores differ by a little.</li>
+  <li>Train each with ten seeds. Report means and spreads.</li>
+  <li>State whether the difference survives, using Part V §16.</li>
+  <li>Then construct two configurations that are <b>genuinely identical</b> and confirm your
+  procedure declares no difference.</li>
+</ol>
+
+<p><b>Deliverable:</b> the smallest difference your experimental setup could detect, given your
+seed variance and the number of runs you can afford. That number governs every comparison you
+will make afterwards, and almost nobody knows theirs.</p>
+
+<h3><span class="num">P.7</span> Stretch</h3>
+
+<ul>
+  <li><b>Complex-step everywhere.</b> Take a network of analytic operations and gradient-check
+  the whole thing at $\epsilon = 10^{-100}$. Then add a ReLU and watch it break, and explain
+  why.</li>
+  <li><b>Both ablations</b> on a three-component system, with and without re-tuning.</li>
+  <li><b>A judge, validated.</b> Grade outputs with a model, then measure its agreement with your
+  own labels and test it for position and length bias.</li>
+  <li><b>Monitoring.</b> Build §27's monitors, inject a shifted input distribution and a changed
+  upstream encoding, and measure detection latency for each.</li>
+  <li><b>A feedback loop</b>, simulated, with and without a randomised holdout.</li>
+</ul>
+
+<h3><span class="num">P.8</span> Done when</h3>
+
+<ul class="checklist">
+  <li>Seven instruments exist, each documenting what it cannot see.</li>
+  <li>All four sabotaged runs are diagnosed, with an <b>ordered</b> log for each.</li>
+  <li>The gap between best-validation and honest-test is a number you measured.</li>
+  <li>You know the budget at which halving starts to beat random, on your problem.</li>
+  <li>You know the smallest difference your setup can detect.</li>
+  <li>Your gradient check runs at $\epsilon$ small enough that a finite difference would fail.</li>
+  <li>Your README names one run where you reached for a fix before you had a diagnosis.</li>
+</ul>
+
+<div class="box why">
+  <span class="label">Why this project</span>
+  <p>Stage 2 is the reason. Diagnosing a fault you did not plant, with instruments you built,
+  in an order you committed to in advance, is the only way to find out whether you actually
+  work this way or merely agree with it.</p>
+  <p>And Stage 5's number (the smallest difference you could detect) changes how you read
+  everything afterwards. Most people have never computed it, which is why most reported
+  improvements are of unknown size relative to the noise of the experiment that produced
+  them.</p>
+</div>
+
+<h2 class="nobreak"><span class="part-kicker">Assess</span>Checkpoint</h2>
+
+<ul class="checklist">
+  <li>Give the four steps of the loop and say which is skipped.</li>
+  <li>Say why the metric and the target are both chosen before training.</li>
+  <li>Define precision and recall, and say what each degenerate classifier achieves.</li>
+  <li>Explain why the threshold is a decision separate from the model.</li>
+  <li>Define coverage and say what it makes possible.</li>
+  <li>Explain calibration, and why temperature scaling cannot change accuracy.</li>
+  <li>Give two rules for choosing a baseline.</li>
+  <li>State the two reasons machine learning is hard to debug.</li>
+  <li>Give an example of a bug that trains.</li>
+  <li>Explain why fitting ten examples defeats the first difficulty, and what to turn off.</li>
+  <li>Explain the U-curve in a finite-difference gradient check.</li>
+  <li>Give the complex-step formula and say why it has no U-curve.</li>
+  <li>State the restriction the complex step imposes on $f$.</li>
+  <li>Describe the random-projection trick and why to repeat it.</li>
+  <li>Give the four cases of the train/test table and what each means.</li>
+  <li>Say what to check first when training error is low and test error is high.</li>
+  <li>Explain why to sort mistakes by confidence rather than sample them.</li>
+  <li>Give four things to log during training, and what each catches.</li>
+  <li>State the update-to-parameter rule and why it beats watching the learning rate.</li>
+  <li>Give the decision procedure for whether to gather more data.</li>
+  <li>Say why to plot learning curves on a log scale.</li>
+  <li>Say what a learning-curve extrapolation is good for and what it is not.</li>
+  <li>Name the three constraints on effective capacity.</li>
+  <li>Say which hyperparameter is not monotone in effective capacity, and why that matters.</li>
+  <li>Explain why random search beats grid search, in terms of distinct values tested.</li>
+  <li>Say why to sample on a log scale and why not to discretise.</li>
+  <li>Describe successive halving and the assumption it rests on.</li>
+  <li>Give the honest verdict on model-based hyperparameter search.</li>
+  <li>Explain why one run of each is not a comparison.</li>
+  <li>Explain why the winner of a search is biased upward, and why the bias grows with effort.</li>
+  <li>Distinguish leave-one-out from add-one-in ablation.</li>
+  <li>Give three ways a benchmark stops measuring what it did.</li>
+  <li>Say what the strongest available check against contamination is.</li>
+  <li>Give four approaches to evaluating open-ended output.</li>
+  <li>List four biases of a model judge and how to measure each.</li>
+  <li>Distinguish covariate shift, label shift and concept drift.</li>
+  <li>Say what input monitoring most often catches, and what it is usually motivated by.</li>
+  <li>Explain a feedback loop and the only reliable defence.</li>
+  <li>Say why a held-back control is the thing that gets cut and should not be.</li>
+  <li>Give the three gaps between the loss and the consequence.</li>
+  <li>State Goodhart's law and the defence against it.</li>
+  <li>Give the diagnostic ladder in order, and say why the last rung is last.</li>
+  <li>Give the four possibilities when nothing works, and which to check first.</li>
+</ul>
+
+<table class="compact">
+  <thead><tr><th>Score</th><th>Verdict</th></tr></thead>
+  <tbody>
+    <tr><td><b>35–43</b></td><td>Go on. You will diagnose before you treat.</td></tr>
+    <tr><td><b>27–34</b></td><td>Reread what you missed, then continue.</td></tr>
+    <tr><td><b>19–26</b></td><td>Do the project's Stage 2. Diagnosing four planted faults fixes most of this.</td></tr>
+    <tr><td><b>Under 19</b></td><td>Reread §§8, 13 and 34. The tiny-fit, the decision procedure and the ladder carry the part.</td></tr>
+  </tbody>
+</table>
+
+<div class="box intuition">
+  <span class="label">The one thing to carry forward</span>
+  <p><b>Diagnose before treating.</b></p>
+  <p>Every remedy in this book treats a specific condition, and applied to the wrong one it moves
+  you backwards while looking like progress. Regularization treats variance and worsens bias.
+  More data treats variance and does nothing for underfitting. A bigger model treats underfitting
+  and worsens overfitting.</p>
+  <p>The instruments that identify the condition are cheap: two error numbers, ten examples, a
+  sorted list of mistakes, five seeds. The discipline is remembering to look before reaching, and
+  the ladder of §34 is that discipline written down so it does not depend on remembering.</p>
+</div>

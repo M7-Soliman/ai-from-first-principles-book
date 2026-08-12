@@ -1,0 +1,144 @@
+<h2><span class="part-kicker">Part F</span>Closing</h2>
+
+<p class="mvt">The last five sections of this part. What remains genuinely unknown, how to
+hold that honestly, what to carry forward from everything before this point, and where this
+part's own thread leads next.</p>
+
+<h3><span class="num">§41</span> What is genuinely unknown</h3>
+
+<p>It is worth separating three kinds of not-knowing, because they are routinely conflated and
+they call for different responses.</p>
+
+<div class="box shapes">
+  <span class="label">Three kinds, and what each one licenses</span>
+  <p><b>Not yet measured.</b> Somebody could run the experiment tomorrow. Most of what this book
+  presents as open is of this kind, and the correct response is to run it: several of this part's
+  drills are exactly that.</p>
+  <p><b>Not currently measurable.</b> The experiment is not available: the quantity has no agreed
+  operationalisation (Part XX §43), or measuring it requires capability we do not have, or the
+  failure is too rare to observe (§27). The correct response is to say so, and to resist the
+  substitution of a measurable proxy for the thing you cannot measure, which is §18's whole
+  subject.</p>
+  <p><b>Not settled by evidence at all.</b> How much weight to put on an irreversible harm; whose
+  interests count; what the acceptable failure rate is. These are not empirical, and dressing them
+  as technical questions is a way of removing them from the people entitled to decide them.</p>
+</div>
+
+<div class="box why">
+  <span class="label">The specific list, for this part's subject</span>
+  <p>Whether interpretability scales: every method in movements A and B was demonstrated on
+  systems small enough to have a ground truth, which is exactly the regime where you do not need
+  them. Whether the features a dictionary finds are the model's features or the dictionary's.
+  Whether oversight can be made to work when the overseer is weaker than the system. What fraction
+  of a model's behaviour any current method actually accounts for: the honest answer is a small
+  one, and it is rarely stated.</p>
+  <p>None of these is rhetorical. Each is a research programme with people working on it, and each
+  could look different in five years.</p>
+</div>
+
+<h3><span class="num">§42</span> How to reason under this uncertainty</h3>
+
+<div class="box intuition">
+  <span class="label">Four habits, all of them used throughout this book</span>
+  <p><b>Separate the measurement from the interpretation.</b> Figure 4 measures that heavy-tailed
+  proxy error destroys the objective under selection. That mode collapse happens is a measurement;
+  that the loss function causes it is an interpretation, and Part XVI found it to be the wrong one.
+  Keep the two in different sentences and you will be wrong less often, and recoverably.</p>
+  <p><b>Say what would change your mind, in advance.</b> Before running the experiment, write down
+  which outcome supports which conclusion. This is the only reliable defence against the
+  after-the-fact story, and the failure to do it is why so much of the literature this book cites
+  did not replicate.</p>
+  <p><b>Prefer the intervention to the correlation.</b> Figure 2 is the whole argument: a probe
+  finds what is present, an ablation finds what is used, and only the second is a claim about the
+  mechanism. This generalises far beyond interpretability.</p>
+  <p><b>State the uncertainty at the size it is.</b> Not larger, which is a way of avoiding
+  commitment, and not smaller, which is the more common failure. §27's arithmetic is the model:
+  a clean run of a thousand evaluations is real evidence, it is just much weaker evidence than it
+  feels like.</p>
+</div>
+
+<h3><span class="num">§43</span> What to carry forward</h3>
+
+<p>Twenty-one parts and hundreds of pages stand behind this point, and the great majority of it is
+detail that you will look up rather than remember. What should survive is smaller.</p>
+
+<div class="box def">
+  <span class="label">The five that were load-bearing</span>
+  <p>Stated at the front of the book, and every part since has been an application of them. The
+  chain rule (Part 0 §17): backpropagation is not analogous to it, it is it. A matrix mixes its
+  columns (Part I §4). Eigenvectors are the natural axes (Part I §17). Logs turn products into sums
+  (Part 0 §11). Training minimises a divergence (Part II §26). Nothing in the twenty parts between
+  that opening and this one required a sixth.</p>
+</div>
+
+<div class="box def">
+  <span class="label">The five the practice taught</span>
+  <p><b>The bottleneck is rarely where the theory says.</b> Generation is limited by memory
+  bandwidth, not arithmetic (XIX). Training is limited by data, not parameters (XVII §12). Projects
+  fail on data, not on architecture (XIII).</p>
+  <p><b>A phenomenon being real does not make its standard explanation right.</b> Mode collapse is
+  real and is not caused by the loss form (XVI). Emergence is real in the metric and not in the
+  model (XVII). Probes read real information the network does not use (this part, §7). This
+  happened often enough across the book to be a rule rather than an anecdote.</p>
+  <p><b>Measure the thing, not the proxy for it.</b> Time, not FLOPs (XIX §1). Held-out
+  performance, not training loss (VI). True objective, not proxy reward (§18). The substitution is
+  always locally reasonable and is where most wrong conclusions enter.</p>
+  <p><b>The winner of a search is biased upward.</b> Model selection (XIV §20), benchmark leaders
+  (XX §41), best-of-<span class="m">$n$</span> against a learned reward (§18). One piece of
+  arithmetic, three places it costs you.</p>
+  <p><b>What you cannot measure still exists.</b> Rare failures (§27), unanticipated failure modes
+  (§35), the fraction of behaviour no interpretability method reaches (§41). Absence of a
+  measurement is not a measurement of absence, and systems get deployed on the confusion between
+  them.</p>
+</div>
+
+<h3><span class="num">§44</span> Where to go next</h3>
+
+<p>Inside the book, the most direct continuation is immediate. Movement B built activation
+patching and ablation as interventions without ever formalising what an intervention licenses you
+to conclude about a cause; Part XXII supplies exactly that foundation, and opens by saying so.
+Outside the book, three honest paths are open, and none of them requires waiting for the next
+part.</p>
+
+<div class="box try">
+  <span class="label">Three honest paths, and what each requires</span>
+  <p><b>Build.</b> The projects in this book are deliberately small. Take one to a scale
+  where it breaks (a real dataset, real users, a real latency budget) and the parts of Part XIII
+  and Part XIX that read as caution will convert into experience. This is the path where the book's
+  value compounds fastest.</p>
+  <p><b>Read the frontier.</b> The reading list places each paper where its idea is
+  developed, and Part XIV's methodology is what lets you read a new one critically instead of
+  credulously. Start from the papers this part cites: they are the ones whose conclusions are least
+  settled, which makes them the ones where a careful reader can still contribute.</p>
+  <p><b>Go deeper on the mathematics.</b> This book took the shortest honest path from arithmetic
+  to the frontier, which meant leaving measure-theoretic probability, convex analysis, and
+  information geometry at the level each result needed. If the derivations were the parts you
+  enjoyed, that is the direction, and Part 0's reading list is the entry.</p>
+  <p>None of these is the serious one and the others less so. They suit different people, and the
+  book was written to leave all three open.</p>
+</div>
+
+<h3><span class="num">§45</span> What is left standing</h3>
+
+<p>The book began with arithmetic: with why <span class="m">$\log$</span> turns products into
+sums, and what a derivative is. This part ends with a field that cannot yet say what its own
+systems are computing. That distance is not a gap in the exposition. It is the actual state of the
+subject, and the honest thing a textbook can do is walk it without smoothing it over.</p>
+
+<p>What has been argued throughout is that the two ends are continuous. There is no point where
+the mathematics stops and something else begins. A transformer is matrix multiplication and the
+chain rule; scaling laws are curve fits with confidence intervals; alignment is optimisation
+against a specification that is wrong in ways you can partly measure; interpretability is linear
+algebra applied to activations, with all of linear algebra's limits intact. The field's genuine
+difficulty is not that it left the mathematics behind. It is that we can build systems whose
+behaviour we can measure far better than we can explain, and every part of this book has tried
+to be precise about which of those two it was doing at the time.</p>
+
+<div class="sixty">
+  <span class="label">Sixty seconds</span>
+  <p>Measure what you claim. Say how you measured it. State the uncertainty at its real size. When
+  the measurement contradicts the explanation you liked, keep the measurement. That discipline is
+  the whole method of this book, it is what produced every result in it that was worth having, and
+  it is the only part that will still be correct when the specific architectures here are of
+  historical interest.</p>
+</div>

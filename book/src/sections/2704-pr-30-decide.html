@@ -1,0 +1,223 @@
+<h2><span class="part-kicker">Part C</span>Deciding what to do next</h2>
+
+<h3><span class="num">§13</span> The decision procedure</h3>
+
+<div class="sixty">
+  <span class="label">In 60 seconds</span>
+  <p>Look at the training error first. If it is bad, more data cannot possibly help: you are not
+  using the data you have. Only if training performance is acceptable and test performance is
+  not does gathering more data become the right move, and then the question is how much.</p>
+</div>
+
+<div class="box def">
+  <span class="label">The procedure, in order</span>
+  <p><b>1. Is training performance acceptable?</b></p>
+  <p>If <b>no</b>: the algorithm is not using the data it has. More data is pointless. In order:
+  run §8's tiny-dataset test to rule out a bug; increase capacity (wider, deeper); tune the
+  optimiser, learning rate first; and if a large well-tuned model still cannot fit, suspect the
+  <b>data</b>: too noisy, or missing the inputs needed to predict the output. That last case
+  means starting over with better features or cleaner labels, and it is worth reaching rather
+  than avoiding.</p>
+  <p><b>2. Is test performance acceptable?</b></p>
+  <p>If <b>yes</b>: stop. §2's target existed for this moment.</p>
+  <p>If <b>no</b>, and there is a gap: this is variance. In order of cost: regularize harder
+  (Part VIII §22's ordering), reduce capacity, then gather more data. Gathering is usually the
+  most effective and often the most expensive, so decide with §14 rather than by instinct.</p>
+</div>
+
+<div class="box why">
+  <span class="label">Why the first question comes first</span>
+  <p>It is the question that eliminates the largest number of expensive wrong turns, and it costs
+  one number you already have.</p>
+  <p>The most common expensive mistake in applied work is collecting more data for a model that
+  is underfitting. It cannot help: by definition the model is failing to use what it already
+  has, and the collection takes months. Part VI §6's diagnosis prevents it, and this is the same
+  diagnosis stated as a decision rule.</p>
+</div>
+
+<h3><span class="num">§14</span> Learning curves, and how far they extrapolate</h3>
+
+<p>Having decided data might help, the next question is how much. This is answerable rather than
+guessable.</p>
+
+<div class="box def">
+  <span class="label">Measuring the curve</span>
+  <p>Train on 10%, 20%, 40%, 80% and 100% of what you have, and plot test error against
+  training-set size on log–log axes.</p>
+  <p><b>Use a logarithmic scale</b>, doubling between points. Adding 5% more data changes nothing
+  measurable, so a linear sweep produces a flat line and a wasted afternoon.</p>
+</div>
+
+<figure>
+  <img src="figures/pd/04-learning-curve.svg" alt="Test error against training set size with a power law fitted to the first four points, and the ratio of measurement to extrapolation">
+  <figcaption><b>Figure 4.</b> Test error against training-set size, four seeds per point, on a
+  problem with a real noise floor. A power law fitted to the <b>first four points only</b>
+  extrapolates the rest. It predicts 0.370 at 5,760 points where the measurement is <b>0.302</b>:
+  <b>pessimistic by a factor of 1.23</b>. Right: the ratio, which drifts away from one as soon
+  as the fitting region ends. <b>These are one training run's digits</b>: a different machine
+  trains different weights and refits the power law on different noise, which moves the specific
+  factor by something on the order of a percentage point of test error. What has reproduced on
+  every independent rerun measured is the <i>direction</i>: the extrapolation from the fitting
+  region comes out pessimistic once it leaves it, not the exact 1.23.</figcaption>
+</figure>
+
+<div class="box why">
+  <span class="label">Why to fit it and why not to trust it far</span>
+  <p>Test error against dataset size is close to a <b>power law</b> over a useful range, a
+  straight line on log–log axes. Fit the slope and you can convert "should we collect more data"
+  from an argument into an estimate: each halving of the error costs a fixed multiple of the
+  corpus, and you can read the multiple off.</p>
+  <p>The honest caveat is the figure. An extrapolation from the falling region is a statement
+  about a regime you have not measured, and it can be wrong in either direction: here it is
+  pessimistic by 23%, because the curve's shape changed between the fitting region and the far
+  end. It approaches a floor eventually, and where that floor is (Part V §20) is exactly what the
+  extrapolation cannot see.</p>
+  <p>Use it to distinguish "another 30% of data will do nothing" from "ten times the data would
+  halve the error", a decision it answers reliably. Do not use it to promise a specific number
+  at a size you have not reached.</p>
+</div>
+
+<h3><span class="num">§15</span> What each hyperparameter does</h3>
+
+<p>Manual tuning is worth doing well, and doing it well means knowing which direction each knob
+moves effective capacity.</p>
+
+<div class="box def">
+  <span class="label">Effective capacity has three constraints</span>
+  <p>Part VI §6's capacity, sharpened into something you can act on. Effective capacity is
+  limited by:</p>
+  <ol class="tight">
+    <li>The <b>representational</b> capacity: what the architecture can express at all.</li>
+    <li>The <b>optimiser's</b> ability to find a good setting of it (Parts IX, XI, XII).</li>
+    <li>The <b>regularization</b> applied (Part VIII).</li>
+  </ol>
+  <p>A model can underfit for any of the three, and the remedies are entirely different. That is
+  the whole reason §13 begins where it does.</p>
+</div>
+
+<div class="box def">
+  <span class="label">The knobs, by direction</span>
+  <table class="compact">
+    <thead><tr><th>Raise this</th><th>Effective capacity</th><th>Note</th></tr></thead>
+    <tbody>
+      <tr><td>Width, depth</td><td>Up</td><td>The most direct route, and it costs compute</td></tr>
+      <tr><td>Learning rate</td><td><b>Both</b></td><td>Too low <i>and</i> too high both underfit:
+      the only knob that is not monotone, and the first to tune</td></tr>
+      <tr><td>Weight decay, dropout</td><td>Down</td><td>Part VIII; their strengths add</td></tr>
+      <tr><td>Training steps</td><td>Up</td><td>Early stopping is a capacity control</td></tr>
+      <tr><td>Batch size</td><td>Mixed</td><td>Smaller batches add gradient noise, which
+      regularizes (Part IX §5)</td></tr>
+    </tbody>
+  </table>
+  <p>The learning rate row is why every guide says to tune it first. It is the only one where
+  both directions produce the same symptom, so a model underfitting because the rate is too high
+  looks exactly like one underfitting because it is too low, and Part IX §13's pitfall says the
+  rate that looks best after a hundred steps is not the best rate.</p>
+</div>
+
+<p>Not every regularization knob reaches all the way to the overfitting arm the table implies.
+Weight decay has a floor at zero: beyond it there is no further capacity to add, only the raw
+architecture's own. A binary switch (dropout applied or not, weight tying on or off) has
+exactly two settings and nothing between them to tune. And a unit count is discrete, so it can
+undershoot or overshoot the boundary between under- and overfitting without ever landing on it.
+These knobs
+can only <b>subtract</b> capacity from the ceiling the architecture sets; raising the ceiling
+itself is the representational or optimiser constraint above, not the regularization one.</p>
+
+<h3><span class="num">§16</span> Grid, random, and why random wins</h3>
+
+<div class="readnow"><span class="label">Go and read</span><p><span class="src">Bergstra &amp; Bengio (2012)</span>, <i>Random search for hyper-parameter optimization</i>. The paper behind Figure 5, and one of the highest value-per-page results in the field: a method that is simpler, cheaper and better, argued from the observation that only a few hyperparameters matter and you do not know which. Their Figure 1 is the right panel of ours and it is the whole argument.</p></div>
+
+<p>The standard automatic method is a grid: pick a few values per hyperparameter and try every
+combination. It is worse than sampling at random, and the reason is worth understanding rather
+than memorising.</p>
+
+<figure>
+  <img src="figures/pd/05-search.svg" alt="Best objective found by grid and random search against dimensionality, and the coverage of each in two dimensions">
+  <figcaption><b>Figure 5.</b> A budget of 64 trials on an objective where <b>one</b>
+  hyperparameter matters and the rest barely do. Left: as the number of hyperparameters grows,
+  grid search degrades sharply and random search barely moves: at eight, random is better by a
+  factor of <b>81</b>. Right: why. Sixty-four grid points in two dimensions test only <b>8</b>
+  distinct values of the axis that matters; sixty-four random points test 64.</figcaption>
+</figure>
+
+<div class="box why">
+  <span class="label">Why the right panel is the whole argument</span>
+  <p>A grid over $m$ hyperparameters with $n$ values each costs $n^m$ trials: exponential, which
+  is the usual objection and not the important one.</p>
+  <p>The important one is that a grid spends its trials on <b>repeats of the dimension that
+  matters</b>. Every one of the 8 columns in the right panel is tested 8 times, at 8 values of a
+  hyperparameter that changes nothing. Those are 8 experiments returning the same answer.</p>
+  <p>Random search never repeats a value, so all 64 trials are 64 distinct probes of every
+  dimension including the one that matters. Since in practice only a few hyperparameters
+  dominate (and you do not know in advance which), this is the right bet nearly always.</p>
+  <p>Two practical notes. <b>Sample on a log scale</b> for anything positive and scale-free:
+  draw $\log_{10}\eta \sim U(-5, -1)$, not $\eta \sim U(10^{-5}, 10^{-1})$, which would put 90%
+  of its samples in the top decade. And <b>do not discretise</b>: binning gives back grid
+  search's defect for no benefit.</p>
+</div>
+
+<h3><span class="num">§17</span> Spending the budget where the evidence is</h3>
+
+<div class="readnow"><span class="label">Go and read</span><p><span class="src">Li et al. (2018)</span>, <i>Hyperband: a novel bandit-based approach to hyperparameter optimization</i>. Successive halving with the aggressiveness hedged, framed as a bandit problem rather than an optimisation one, which is the reframing that makes the analysis work. Then <span class="src">Falkner, Klein &amp; Hutter (2018)</span> on BOHB, which combines it with a surrogate model and is the honest answer to §18's objection.</p></div>
+
+<p>Grid and random both run every configuration to completion. That is obviously wasteful: a
+human watching the curves would kill the hopeless ones after a few epochs, and it can be
+automated.</p>
+
+<div class="box def">
+  <span class="label">Successive halving</span>
+  <p>Start $n$ configurations with a small budget each. Evaluate, keep the best half, double the
+  budget, repeat. Total spend is roughly $n\log n$ epoch-equivalents rather than $n$ full runs,
+  so the same total budget starts <b>many more</b> configurations.</p>
+  <p><b>Hyperband</b> wraps this to hedge the one free parameter (how aggressively to cut) by
+  running several halving schedules with different starting widths. <b>ASHA</b> makes it
+  asynchronous, promoting a configuration as soon as it qualifies rather than waiting for a
+  round to finish, which is what you want on a cluster.</p>
+</div>
+
+<figure>
+  <img src="figures/pd/06-halving.svg" alt="Regret of random search and successive halving against total budget">
+  <figcaption><b>Figure 6.</b> Sixty-four configurations, and the regret, how far the chosen one
+  falls short of the best available. At small budgets the two are <b>identical</b>, because
+  halving has not had room for even one elimination round. From budget 256 the gap opens: at 512
+  the regret is <b>0.027 against 0.047</b>, a factor of 1.74.</figcaption>
+</figure>
+
+<div class="box why">
+  <span class="label">Why it wins, and the assumption it rests on</span>
+  <p>The mechanism is not that halving evaluates better. It is that <b>eliminating early frees
+  budget to start more configurations</b>, and the dominant factor in a search is usually how
+  many distinct settings you got to try.</p>
+  <p>The assumption is that early performance predicts final performance. That is usually true
+  and not always: a configuration with a long warmup, a low learning rate, or a schedule that
+  pays off late can look bad early and win eventually. Halving will kill it.</p>
+  <p>Which is why the figure's left end matters. At small budgets halving is not better: it is
+  <b>the same</b>, because there is no room to eliminate. Reporting only the right end would make
+  it look uniformly superior, and it is not.</p>
+</div>
+
+<h3><span class="num">§18</span> Model-based search, honestly</h3>
+
+<p>The natural next step is to model the objective. Fit a surrogate (usually a Gaussian process)
+to the validation scores you have, and propose the configuration that best trades expected
+improvement against uncertainty. Bayesian optimisation.</p>
+
+<div class="box why">
+  <span class="label">Why the honest verdict has not changed much</span>
+  <p>It sometimes matches a human expert, sometimes beats one, and sometimes fails badly. A
+  decade after the standard implementations appeared it is used, and it has not displaced random
+  search as the default the way its asymptotics suggest it should have.</p>
+  <p>Two structural reasons. It has <b>its own hyperparameters</b> (the kernel, the acquisition
+  function, the priors), and while these are easier to set than the ones being searched, the
+  regress is real. And in its basic form it requires each trial to <b>run to completion</b>
+  before it learns anything, which throws away the information a human uses most: that a run is
+  obviously going nowhere after two epochs.</p>
+  <p>That second objection is what §17 addresses, and combining the two (a surrogate model with
+  early stopping, as in BOHB) is the current state of the art and a genuine improvement on
+  either alone.</p>
+  <p>The practical advice, which has aged well: <b>random search is the default</b>, successive
+  halving when trials are expensive and early signal is trustworthy, and model-based methods when
+  you have many trials and a good reason. Do not reach for the sophisticated tool first, and note
+  that §20 is about a hazard that gets <i>worse</i> the more configurations any of them try.</p>
+</div>

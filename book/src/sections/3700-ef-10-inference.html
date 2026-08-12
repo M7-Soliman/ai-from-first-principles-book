@@ -1,0 +1,147 @@
+<h2><span class="part-kicker">Part A</span>The inference problem</h2>
+
+<h3><span class="num">§1</span> What changes</h3>
+
+<div class="sixty">
+  <span class="label">In 60 seconds</span>
+  <p>Training is a one-off; serving recurs for the life of the system, and its cost scales with
+  traffic rather than with the corpus. The constraint also changes: training is limited by
+  <b>arithmetic</b> and generation is limited by <b>memory bandwidth</b>, which is why most of the
+  intuitions from Part XVII invert here.</p>
+</div>
+
+<div class="box def">
+  <span class="label">Three quantities that were one quantity during training</span>
+  <p><b>Latency</b>: how long one request takes. <b>Throughput</b>: how many requests per second the
+  system completes. <b>Cost per token</b>: what it costs to serve.</p>
+  <p>They trade against each other, and a system tuned for one is usually bad at another. Batching
+  raises throughput and raises latency. A smaller model lowers both and answers worse. §5 is the
+  frontier and §44 is how to price a point on it.</p>
+</div>
+
+<h3><span class="num">§2</span> Two regimes, not one</h3>
+
+<div class="box def">
+  <span class="label">Prefill and decode</span>
+  <p><b>Prefill</b> processes the prompt: every token at once, in parallel, one pass. It is a large
+  matrix multiply and it behaves like training.</p>
+  <p><b>Decode</b> generates the response: one token at a time, each depending on the last
+  (Part XVI §11). Every step reads the entire model to produce a single token.</p>
+  <p>These have different bottlenecks, different optimisations and different cost models, and
+  conflating them is the most common error in reasoning about serving. A 2,000-token prompt and a
+  200-token answer are not "2,200 tokens of work"; they are one parallel pass and two hundred
+  sequential ones.</p>
+</div>
+
+<h3><span class="num">§3</span> Arithmetic intensity</h3>
+
+<div class="readnow"><span class="label">Go and read</span><p><span class="src">Williams, Waterman &amp; Patterson (2009)</span>, <i>Roofline: an insightful visual performance model for multicore architectures</i>. The paper this section's whole argument is drawn from, and the source of the name. Read it for the ridge point itself (the claim that below it, no amount of arithmetic optimisation moves performance and only bandwidth does), which is why the rest of this part spends its effort on bytes rather than FLOPs.</p></div>
+
+<figure>
+  <img src="figures/ef/01-roofline.svg" alt="A roofline plot with prefill and decode marked, and the fraction of peak compute reachable against tokens per weight load">
+  <figcaption><b>Figure 1.</b> A 7-billion-parameter model in bf16 moves <b>14 GB</b> of weights per
+  forward pass whatever it is computing. Generating one token at a time has an arithmetic intensity
+  of <b>1 FLOP per byte</b> against a hardware ridge point of <b>500</b>, so it reaches <b>0.2%</b>
+  of the machine's compute. Only past 512 tokens per weight load does the hardware become the
+  limit. The ridge point assumes a representative datacentre GPU (peak ~1 PFLOP/s, bandwidth
+  ~2 TB/s); your hardware's ridge will differ, and the exercise is the arithmetic, not the
+  number.</figcaption>
+</figure>
+
+<div class="box def">
+  <span class="label">The one number that explains this part</span>
+  <p><b>Arithmetic intensity</b> is FLOPs performed per byte moved from memory. Hardware has a
+  <b>ridge point</b>, its peak compute divided by its memory bandwidth, and an operation below it
+  is <b>memory-bound</b>: the arithmetic units idle while data arrives.</p>
+  <p>Generating one token requires reading every weight once and doing two FLOPs with each. That is
+  an intensity of 1, against a ridge of several hundred. The machine is running at a fraction of a
+  per cent of its arithmetic capability and there is nothing wrong with it.</p>
+</div>
+
+<div class="box why">
+  <span class="label">Why this reorganises everything that follows</span>
+  <p>If decoding is memory-bound, then <b>reducing bytes moved is the only thing that speeds it
+  up</b>, and reducing FLOPs does nothing at all.</p>
+  <p>That single consequence explains the shape of this part. Quantization helps because it moves
+  fewer bytes (§8): the arithmetic savings are incidental. Unstructured sparsity does not help
+  because it removes FLOPs without removing bytes (§20). Batching helps enormously because it reuses
+  each weight read across many sequences (§38). Speculative decoding helps because it produces
+  several tokens per weight load (§40).</p>
+  <p>Every one of those follows from Figure 1 rather than from anything about the methods.</p>
+</div>
+
+<h3><span class="num">§4</span> The KV cache</h3>
+
+<figure>
+  <img src="figures/ef/02-kv-cache.svg" alt="KV cache size against context length for three attention variants with the model weights marked, and concurrent sequences that fit in a device">
+  <figcaption><b>Figure 2.</b> Exact arithmetic for a 7B model with 32 layers and 32 heads. The
+  cache reaches the size of the weights at about <b>26,600 tokens</b> of context. On an 80 GiB
+  device at 64k context, multi-head attention leaves room for <b>2</b> concurrent sequences and
+  multi-query for <b>67</b>.</figcaption>
+</figure>
+
+<div class="box def">
+  <span class="label">What it is and what it costs</span>
+  <p>Attention needs the keys and values of every previous position. Recomputing them each step
+  would make generation quadratic, so they are cached, and the cache is</p>
+  <p>$$2 \times \text{batch} \times \text{tokens} \times \text{layers} \times
+  n_{\text{kv}} \times d_{\text{head}} \times \text{bytes}$$</p>
+  <p>Linear in context and in batch, which is what makes it the binding constraint: the weights are
+  a fixed cost and the cache grows with the traffic you are trying to serve.</p>
+</div>
+
+<div class="box why">
+  <span class="label">Why attention variants exist</span>
+  <p>Part XII introduced grouped-query and multi-query attention as architectural choices. Figure 2
+  is the reason they were adopted, and it is not about quality.</p>
+  <p><b>Multi-query</b> shares one key–value head across all query heads, dividing the cache by the
+  head count. <b>Grouped-query</b> shares among groups, which is the compromise that lost less
+  quality. The factor of 32 in the figure is the factor of 32 in concurrent users, and that is a
+  serving-cost decision made in the architecture months earlier.</p>
+  <p>This is worth noticing as a pattern: several choices presented as architecture in Part XII were
+  in fact inference-cost decisions. A model is designed for how it will be served.</p>
+</div>
+
+<h3><span class="num">§5</span> Latency against throughput</h3>
+
+<div class="box def">
+  <span class="label">The frontier</span>
+  <p>A larger batch amortises each weight read over more sequences, so throughput rises, until the
+  arithmetic saturates (§3) or the cache runs out of memory (§4). Meanwhile each individual request
+  waits longer.</p>
+  <p>The two useful latency numbers are <b>time to first token</b>, set by prefill, and <b>time per
+  output token</b>, set by decode. A chat interface cares about the first and about the second being
+  faster than reading speed; a batch job cares about neither and only about throughput. These want
+  different systems, and running both on one is a decision worth making explicitly.</p>
+</div>
+
+<h3><span class="num">§6</span> The cost model</h3>
+
+<div class="box def">
+  <span class="label">Arithmetic you can do before choosing anything</span>
+  <p>Inference costs about <b>$2N$ FLOPs per token</b> (Part XVII §37's figure, without the
+  backward pass). But §3 says FLOPs are not the binding constraint during decode, so the more useful
+  estimate is bandwidth-based:</p>
+  <p>$$\text{time per decode step} \approx
+  \frac{N \times \text{bytes per weight} \;+\; \text{cache bytes read}}
+  {\text{memory bandwidth}}$$</p>
+  <p>which predicts tokens per second from the model size and the hardware, with no benchmarking.
+  It is usually accurate to within a factor of two, and the gap is the thing worth investigating.</p>
+</div>
+
+<h3><span class="num">§7</span> What follows</h3>
+
+<div class="box def">
+  <span class="label">Four ways to make it cheaper, by what they change</span>
+  <table class="compact">
+    <thead><tr><th>Approach</th><th>Changes</th><th>Helps because</th></tr></thead>
+    <tbody>
+      <tr><td><b>Quantization</b></td><td>bytes per weight</td><td>fewer bytes moved (§3)</td></tr>
+      <tr><td><b>Pruning</b></td><td>number of weights</td><td>only if the zeros are structured (§20)</td></tr>
+      <tr><td><b>Distillation</b></td><td>the model</td><td>a genuinely smaller model</td></tr>
+      <tr><td><b>Serving</b></td><td>how work is scheduled</td><td>more tokens per weight load (§38)</td></tr>
+    </tbody>
+  </table>
+  <p>And one that is not about cost at all: <b>adaptation</b> (movement E), which is about making
+  fine-tuning and serving many variants affordable rather than making any one of them faster.</p>
+</div>

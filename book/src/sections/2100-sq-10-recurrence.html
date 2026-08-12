@@ -1,0 +1,242 @@
+<h2><span class="part-kicker">Part A</span>The recurrence</h2>
+
+<h3><span class="num">§1</span> What a sequence needs that a fixed input does not</h3>
+
+<div class="sixty">
+  <span class="label">In 60 seconds</span>
+  <p>A dense layer has a fixed input size, so it cannot accept a sentence. Padding to a
+  maximum length wastes capacity and caps you at that length. And a model with separate
+  parameters per position learns "the word <i>not</i> at position 3" independently from "the
+  word <i>not</i> at position 40", which is the same waste Part X §1 objected to, one axis
+  over.</p>
+</div>
+
+<p>Part X opened by asking what is wrong with a dense layer on an image. Ask the same question
+about a sentence and you get a different answer, worse in one specific way.</p>
+
+<p>Images at least have a fixed size, or can be resized to one. Sequences genuinely do not. A
+sentence is four words or four hundred; a recording is a second or an hour; and there is no
+resize operation that preserves what matters. So the first problem is not efficiency. It is
+that <b>a fixed weight matrix cannot be applied to a variable-length input at all.</b></p>
+
+<p>The obvious workarounds each fail in a way worth naming, because each failure motivates a
+piece of what follows.</p>
+
+<div class="box def">
+  <span class="label">Three things that do not work</span>
+  <p><b>Pad to a maximum length.</b> Now every input is a fixed-size vector and a dense layer
+  applies. But you have capped the model at that length, you pay for the maximum on every
+  example, and (the real objection) the model has a separate parameter for each position,
+  so nothing it learns about position 3 transfers to position 40.</p>
+  <p><b>Use a fixed window.</b> Look at the last $k$ items. This is an $n$-gram model, and it
+  works surprisingly well until the dependency you need is $k+1$ steps back. There is no $k$
+  that is safe: the pronoun and its antecedent can be arbitrarily far apart.</p>
+  <p><b>Convolve over time.</b> Part X's machinery applies directly, and 1-D convolution over a
+  sequence is a real and useful model (Part X §30). It shares parameters across positions and
+  handles variable lengths. What it cannot do is carry information an <b>unbounded</b> distance:
+  its reach is set by depth and dilation, and Part X §10 measured how slowly that reach grows.</p>
+</div>
+
+<p>What is wanted is a model that reads one item at a time and maintains a <b>summary</b> of
+everything it has seen, a fixed-size vector that it updates with the same rule at every step.
+Then length is not a parameter of the model at all.</p>
+
+<h3><span class="num">§2</span> Unfolding</h3>
+
+<div class="readnow"><span class="label">Go and read</span><p><span class="src">Elman (1990)</span>, <i>Finding structure in time</i>. Where the recurrent network as we use it begins, and it is unusually readable: Elman is arguing that time should be represented <i>implicitly</i>, by the effect it has on processing, rather than explicitly as another input dimension. That framing is the whole of §2, and it was not obvious at the time.</p></div>
+
+<p>Start with the general form, which is older than neural networks and covers all of them.
+A dynamical system with state $\mathbf{s}$:</p>
+
+$$\mathbf{s}^{(t)} = f\big(\mathbf{s}^{(t-1)}; \boldsymbol{\theta}\big)$$
+
+<p>This is <b>recurrent</b> in the literal sense: the definition of $\mathbf{s}$ at time $t$
+refers to the same definition at $t-1$. For a finite number of steps you can substitute
+repeatedly and eliminate the recurrence:</p>
+
+$$\mathbf{s}^{(3)} = f(\mathbf{s}^{(2)}; \boldsymbol{\theta})
+= f\big(f(\mathbf{s}^{(1)}; \boldsymbol{\theta}); \boldsymbol{\theta}\big)$$
+
+<p>which is an ordinary expression, with no self-reference, and therefore an ordinary
+computational graph of the kind Part VII §12 built. That substitution is called
+<b>unfolding</b>, and it is the whole trick: it turns a loop into a feedforward network, at
+which point everything already derived applies unchanged.</p>
+
+<p>Add an input and rename the state $\mathbf{h}$, for hidden:</p>
+
+$$\mathbf{h}^{(t)} = f\big(\mathbf{h}^{(t-1)}, \mathbf{x}^{(t)}; \boldsymbol{\theta}\big)$$
+
+<div class="box intuition">
+  <span class="label">Intuition: the state is a lossy summary, and lossy is the point</span>
+  <p>$\mathbf{h}^{(t)}$ has a fixed size and the sequence up to $t$ does not. So the map from
+  history to state <b>must</b> discard information: it is compressing an arbitrarily long
+  input into a fixed vector, and no amount of cleverness escapes that.</p>
+  <p>Which is fine, and is what you want, because most of the history is irrelevant. A language
+  model predicting the next word does not need to reconstruct the paragraph; it needs whatever
+  about the paragraph bears on the next word. The training objective decides what survives.</p>
+  <p>The demanding case is when you <i>do</i> need to recover the input, an autoencoder over
+  sequences, and that is where the fixed size starts to hurt. Hold that thought: §27 is
+  exactly this problem, and it is where the part ends.</p>
+</div>
+
+<h3><span class="num">§3</span> What sharing across time buys</h3>
+
+<p>Unfolding yields a graph whose size depends on the sequence length. What does <i>not</i>
+depend on the sequence length is the parameters, because the same $f$ with the same
+$\boldsymbol{\theta}$ is applied at every step. That has two consequences, and the second is
+the one people underrate.</p>
+
+<div class="box def">
+  <span class="label">The two advantages of unfolding</span>
+  <p><b>1. The model has a fixed input size</b>, because it is specified as a transition from
+  one state to the next rather than as a function of a variable-length history.</p>
+  <p><b>2. The same transition function is used at every step.</b> So there is one model to
+  learn rather than one per time index, which means it can be estimated from far less data,
+  and it <b>generalises to lengths that never appeared in training</b>.</p>
+</div>
+
+<figure>
+  <img src="figures/sq/01-unfolding.svg" alt="Parameter counts against sequence length for an RNN, an unshared model and a full joint table">
+  <figcaption><b>Figure 1.</b> Three ways to model a length-$\tau$ sequence, with a
+  64-dimensional state, a scalar input and a 10-way output vocabulary: $U$, $W$, $V$, $b$ and
+  $c$ counted, matching §3's drill exactly. At $\tau = 20$: the RNN needs <b>4,874</b>
+  parameters, the same architecture with separate weights per step needs 97,480, and a full
+  joint probability table needs $10^{20}$. The table reaches the atom count of the observable
+  universe at a sequence of <b>80 tokens</b>, shorter than this caption. Right: sharing alone,
+  compared like for like, saves a factor of exactly $\tau$.</figcaption>
+</figure>
+
+<p>The right panel is the honest comparison, and the left one is the interesting one. Against
+an unshared model, sharing saves a factor of $\tau$, real but unremarkable. Against a
+<b>full joint distribution</b>, which is what you would need to model the sequence with no
+structural assumption at all, it is the difference between possible and impossible. §7 makes
+that comparison precise.</p>
+
+<h3><span class="num">§4</span> The recurrent network</h3>
+
+<p>Now commit to a specific $f$. The standard choice, with $\tanh$ hidden units and a softmax
+output:</p>
+
+$$\begin{aligned}
+\mathbf{a}^{(t)} &= \mathbf{b} + W\mathbf{h}^{(t-1)} + U\mathbf{x}^{(t)} \\
+\mathbf{h}^{(t)} &= \tanh\big(\mathbf{a}^{(t)}\big) \\
+\mathbf{o}^{(t)} &= \mathbf{c} + V\mathbf{h}^{(t)} \\
+\hat{\mathbf{y}}^{(t)} &= \text{softmax}\big(\mathbf{o}^{(t)}\big)
+\end{aligned}$$
+
+<p>Three weight matrices, and it is worth naming them by what they connect rather than by
+letter: $U$ is <b>input to hidden</b>, $W$ is <b>hidden to hidden</b>, $V$ is <b>hidden to
+output</b>. Everything difficult in this part is a fact about $W$, because $W$ is the one that
+gets applied repeatedly.</p>
+
+<p>The loss is the sum over steps, which by Part II §26 is the negative log-likelihood of the
+whole sequence:</p>
+
+$$L = \sum_t L^{(t)} = -\sum_t \log p_{\text{model}}\big(y^{(t)} \mid \mathbf{x}^{(1)},\ldots,\mathbf{x}^{(t)}\big)$$
+
+<div class="box why">
+  <span class="label">Why this model is Turing complete, and why that does not help</span>
+  <p>A recurrent network of this form, with hidden-to-hidden recurrence, can compute any
+  function a Turing machine can. One specific finite network suffices for all of them:
+  886 units, in the construction that established it, with the machine's program supplied as
+  input.</p>
+  <p>This is a real theorem and it is worth knowing precisely so you do not over-read it. The
+  proof requires the activations and weights to be <b>rational numbers of unbounded
+  precision</b>, which is how the unbounded stack gets simulated. Float64 is not that.</p>
+  <p>So the result belongs with Part VII §3's universal approximation theorem: it establishes
+  that the model class is not the limitation, and says nothing whatever about whether gradient
+  descent can find the parameters. §14 is about the fact that it usually cannot.</p>
+</div>
+
+<h3><span class="num">§5</span> Three design patterns</h3>
+
+<p>The equations above assume an output at every step and recurrence between hidden units.
+Two other arrangements are common, and the difference between them is not cosmetic.</p>
+
+<div class="box def">
+  <span class="label">Where the recurrence goes, and where the output comes out</span>
+  <p><b>Output each step, hidden-to-hidden recurrence.</b> The model above. The state is free
+  to carry whatever it likes into the future.</p>
+  <p><b>Output at the end only.</b> Read the whole sequence, emit one vector. This is the
+  sequence-to-fixed-size encoder, and it is half of §27's architecture.</p>
+  <p><b>Output-to-hidden recurrence.</b> The only path to the future runs through the
+  <i>output</i> $\mathbf{o}^{(t)}$ rather than the hidden state. Without an extra connection
+  carrying $\mathbf{y}^{(t)}$ into $\mathbf{h}^{(t+1)}$, this factorises the conditional as
+  $P(\mathbf{y} \mid \mathbf{x}) = \prod_t P\big(y^{(t)} \mid \mathbf{x}^{(1)},\ldots,\mathbf{x}^{(t)}\big)$:
+  the outputs are conditionally independent of each other given the input. Adding that
+  connection is what removes the assumption, at the parallelism cost the next box states.</p>
+</div>
+
+<div class="box why">
+  <span class="label">Why output recurrence is strictly weaker, and used anyway</span>
+  <p>With hidden-to-hidden recurrence the network may put <b>anything it finds useful</b> into
+  $\mathbf{h}$ and pass it forward. With output recurrence, the only channel to the future is
+  $\mathbf{o}$, and $\mathbf{o}$ is explicitly trained to match the target. Unless the target
+  happens to contain everything about the past that the future needs, information is lost, and
+  the model cannot simulate a Turing machine.</p>
+  <p>It is used because of what that restriction buys. If the only path forward is through a
+  quantity whose correct value the training set already contains, then <b>every time step
+  decouples</b>: you can compute the gradient at step $t$ without first computing step $t-1$,
+  because the training set supplies what step $t-1$ should have produced. Training parallelises
+  completely.</p>
+  <p>That trade (give up expressiveness, gain parallel training) is worth registering now,
+  because it is precisely the trade Part XII takes to its conclusion. A transformer has no
+  recurrence at all, for exactly this reason.</p>
+</div>
+
+<h3><span class="num">§6</span> Backpropagation through time</h3>
+
+<p>There is no new algorithm here. Unfold the graph, apply Part VII §14's backpropagation, and
+you are done. Applied to the unfolded graph it has a name (<b>backpropagation through
+time</b>, or BPTT), and one piece of the gradient deserves attention before the costs.</p>
+
+<p>The gradient with respect to $W$ is a <b>sum over all time steps</b>. Because the same $W$
+is used at every step, Part VII §14's computation graph has an edge from $W$ to each of the
+$\tau$ uses of $f$. The chain rule accumulates a contribution from each:</p>
+
+$$\frac{\partial L}{\partial W} = \sum_{t=1}^{\tau} \frac{\partial L^{(t)}}{\partial W}$$
+
+<p>where each term $\partial L^{(t)}/\partial W$ itself unfolds backward through all steps up
+to and including $t$. Forgetting the accumulation, computing the gradient at one step only,
+gives a gradient that trains the model to something quieter and worse, and does not obviously
+break. Drill C2 asks you to write this out and gradient-check it, because finding the error
+by inspection is harder than it looks.</p>
+
+<div class="box def">
+  <span class="label">What BPTT costs</span>
+  <p><b>Time is $O(\tau)$ and cannot be parallelised.</b> The forward pass is inherently
+  sequential: $\mathbf{h}^{(t)}$ needs $\mathbf{h}^{(t-1)}$. No amount of hardware removes
+  that dependency.</p>
+  <p><b>Memory is $O(\tau)$.</b> Every state computed on the way forward must be kept until
+  the backward pass reaches it (Part VII §17's activation memory, with the sequence length as
+  the multiplier).</p>
+</div>
+
+<p>For a sequence of ten thousand steps both are prohibitive, and the standard response is to
+stop early: run backpropagation back only $k$ steps and discard the rest. This is
+<b>truncated BPTT</b>, and it is the right thing to do. It is also worth being precise about
+what it does to the gradient, because it is routinely described as if it were another source
+of noise.</p>
+
+<figure>
+  <img src="figures/sq/02-truncated.svg" alt="Relative error and cosine similarity of the truncated gradient against truncation length">
+  <figcaption><b>Figure 2.</b> The truncated gradient compared against the full one, on a
+  60-step recurrence. At $k=1$ the relative error is <b>0.60</b> and the cosine with the true
+  gradient is 0.853; by $k=5$ the cosine is 0.995 and by $k=20$ it is 1.0000 to four decimals.
+  The direction recovers much faster than the magnitude, which is why truncation works at all,
+  and why $k$ in the low tens is usually enough.</figcaption>
+</figure>
+
+<div class="box pitfall">
+  <span class="label">Pitfall: truncation is bias, not noise</span>
+  <p>A minibatch gradient is <b>unbiased</b>: it is the true gradient plus zero-mean noise, so
+  averaging over steps recovers the truth. That is Part IX §5's whole argument.</p>
+  <p>A truncated gradient is not. It is the true gradient with a specific set of terms
+  <b>deleted</b>: every path longer than $k$ steps. Averaging does not bring them back. Run
+  a million steps of truncated BPTT with $k=20$ and you have a million estimates of a
+  systematically wrong quantity.</p>
+  <p>The practical consequence: <b>truncated BPTT cannot learn a dependency longer than its
+  window.</b> Not "learns it slowly": the gradient signal for it is identically absent. If
+  your task has a 500-step dependency and you truncate at 50, no amount of training will find
+  it, and the loss curve will not tell you why.</p>
+</div>

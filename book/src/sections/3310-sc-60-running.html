@@ -1,0 +1,165 @@
+<h2><span class="part-kicker">Part F</span>Running a large job</h2>
+
+<h3><span class="num">§33</span> Batch size, and the critical batch size</h3>
+
+<div class="readnow"><span class="label">Go and read</span><p><span class="src">McCandlish et al. (2018)</span>, <i>An empirical model of large-batch training</i>. The gradient noise scale, and one of the few results in this part with a derivation rather than a fit. It predicts where parallelism stops buying wall-clock, and the prediction is checkable during a run you were going to do anyway.</p></div>
+
+<div class="box def">
+  <span class="label">Why bigger batches stop helping</span>
+  <p>A larger batch gives a less noisy gradient, so a larger step is safe and fewer steps are
+  needed. That holds until the gradient is already accurate enough that removing more noise changes
+  nothing: the <b>critical batch size</b>.</p>
+  <p>Below it, doubling the batch roughly halves the steps: the extra compute is free in wall-clock
+  terms. Above it, doubling the batch costs twice the compute for almost no reduction in steps.
+  Part IX §5's minibatch discussion, with the practical threshold named.</p>
+  <p>The useful estimator is the <b>gradient noise scale</b>: roughly the ratio of the gradient's
+  variance to its squared norm, computable from two batch sizes during a real run. It rises as
+  training proceeds, the gradient gets smaller and relatively noisier, so the critical batch
+  size grows, which is the argument for batch-size schedules that ramp up.</p>
+</div>
+
+<div class="box pitfall">
+  <span class="label">Pitfall: the batch size chosen for the hardware, not the optimiser</span>
+  <p>§22 says data parallelism only stays efficient with enough tokens per device, so large runs
+  want large batches. §33 says past the critical size those tokens are nearly wasted.</p>
+  <p>These pull in opposite directions and the resolution is not to pick one. It is to notice that
+  a batch above the critical size is buying <b>hardware utilisation</b> with <b>sample
+  efficiency</b>, and to say so, because reported as "we trained with a batch of four million
+  tokens" it sounds like an optimisation decision when it was a networking one.</p>
+</div>
+
+<h3><span class="num">§34</span> Hyperparameter transfer</h3>
+
+<div class="box def">
+  <span class="label">The problem, and μP</span>
+  <p>The best learning rate depends on model size, so a hyperparameter search at small scale does
+  not transfer to large scale, and searching at large scale costs more than the run you are trying
+  to configure. Part XIV §16's random search is unaffordable exactly where it is most needed.</p>
+  <p><b>Maximal update parameterisation</b> fixes this by choosing how initialisation scales,
+  how the learning rate scales, and how activations are multiplied, so that the <b>optimal learning
+  rate becomes independent of width</b>. Tune on a small model, transfer the setting to a model a
+  hundred times larger, and it remains near-optimal.</p>
+  <p>The scalings are not arbitrary; they follow from requiring that every layer's activations and
+  updates stay the same order of magnitude as width grows, Part IX §16's initialisation argument,
+  extended from the forward pass to the update.</p>
+</div>
+
+<div class="box why">
+  <span class="label">Why this appears in a part about scale rather than about tuning</span>
+  <p>Without it, every large run is configured by extrapolating a guess, and the most common
+  large-run failure is a learning rate that was fine at the size it was tested and is not at the
+  size it was used.</p>
+  <p>It also affects the previous movement's measurements. A scaling study that uses <b>one</b>
+  learning rate across model sizes systematically penalises the largest models, because that rate
+  was right for one size. The correct protocol is to tune at every size, which is what this part's
+  own scaling figure does, and it is the same class of error as §11's, in a smaller costume.</p>
+</div>
+
+<h3><span class="num">§35</span> Loss spikes and instability</h3>
+
+<div class="box def">
+  <span class="label">What they look like and where they come from</span>
+  <p>Large runs show sudden jumps in the loss, sometimes recovering over hundreds of steps,
+  sometimes not. They are more frequent at larger scale and are the single most common reason a
+  large run has to be restarted.</p>
+  <p>The known contributors: <b>attention logit growth</b>, where the logits entering the softmax
+  drift large enough to saturate it and produce vanishing gradients; <b>numerical</b> events in
+  reduced precision, especially with fp16 and loss scaling; a <b>learning rate</b> that is fine on
+  average and not for a particular batch; and unlucky <b>data</b>, a batch of repeated or
+  degenerate text.</p>
+</div>
+
+<div class="box def">
+  <span class="label">What is actually done about them</span>
+  <ul class="tight">
+    <li><b>Gradient clipping</b>, always. Part IX §9's cliffs, and the cheapest insurance in
+    training.</li>
+    <li><b>Normalising the attention logits</b>, by normalising queries and keys before the
+    product, which removes the growth mechanism rather than reacting to it.</li>
+    <li><b>bf16 over fp16</b>, which removes the loss-scaling failure mode entirely (§19).</li>
+    <li><b>Skip the batch.</b> If a step's loss exceeds a running threshold, discard it. Crude,
+    effective, and worth logging so the frequency is visible.</li>
+    <li><b>Rewind.</b> Restart from a recent checkpoint with a different data order. Sometimes the
+    spike is a specific batch, and it will not recur.</li>
+  </ul>
+</div>
+
+<h3><span class="num">§36</span> What to log</h3>
+
+<div class="box def">
+  <span class="label">The panel for a long run</span>
+  <p>Part XIV §12's instruments, plus the ones specific to scale:</p>
+  <ul class="tight">
+    <li><b>Loss</b>, and validation loss on a held-out set that is genuinely held out.</li>
+    <li><b>Gradient norm</b>, before clipping, and the <b>fraction of steps clipped</b>.</li>
+    <li><b>Update-to-parameter ratio</b> per layer (Part XIV §12), which is the one that transfers
+    across scales.</li>
+    <li><b>Tokens per second</b>, and utilisation as a fraction of the hardware's peak. If this
+    drifts down, something is degrading.</li>
+    <li><b>Loss-scale value</b> if using fp16, and every overflow event.</li>
+    <li><b>Expert load and drop rate</b> if using MoE (§31), which are off by default.</li>
+    <li><b>Time since the last checkpoint</b>, and the restart count.</li>
+  </ul>
+  <p>The discipline that matters: decide these before the run starts. A month-long job that was not
+  instrumented cannot be diagnosed afterwards, and re-running it to add a metric is not an
+  option.</p>
+</div>
+
+<h3><span class="num">§37</span> The cost model</h3>
+
+<div class="box def">
+  <span class="label">Estimating a run before requesting it</span>
+  <p>Two approximations carry most of the arithmetic. Training a dense transformer costs about
+  <b>$6N$ FLOPs per token</b>: two for the forward pass's multiply-accumulate, four for the
+  backward, which is roughly twice the forward. Inference costs about $2N$ per token.</p>
+  <p>So a run's total compute is $C \approx 6ND$, and its wall-clock is that divided by the
+  hardware's sustained throughput, which is <b>not</b> its peak. A realistic sustained fraction is
+  30–50% for a well-tuned large run, and the difference between assuming 100% and measuring 40% is
+  a factor of two-and-a-half in the schedule and the budget.</p>
+  <p>That gap is not slack to apologise for; it is bounded by the same arithmetic everywhere it
+  shows up. An unfused sequence of small operations round-trips its inputs and outputs through
+  memory between each one, and the step's realised throughput is capped by whichever of
+  arithmetic or memory bandwidth is scarcer for the kernels actually launched, not for the ones
+  a whiteboard FLOP count assumes. Kernel fusion and compilation close part of that gap by turning
+  several memory-bound operations into one more arithmetic-bound one. Part XIX §3 develops the
+  full argument (arithmetic intensity and the roofline model) for the inference side of the same
+  hardware; it is the same ceiling that sets the 30–50% here.</p>
+  <p>Do this arithmetic first. It takes ten minutes, it decides whether the plan is feasible, and
+  §14's allocation question cannot be answered without it.</p>
+</div>
+
+<h3><span class="num">§38</span> When scale is the wrong answer</h3>
+
+<div class="box why">
+  <span class="label">Five cases, and they are common</span>
+  <p><b>The data is the constraint.</b> If you have exhausted the available data, more parameters
+  move you along the wrong axis. §13's frontier says so quantitatively.</p>
+  <p><b>The task is mis-specified.</b> Part XIII §6: the labels define the task, and a larger model
+  fits a wrong specification better. Part XIV §35's four possibilities apply unchanged.</p>
+  <p><b>The metric has saturated.</b> If the benchmark's remaining headroom is label noise
+  (Part XIV §22), a larger model buys a number and not a capability.</p>
+  <p><b>The bottleneck is elsewhere.</b> Retrieval, tool use, a better prompt or more inference-time
+  compute frequently beat a larger model at a fraction of the cost, and the comparison is rarely
+  made because it is nobody's project.</p>
+  <p><b>The validity question is untouched.</b> Part XIII §21 and Part XV §40 both established
+  this: scale improves precision and does nothing for validity. If the corpus underrepresents a
+  population or the augmentation discarded the signal, a bigger model does the same thing more
+  confidently.</p>
+</div>
+
+<h3><span class="num">§39</span> What to carry forward</h3>
+
+<div class="box intuition">
+  <span class="label">The one thing</span>
+  <p><b>Scale is arithmetic before it is anything else.</b></p>
+  <p>Almost every decision in this part was settled by counting rather than by experiment. Memory is
+  $16N$ bytes plus activations you can compute. The pipeline bubble is $(P-1)/(M+P-1)$. The
+  all-reduce moves $2N$ values per step regardless of batch. Training costs $6N$ FLOPs per token.
+  Compute-optimal allocation follows from a fitted surface and a constraint.</p>
+  <p>None of that needs hardware to work out, and all of it decides whether a run is possible. The
+  teams that are good at this do the arithmetic first and are rarely surprised; the failure mode is
+  starting the job and discovering the constraints one out-of-memory error at a time.</p>
+  <p>The second thing, because it recurs: <b>the empirical laws are fits, and a fit inherits every
+  choice made in the runs it was fitted to.</b> The most consequential scaling result of the decade
+  was wrong for four years because of a learning-rate schedule. Ask what was held fixed.</p>
+</div>

@@ -1,0 +1,238 @@
+<h2><span class="part-kicker">Part B</span>Diagnosis</h2>
+
+<h3><span class="num">§7</span> Why this is hard</h3>
+
+<p>Two reasons machine learning systems are harder to debug than ordinary software, and they
+are worth stating because every technique in this movement is designed around one of them.</p>
+
+<div class="box def">
+  <span class="label">The two difficulties</span>
+  <p><b>You do not know the intended behaviour.</b> The reason to use learning is that you could
+  not specify the behaviour yourself. So when a model reaches 5% test error you have no direct
+  way to know whether that is correct, excellent or a symptom of a bug.</p>
+  <p><b>The parts adapt around each other.</b> A model has many adaptive components. Break one
+  and the others compensate, so the system still roughly works and nothing raises.</p>
+</div>
+
+<div class="box worked">
+  <span class="label">Worked: a bug that trains</span>
+  <p>Suppose you hand-wrote the update and made an error in the bias rule:</p>
+  <p>$$\mathbf{b} \leftarrow \mathbf{b} - \alpha$$</p>
+  <p>The gradient does not appear. Every bias marches steadily negative for the whole run, not
+  a correct implementation of any algorithm whatever.</p>
+  <p>And the model may train to an acceptable loss. The weights adapt: whatever the biases drift
+  to, the layer above can partly compensate by rescaling. The loss curve looks plausible, the
+  accuracy is mediocre-but-not-alarming, and nothing anywhere reports an error.</p>
+  <p>This is the second difficulty in its purest form. You cannot find this bug by looking at
+  the loss, because the loss is exactly what the other parameters were adapting to protect.</p>
+</div>
+
+<p>Every technique that follows works by defeating one of the two: either <b>construct a case
+where you do know the right answer</b> (§8, §9), or <b>test one component in isolation</b> so
+nothing can compensate for it.</p>
+
+<h3><span class="num">§8</span> Fit a tiny dataset</h3>
+
+<div class="sixty">
+  <span class="label">In 60 seconds</span>
+  <p>The single most informative five-minute test in this book. Take ten examples (or one), turn
+  off all regularization, and train until the model fits them perfectly. If it cannot, you have a
+  <b>bug</b>, not a modelling problem, and no amount of architecture or data will help.</p>
+</div>
+
+<div class="box why">
+  <span class="label">Why this defeats the first difficulty</span>
+  <p>You do not normally know what performance to expect. On ten examples you do: <b>zero
+  training error</b>. Any model with more parameters than that can memorise them, and a
+  classifier can fit a single example by setting one bias correctly.</p>
+  <p>So this constructs the case §7 said you needed: one where the correct behaviour is known
+  in advance. A failure is unambiguous. It is not underfitting, not a hard problem, not a bad
+  learning rate that needs another sweep. Something is broken.</p>
+  <p>Run it before every long training run, and keep it as a test that runs in CI. It costs
+  seconds and it catches: a detached gradient, a mask applied wrongly, labels misaligned with
+  inputs, a frozen parameter group, a loss reduced over the wrong axis, an optimiser constructed
+  before the parameters it is meant to update.</p>
+</div>
+
+<div class="box pitfall">
+  <span class="label">Pitfall: turn the regularization off first</span>
+  <p>Weight decay, dropout and augmentation all prevent a model from fitting ten examples, and
+  they are doing their job. Running the test with them on produces a failure that means nothing
+  and wastes the afternoon it takes to chase.</p>
+  <p>Turn off every regulariser, disable shuffling if it helps you read the output, and use full
+  batches. You are asking a specific question and every other mechanism is noise on it.</p>
+</div>
+
+<h3><span class="num">§9</span> Gradient checking</h3>
+
+<div class="readnow"><span class="label">Go and read</span><p><span class="src">Squire &amp; Trapp (1998)</span>, <i>Using complex variables to estimate derivatives of real functions</i>. Four pages, and the trick in Figure 3. Worth reading because the derivation is short enough to hold in your head and the consequence is that a numerical procedure everyone treats as delicate was never required to be. The restriction (analytic functions only) is stated plainly, which is more than most of the literature that cites it manages.</p></div>
+
+<p>If you implement a backward pass yourself (a custom operation, a new layer, an autograd
+engine like Part VII's project), the gradient is where the errors are. Finite differences
+give you an independent answer.</p>
+
+$$f'(x) \approx \frac{f(x + \tfrac{\epsilon}{2}) - f(x - \tfrac{\epsilon}{2})}{\epsilon}$$
+
+<p>The <b>central</b> difference, not the forward one: it is second-order accurate, so its
+truncation error falls like $\epsilon^2$ rather than $\epsilon$. Which raises the question of
+how small $\epsilon$ should be, and that question has a surprising answer.</p>
+
+<figure>
+  <img src="figures/pd/03-gradient-check.svg" alt="Relative error of three derivative estimates against epsilon, and their behaviour at extreme epsilon">
+  <figcaption><b>Figure 3.</b> Left: relative error against $\epsilon$, decreasing to the right.
+  Forward and central differences improve until about $\epsilon = 10^{-5}$ and then get
+  <b>worse</b>: Part III §3's cancellation, arriving exactly where you would want to be most
+  accurate. The <b>complex step</b> improves monotonically to <b>machine precision</b>
+  (relative error of order $10^{-16}$, and exactly zero at several $\epsilon$) and stays there;
+  the plot floors at $10^{-18}$ only so an exact zero remains plottable on a log axis; that
+  number is the display clamp, not an accuracy the method achieved. Right: at $\epsilon =
+  10^{-20}$ and below, the differences have failed completely (relative error 1.0: the
+  subtraction underflows to zero) while the complex step is still exact.</figcaption>
+</figure>
+
+<div class="box def">
+  <span class="label">The complex-step derivative</span>
+  <p>If $f$ is analytic and you can evaluate it on complex inputs, expand:</p>
+  <p>$$f(x + i\epsilon) = f(x) + i\epsilon f'(x) - \tfrac{\epsilon^2}{2}f''(x) + \ldots$$</p>
+  <p>so that</p>
+  <p>$$f'(x) = \frac{\text{Im}\big(f(x + i\epsilon)\big)}{\epsilon} + O(\epsilon^2)$$</p>
+  <p><b>No subtraction appears anywhere.</b> The real and imaginary parts are separate storage,
+  so the derivative is read off directly rather than recovered from a difference of two nearly
+  equal numbers.</p>
+</div>
+
+<div class="box why">
+  <span class="label">Why the U-curve exists and why removing the subtraction removes it</span>
+  <p>A finite difference has two error sources pulling in opposite directions. <b>Truncation</b>
+  falls as $\epsilon$ shrinks. <b>Cancellation</b> grows: $f(x+\epsilon)$ and $f(x-\epsilon)$
+  agree in more and more leading digits, so their difference keeps fewer and fewer significant
+  ones, and then you divide that ruined quantity by a tiny number. Part III §3 derived this; the
+  left panel is it, in the tool everyone uses to check gradients.</p>
+  <p>The complex step has only the first error source. So $\epsilon$ can be $10^{-150}$ and the
+  $O(\epsilon^2)$ term is beyond any floating-point relevance; the estimate is exact to machine
+  precision.</p>
+  <p>The restriction is real: $f$ must be analytic, which excludes <code>abs</code>, <code>max</code>,
+  ReLU and anything with a branch on the value. That covers a lot of neural networks. But for
+  smooth operations it turns a delicate numerical procedure into an exact one, and it is worth
+  knowing that the delicacy was never necessary.</p>
+</div>
+
+<div class="box def">
+  <span class="label">One difference for a whole Jacobian</span>
+  <p>Finite differencing gives one partial derivative at a time, so checking
+  $g : \mathbb{R}^m \to \mathbb{R}^n$ naively needs $mn$ evaluations.</p>
+  <p>Instead check a random <b>projection</b>. Draw random $\mathbf{u} \in \mathbb{R}^n$ and
+  $\mathbf{v} \in \mathbb{R}^m$ and test the scalar function</p>
+  <p>$$h(t) = \mathbf{u}^\top g(\mathbf{x} + t\mathbf{v})$$</p>
+  <p>Getting $h'(0)$ right requires backpropagating through <i>all</i> of $g$ correctly, and it
+  is one scalar finite difference. Measured on a $4\times5$ Jacobian: agreement to
+  $2\times10^{-10}$.</p>
+  <p>Repeat with several random $\mathbf{u}, \mathbf{v}$: a single projection can be blind to an
+  error that happens to be orthogonal to it, and three cheap trials make that vanishingly
+  unlikely.</p>
+</div>
+
+<h3><span class="num">§10</span> Reading train and test error</h3>
+
+<p>Two numbers you already have, and the four situations they distinguish.</p>
+
+<div class="box def">
+  <span class="label">The diagnostic table</span>
+  <table class="compact">
+    <thead><tr><th>Training error</th><th>Test error</th><th>What it means</th></tr></thead>
+    <tbody>
+      <tr><td>Low</td><td>Low</td><td>Working. Check the evaluation is real (§22) before
+      celebrating.</td></tr>
+      <tr><td>Low</td><td>High</td><td><b>Overfitting</b>, or the test set is broken:
+      loaded wrong, preprocessed differently, the model reloaded incorrectly. Rule out the
+      second first; it is cheaper.</td></tr>
+      <tr><td>High</td><td>High</td><td><b>Underfitting or a bug</b>, and these two numbers
+      cannot tell them apart. This is what §8 is for.</td></tr>
+      <tr><td>High</td><td>Low</td><td>Almost always a measurement error. Suspect leakage
+      (Part XIII §11), a test set that is easier, or heavy training-time regularization
+      (Part VIII §19: dropout raises training error by construction).</td></tr>
+    </tbody>
+  </table>
+</div>
+
+<div class="box why">
+  <span class="label">Why "low training, high test" should send you to the pipeline first</span>
+  <p>The instinct is to reach for regularization. But the same pattern is produced by a broken
+  evaluation, and a broken evaluation is both more common and cheaper to check.</p>
+  <p>Before adding dropout: evaluate the model on a slice of its own <b>training</b> data using
+  the test-time code path. If that also scores badly, the problem is in the evaluation path, not
+  in the model: a different preprocessing, a mode not set, a checkpoint loaded partially. That
+  check takes two minutes and it is skipped constantly.</p>
+</div>
+
+<h3><span class="num">§11</span> Look at the worst mistakes</h3>
+
+<p>Quantitative metrics tell you how much is wrong. They never tell you <b>what</b> is wrong, and
+the fastest route to that is to look at specific failures, sorted, not sampled.</p>
+
+<div class="box def">
+  <span class="label">Sort by confidence, and look at the confident errors</span>
+  <p>Rank the <b>training</b> examples by the probability the model assigns to the correct
+  answer, and inspect the worst. These are the cases the model is most sure about and wrong on,
+  and they are where systematic problems live: an entire category mislabelled, a preprocessing
+  step corrupting a subset, a class the guideline defines differently from how you assumed.</p>
+  <p>Random errors are mostly hard examples and tell you little. <b>Confident</b> errors are
+  usually a defect in the data or the pipeline.</p>
+</div>
+
+<aside class="mnote"><b>A cruder instrument, and sometimes a faster one:</b> watch the model act
+directly (the images it labels, the audio it transcribes, or the moves it makes) instead of
+only reading a sorted table. An evaluation bug is often obvious the instant you see it and
+invisible in every aggregate number computed from it.</aside>
+
+<div class="box worked">
+  <span class="label">Worked: ten points of coverage from looking at pictures</span>
+  <p>The Street View transcription system of §4 was stuck below 90% coverage. Training and test
+  error were nearly identical, so it was not overfitting, and with tens of millions of labelled
+  examples, more data was not the answer either.</p>
+  <p>So the team sorted the training images by the confidence of the model's <i>incorrect</i>
+  transcriptions and looked at them. They were mostly addresses <b>cropped too tightly</b> by the
+  upstream detection stage: a photo of "1849" arriving as "849", with the model confidently
+  transcribing what it could see.</p>
+  <p>The obvious fix was to spend weeks improving the detector. The chosen fix was to widen the
+  crop systematically, accepting more variation in the position and scale the transcription
+  network had to handle.</p>
+  <p><b>That single change added ten percentage points of coverage.</b> It was not a modelling
+  change, it was not found by any metric, and it was found by looking at the pictures.</p>
+</div>
+
+<h3><span class="num">§12</span> Histograms, and the one-percent rule</h3>
+
+<p>The instruments to run while training, all of them a scalar or a histogram per layer per
+epoch, and all of them cheap.</p>
+
+<div class="box def">
+  <span class="label">What to log, and what each one catches</span>
+  <ul class="tight">
+    <li><b>Pre-activation histograms.</b> For rectifiers: what fraction of units are off, and
+    are any <i>always</i> off (Part VII §7's dead units). For saturating units: the mean absolute
+    pre-activation, which says how saturated they are.</li>
+    <li><b>Gradient norms per layer.</b> Part XI §11's vanishing and exploding, visible as it
+    happens rather than inferred from a bad result.</li>
+    <li><b>The maximum attention logit</b>, for transformers: Part XII §25, which moves
+    <i>before</i> the loss does.</li>
+    <li><b>The ratio of update magnitude to parameter magnitude.</b> Below.</li>
+  </ul>
+</div>
+
+<div class="box why">
+  <span class="label">Why the update-to-parameter ratio is the best single number</span>
+  <p>Per minibatch, compare $\|\Delta\boldsymbol{\theta}\|$ against $\|\boldsymbol{\theta}\|$ for
+  each parameter group. A useful rule of thumb is that this should be around <b>1%</b>: not
+  50%, which means the step is destroying what was learned, and not 0.001%, which means nothing
+  is moving.</p>
+  <p>It is a better instrument than the learning rate because it is <b>scale-free</b>. The right
+  learning rate depends on the parameterisation, the initialisation, the optimiser and the layer;
+  the right update ratio does not, so one number tells you about every layer on the same
+  footing.</p>
+  <p>And it is per group, which is where the information is. A run where the embedding table
+  moves at 0.001% while the final layer moves at 20% is not a run with a bad learning rate; it is
+  a run where two parts of the model need different ones, and that is a diagnosis rather than a
+  symptom. With sparse data (Part XII's embeddings), some parameters are updated very rarely,
+  and that is worth knowing before concluding they are stuck.</p>
+</div>

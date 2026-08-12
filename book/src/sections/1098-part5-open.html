@@ -1,0 +1,88 @@
+<div class="partopen">
+  <div class="pnum">Part Six</div>
+  <h1>Machine<br>Learning<br><span style="font-weight:300">Basics</span></h1>
+  <p class="tag">Everything before this was preparation. This is the part where a machine
+  learns something, and where the reason deep learning exists finally becomes visible.</p>
+  <div class="rule"></div>
+  <div class="contents">
+    <b>1–3</b> What learning is<br>
+    <b>4–8</b> Generalisation<br>
+    <b>9–11</b> Choosing a model<br>
+    <b>12–16</b> Supervised algorithms<br>
+    <b>17–18</b> Unsupervised algorithms<br>
+    <b>19–20</b> Making it work at scale<br>
+    <b>21–23</b> Why any of this needed deep learning<br>
+  </div>
+  <div class="meta">
+    23 sections · 15 figures · 34 drills · 1 project<br>
+    <b>Ends at:</b> the three limitations that forced the field to go deep.
+  </div>
+</div>
+
+<h2 class="nobreak">Before you start</h2>
+
+<p class="lede">Five parts of mathematics have been building toward this one. Here they
+combine, and the combination is a machine that improves at a task by looking at
+examples.</p>
+
+<h3><span class="num">§0.1</span> Where the pieces land</h3>
+
+<p>This part is where the earlier ones stop being prerequisites and start being tools.</p>
+
+<table class="compact">
+  <thead><tr><th>From</th><th>Used here for</th></tr></thead>
+  <tbody>
+    <tr><td><b>Part 0</b></td><td>Gradients and the chain rule: every algorithm here is fitted by descending something.</td></tr>
+    <tr><td><b>Part I</b></td><td>Matrices for data and parameters; the SVD behind PCA; least squares behind regression.</td></tr>
+    <tr><td><b>Part II</b></td><td>The likelihood view. Every loss in this part is a negative log-likelihood in disguise.</td></tr>
+    <tr><td><b>Part III</b></td><td>Conditioning, and the stochastic optimisers that make large-scale fitting possible.</td></tr>
+    <tr><td><b>Part V</b></td><td>The bias–variance decomposition, which is the organising idea of Sections 4–8.</td></tr>
+  </tbody>
+</table>
+
+<h3><span class="num">§0.2</span> What is actually new here</h3>
+
+<p>One idea, and it is the one that makes the subject a subject: <b>performing well on data
+you have already seen is easy and worthless. The problem is data you have not seen.</b></p>
+
+<p>That single distinction (between fitting and generalising) separates machine learning
+from curve fitting, from database lookup, and from optimisation as Part III described it.
+Part III's problem was reaching the minimum of a function. Here you will find that reaching
+that minimum is frequently the wrong thing to do.</p>
+
+<div class="box why">
+  <span class="label">Why this matters</span>
+  <p>Everything in the parts that follow (networks, convolution, attention, generative
+  models) is an answer to a question posed in this part. What model class should we use?
+  How do we stop it memorising? How do we make it work when the input has a million
+  dimensions?</p>
+  <p>Sections 21 to 23 are the ones that matter most for what comes next. They explain,
+  concretely and with measurement, why the classical algorithms in Sections 12–18 hit a wall
+  on the problems this field cares about, and therefore why anyone bothered building
+  something deeper.</p>
+</div>
+
+<h3><span class="num">§0.3</span> A note on the algorithms</h3>
+
+<p>Sections 12 to 18 cover the classical methods: linear and logistic regression, support
+vector machines, kernels, nearest neighbours, decision trees, k-means. They are not
+historical curiosities.</p>
+
+<p>Each is still the right tool for some problems, each illustrates an idea that recurs in
+deeper models, and each is simple enough to understand completely, which makes them the
+right place to learn what "understanding a model completely" feels like. Linear regression
+is the whole of supervised learning with the difficulty removed, and everything true of it
+is true, in complicated form, of a transformer.</p>
+
+<h3><span class="num">§0.4</span> The habit for this part</h3>
+
+<p><b>Always ask what the model cannot represent.</b></p>
+
+<p>Every learning algorithm embeds assumptions about what patterns exist. Linear regression
+assumes a straight line. Nearest neighbours assumes nearby inputs have similar outputs.
+Trees assume axis-aligned splits matter. Those assumptions are not defects (Section 7
+proves that learning is impossible without them), but they determine what the model can and
+cannot do, and they are usually invisible until they fail.</p>
+
+<p>When a model performs badly, the question is rarely "is this model bad?" It is "what did
+this model assume, and is that assumption false here?"</p>

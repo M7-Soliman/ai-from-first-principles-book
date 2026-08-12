@@ -1,0 +1,283 @@
+<h2><span class="part-kicker">Practice</span>Drills</h2>
+
+<p class="lede">Thirty-one problems. Most of this part is about noticing things, so a disproportionate
+number of these ask you to <b>construct</b> a failure deliberately and watch it not show up in
+the metrics.</p>
+
+<h3><span class="num">Tier 0</span> Estimate first</h3>
+
+<div class="drill">
+  <div class="head"><span class="tier est">Estimate</span>E1 &middot; How large a corpus is</div>
+  <p>A corpus of 10<sup>9</sup> tokens, stored as uint16 ids. Write down the size on disk, and roughly how many books that corresponds to.</p>
+  <div class="ans"><b>Answer.</b> <b>2&nbsp;GB</b>, and about <b>10,000 books</b> at 100,000 tokens each. Worth holding on to as a unit: frontier pretraining corpora are measured in trillions of tokens, so they are thousands of times a small library and their curation cannot be manual. <i>Score yourself: within a factor of two is a pass, and an order of magnitude out is worth understanding before you go on.</i></div>
+</div>
+
+<h3><span class="num">Tier 1</span> Warm-up</h3>
+
+<div class="drill">
+  <div class="head"><span class="tier warm">Warm</span>W1 · Three things called "the data"</div>
+  <p>Name them, and say which gap statistics can help with.</p>
+  <div class="ans"><b>Answer.</b> Population, frame, sample. Statistics addresses frame-to-sample
+  only. The population-to-frame gap is a modelling assumption and no amount of data closes it.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier warm">Warm</span>W2 · The central claim</div>
+  <p>What does more data improve, and what does it not?</p>
+  <div class="ans"><b>Answer.</b> Precision, not validity. Figure 1: at $n = 100{,}000$ a
+  mis-framed estimate is wrong by 0.09 with an interval of $\pm 0.003$, tens of times its own
+  width, and the interval no longer contains the truth.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier warm">Warm</span>W3 · Three kinds of label noise</div>
+  <p>Name them and say which one models tolerate.</p>
+  <div class="ans"><b>Answer.</b> Random: tolerated well. Systematic: learned as signal, and
+  not fixed by more data or more annotators drawn the same way. Irreducible: your task
+  definition is incomplete.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier warm">Warm</span>W4 · What high agreement means</div>
+  <p>Two annotators reach $\kappa = 0.9$. What does that establish?</p>
+  <div class="ans"><b>Answer.</b> That the task is well specified and the guideline is being
+  followed. <b>Not</b> that the guideline is right: shared training produces shared systematic
+  error, which is exactly the kind $\kappa$ cannot see.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier warm">Warm</span>W5 · Noise tolerance</div>
+  <p>40% of training labels are flipped at random. Roughly what test accuracy is achievable, and
+  what will training accuracy be?</p>
+  <div class="ans"><b>Answer.</b> Test around 0.84 on clean labels; training around 0.58. The
+  boundary survives symmetric noise; what dies is your ability to measure, since a noisy test set
+  caps the reportable score at about $1-p$.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier warm">Warm</span>W6 · Five kinds of leakage</div>
+  <p>Name them.</p>
+  <div class="ans"><b>Answer.</b> Target, train–test contamination, temporal, preprocessing,
+  group. Preprocessing is the one that survives review, because it is a two-line ordering mistake
+  that inflates by a few tenths of a point.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier warm">Warm</span>W7 · Imbalance</div>
+  <p>Give three fixes that are better than resampling, and the condition each addresses.</p>
+  <div class="ans"><b>Answer.</b> Change the metric (the metric was wrong). Move the threshold
+  (the ranking is fine). Weight the loss (the costs are asymmetric). Resampling breaks
+  calibration and, done before splitting, causes leakage.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier warm">Warm</span>W8 · MinHash</div>
+  <p>Why does the match rate of two signatures estimate the Jaccard index?</p>
+  <div class="ans"><b>Answer.</b> Under a random permutation the minimum over $A \cup B$ is
+  equally likely to be any element, so it falls in the intersection with probability exactly
+  $|A\cap B|/|A\cup B|$. Each permutation is a Bernoulli trial; the error falls like
+  $1/\sqrt{k}$.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier warm">Warm</span>W9 · The memorisation threshold</div>
+  <p>How many copies of a sequence does it take?</p>
+  <div class="ans"><b>Answer.</b> Figure 6: nothing at 1–2, 35% at 4, <b>perfect at 8</b>, which
+  is 0.12% of that corpus (the exact numbers at four and eight copies are torch-version and
+  hardware dependent; the order of magnitude is not). Low enough that anything mirrored or
+  syndicated crosses it by default.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier warm">Warm</span>W10 · What actually collapses a model</div>
+  <p>Naive recursive retraining barely degrades. What does the damage?</p>
+  <div class="ans"><b>Answer.</b> <b>Filtering</b>: keeping the "good" outputs resamples the
+  middle every generation. And <b>model mismatch</b>: structure the model cannot represent is
+  gone at generation 1, while the variance barely moves and looks healthy.</div>
+</div>
+
+<h3><span class="num">Tier 2</span> Core</h3>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C1 · Build the frame gap</div>
+  <p>Simulate a population of two groups with different rates. Estimate the overall rate from
+  frames that under-represent one group by varying amounts, and plot the estimate with its
+  interval against $n$.</p>
+  <div class="ans"><b>Answer.</b> The interval narrows like $1/\sqrt{n}$ in every case and the
+  bias does not move, so past some $n$ the interval <b>stops containing the truth</b>. Find that
+  $n$ for each frame: it is the point at which more data made you wrong more confidently.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C2 · Measure noise tolerance</div>
+  <p>Sweep the label-flip rate and record training accuracy on noisy labels and test accuracy on
+  clean ones.</p>
+  <div class="ans"><b>Answer.</b> Test accuracy stays high far longer than expected and collapses
+  near 50%. Also sweep model <b>capacity</b>: a high-capacity model fits the noise and the two
+  curves converge, which is Part VIII's story arriving from the data side.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C3 · Asymmetric noise</div>
+  <p>Repeat C2 but flip labels in <b>one direction only</b>. Compare.</p>
+  <div class="ans"><b>Answer.</b> Much worse, and it does not recover with more data. Symmetric
+  noise leaves the boundary alone; asymmetric noise moves it, and the model learns the shift as
+  signal. This is why §4's distinction matters more than the noise <i>rate</i>.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C4 · Build the contamination</div>
+  <p>Copy a controlled fraction of your test set into training. Report the score on the whole
+  test set and on the uncontaminated part.</p>
+  <div class="ans"><b>Answer.</b> The reported score rises and the honest score <b>falls</b>:
+  the copies displaced real training signal. Two errors in opposite directions, which is why
+  nothing looks wrong.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C5 · Preprocessing leakage, measured</div>
+  <p>Fit a scaler and a feature selector on all the data, then split. Compare against fitting
+  inside the training fold.</p>
+  <div class="ans"><b>Answer.</b> A small inflation: a few tenths of a point, larger for feature
+  selection than for scaling. Small is what makes it dangerous: it is the same size as the
+  improvements being claimed.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C6 · Group leakage</div>
+  <p>Generate data with several records per underlying unit. Compare a random split against a
+  split by unit.</p>
+  <div class="ans"><b>Answer.</b> The random split reports a substantially better number. The
+  <b>gap between the two is the measurement</b>: it quantifies how much of the model is
+  recognising the unit rather than the signal.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C7 · Implement MinHash</div>
+  <p>Shingle, hash, and estimate Jaccard. Verify against the exact value and measure the error
+  against the number of permutations.</p>
+  <div class="ans"><b>Answer.</b> Mean error about 0.01 at 256 permutations, falling like
+  $1/\sqrt{k}$. Note that the accuracy depends on the <b>signature length only</b>, not on corpus
+  size, which is what makes it usable at any scale.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C8 · Locality-sensitive hashing</div>
+  <p>Add banding on top of C7. Sweep the band count and plot the probability of a candidate pair
+  against true similarity.</p>
+  <div class="ans"><b>Answer.</b> An S-curve whose threshold is roughly $(1/b)^{1/r}$ for $b$
+  bands of $r$ rows. The bands are an explicit precision–recall knob, and the point is that you
+  choose the threshold rather than discovering it.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C9 · Chance-corrected agreement</div>
+  <p>Implement Cohen's $\kappa$. Then construct two annotators who agree 90% of the time and have
+  $\kappa$ near zero.</p>
+  <div class="ans"><b>Answer.</b> Take a 95/5 class distribution and two annotators who both
+  almost always say "majority". High raw agreement, no information. This is why raw agreement is
+  never reported alone.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C10 · Per-class agreement</div>
+  <p>Construct a dataset where the aggregate $\kappa$ is 0.8 and the rare class's $\kappa$ is
+  below 0.3.</p>
+  <div class="ans"><b>Answer.</b> Easy, and that is the point: the aggregate is dominated by the
+  common class. Always report $\kappa$ per class, because the rare class is usually the one the
+  system exists for.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C11 · Deduplication's effect</div>
+  <p>Duplicate a subset of your training data by varying amounts and measure held-out
+  performance.</p>
+  <div class="ans"><b>Answer.</b> Performance degrades as duplication rises at a fixed budget:
+  you are spending gradient on a distribution you did not choose. Then check what the duplicated
+  records did to memorisation, which is C13.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C12 · Collapse, all three mechanisms</div>
+  <p>Fit-sample-refit for many generations. Do it plain, with a filter that keeps the typical
+  half, and with a model class narrower than the data.</p>
+  <div class="ans"><b>Answer.</b> Plain barely collapses: under 1% in twelve generations at
+  $n=1000$. Filtering collapses to a point mass. Mismatch destroys the structure at generation 1
+  <b>while the variance is unchanged</b>. Report the variance and a mode count, because only the
+  second one sees it.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C13 · Canaries</div>
+  <p>Insert random sequences at controlled frequencies, train, and try to extract them by
+  prompting with a prefix.</p>
+  <div class="ans"><b>Answer.</b> A sharp threshold in the low single digits of copies. Note the
+  loss at one copy is <b>worse than chance</b>: the model has learned the corpus rule and is
+  confidently wrong, which is not the same as being ignorant.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C14 · A dataset document</div>
+  <p>Write one for a dataset you already have, following §19. Fill in every section.</p>
+  <div class="ans"><b>Answer.</b> The test is the "known gaps" section: if you cannot fill it,
+  you have described the dataset without documenting it. The second test: could a reader use your
+  document to predict where the model fails?</div>
+</div>
+
+<h3><span class="num">Tier 3</span> Stretch</h3>
+
+<div class="drill">
+  <div class="head"><span class="tier stretch">Stretch</span>S1 · Build a shortcut and watch it pass</div>
+  <p>Add a feature that correlates with the label in your data and would not in deployment.
+  Train, evaluate normally, then evaluate on data where the correlation is broken.</p>
+  <div class="ans"><b>Answer.</b> Every standard metric reports success. Only the shifted
+  evaluation finds it. Then ablate the feature and see how much accuracy survives: that number
+  is how much of your model was the shortcut.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier stretch">Stretch</span>S2 · The three splits</div>
+  <p>Take data with a nested structure: records within units within sites. Report accuracy under
+  a random split, a unit split and a site split.</p>
+  <div class="ans"><b>Answer.</b> Three different numbers, all correct, answering three different
+  questions. Only one estimates deployment at a new site. Report all three; the <b>spread</b> is
+  more informative than any of them.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier stretch">Stretch</span>S3 · Selection bias you cannot fix</div>
+  <p>Simulate the lending problem of §7: outcomes observed only for applicants a previous policy
+  approved. Train and evaluate; then evaluate on the full population you simulated.</p>
+  <div class="ans"><b>Answer.</b> Excellent measured performance, poor true performance, and
+  <b>no statistic computed from the observed data detects it</b>. The only fix is randomised
+  decisions made before you had the problem, which is a design decision rather than an analysis
+  one.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier stretch">Stretch</span>S4 · Filter, then read what you removed</div>
+  <p>Apply a quality classifier to a corpus you assembled. Sample a hundred rejected documents and
+  read them.</p>
+  <div class="ans"><b>Answer.</b> The exercise is the reading. Categorise what was removed and
+  ask whether each category was intended. This is the only reliable way to discover that a filter
+  is removing something you wanted, and no aggregate statistic substitutes for it.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier stretch">Stretch</span>S5 · The curation frontier</div>
+  <p>Train at matched compute on a full corpus and on the top decile by some quality score.
+  Compare; then compare again on an evaluation set the quality score's reference does not
+  resemble.</p>
+  <div class="ans"><b>Answer.</b> The filtered model usually wins on the first comparison and may
+  lose on the second. The gap between the two comparisons measures how much of the "quality"
+  gain was the filter narrowing the frame toward the evaluation set.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier stretch">Stretch</span>S6 · Active learning's blind spot</div>
+  <p>Run uncertainty-based active learning on data with a category the initial model is
+  confidently wrong about. Track whether that category ever gets selected.</p>
+  <div class="ans"><b>Answer.</b> It does not, or barely. Selection is keyed on uncertainty, and
+  confident errors have none, so the method systematically under-samples exactly the failures
+  you most want to find. Reserve part of the budget for uniform random selection and compare.</div>
+</div>

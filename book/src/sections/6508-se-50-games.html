@@ -1,0 +1,179 @@
+<h2><span class="part-kicker">Part E</span>Uncertainty and adversaries</h2>
+
+<p class="mvt">Two ways the clean picture breaks. Either the value of a state cannot be computed and
+must be sampled, which turns search into a statistical estimation problem; or somebody else chooses
+half the moves and is trying to make you lose. The first produced Monte Carlo tree search, the second
+produced alpha–beta, and modern systems use both at once.</p>
+
+<h3><span class="num">§29</span> The exploration problem, in miniature</h3>
+
+<div class="box def">
+  <span class="label">Multi-armed bandits</span>
+  <p><span class="m">$K$</span> arms, each returning a random reward from an unknown distribution.
+  Pull one per round for <span class="m">$T$</span> rounds and maximise the total. There is no state
+  and no transition: it is a search problem stripped to nothing but the choice of where to look
+  next.</p>
+  <p>The performance measure is <b>regret</b>: the total you would have got by always pulling the best
+  arm, minus what you got. Minimising regret forces the trade every search algorithm faces: spend a
+  pull confirming the arm you like, or spend it on one you know little about.</p>
+</div>
+
+<h3><span class="num">§30</span> Optimism</h3>
+
+<div class="box def">
+  <span class="label">Upper confidence bounds</span>
+  <p class="m">$$\text{UCB}_i = \hat{\mu}_i + c\sqrt{\frac{\ln t}{n_i}}$$</p>
+  <p>Pull the arm with the largest score. The first term is the estimated mean; the second is a
+  confidence width that <b>shrinks with the pulls given to that arm</b> and <b>grows with total
+  time</b>, so an arm ignored for long enough eventually looks attractive again regardless of its
+  history.</p>
+  <p>This is optimism in the face of uncertainty: act as though each arm is as good as its evidence
+  permits. It gives regret growing like <span class="m">$\ln T$</span> rather than
+  <span class="m">$T$</span> (you stop paying for exploration almost entirely) and the same rule
+  reappears as the exploration bonus in Part XVIII §35, which is not a coincidence but the same theorem.</p>
+</div>
+
+<h3><span class="num">§31</span> Monte Carlo tree search</h3>
+
+<div class="box shapes">
+  <span class="label">Four steps, repeated until the budget runs out</span>
+  <p><b>Selection.</b> From the root, descend by a bandit rule until reaching a node with unexpanded
+  children. <b>Expansion.</b> Add one child. <b>Simulation.</b> Play out to a terminal state, by any
+  cheap policy, historically random. <b>Backpropagation.</b> Add the outcome to the visit counts and
+  value sums of every node on the path.</p>
+  <p>Two properties make this different from everything in Part B. The tree grows
+  <b>asymmetrically</b>, deep where the search believes the action is and shallow elsewhere, with no
+  depth limit anywhere. And it is <b>anytime</b>: stopping after any number of simulations leaves a
+  usable answer, and no evaluation function is required, only the ability to play to the end.</p>
+</div>
+
+<p>The move that made it work is worth stating on its own, because it is the piece people skip.
+Applying UCB at every internal node (treating each node's children as a bandit) is <b>UCT</b>, and
+it is what turns a Monte Carlo average into a search. The value estimate at a node is not the mean of
+its rollouts; asymptotically it converges to the value under optimal play, because the bandit rule
+concentrates the samples on the branch that is actually best. Averaging alone converges to the value
+of a random player, which is a different and useless quantity.</p>
+
+<h3><span class="num">§32</span> The exploration constant is not a property of the algorithm</h3>
+
+<figure>
+  <img src="figures/se/06-mcts.svg" alt="Percentage of runs choosing the optimal action against exploration constant on a log axis, three curves for three simulation budgets, each with an interior peak marked by a star">
+  <figcaption><b>Figure 6.</b> UCT on a depth-two tree whose optimal arm has the <i>best child</i> and
+  the <i>worst average child</i>, so anything that averages picks a different arm. Each curve has an
+  interior optimum, and the optimum <b>moves</b>: <span class="m">$c=0.5$</span> at 64 simulations,
+  <span class="m">$c=1.0$</span> at 256 and 1,024. At the tuned value the success rate climbs
+  <b>51% → 86% → 100%</b>.</figcaption>
+</figure>
+
+<div class="box why">
+  <span class="label">The line to remember is the flat one</span>
+  <p>At <span class="m">$c=0.05$</span> the success rate is <b>36%, 32%, 31%</b> as the budget grows
+  sixteenfold. It does not improve at all. Too little exploration commits to the arm with the best
+  average early, and then spends every additional simulation confirming it: more compute makes the
+  wrong answer more confident, not less wrong.</p>
+  <p>Two things follow. A badly tuned exploration constant is <b>not rescued by compute</b>, so
+  "it will be fine with a bigger budget" is a specific claim that is specifically false here. And
+  because the optimum moves with the budget, a constant tuned during development at small budgets is
+  the wrong constant in production at large ones, a mismatch that shows up as a system that improves
+  less than it should with more thinking time, and gets diagnosed as everything except its exploration
+  parameter.</p>
+</div>
+
+<h3><span class="num">§33</span> What replacing the rollout changed</h3>
+
+<div class="box hist">
+  <span class="label">From random playouts to learned priors</span>
+  <p>Classical MCTS estimated a node's value by playing randomly to the end. That works when random
+  play is informative about the position: true in Go, false in chess, which is why MCTS conquered one
+  and not the other for a decade.</p>
+  <p>The modern form replaces both halves with a network. A <b>policy</b> head supplies a prior over
+  moves that biases selection toward plausible ones, entering the bandit rule as an extra term that
+  decays with visits; a <b>value</b> head replaces the rollout entirely, so no game is ever played to
+  the end. The search then improves on the policy (the visit distribution is a better move
+  distribution than the raw prior) and training the network to imitate the search closes the loop.
+  That loop is the whole of AlphaZero, and it is a policy-improvement operator in the sense of Part
+  XVIII §10 rather than a new idea about search.</p>
+  <p>The general lesson survives the specific system: <b>search amplifies a policy</b>. It converts
+  computation at the moment of use into quality, at a rate set by how good the policy and value
+  already are. A weak prior makes search expensive, a strong prior makes it cheap, and neither
+  removes the need for it.</p>
+</div>
+
+<h3><span class="num">§34</span> Adversaries</h3>
+
+<div class="box def">
+  <span class="label">Minimax</span>
+  <p>Two players, alternating, opposing objectives. The value of a node is the maximum over children
+  if it is your move and the minimum if it is theirs; leaves are evaluated directly. The recursion
+  computes what the position is worth under optimal play by both sides.</p>
+  <p>Cost is <span class="m">$O(b^d)$</span> and the depth is what you want, so the entire subject is
+  how to get more depth for the same nodes. Two things buy it: cutting off the recursion early and
+  applying a learned or hand-built evaluation function in place of the true value, and proving that
+  some branches cannot matter.</p>
+</div>
+
+<h3><span class="num">§35</span> Alpha–beta</h3>
+
+<div class="box def">
+  <span class="label">Two numbers that make most of the tree irrelevant</span>
+  <p>Carry <span class="m">$\alpha$</span>, the best value the maximiser can already guarantee, and
+  <span class="m">$\beta$</span>, the best the minimiser can. If at any node
+  <span class="m">$\alpha\ge\beta$</span>, the opponent will never allow this position to be reached,
+  so the remaining children need not be examined at all.</p>
+  <p>The pruning is <b>exact</b>: alpha–beta returns precisely the minimax value, never an
+  approximation. It is not a heuristic and it costs nothing in quality, which is rare enough to be
+  worth saying twice.</p>
+</div>
+
+<h3><span class="num">§36</span> Ordering is the whole game</h3>
+
+<figure>
+  <img src="figures/se/07-alphabeta.svg" alt="Leaves evaluated on a log axis against search depth, with curves for full minimax, worst-first ordering, random ordering, best-first ordering, and the square root of the full tree">
+  <figcaption><b>Figure 7.</b> Branching 3, random leaf values, twelve trees per depth. At depth 8 full
+  minimax evaluates <b>6,561</b> leaves, random ordering 1,358, and best-first ordering <b>161</b>,
+  which is exactly <span class="m">$3^4+3^4-1$</span>, the Knuth–Moore count, and 1.99× the square
+  root of the full tree. Worst-first ordering reaches <b>78.3%</b> of the full tree: bad ordering
+  forfeits nearly all of the benefit, but deep cutoffs survive even it.</figcaption>
+</figure>
+
+<div class="box why">
+  <span class="label">Why this is the most valuable line in the movement</span>
+  <p>Node count <span class="m">$b^{d/2}$</span> instead of <span class="m">$b^{d}$</span> means that
+  for the same budget you search <b>twice as deep</b>. No evaluation function improvement in the
+  history of chess engines has been worth as much as a doubling of depth, and it is bought entirely by
+  trying the good move first.</p>
+  <p>Which is circular (you would have to search to know which move is good) and the resolution is
+  that you do not need to be right, only better than random. Engines use the best move from a shallower
+  search of the same position (iterative deepening pays for itself several times over here), moves that
+  caused a cutoff at the same depth elsewhere, and captures before quiet moves. All are cheap
+  approximations and all of the benefit in Figure 7 is available to approximations, because the curve
+  between random and perfect ordering is steep at the random end.</p>
+  <p>The transferable statement: <b>in any pruning search, the order in which you try things is worth
+  more than the pruning rule.</b> It applies to branch and bound in §19, to constraint solvers, and to
+  any system that expands candidate reasoning steps in some order and stops when it finds one that
+  works.</p>
+</div>
+
+<h3><span class="num">§37</span> When the game is not chess</h3>
+
+<div class="box shapes">
+  <span class="label">Four generalisations, each of which breaks something</span>
+  <p><b>Normal form.</b> Players choose simultaneously; a payoff matrix says what everyone gets. A
+  <b>Nash equilibrium</b> is a profile where nobody gains by deviating alone; one always exists in
+  mixed strategies. In two-player zero-sum games the equilibrium value is unique and computable by
+  linear programming, which is why that case feels like optimisation and the general case does not.</p>
+  <p><b>General sum.</b> Equilibria multiply, they need not be comparable, and the best one for
+  everybody may not be an equilibrium at all: the prisoner's dilemma is the standard demonstration
+  that individually rational play can be collectively terrible. There is no longer a single number to
+  search for.</p>
+  <p><b>Extensive form.</b> Sequential play with a game tree; minimax is the zero-sum special case.
+  With <b>imperfect information</b>, states you cannot distinguish form an <i>information set</i>, and
+  the search must reason about a set of possible worlds rather than a position. Optimal play now
+  <b>requires randomising</b> (any deterministic poker strategy is exploitable), which breaks every
+  algorithm in this part, all of which return a single best move.</p>
+  <p><b>Mechanism design.</b> The inverse problem: choose the rules so that self-interested play
+  produces the outcome you want. The relevant idea for anyone building systems is
+  <i>incentive compatibility</i>: an evaluation, a benchmark or a reward model is a mechanism, and if
+  reporting honestly is not the best strategy for the thing being measured, the measurement will
+  eventually be gamed. Part XXI's reward hacking is that statement in a different vocabulary.</p>
+</div>

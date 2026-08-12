@@ -1,0 +1,167 @@
+<h2><span class="part-kicker">Part B</span>Anatomy of a network</h2>
+
+<h3><span class="num">§5</span> The feedforward network</h3>
+
+<div class="sixty">
+  <span class="label">In 60 seconds</span>
+  <p>A chain of layers, each an affine map followed by a nonlinearity:
+  $\mathbf{h}^{(k)} = g\big(W^{(k)}\mathbf{h}^{(k-1)} + \mathbf{b}^{(k)}\big)$. Information
+  flows one way, input to output, with no cycles, hence <b>feedforward</b>. The whole
+  network is one composed function, and Part 0 §17 already told you how to differentiate
+  those.</p>
+</div>
+
+<figure>
+  <img src="figures/nn/04-anatomy.svg" alt="A four-layer feedforward network with weights labelled between layers">
+  <figcaption><b>Figure 4.</b> The object. Circles are units, lines are weights, and each
+  block of lines is one matrix $W^{(k)}$ with a bias vector. The input enters at the left and
+  nothing flows backward during evaluation; the backward arrow in §12 is a separate
+  computation over the same structure.</figcaption>
+</figure>
+
+<div class="box shapes">
+  <span class="label">Watch the shapes</span>
+  <p>With a batch of $n$ examples and layer widths $d_0 \to d_1 \to d_2$:</p>
+  <p>$X$ is $n \times d_0$. &nbsp; $W^{(1)}$ is $d_0 \times d_1$. &nbsp;
+  $XW^{(1)}$ is $n \times d_1$, and $\mathbf{b}^{(1)}$ broadcasts across the rows.</p>
+  <p>Every activation carries the batch dimension first; every weight matrix maps one width
+  to the next. If a shape ever fails to chain, the fault is almost always a transposed weight
+  matrix or a forgotten batch axis.</p>
+</div>
+
+<h3><span class="num">§6</span> Output units: match the distribution</h3>
+
+<p>The last layer is not a free choice. It is determined by what kind of thing you are
+predicting, and Part II supplies the answer in every case.</p>
+
+<table>
+  <thead><tr><th>Predicting</th><th>Distribution</th><th>Output unit</th><th>Loss</th></tr></thead>
+  <tbody>
+    <tr><td>a real number</td><td>Gaussian</td><td>linear (no activation)</td><td>squared error</td></tr>
+    <tr><td>a binary label</td><td>Bernoulli</td><td>sigmoid</td><td>cross-entropy</td></tr>
+    <tr><td>one of $k$ classes</td><td>categorical</td><td>softmax</td><td>cross-entropy</td></tr>
+    <tr><td>a positive quantity</td><td>unspecified</td><td>softplus or exp</td><td>as appropriate</td></tr>
+  </tbody>
+</table>
+
+<div class="box why">
+  <span class="label">Why this matters: the table is derived, not conventional</span>
+  <p>Every row follows from Part II §26. Pick the distribution your target actually has,
+  write down its negative log-likelihood, and both the output activation and the loss fall
+  out together.</p>
+  <p>A Bernoulli needs a parameter in $(0,1)$, so you need a squashing function: that is the
+  sigmoid. Its negative log-likelihood is cross-entropy. Neither was chosen; both were
+  implied. The same derivation gives softmax and its loss for $k$ classes, and squared error
+  for a Gaussian.</p>
+</div>
+
+<div class="box pitfall">
+  <span class="label">Pitfall: never apply softmax then take the log</span>
+  <p>Frameworks provide a fused <code>cross_entropy_with_logits</code> and it expects
+  <b>raw logits</b>, not probabilities. Applying softmax yourself and passing the result
+  applies it twice, flattening your distribution toward uniform.</p>
+  <p>The fusion exists for the numerical reason in Part III §4: computing
+  $\log(\text{softmax}(z))$ directly avoids taking the log of a probability that may have
+  underflowed to exactly zero. This is the single most common implementation bug in
+  classification code.</p>
+</div>
+
+<h3><span class="num">§7</span> Hidden units</h3>
+
+<div class="readnow"><span class="label">Go and read</span><p><span class="src">Glorot, Bordes &amp; Bengio (2011)</span>, <i>Deep sparse rectifier neural networks</i>. The case for the rectifier, argued at the moment it was still contentious, when replacing a smooth saturating nonlinearity with something that is not differentiable at the origin looked reckless. Then <span class="src">Krizhevsky, Sutskever &amp; Hinton (2012)</span> on ImageNet, best read as an artefact: rectifiers, dropout, two GPUs and scale, combined, and the argument about whether depth worked ended in a single result.</p></div>
+
+<p>Output units are determined. Hidden units are a genuine design choice, and the modern
+answer is short: <b>use ReLU unless you have a reason not to.</b></p>
+
+<figure>
+  <img src="figures/nn/05-hidden-units.svg" alt="Four activation functions with their derivatives plotted beneath">
+  <figcaption><b>Figure 5.</b> Four activations, each with its derivative beneath, and the
+  bottom row is the one that matters. ReLU's derivative is exactly 1 wherever the unit is
+  active. tanh's collapses toward zero at both ends. That difference, compounded over
+  layers, is §18.</figcaption>
+</figure>
+
+<dl>
+  <dt>ReLU, $\max(0, x)$</dt>
+  <dd>The default. Derivative is exactly 1 when active, so it neither shrinks nor amplifies
+  the gradient. Cheap, and it produces genuinely sparse activations. Its flaw is §19's dead
+  units.</dd>
+
+  <dt>Leaky ReLU: a small slope for negative inputs</dt>
+  <dd>Fixes dead units by ensuring the derivative is never exactly zero. Costs almost
+  nothing and helps sometimes.</dd>
+
+  <dt>tanh: squashes to $(-1, 1)$</dt>
+  <dd>Zero-centred, which helps optimisation, but saturating. Reasonable in shallow networks
+  and in recurrent architectures, where its boundedness is a feature.</dd>
+
+  <dt>GELU and relatives: smooth, roughly ReLU-shaped</dt>
+  <dd>Common in transformers. The smoothness near zero appears to help, and the improvement
+  over ReLU is real but modest.</dd>
+</dl>
+
+<div class="box history">
+  <span class="label">History: the simplest function took longest to adopt</span>
+  <p>ReLU is $\max(0,x)$. It requires no exponentials, has a trivial derivative, and can be
+  written in one line. It was not the default until roughly <span class="year">2012</span>.</p>
+  <p>The reasons it was resisted are instructive. It is <b>not differentiable at zero</b>,
+  which looked disqualifying to anyone with a mathematical training. It is <b>unbounded
+  above</b>, which seemed likely to cause instability. And it produces <b>exact zeros</b>,
+  which looked like discarding information. Meanwhile the sigmoid had a smooth derivative, a
+  probabilistic interpretation, and biological analogy on its side.</p>
+  <p>Every objection was reasonable and every one turned out not to matter. The
+  non-differentiable point is never hit in floating point; the unboundedness is what prevents
+  saturation; the zeros are useful sparsity. What settled it was empirical: deep networks
+  with ReLU simply trained, and deep networks with sigmoids largely did not.</p>
+  <p>It is a clean case of the pattern this book keeps meeting: <b>mathematical propriety and
+  what works are different criteria</b>, and the field has repeatedly had to be dragged toward
+  the second.</p>
+</div>
+
+<h3><span class="num">§8</span> Architecture</h3>
+
+<p>Depth, width, and how the layers connect. There is far less theory here than you might
+expect, and the honest summary is that architecture is chosen empirically.</p>
+
+<p>A few things are known:</p>
+
+<ul>
+  <li><b>Depth helps, up to a point that keeps moving.</b> The limits have been practical (gradient flow) rather than representational, and each fix has raised the ceiling.</li>
+  <li><b>Width is cheaper than depth to train</b> and more expensive in parameters for the
+  same capacity.</li>
+  <li><b>Residual connections</b> (adding a layer's input to its output) make very deep
+  networks trainable, essentially by giving the gradient a path that skips the
+  multiplication. Section 18 explains why that works.</li>
+  <li><b>The right architecture encodes what you know about the data.</b> That is Part VI §7:
+  convolution for spatial locality, recurrence or attention for sequences. Architecture is
+  where your prior goes.</li>
+</ul>
+
+<div class="box try">
+  <span class="label">Try it</span>
+  <p>You are predicting a house price from 12 features. What output unit and loss? Now the
+  same network must instead predict which of 5 neighbourhoods a house is in. What changes,
+  and what does not?</p>
+</div>
+
+<p><b>Answer.</b> A price is a positive real number. The default choice is a <b>linear
+output</b> with squared error, the Gaussian likelihood. If you care more about relative than
+absolute error, predicting $\log(\text{price})$ is usually better, which also enforces
+positivity automatically.</p>
+<p>For five neighbourhoods: a <b>softmax</b> output over 5 units with cross-entropy loss.
+The final weight matrix becomes $d \times 5$ instead of $d \times 1$.</p>
+<p><b>What does not change:</b> every hidden layer, every activation, the optimiser, the
+training loop, and the backward pass. Only the last layer and the loss are determined by the
+target, which is the whole content of §6, and the reason the same code trains both.</p>
+
+<div class="box why">
+  <span class="label">What this part does not cover</span>
+  <p>Goodfellow ch06 discusses several further activation functions (<b>maxout</b>, which
+  learns its own piecewise-linear form; <b>absolute-value rectification</b>; <b>hard-tanh</b>;
+  and radial basis functions) and additional output types including fully parametrised
+  <b>mixture density networks</b> and the softmax overparametrisation argument ($n$ outputs
+  versus $n-1$). On the theoretical side, the formal Borel-measurability version of universal
+  approximation and the tight exponential-regions bounds of Montúfar et al. (2014) are not
+  derived. None of these is needed for what follows; the drills and the project do not use
+  them.</p>
+</div>

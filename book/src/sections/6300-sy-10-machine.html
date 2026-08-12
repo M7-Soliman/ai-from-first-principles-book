@@ -1,0 +1,117 @@
+<h2><span class="part-kicker">Part A</span>The machine</h2>
+
+<p class="mvt">Every performance question in this book has been answered in operations. That is the
+wrong currency. Arithmetic is nearly free and moving data is not, so the number that predicts how
+long a kernel takes is usually not the one anybody counted.</p>
+
+<h3><span class="num">§1</span> The gap that organises everything</h3>
+
+<div class="box why">
+  <span class="label">Arithmetic is cheap, memory is not</span>
+  <p>A modern accelerator performs of order 10<sup>14</sup> floating-point operations a second and
+  reads of order 10<sup>12</sup> bytes a second from its memory. So it can do roughly a hundred
+  operations in the time it takes to fetch one number.</p>
+  <p>That ratio is the subject of this movement. It means a computation that touches each value once
+  is limited by the fetching, not the computing, and no amount of faster arithmetic helps it.</p>
+</div>
+
+<h3><span class="num">§2</span> The hierarchy</h3>
+
+<div class="box shapes">
+  <span class="label">Five levels, each roughly an order of magnitude apart</span>
+  <p><b>Registers</b>: a few kilobytes, immediate. <b>L1</b>: tens of kilobytes, a few cycles.
+  <b>L2</b>: hundreds of kilobytes to a few megabytes. <b>Main memory</b>: gigabytes, hundreds of
+  cycles. <b>Another machine's memory</b>: over a network, microseconds.</p>
+  <p>Each level is roughly ten times larger and ten times slower. The whole craft of making
+  numerical code fast is arranging that the data a computation needs is at the highest level it
+  fits in, which is §12's subject and is why the same arithmetic can run at wildly different
+  speeds.</p>
+</div>
+
+<h3><span class="num">§3</span> Arithmetic intensity</h3>
+
+<div class="box def">
+  <span class="label">The number that predicts the answer</span>
+  <p class="m">$$I = \frac{\text{floating-point operations}}{\text{bytes moved}}$$</p>
+  <p>Not the operation count and not the byte count, but their ratio. A kernel with low intensity
+  spends its time waiting for memory; one with high intensity spends it computing.</p>
+  <p>Two examples fix the scale. Adding two vectors moves 24 bytes and does one operation:
+  intensity 1/24. Multiplying two <span class="m">$n \times n$</span> matrices does
+  <span class="m">$2n^3$</span> operations on <span class="m">$3n^2$</span> values: intensity
+  proportional to <span class="m">$n$</span>. Which is why matrix multiplication is the operation
+  hardware is designed around and everything else is a problem.</p>
+</div>
+
+<h3><span class="num">§4</span> The roofline</h3>
+
+<div class="box def">
+  <span class="label">A ceiling with two pieces</span>
+  <p>Achievable throughput is bounded by
+  <span class="m">$\min(I \times B, F)$</span>: intensity times bandwidth, or peak arithmetic,
+  whichever is smaller. Plotted against intensity on log axes it is a rising line meeting a flat
+  one, and the corner is the <b>ridge point</b>.</p>
+  <p>Below the ridge you are memory-bound and the only remedies are moving less data or moving it
+  from somewhere closer. Above it you are compute-bound and a better algorithm or lower precision is
+  what helps. <b>Knowing which side you are on decides what to work on</b>, and it is a
+  ten-minute measurement.</p>
+</div>
+
+<h3><span class="num">§5</span> Measured</h3>
+
+<figure>
+  <img src="figures/sy/01-roofline.svg" alt="Achieved throughput against arithmetic intensity on log axes, with elementwise kernels and matrix multiplications placed under a roofline">
+  <figcaption><b>Figure 1.</b> Kernels placed on the roofline of the machine this was built on. Cheap
+  elementwise operations reach <b>31 GB/s</b> and almost no arithmetic; large matrix multiplication
+  reaches <b>60.7 GFLOP/s</b> and almost no bandwidth. The ridge sits at <b>1.96 flops per byte</b>
+  (60.7 &divide; 31), the on-plot label rounds that to the nearest whole number, so anything below
+  it is waiting for memory. The constants belong to one machine and the shape does not.</figcaption>
+</figure>
+
+<div class="box why">
+  <span class="label">One point that contradicts the rule of thumb</span>
+  <p>"Elementwise means memory-bound" is the usual summary and Figure 1 shows its exception:
+  <code>exp</code> moves the same bytes as a copy and achieves <b>1.94 GB/s</b> against the copy's
+  <b>31 GB/s</b>, because a transcendental function costs tens of operations per element. It is
+  elementwise and compute-bound.</p>
+  <p>Which matters practically: fusing a chain of cheap elementwise operations helps a great deal
+  and fusing a chain of activations helps much less, because the activations were not waiting for
+  memory in the first place.</p>
+</div>
+
+<h3><span class="num">§6</span> Occupancy, and why it is not the goal</h3>
+
+<div class="box pitfall">
+  <span class="label">Pitfall: a metric that is a means</span>
+  <p>An accelerator hides memory latency by having many threads in flight: while one waits, another
+  computes. <b>Occupancy</b> is how full that pipeline is, and it is the first thing every profiler
+  reports.</p>
+  <p>It is a means to hiding latency, not an end. A kernel at 25% occupancy that keeps memory
+  saturated is finished; raising its occupancy changes nothing. And raising occupancy usually means
+  using fewer registers per thread, which can force values back to memory and make things worse.
+  <b>Optimise the time, and read occupancy only to explain it.</b></p>
+</div>
+
+<h3><span class="num">§7</span> Precision</h3>
+
+<div class="box shapes">
+  <span class="label">Fewer bits buys two different things</span>
+  <p>Half the bits is half the bytes moved, which doubles the throughput of anything memory-bound,
+  and it is separately faster in arithmetic, because the hardware has dedicated units for it. Those
+  are independent gains and it is worth knowing which one you are getting.</p>
+  <p>What it costs is range and resolution, and the two failure modes differ. <b>Overflow</b> in a
+  narrow format is catastrophic and loud; <b>underflow</b> in the gradients is silent, which is why
+  loss scaling exists. Part XVII §19's mixed precision is this trade made carefully: compute in the
+  narrow format, accumulate in a wide one.</p>
+</div>
+
+<h3><span class="num">§8</span> What movement A establishes</h3>
+
+<div class="box intuition">
+  <span class="label">Three things</span>
+  <p><b>The currency is bytes moved, not operations.</b> A hundred operations cost what one fetch
+  costs, so the ratio decides.</p>
+  <p><b>The roofline tells you what to work on</b>, and Figure 1 puts the ridge at 1.96 flops per
+  byte on one machine (below it, only moving less data helps).</p>
+  <p><b>Elementwise does not always mean memory-bound.</b> A transcendental moves the same bytes as
+  a copy and runs sixteen times slower, so the rule of thumb has a large exception.</p>
+</div>

@@ -1,0 +1,176 @@
+<h2><span class="part-kicker">Build</span>The project</h2>
+
+<p class="lede">Eight to ten hours. You establish, by measurement rather than argument, that
+six techniques taught as unrelated are the same technique.</p>
+
+<h3><span class="num">P.1</span> What you are building</h3>
+
+<p><b><code>oneknob</code></b>: a harness that fits one problem under every regulariser in
+this part, and reports where they agree and where they do not.</p>
+
+<p>The rule: <b>no claim without a number.</b> Every equivalence this part asserts must be
+produced by your code, with the disagreement reported, not assumed.</p>
+
+<h3><span class="num">P.2</span> Stage 1: the instrument</h3>
+
+<p>A quadratic problem you can control: choose $n$, $d$, and an eigenvalue spectrum spanning
+several decades, then generate data from a known $\mathbf{w}^*$.</p>
+
+<ul>
+  <li>Ridge by <code>solve</code>, never an explicit inverse (Part I §13).</li>
+  <li>The eigendecomposition of $X^\top X$, and a function returning the kept fraction of
+  each direction for any fitted $\mathbf{w}$.</li>
+  <li>A held-out test set, and Part V §10's bootstrap interval on the reported error.</li>
+</ul>
+
+<p><b>Deliverable:</b> reproduce Figure 1, with measured kept fractions landing on
+$\lambda/(\lambda+\alpha)$, and a test-error curve whose optimum is strictly interior.
+Report how much the best $\alpha$ beats $\alpha \to 0$ on your spectrum.</p>
+
+<h3><span class="num">P.3</span> Stage 2: four routes to one solution</h3>
+
+<p>The centrepiece. Fix a target $\alpha$ and reach it four ways:</p>
+
+<ol>
+  <li><b>Ridge</b> at $\alpha$.</li>
+  <li><b>Input noise</b> at $\sigma = \sqrt{\alpha/n}$, averaged over many corrupted copies.</li>
+  <li><b>Early stopping</b> at $\tau = 1/(\alpha\epsilon)$.</li>
+  <li><b>A norm constraint</b> at $c = \|\tilde{\mathbf{w}}_\alpha\|_2$, by projected
+  gradient.</li>
+</ol>
+
+<p><b>Deliverable:</b> a 4×4 table of pairwise relative distances. Three of the four should
+agree to about a percent. <b>Early stopping will not</b>, and the size and location of its
+disagreement is the interesting result; report where in the spectrum it drifts, and check
+it against §14's claim that the gap is largest for half-learned directions.</p>
+
+<h3><span class="num">P.4</span> Stage 3: the ones that are not equivalent</h3>
+
+<p>Now the techniques that genuinely differ, on a problem with sparse true weights:</p>
+
+<ul>
+  <li><b>$L^1$ by proximal gradient.</b> Count exact zeros, not small values.</li>
+  <li><b>Bagging.</b> Measure bias² and variance separately against $k$; confirm the first
+  is flat and the second falls like $1/k$.</li>
+  <li><b>Dropout</b>, on a small network you write yourself. Sweep $p$, average several
+  seeds, and locate the U.</li>
+</ul>
+
+<p><b>Deliverable:</b> for each, one sentence saying what preference it expresses and one
+measurement showing that preference being expressed.</p>
+
+<h3><span class="num">P.5</span> Stage 4: the accumulation trap</h3>
+
+<p>The practical result, and the one most likely to change how you work.</p>
+
+<p>Apply input noise and weight decay together at several combinations. Predict the total
+from $\alpha_{\text{noise}} + \alpha_{\text{explicit}}$, then measure it.</p>
+
+<p>Then run the failure deliberately: fix $\sigma$ so that $\alpha_{\text{noise}} = 10$, and
+sweep explicit $\alpha$ over $[0.01, 1]$. Plot test error against $\alpha$.</p>
+
+<p><b>Deliverable:</b> a flat line, and a paragraph explaining why someone looking at it
+would reasonably conclude that weight decay does not help on this problem, and be wrong.</p>
+
+<h3><span class="num">P.6</span> Stage 5: adversarial</h3>
+
+<ol>
+  <li>Fit a classifier and confirm high clean accuracy.</li>
+  <li>Attack it along the sign of the input gradient; sweep $\epsilon$.</li>
+  <li>Attack it with random perturbations of identical magnitude.</li>
+  <li>Retrain including adversarial examples and repeat.</li>
+</ol>
+
+<p><b>Deliverable:</b> the two curves on one axis, and three numbers for the adversarially
+trained model: robust accuracy, clean accuracy, and wall-clock cost. Reporting only the
+first is how this technique gets overstated.</p>
+
+<h3><span class="num">P.7</span> Stretch</h3>
+
+<ul>
+  <li><b>Double descent, with and without regularization.</b> Sweep width across the
+  interpolation threshold at several $\alpha$. Watch the peak flatten. Part V §20 noted the
+  default settings of most solvers hide it; make that concrete.</li>
+  <li><b>Label smoothing.</b> Measure the largest logit with and without. Part II §25's loss
+  curve predicts what you will see.</li>
+  <li><b>Noise on the weights</b> rather than the inputs, and the penalty it corresponds to.</li>
+  <li><b>An augmentation that is false</b> (vertical flips on digits), and the damage
+  measured against none.</li>
+</ul>
+
+<h3><span class="num">P.8</span> Done when</h3>
+
+<ul class="checklist">
+  <li>Measured kept fractions land on $\lambda/(\lambda+\alpha)$.</li>
+  <li>The 4×4 table exists, with early stopping's disagreement located rather than excused.</li>
+  <li>$L^1$ produces exact zeros; bagging's variance falls like $1/k$ with flat bias.</li>
+  <li>The dropout U is located, over several seeds.</li>
+  <li>The flat-line plot exists, with its explanation.</li>
+  <li>Adversarial training reported with all three numbers.</li>
+  <li>Every reported error carries a bootstrap interval.</li>
+  <li>Your README names one technique you had thought was unrelated to the others.</li>
+</ul>
+
+<div class="box why">
+  <span class="label">Why this project</span>
+  <p>Regularization is the part of the field where the largest number of things are taught
+  as separate tricks and the largest number turn out to be one thing. Reading that claim is
+  easy and unconvincing; producing four solutions that coincide to a percent is neither.</p>
+  <p>It also builds the habit this part most wants to leave you with. The accumulation trap
+  in Stage 4 is not a curiosity; it is the most common regularization failure in practice,
+  it looks exactly like a technique not working, and the only defence is knowing that
+  strengths add and being willing to measure the total.</p>
+</div>
+
+<h2 class="nobreak"><span class="part-kicker">Assess</span>Checkpoint</h2>
+
+<ul class="checklist">
+  <li>State the definition of regularization, including the clause about training error.</li>
+  <li>Give the five views of §2 and say which question each answers best.</li>
+  <li>Name the three sources a preference can come from.</li>
+  <li>Derive $\tilde{\mathbf{w}} = (H+\alpha I)^{-1}H\mathbf{w}^*$.</li>
+  <li>Show it becomes $\lambda_i/(\lambda_i+\alpha)$ per direction, and say why.</li>
+  <li>Explain which directions $L^2$ deletes, and why that is the right ones.</li>
+  <li>Explain why $L^1$ reaches exactly zero and $L^2$ does not, twice: by gradient and by geometry.</li>
+  <li>State the correspondence between a penalty and a constraint, and what $\alpha$ means.</li>
+  <li>Explain why regularization gives an under-constrained problem a unique solution.</li>
+  <li>Derive that input noise equals an $L^2$ penalty, and say what the derivation assumed.</li>
+  <li>Give the $\alpha$ corresponding to noise of scale $\sigma$ on $n$ examples.</li>
+  <li>State the early-stopping kept fraction and the $\alpha$ it corresponds to.</li>
+  <li>Say precisely in what sense early stopping and weight decay are equivalent, and in what sense they are not.</li>
+  <li>Explain why parameter sharing is stronger than a tying penalty.</li>
+  <li>Distinguish sparse parameters from sparse representations, and say what each assumes.</li>
+  <li>Say what multi-task learning shares and what it assumes; name its failure mode.</li>
+  <li>Explain what unlabelled data can and cannot tell you, and the assumption that makes it useful.</li>
+  <li>State what tangent propagation penalises, and how it relates to the manifold hypothesis.</li>
+  <li>Derive the bagging error expression and read off both extremes.</li>
+  <li>Say when bagging does nothing, and how you would know in advance.</li>
+  <li>Give both explanations of dropout, and why the rescaling exists.</li>
+  <li>Explain why an adversarial perturbation beats a random one of the same size.</li>
+  <li>List the practical ordering of §22 and justify the first two entries.</li>
+  <li>State the three things regularization cannot do.</li>
+  <li>Diagnose: training 19%, test 24%, after adding three regularisers at once.</li>
+</ul>
+
+<table class="compact">
+  <thead><tr><th>Score</th><th>Verdict</th></tr></thead>
+  <tbody>
+    <tr><td><b>20–25</b></td><td>Go on. You can see the single idea underneath.</td></tr>
+    <tr><td><b>16–19</b></td><td>Reread what you missed, then continue.</td></tr>
+    <tr><td><b>11–15</b></td><td>Do the project's Stage 2. Producing the four solutions fixes most of this.</td></tr>
+    <tr><td><b>Under 11</b></td><td>Reread §§4 and 14. The eigen-shrinkage carries this part, and everything else is it in another costume.</td></tr>
+  </tbody>
+</table>
+
+<div class="box intuition">
+  <span class="label">The one thing to carry forward</span>
+  <p><b>A regulariser is a statement about which functions you would rather have, made
+  before you know which ones fit.</b></p>
+  <p>That is why techniques with nothing in common formally turn out to be identical in
+  effect, why none of them is universally good, and why the useful question is never how
+  much regularization but which preference is true here.</p>
+  <p>It is also why the honest parts of this chapter are the derived ones. The folklore
+  around dropout and normalisation has shifted more than once and will shift again; the
+  eigen-shrinkage, the noise identity and the variance algebra are theorems, and they will
+  outlast it.</p>
+</div>

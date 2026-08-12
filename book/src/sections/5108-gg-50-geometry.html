@@ -1,0 +1,131 @@
+<h2><span class="part-kicker">Part E</span>Geometry</h2>
+
+<p class="mvt">Permutation is one symmetry group. Rotation is another, and a molecule has both: its
+atoms have no canonical order and its energy does not depend on which way it is pointing. This
+movement generalises movement A's argument to continuous groups and measures what a symmetry is
+worth against paying data for it.</p>
+
+<h3><span class="num">§32</span> Groups, and what an architecture declares</h3>
+
+<div class="readnow"><span class="label">Go and read</span><p><span class="src">Bronstein et al. (2021)</span>, <i>Geometric deep learning: grids, groups, graphs, geodesics and gauges</i>. The general statement of the argument Part X made for translation and this part generalises. Long; read the first sixty pages for the blueprint and treat the rest as reference.</p></div>
+
+<div class="box def">
+  <span class="label">The general statement</span>
+  <p>A <b>group</b> is a set of transformations closed under composition and inverse. The ones that
+  matter here: <span class="m">$S_n$</span>, permutations of <span class="m">$n$</span> objects;
+  <span class="m">$SO(3)$</span>, rotations in space; <span class="m">$SE(3)$</span>, rotations and
+  translations; <span class="m">$E(3)$</span>, those plus reflection.</p>
+  <p>An architecture declares a group and a type of behaviour under it. Part X declared translation
+  and equivariance. Movement A declared permutation. A molecular network declares
+  <span class="m">$SE(3)$</span> for the geometry and <span class="m">$S_n$</span> for the atoms
+  simultaneously, and must respect both.</p>
+</div>
+
+<div class="box why">
+  <span class="label">Reflection is a real decision, not a technicality</span>
+  <p><span class="m">$E(3)$</span> includes reflection and <span class="m">$SE(3)$</span> does not,
+  and the difference decides whether your model can tell a molecule from its mirror image. For
+  chirality (where two mirror-image molecules have different biological effects), declaring the
+  larger group makes the model provably unable to represent the distinction that matters.</p>
+  <p>Which is the cleanest example in this part of the general point: a symmetry is an assumption,
+  and asserting one the problem does not have is as damaging as missing one it does.</p>
+</div>
+
+<h3><span class="num">§33</span> Building invariance from distances</h3>
+
+<div class="box intuition">
+  <span class="label">The cheap and correct construction</span>
+  <p>Pairwise distances are unchanged by any rotation, translation or reflection. So a network that
+  reads only distances is <span class="m">$E(3)$</span>-invariant by construction, with no
+  constraint on the network itself.</p>
+  <p>This is what Figure 5's invariant model does and it is the first thing to try: it costs
+  nothing, it is exact, and it handles a large fraction of real problems. Its limitation is that
+  distances discard orientation, so it cannot express anything chiral, and it cannot produce a
+  vector output: a force has a direction, and a distance-only network has no way to point.</p>
+</div>
+
+<h3><span class="num">§34</span> What a symmetry is worth</h3>
+
+<figure>
+  <img src="figures/gg/05-equivariance.svg" alt="Accuracy on rotated test data against training set size, for an invariant model and one trained with rotation augmentation">
+  <figcaption><b>Figure 5.</b> A rotation-invariant property of a point cloud, learned two ways. The
+  model reading pairwise distances is invariant by construction; the model reading raw coordinates
+  is trained with fourfold random-rotation augmentation and has to learn the symmetry. The invariant
+  model is ahead at every training size measured, but the gap is not monotone: it is a bare
+  <b>0.004</b> at the smallest training set (100 examples, where both models are still weak),
+  widens to <b>0.073</b> by 400–800 examples, and only then narrows, to <b>0.039</b> by 3,200
+  examples. Augmentation is a way of paying data for a constraint the invariant model was given, but
+  the price is not simply cheaper as data grows.</figcaption>
+</figure>
+
+<div class="box why">
+  <span class="label">Two readings, and the second is the useful one</span>
+  <p>The gap's shape says the symmetry is <b>learnable</b>, once there is enough data for the
+  augmented model to have something to generalise from. Below a few hundred examples both models
+  are weak and the gap between them is small for the wrong reason; above that, the augmented model
+  starts to catch up, which is why augmentation is a reasonable default at scale and why large
+  models trained on enormous datasets can dispense with architectural symmetry entirely.</p>
+  <p>What the gap does not do is close. At every size measured the invariant model is ahead, and it
+  is ahead <i>exactly</i>: it cannot violate the symmetry on an input nobody tested, and the
+  augmented model can. When the cost of an inconsistent answer is high, that difference matters more
+  than the accuracy.</p>
+</div>
+
+<h3><span class="num">§35</span> Equivariant message passing</h3>
+
+<div class="readnow"><span class="label">Go and read</span><p><span class="src">Satorras, Hoogeboom &amp; Welling (2021)</span>, <i>E(n) equivariant graph neural networks</i>. The scalar-and-vector construction below, written out in about a page of arithmetic. Worth reading before the higher-order features of §36, to see how much of the benefit is available without them.</p></div>
+
+<div class="box def">
+  <span class="label">Keeping a direction</span>
+  <p>To predict a vector (a force, a displacement), the network must be equivariant rather than
+  invariant: rotate the input and the output rotates with it.</p>
+  <p>The construction that works is to keep two kinds of quantity at each node. <b>Scalars</b>,
+  which are invariant, and <b>vectors</b>, which rotate. Update scalars from distances and other
+  scalars; update vectors as scalar-weighted sums of relative position vectors:</p>
+  <p class="m">$$\mathbf{v}_i \;\leftarrow\; \mathbf{v}_i + \sum_{j \in \mathcal{N}(i)} w\!\left(\lVert \mathbf{x}_i - \mathbf{x}_j \rVert, h_i, h_j\right)\left(\mathbf{x}_i - \mathbf{x}_j\right)$$</p>
+  <p>Every term on the right rotates the same way, so the sum does. The weights are an arbitrary
+  learned function of invariant arguments, so nothing is given up in flexibility: the constraint
+  costs the network only the requirement that it never mix a scalar into a vector slot.</p>
+</div>
+
+<h3><span class="num">§36</span> Higher-order features</h3>
+
+<div class="box shapes">
+  <span class="label">Beyond scalars and vectors</span>
+  <p>Scalars and vectors are the first two of a family: the irreducible representations of the
+  rotation group, indexed by a degree. Higher degrees carry finer angular structure, and combining
+  them requires a specific product that respects the group.</p>
+  <p>The practical position is worth stating plainly. Higher-degree networks are more expressive
+  and substantially more expensive and more difficult to implement. The scalar-and-vector
+  construction of §35 is enough for a large fraction of molecular work, and the gains from going
+  further are real, task-dependent, and smaller than the framework's sophistication suggests.</p>
+</div>
+
+<h3><span class="num">§37</span> Where geometry meets graphs</h3>
+
+<div class="box shapes">
+  <span class="label">Three settings, three groups</span>
+  <p><b>Point clouds.</b> A set with coordinates and no edges. Build a graph by distance cutoff or
+  nearest neighbours, then everything above applies, and note the graph is now a modelling choice
+  with a hyperparameter, not given data.</p>
+  <p><b>Molecules.</b> A graph with coordinates. Bonds give edges and geometry gives distances, so
+  both symmetries act at once.</p>
+  <p><b>Meshes.</b> A graph with faces, where the geometry is intrinsic. The relevant invariance may
+  be to bending rather than to rotation, which is a different group and a different construction.</p>
+</div>
+
+<h3><span class="num">§38</span> What movement E establishes</h3>
+
+<div class="box intuition">
+  <span class="label">Three things</span>
+  <p><b>The permutation argument generalises to any group</b>, and an architecture is the
+  declaration of one. Getting the group wrong in either direction is a modelling error: too small
+  wastes data, too large (declaring reflection symmetry on a chiral problem) makes the needed
+  distinction unrepresentable.</p>
+  <p><b>Invariance from distances is free and limited.</b> Exact, trivial to implement, and unable
+  to express chirality or produce a direction.</p>
+  <p><b>The symmetry is learnable and building it in is still better.</b> Figure 5 measures the gap
+  rising from 0.004 to 0.073 as both models leave the weak-data regime, then narrowing to 0.039 by
+  3,200 examples, never closing, and the built-in version cannot be violated on an input nobody
+  checked.</p>
+</div>

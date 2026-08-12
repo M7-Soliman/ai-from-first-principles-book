@@ -1,0 +1,168 @@
+<h2><span class="part-kicker">Part F</span>What it is used for</h2>
+
+<h3><span class="num">§39</span> Reward design</h3>
+
+<div class="readnow"><span class="label">Go and read</span><p><span class="src">Ng, Harada &amp; Russell (1999)</span>, <i>Policy invariance under reward transformations</i>. The proof that potential-based shaping leaves the optimal policy unchanged and that essentially nothing else does. The telescoping argument is half a page and worth seeing once, because it tells you exactly which hints are free and which change the problem.</p></div>
+
+<figure>
+  <img src="figures/rl/07-reward-hacking.svg" alt="Proxy and true return for two policies, and the path taken by the policy trained on the proxy">
+  <figcaption><b>Figure 7.</b> A gridworld with a goal and a loop of coins near the start. Trained
+  on the proxy, goal plus a small bonus per coin, the optimal policy earns <b>13.9×</b> the proxy
+  return of the policy that solves the task, achieves a <b>true return of −0.325</b>, and
+  <b>never reaches the goal</b>. Nothing is broken: it is the optimal policy for the reward it was
+  given.</figcaption>
+</figure>
+
+<div class="box why">
+  <span class="label">Why this is the characteristic failure of the whole subject</span>
+  <p>A reward function is a <b>specification written by a person</b>, and the agent is a search over
+  policies paid to find whatever it literally says. Any gap between the specification and the
+  intention is a gap the optimiser is being rewarded to exploit.</p>
+  <p>The figure's policy is not confused. It found a cycle that pays repeatedly and, with
+  discounting, a repeatable small reward beats a single terminal one. The reward said so.</p>
+  <p>Part XIV §33's Goodhart's law is the general statement, and reinforcement learning is its
+  sharpest case for two reasons: the agent has <b>full freedom over its own data</b>, and the
+  optimisation is powerful enough to find edges a person would not think to check.</p>
+</div>
+
+<div class="box def">
+  <span class="label">What helps</span>
+  <p><b>Potential-based shaping</b> is the one technique with a guarantee. Adding
+  $F(s,a,s') = \gamma\Phi(s') - \Phi(s)$ for any function $\Phi$ leaves the optimal policy
+  <b>provably unchanged</b>: the added terms telescope over any trajectory and cancel. So you can
+  give dense hints without changing what is optimal, and any shaping <i>not</i> of this form can
+  change the answer.</p>
+  <p><b>Reward from a model of preferences</b> rather than hand-written rules (§41).</p>
+  <p><b>Constraints rather than penalties.</b> A penalty is a price the agent may choose to pay; a
+  constraint is not negotiable.</p>
+  <p><b>And looking at the behaviour.</b> Part XIV §11's discipline. The figure's failure is
+  obvious in one rollout and invisible in the reward curve, which was going up the whole time.</p>
+</div>
+
+<h3><span class="num">§40</span> Offline reinforcement learning</h3>
+
+<div class="box def">
+  <span class="label">Learning from a fixed dataset</span>
+  <p>No interaction: a logged dataset of transitions from some other policy. Attractive wherever
+  exploration is expensive or dangerous: medicine, industrial control, recommendation.</p>
+  <p>The specific difficulty is <b>extrapolation</b>. The Bellman target contains
+  $\max_{a'} Q(s',a')$, and that max ranges over actions the dataset may contain no examples of. The
+  network extrapolates, extrapolation is optimistic, the optimistic value becomes a bootstrap
+  target, and nothing in the data ever corrects it: §19's maximisation bias with the correction
+  mechanism removed.</p>
+  <p>The remedies all constrain the policy to stay near the data: penalise divergence from the
+  behaviour policy, learn deliberately pessimistic values, or avoid bootstrapping entirely by
+  treating the problem as conditional sequence modelling. The last is worth noting for what it
+  implies: a large part of offline RL turns into Part XVI's autoregressive modelling with the
+  return as a conditioning variable.</p>
+</div>
+
+<h3><span class="num">§41</span> Learning from human feedback</h3>
+
+<div class="readnow"><span class="label">Go and read</span><p><span class="src">Christiano et al. (2017)</span>, <i>Deep reinforcement learning from human preferences</i>. The construction behind RLHF, several years before it was used that way, and clear about why comparisons rather than scores. Then <span class="src">Gao, Schulman &amp; Hilton (2023)</span> for the measured version of overoptimisation: reward-model score rising while true quality peaks and falls.</p></div>
+
+<div class="box def">
+  <span class="label">When the reward cannot be written down</span>
+  <p>For "a helpful answer" there is no reward function to write. The standard construction has
+  three stages: collect <b>comparisons</b> between pairs of outputs, fit a <b>reward model</b> to
+  predict which a person preferred, then optimise the policy against that model with PPO plus a KL
+  penalty against the starting policy.</p>
+  <p>Comparisons rather than scores because people are far more consistent at ranking two things
+  than at assigning absolute numbers (Part XIII §5's annotator agreement, turned into a design
+  decision).</p>
+</div>
+
+<div class="box pitfall">
+  <span class="label">Pitfall: the reward model is a learned proxy, and §39 applies to it</span>
+  <p>Optimising hard against a learned reward model finds its errors. Measured behaviour: reward
+  model score rises steadily while human ratings of the same outputs plateau and then fall. The
+  policy has moved off the distribution the reward model was trained on, where its predictions were
+  never validated.</p>
+  <p>The KL penalty against the initial policy is the direct response: it prices moving far from
+  where the reward model is trustworthy. Its coefficient is therefore not a regularisation detail
+  but the main safety-against-overoptimisation knob, and it is tuned by watching the gap between
+  reward-model score and human judgement.</p>
+  <p><b>DPO</b> and its relatives remove the separate reward model and the RL loop entirely,
+  optimising a classification loss on the preference pairs that has the same optimum, an equivalence derived in Part XX §29. Simpler,
+  stabler, and it gives up the ability to keep sampling fresh outputs for the reward model to judge,
+  which is the thing online methods buy.</p>
+</div>
+
+<h3><span class="num">§42</span> Training for reasoning</h3>
+
+<div class="box def">
+  <span class="label">Where the reward is checkable</span>
+  <p>The setting that changed the picture recently: tasks where correctness can be <b>verified
+  automatically</b>: a proof checker, a unit test, a numerical answer. The reward is then not a
+  learned proxy but a fact, and §39's central failure does not apply.</p>
+  <p>The policy is a language model, an episode is a generated solution, and the reward arrives at
+  the end. Long horizon, extremely sparse, enormous action space (everything this part says is
+  hard), and it works, largely because the starting policy is already competent, so exploration is
+  a search over plausible solutions rather than over random tokens.</p>
+  <p>That last point is the general lesson and it is worth extracting: <b>a strong initial policy
+  converts exploration from an unsolved problem into a manageable one.</b> §38's avoidance,
+  deployed deliberately.</p>
+  <p>The dominant algorithm family here is <b>critic-free and group-relative</b> (GRPO and its
+  relatives): sample a group of completions for the same prompt, use the group's own reward mean as
+  the baseline in place of a learned $V_\phi$, and skip the critic entirely. It is §27's baseline
+  idea taken to its cheapest extreme: once many rollouts per prompt are already being sampled, the
+  group mean is a serviceable baseline and a critic is one more network that has to be fitted
+  well.</p>
+  <p>The failures that remain are the ones you would predict. A test suite that can be satisfied
+  without solving the problem will be. Reward on the final answer alone gives no credit assignment
+  across a long derivation, and process-level reward requires judging the steps, which returns you
+  to §41's learned proxy.</p>
+</div>
+
+<h3><span class="num">§43</span> Evaluating a reinforcement learning result</h3>
+
+<div class="readnow"><span class="label">Go and read</span><p><span class="src">Henderson et al. (2018)</span>, <i>Deep reinforcement learning that matters</i>. Results varying more across random seeds than across the algorithms being compared, with three seeds the norm at the time. Read alongside Part XIV §19: this is that section's problem in the setting where it is worst, because the policy determines its own data and an early difference compounds.</p></div>
+
+<div class="box pitfall">
+  <span class="label">Pitfall: this literature has a reproducibility problem, and it is measured</span>
+  <p>Careful replication studies have found that reported results in deep RL vary enormously across
+  random seeds, often more than across the algorithms being compared, and that a small number of
+  seeds is standard practice.</p>
+  <p>Part XIV §19's seed variance, in the setting where it is worst: the policy determines its own
+  data, so an early difference compounds rather than averaging out. Two runs of the same algorithm
+  can end in genuinely different places.</p>
+  <p>What to require, and it is Part XIV's list with one addition: <b>many seeds</b> (ten, not
+  three) with the full distribution rather than the mean; the <b>same</b> environment version and
+  preprocessing; the implementation details (§32 says they matter as much as the method); and a
+  random-policy baseline, which is more often informative than it should be.</p>
+</div>
+
+<h3><span class="num">§44</span> When not to use it</h3>
+
+<div class="box def">
+  <span class="label">Four cases, and they cover most attempts</span>
+  <p><b>You have the labels.</b> If demonstrations of correct behaviour exist, imitation learning is
+  supervised learning: no exploration, no credit assignment, no reward design, and it is almost
+  always the right first thing to try.</p>
+  <p><b>The problem is not sequential.</b> If actions do not affect what you see next, it is a
+  bandit or a supervised problem. Reinforcement learning solves a harder problem and pays for
+  it.</p>
+  <p><b>You cannot specify the reward.</b> §39 says a wrong specification is optimised faithfully.
+  If you cannot write it down and cannot get preferences, the project has no objective.</p>
+  <p><b>Interaction is expensive and you have no simulator.</b> Sample efficiency is this field's
+  standing weakness, and the successes are overwhelmingly in domains with a fast, faithful
+  simulator or a verifier.</p>
+</div>
+
+<h3><span class="num">§45</span> What to carry forward</h3>
+
+<div class="box intuition">
+  <span class="label">The one thing</span>
+  <p><b>The agent optimises the reward you wrote, using data it chose to collect.</b></p>
+  <p>Both halves of that sentence cause the difficulties. Because the reward is what is optimised,
+  any gap between it and your intention is found and exploited (§39). Because the data is chosen by
+  the policy, an early mistake removes the evidence that would have corrected it (§33), a bad step
+  is not recoverable (§30), and the training distribution moves as the learner moves (§1).</p>
+  <p>Every method in this part is a response to one of those. The Bellman equation handles credit
+  assignment. Baselines and advantage estimation handle the variance that comes from long
+  trajectories. Trust regions handle the step that cannot be taken back. Optimism and posterior
+  sampling handle the evidence that will not arrive on its own.</p>
+  <p>And the practical summary that most often matters: <b>if you can turn the problem into
+  supervised learning, do.</b> The cases where this part is necessary are the cases where you
+  genuinely cannot, and they are fewer than the number of projects that reach for it.</p>
+</div>

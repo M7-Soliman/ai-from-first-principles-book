@@ -1,0 +1,353 @@
+<h2><span class="part-kicker">Practice</span>Drills</h2>
+
+<p class="lede">Thirty-nine problems. This part is mostly about measuring distributions, so most of
+these build an instrument and then find the case where it reports something untrue.</p>
+
+<h3><span class="num">Tier 0</span> Estimate first</h3>
+
+<div class="drill">
+  <div class="head"><span class="tier est">Estimate</span>E1 &middot; What a sampler costs</div>
+  <p>A diffusion sampler taking 50 steps, on a model whose forward pass costs 20&nbsp;ms. Write down the time for one image, and for a thousand.</p>
+  <div class="ans"><b>Answer.</b> <b>1 second</b> and <b>17 minutes</b>. The sampler multiplies the model's cost by the step count, which is why every distillation and few-step method, Part XIX §29, is aimed at exactly this number and why a 20&times; reduction in steps matters more than a 20% faster model. <i>Score yourself: within a factor of two is a pass, and an order of magnitude out is worth understanding before you go on.</i></div>
+</div>
+
+<h3><span class="num">Tier 1</span> Warm-up</h3>
+
+<div class="drill">
+  <div class="head"><span class="tier warm">Warm</span>W1 · The three things</div>
+  <p>Name the three things a generative model might give you, and say which a GAN gives.</p>
+  <div class="ans"><b>Answer.</b> Sampling, density evaluation, inference. A GAN gives sampling
+  only: no density, so no anomaly detection, no model comparison, no likelihood for itself.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier warm">Warm</span>W2 · Why $Z$ is the problem</div>
+  <p>Write down $Z$ and say why it cannot be computed once and reused.</p>
+  <div class="ans"><b>Answer.</b> $Z(\theta) = \int \tilde{p}(\mathbf{x};\theta)\,d\mathbf{x}$ over
+  the whole space. It depends on $\theta$, so it changes at every gradient step.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier warm">Warm</span>W3 · Positive and negative phases</div>
+  <p>Give both terms of an energy-based model's log-likelihood gradient and say which is
+  expensive.</p>
+  <div class="ans"><b>Answer.</b> Push energy down at the data; push it up wherever the model puts
+  mass. The second is an expectation under the model, so it needs samples from a model that is
+  currently wrong, at every step.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier warm">Warm</span>W4 · Which failure from which KL</div>
+  <p>Match blurry samples and mode collapse to the two KL directions, and explain each.</p>
+  <div class="ans"><b>Answer.</b> Forward KL (maximum likelihood) is infinite where data has mass
+  and the model has none, so it covers, and hedging between sharp alternatives is blur. Reverse KL
+  is infinite where the model has mass and the data has none, so it may abandon regions:
+  collapse.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier warm">Warm</span>W5 · The score</div>
+  <p>Why does $\nabla_{\mathbf{x}} \log p$ not contain $Z$?</p>
+  <div class="ans"><b>Answer.</b> $Z$ is a function of $\theta$ and not of $\mathbf{x}$, so its
+  gradient with respect to $\mathbf{x}$ is exactly zero. Not approximated, differentiated
+  away.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier warm">Warm</span>W6 · Why one noise level cannot work</div>
+  <p>State the two failures at the two extremes.</p>
+  <div class="ans"><b>Answer.</b> Small $\sigma$: the target is nearly right and almost none of
+  the space gets training signal, so a sampler cannot start. Large $\sigma$: coverage is good and
+  the target is the score of a badly blurred distribution. Use every level at once.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier warm">Warm</span>W7 · The sampling asymmetry</div>
+  <p>Why is autoregressive sampling slow, and why does more hardware not fix it?</p>
+  <div class="ans"><b>Answer.</b> Position $i+1$ needs $x_i$, which does not exist until position
+  $i$ is sampled. It is a data dependency in the model's definition, not a shortage of arithmetic.
+  Caching lowers the constant; the chain remains.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier warm">Warm</span>W8 · What the ELBO's gap is</div>
+  <p>Name it exactly, and say why it cannot be measured directly.</p>
+  <div class="ans"><b>Answer.</b> $D_{KL}(q(\mathbf{z}\mid\mathbf{x}) \parallel
+  p(\mathbf{z}\mid\mathbf{x}))$. It needs the true posterior, which is the object $q$ was
+  introduced to avoid.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier warm">Warm</span>W9 · Why looking at samples fails</div>
+  <p>A model produces 5,000 flawless samples. What can you still not rule out?</p>
+  <div class="ans"><b>Answer.</b> That it dropped most of the distribution. Every collapsed sample
+  is a real mode. Detecting absence requires remembering what should be there, which is what a
+  human inspecting a grid cannot do.</div>
+</div>
+
+<h3><span class="num">Tier 2</span> Core</h3>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C1 · Both KL directions</div>
+  <p>Fit a single Gaussian to a well-separated bimodal target, minimising each direction. Report
+  the fitted mean and standard deviation for both.</p>
+  <div class="ans"><b>Answer.</b> Forward centres between the modes and stretches; reverse locks
+  onto one and stays narrow. The forward fit has a closed form (match the first two moments), and
+  the reverse needs a search.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C2 · Energy and shift invariance</div>
+  <p>Build a density from an energy on a grid. Then add 137 to every energy and confirm the density
+  is unchanged. What did $Z$ do?</p>
+  <div class="ans"><b>Answer.</b> $Z$ absorbed it exactly, by a factor $e^{-137}$. Energies are
+  defined only up to a constant, which is why an energy-based model can never report an absolute
+  probability without computing $Z$.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C3 · Score matching by hand</div>
+  <p>Implement the integration-by-parts objective for a 1-D model and confirm it recovers the
+  parameters of a Gaussian from samples, without ever normalising.</p>
+  <div class="ans"><b>Answer.</b> It works, and counting the operations shows why it stopped
+  working: the objective needs $\partial^2 \log p/\partial x_j^2$ for every $j$, which is $O(n)$
+  backward passes per example.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C4 · Coverage</div>
+  <p>For a mixture in 2-D, compute the fraction of a plotted region whose density exceeds 1% of
+  the maximum, at $\sigma \in \{0, 0.3, 0.8, 2\}$. Then say where a sampler initialised from wide
+  noise begins.</p>
+  <div class="ans"><b>Answer.</b> Roughly 16%, 29%, 73%, 100%. The sampler begins in the region
+  that at $\sigma = 0$ received no training signal at all, which is why plain score matching
+  cannot generate.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C5 · Langevin on an exact score</div>
+  <p>Run Langevin dynamics using the <b>analytic</b> score of a mixture with very unequal weights.
+  Compare the recovered weights to the true ones.</p>
+  <div class="ans"><b>Answer.</b> The modes are found and the weights are wrong. The score between
+  well-separated modes is near zero, so the chain carries almost no information about their
+  relative mass. Even an exact score is not enough; the noise schedule is what fixes it.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C6 · The denoising identity</div>
+  <p>Verify $(r(\mathbf{x}) - \mathbf{x})/\sigma^2$ against the analytic score, at several $\sigma$,
+  reporting cosine and magnitude ratio separately against both the smoothed and unsmoothed
+  score.</p>
+  <div class="ans"><b>Answer.</b> Against the smoothed score, both near 1. Against the unsmoothed
+  one the direction survives and the magnitude does not. Reporting only cosine hides the error
+  entirely.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C7 · The forward process</div>
+  <p>Implement the cosine schedule, recover the per-step $\beta_t$ from $\bar{\alpha}_t$, and
+  confirm that one-shot corruption at step $t$ matches applying $t$ single steps.</p>
+  <div class="ans"><b>Answer.</b> They match, which is the property that makes training affordable:
+  training at step $t$ costs one draw rather than $t$.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C8 · Why $\sqrt{\bar{\alpha}_t}$</div>
+  <p>Corrupt unit-variance data with and without the scaling. Track the variance across the
+  schedule.</p>
+  <div class="ans"><b>Answer.</b> With the scaling it stays at 1 and the endpoint is a standard
+  Gaussian; without it, variance grows without bound and "start from noise" has no well-defined
+  meaning.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C9 · Train a diffusion model</div>
+  <p>On a mixture whose weights you chose, train an $\boldsymbol{\epsilon}$-prediction network
+  across the schedule and sample by ancestral sampling. Report the <b>recovered mixing weights</b>,
+  not a picture.</p>
+  <div class="ans"><b>Answer.</b> They should match to within the sampling error of a real draw of
+  the same size. The weights are the part a mode-seeking method gets wrong, which is why they are
+  the number to report.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C10 · The three parameterisations</div>
+  <p>Convert between $\boldsymbol{\epsilon}$, $\mathbf{x}_0$ and the score, and confirm each
+  round-trips. Then plot the magnitude of each target against $t$.</p>
+  <div class="ans"><b>Answer.</b> The $\boldsymbol{\epsilon}$ target is unit-variance at every
+  noise level, so one loss weighting works throughout; the $\mathbf{x}_0$ target's difficulty
+  varies enormously with $t$. That is the whole argument for the usual choice.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C11 · Fewer steps</div>
+  <p>Sample the same model with ancestral sampling at $T$ steps and deterministically at
+  $T/10$. Compare recovered weights and wall clock.</p>
+  <div class="ans"><b>Answer.</b> Similar distribution, an order of magnitude less time. The
+  deterministic sampler also makes the map from noise to sample invertible, which is what gives
+  diffusion an interpolatable latent space at all.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C12 · Guidance, swept</div>
+  <p>Train a class-conditional model with label dropout. Sweep the guidance weight and report
+  three things: adherence to the requested class, mean log-density under the truth and within-mode
+  spread.</p>
+  <div class="ans"><b>Answer.</b> Adherence saturates early. Density <b>peaks</b> and then
+  collapses, while the spread <b>grows</b>: past the peak the samples are not more concentrated,
+  they have left the distribution. "Reduce $w$ if samples look too similar" describes a symptom
+  that does not occur.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C13 · The ELBO's gap</div>
+  <p>Train VAEs across a range of $\beta$. For each, report the ELBO and an importance-weighted
+  estimate of $\log p(\mathbf{x})$ at large $k$. Find a pair the two rank differently.</p>
+  <div class="ans"><b>Answer.</b> They exist, and the part's figure is one. The bound is loose by
+  different amounts for different models, so comparing bounds compares the encoders as much as the
+  generative models.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C14 · Posterior collapse</div>
+  <p>Report the KL <b>per latent dimension</b> across your $\beta$ sweep, and count the dimensions
+  with KL near zero. Then check whether the ELBO flagged the problem.</p>
+  <div class="ans"><b>Answer.</b> Dimensions go dead and the ELBO does not obviously worsen. The
+  per-dimension KL is the detection, and it is one line that almost nobody logs.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C15 · Reparameterisation against REINFORCE</div>
+  <p>Estimate the same gradient both ways and compare the variance across 1,000 draws.</p>
+  <div class="ans"><b>Answer.</b> Orders of magnitude apart. Reparameterisation uses the derivative
+  of the thing being averaged; the score-function estimator uses only its value. That gap is why
+  VAEs use continuous latents essentially always.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C16 · The optimal discriminator</div>
+  <p>On a 1-D grid with two known densities, compute $d^*$ in closed form, substitute it into the
+  GAN objective, and confirm you get the Jensen–Shannon divergence up to a constant.</p>
+  <div class="ans"><b>Answer.</b> You do. The discriminator is <b>estimating</b> a divergence the
+  loss cannot compute: a learned loss function, which is why GANs produced sharp images while
+  maximum-likelihood models produced blurry ones.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C17 · The vanishing gradient</div>
+  <p>Plot the gradient of both generator losses against $d(g(\mathbf{z}))$ as it approaches zero.</p>
+  <div class="ans"><b>Answer.</b> The saturating loss's gradient vanishes exactly when the
+  discriminator is winning; the non-saturating one's does not. Note the sequel: C18 finds this is
+  not what causes mode collapse.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C18 · Where collapse comes from</div>
+  <p>Train a GAN on eight modes in a ring under four conditions: standard, saturating loss,
+  discriminator over-trained 5:1, and Adam $\beta_1 = 0.9$. Three seeds each. Count modes
+  produced.</p>
+  <div class="ans"><b>Answer.</b> The saturating loss, the textbook culprit, is fine. What
+  collapses it is the balance between the players. This is consistent with which fixes worked
+  historically: they controlled the discriminator rather than changing what the loss
+  measures.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C19 · Likelihood against quality</div>
+  <p>Build two models of a known mixture: one that drops a mode, one that is correct plus 20%
+  broad noise. Report test log-likelihood and the fraction of plausible samples for each.</p>
+  <div class="ans"><b>Answer.</b> The mode-dropper has the worst likelihood and the best samples;
+  the noisy model has nearly the best likelihood and visibly wrong samples. The two measurements
+  disagree in both directions, by construction.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C20 · Precision and recall</div>
+  <p>Implement both for distributions, from samples, and run them on C19's two models.</p>
+  <div class="ans"><b>Answer.</b> High precision and low recall for the dropper; the reverse for
+  the noisy one. The pair separates exactly what a single distance conflates (Part XIV §3's
+  lesson, arriving in a new setting).</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C21 · Preprocessing changes the number</div>
+  <p>Compute a model's test log-likelihood, then multiply every input by 0.1 and recompute.</p>
+  <div class="ans"><b>Answer.</b> It rises by $n\log 10$. Densities are not invariant to a change
+  of units, so two likelihoods are comparable only under identical preprocessing, which is why
+  researchers once shared the exact binarised dataset file.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C22 · The memorisation check</div>
+  <p>Build a "model" that samples uniformly from the training set. Give it your full evaluation
+  suite.</p>
+  <div class="ans"><b>Answer.</b> Perfect sample quality, excellent precision, plausible recall,
+  and a nearest-training-distance of exactly zero. Only the last one catches it, and it is the
+  check most often omitted.</div>
+</div>
+
+<h3><span class="num">Tier 3</span> Stretch</h3>
+
+<div class="drill">
+  <div class="head"><span class="tier stretch">Stretch</span>S1 · The schedule matters more than the model</div>
+  <p>Train the same architecture with linear and cosine schedules at matched compute. Compare
+  recovered weights. Then vary the width instead, by the same factor of effort.</p>
+  <div class="ans"><b>Answer.</b> The schedule usually wins. In this family the corruption process
+  is part of the model, and a field trained on architecture search took several years to
+  internalise that.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier stretch">Stretch</span>S2 · Flow matching</div>
+  <p>Train a velocity field along straight paths from noise to data, and sample with a fixed-step
+  solver. Compare to diffusion at matched step counts.</p>
+  <div class="ans"><b>Answer.</b> Comparable quality, usually fewer steps and a much simpler
+  derivation with no Markov chain and no schedule. Worth doing after C9 so the relationship is
+  visible rather than asserted.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier stretch">Stretch</span>S3 · Contrastive divergence, and its bias</div>
+  <p>Train a small energy-based model with $k$-step contrastive divergence for
+  $k \in \{1, 5, 100\}$. Compare the learned density to the truth.</p>
+  <div class="ans"><b>Answer.</b> Small $k$ trains fast and converges to the wrong thing. This is
+  the compromise that made Boltzmann machines trainable and kept them from being correct (§7's
+  mixing problem, paid for in bias instead of time).</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier stretch">Stretch</span>S4 · Mixing, measured</div>
+  <p>Run a Gibbs sampler on a mixture and measure the time to cross between modes as you increase
+  their separation.</p>
+  <div class="ans"><b>Answer.</b> It grows exponentially with the depth of the valley. Then note
+  the consequence: a better-trained model has sharper modes, so the method's difficulty grows with
+  its own success.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier stretch">Stretch</span>S5 · Latent diffusion, in miniature</div>
+  <p>Train a small autoencoder, then a diffusion model in its latent space. Compare against
+  diffusion directly in data space at matched compute.</p>
+  <div class="ans"><b>Answer.</b> The two-stage version is far cheaper per step and its quality
+  ceiling is set by the autoencoder. This is the architecture behind most deployed image
+  generators, and the split is exactly Part XV's compression followed by this part's density
+  model.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier stretch">Stretch</span>S6 · Nucleus sampling changes the distribution</div>
+  <p>For a trained autoregressive model, measure the total variation between the model's
+  distribution and what top-$p$ actually samples from, at several $p$.</p>
+  <div class="ans"><b>Answer.</b> Substantial and deliberate. The model assigns more mass to the
+  tail than we want realised, and standard practice overrules it, which is a strange position for
+  a family whose selling point is an exact likelihood.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier stretch">Stretch</span>S7 · FID's sample-count bias</div>
+  <p>Compute FID between two disjoint halves of the <b>same real dataset</b>, at sample counts from
+  1,000 to 50,000.</p>
+  <div class="ans"><b>Answer.</b> It is not zero and it falls steadily with sample count. Two FIDs
+  at different counts are not comparable, and the true answer for identical distributions is
+  0.</div>
+</div>

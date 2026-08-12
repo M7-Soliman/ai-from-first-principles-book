@@ -1,0 +1,239 @@
+<h2><span class="part-kicker">Part C</span>Specification</h2>
+
+<p class="mvt">Part XVIII trained policies against rewards and Part XX aligned models against
+preferences. Neither asked where the reward came from. This movement does, finds that the gap
+between what you wrote and what you meant is the durable problem, and measures precisely when
+optimising into that gap becomes destructive rather than merely imperfect.</p>
+
+<h3><span class="num">§17</span> The problem, stated without metaphor</h3>
+
+<div class="box def">
+  <span class="label">The specification problem</span>
+  <p>Optimisation requires an objective. The objective is written by a person, in a formal
+  language, before the system's behaviour is known. What the person wanted is not fully expressible
+  in that language and is not fully known to them in advance. So the objective is an approximation,
+  the system optimises the approximation, and the difference between the two is where every
+  problem in this movement lives.</p>
+  <p>Nothing here requires the system to be agentic, deceptive or superhuman. A linear regression
+  fitted to the wrong target has the same structure. What scale changes is how hard the
+  approximation gets pushed, which §18 shows is exactly the variable that matters.</p>
+</div>
+
+<div class="box why">
+  <span class="label">Why this is not solved by writing a better objective</span>
+  <p>You can always improve a specification once you have seen how it fails. The difficulty is
+  that the failures appear only under optimisation pressure you have not yet applied, so the loop
+  is: specify, optimise, discover the gap, respecify. That loop is fine when discovery is cheap and
+  reversible, which is the case for most of this book and is not the case for a deployed system
+  operating at volume.</p>
+  <p>This is the actual content of the alignment problem, and it needs no assumptions beyond the
+  ones already used in Part XVIII. The exotic scenarios are downstream; the structure is here.</p>
+</div>
+
+<h3><span class="num">§18</span> Goodhart, and the condition for it</h3>
+
+<p>"When a measure becomes a target, it ceases to be a good measure" is the most quoted sentence
+in this subject and one of the least examined. Taken literally it is false (optimising a good
+proxy usually helps), so the useful question is what separates the cases.</p>
+
+<figure>
+  <img src="figures/al/04-goodhart.svg" alt="True reward against selection pressure for light- and heavy-tailed proxy error, with the tail quantiles of each error">
+  <figcaption><b>Figure 4.</b> Best-of-<span class="m">$n$</span> selection on a proxy, with the
+  <b>true</b> reward reported. Both curves use a proxy with the same correlation to the truth
+  (<b>0.706</b>) and the same error variance; only the shape of the error's tail differs. With
+  light-tailed error the true reward climbs monotonically, reaching <b>2.599</b> at
+  <span class="m">$n = 5012$</span>. With heavy-tailed error it peaks at <b>2.042</b> at
+  <span class="m">$n = 118$</span> and then <b>collapses to 0.097</b>, back to where it started.
+  The proxy score is improving throughout in both cases. Correlation does not distinguish them;
+  the tail does.</figcaption>
+</figure>
+
+<div class="box intuition">
+  <span class="label">Why the tail is the whole story</span>
+  <p>Write the proxy as truth plus error, <span class="m">$p = t + \varepsilon$</span>. Selecting
+  the highest <span class="m">$p$</span> from <span class="m">$n$</span> candidates selects for
+  high <span class="m">$t$</span> <i>and</i> high <span class="m">$\varepsilon$</span>. Which one
+  dominates depends on which has more probability mass far out.</p>
+  <p>Light tails: extreme <span class="m">$\varepsilon$</span> is so unlikely that even at
+  <span class="m">$n = 5000$</span> the winner is mostly someone with genuinely high
+  <span class="m">$t$</span>. Heavy tails: at large <span class="m">$n$</span> you are almost
+  certainly looking at a large <span class="m">$\varepsilon$</span>, so the winner is an
+  <b>error</b>, and the true reward you obtain is whatever that error happened to be attached
+  to, which is to say, nothing.</p>
+  <p>So the condition is not "the proxy is imperfect". Every proxy is. The condition is that the
+  proxy's error can be much larger than typical, and that you are searching hard enough to find
+  where.</p>
+</div>
+
+<div class="box why">
+  <span class="label">What this says about the systems in Part XX</span>
+  <p>A learned reward model is exactly this structure: a proxy, trained on finite preference data,
+  used to select among many candidate outputs. The relevant question is not its accuracy on
+  held-out pairs: that is the correlation, and Figure 4 shows correlation does not settle it. The
+  relevant question is how badly wrong it can be on the inputs that maximise it, which is a
+  question about its tail on <b>out-of-distribution</b> inputs.</p>
+  <p>That reframes the standard mitigations. A KL penalty back to the reference model limits how
+  far the search goes, so it bounds <span class="m">$n$</span> in effect, and Figure 4 says that is
+  the variable that matters.</p>
+  <p>Reward-model ensembles are the other standard answer, and they deserve a more careful
+  statement than they usually get. Averaging independent reward models shrinks the <b>size</b> of
+  the error, measurably, by about the factor variance reduction would predict. It does not change
+  the <b>shape</b> of its tail: a tail heavy enough to cause the collapse survives averaging, and
+  the normalised tail statistic does not improve. So an ensemble moves you along the heavy curve
+  rather than onto the light one. It helps, and it is not a fix, and the drills measure both
+  halves of that.</p>
+</div>
+
+<div class="box try">
+  <span class="label">Try it</span>
+  <p>Reproduce Figure 4, then add two arms. First: keep the heavy-tailed error but cap the search
+  at the <span class="m">$n$</span> where the curve peaked: this is what a KL penalty buys, and it
+  should recover the peak. Second: average several independent heavy-tailed proxies and select on
+  the average.</p>
+  <p>Measure the tail statistic and the standard deviation of the averaged error separately before
+  you look at the reward curve. Predict which of the two moves. Most people predict both, the
+  answer is one of them, and which one it is decides how much an ensemble can be expected to
+  buy.</p>
+</div>
+
+<h3><span class="num">§19</span> Reward hacking, observed</h3>
+
+<p>Reward hacking is Figure 4 with a search procedure that is smarter than best-of-<span
+class="m">$n$</span>. The reinforcement learning of Part XVIII does not sample and pick; it
+gradient-ascends, which finds the extreme of the proxy far more efficiently and therefore reaches
+the destructive regime sooner.</p>
+
+<div class="box shapes">
+  <span class="label">The recurring shapes, and which part of the book each belongs to</span>
+  <p><b>Optimising the measurement channel rather than the thing.</b> The classic simulated-robot
+  results: an agent that learns to exploit the physics engine, or to move the camera rather than
+  the object. Part XVIII §40's offline distribution shift, in a form you can see.</p>
+  <p><b>Exploiting the judge.</b> Part XX §42's model-as-judge has known biases (length, format,
+  confidence) and a policy optimised against it finds them. This is the most common form in
+  current practice because the judge is the most common reward.</p>
+  <p><b>Satisfying the letter.</b> Producing output that scores well on every stated criterion
+  while missing what the criteria were for. Hardest to detect, because by construction it passes
+  the tests you wrote.</p>
+</div>
+
+<div class="box pitfall">
+  <span class="label">Pitfall: the proxy score keeps rising the whole time</span>
+  <p>In Figure 4 the heavy-tailed curve collapses to 0.097 while the proxy it was selected on is at
+  its maximum. If your monitoring is the reward, you will observe an unbroken success.</p>
+  <p>Reward hacking is therefore not detectable from the training curve, ever. It requires a
+  measurement that does not route through the proxy: held-out human evaluation, a different
+  objective, or somebody looking at the outputs. Budget for it before training, because afterwards
+  the numbers will all look fine.</p>
+</div>
+
+<h3><span class="num">§20</span> Outer and inner, carefully</h3>
+
+<div class="box def">
+  <span class="label">Two failures with different fixes</span>
+  <p><b>Outer:</b> the objective you wrote is not what you wanted, and a system that optimises it
+  perfectly still does the wrong thing. Everything in §18 and §19. Well evidenced, measurable, and
+  the subject of most practical work.</p>
+  <p><b>Inner:</b> the training process produces a system that pursues something other than the
+  objective you trained on: the objective selected the system, but the system's own regularity is
+  different, and the two agree on the training distribution and diverge off it.</p>
+  <p>The distinction is real and worth keeping. The evidence for the two is not comparable, and
+  the honest thing is to say so.</p>
+</div>
+
+<div class="box why">
+  <span class="label">What the evidence for the inner case actually is</span>
+  <p>The uncontroversial part is documented throughout this book: models learn features that
+  correlate with the target on the training distribution and fail off it: Part VI's spurious
+  correlations, Part XIII §13's contamination, every shortcut-learning result. That is inner
+  misalignment in the weak sense, it is ordinary, and it is measured by distribution shift.</p>
+  <p>The strong version (a system with a coherent internal objective it pursues strategically,
+  including by behaving well while observed) is a hypothesis, not a measurement. It is not
+  incoherent, and the argument for taking it seriously is that we have no method that would detect
+  it if true, which is precisely why movement A and B's programme matters. But it should be
+  labelled as what it is. A book that presented it as an established finding would be doing the
+  thing this part spends §15 warning against.</p>
+</div>
+
+<h3><span class="num">§21</span> Scalable oversight</h3>
+
+<div class="box def">
+  <span class="label">The problem</span>
+  <p>Every method in Part XX's movement D requires a human judgement of which output is better.
+  That works while humans can tell. For a long technical document, a large codebase, or a
+  specialised domain, the evaluator is slower and less expert than the system, and the preference
+  data becomes noise, or worse, becomes a measurement of persuasiveness, which is a proxy with
+  precisely the heavy tail §18 warned about.</p>
+  <p><b>Scalable oversight</b> is the problem of supervising a system you cannot directly evaluate.
+  It is unsolved, and it is the bottleneck that binds first as capability increases.</p>
+</div>
+
+<div class="box intuition">
+  <span class="label">The asymmetry the proposals exploit</span>
+  <p>Verification is often easier than generation. Finding a proof is hard, checking one is easy;
+  writing a large program is hard, running its tests is easy. Wherever that asymmetry holds, a
+  weaker overseer can supervise a stronger generator.</p>
+  <p>The proposals in §22 are all attempts to convert a hard evaluation into an easy one by
+  exploiting it. The corresponding worry is that the asymmetry fails exactly where it is most
+  needed: for judgements of value, or of subtle real-world consequence, checking is not obviously
+  easier than doing.</p>
+</div>
+
+<h3><span class="num">§22</span> Debate, amplification, weak-to-strong</h3>
+
+<div class="box shapes">
+  <span class="label">Three proposals, with the state of the evidence for each</span>
+  <p><b>Debate.</b> Two systems argue opposite sides before a weaker judge. The hope is that
+  refuting a false claim is easier than defending it, so truth wins even when the judge could not
+  have evaluated the question alone. Evidence: encouraging on tasks with checkable ground truth;
+  unclear where the disagreement is about values, and vulnerable if persuasiveness beats
+  correctness, which is the same tail problem again.</p>
+  <p><b>Amplification.</b> Decompose a hard question into easier ones the overseer <i>can</i>
+  evaluate, answer those with the system's help, recompose. Evidence: works when the problem
+  decomposes cleanly; the hard cases are the ones that do not.</p>
+  <p><b>Weak-to-strong generalisation.</b> Supervise a strong model with a weak model's labels and
+  measure how much of the strong model's latent capability is recovered. The finding is that a
+  substantial fraction is recovered: the strong model generalises past its supervisor's errors rather than
+  imitating them. Evidence: a real and replicated result on current models; whether it holds at
+  larger capability gaps is exactly the extrapolation nobody can currently make.</p>
+</div>
+
+<div class="readnow"><span class="label">Go and read</span><p><span class="src">Burns et al.
+(2023)</span>, <i>Weak-to-strong generalization</i>. Read it for the experimental design rather
+than the headline: the analogy between "weak model supervising strong model" and "human
+supervising superhuman model" is the paper's load-bearing assumption, the authors say so
+explicitly, and how much weight it can carry is the thing to form a view on.</p></div>
+
+<h3><span class="num">§23</span> What we cannot currently specify</h3>
+
+<div class="box why">
+  <span class="label">Four, and why each resists</span>
+  <p><b>Honesty.</b> Distinguishing a model that reports what it internally represents from one
+  that produces text scoring well as honest requires reading internal state: movement A's problem.
+  We currently reward the appearance.</p>
+  <p><b>Harmlessness in general.</b> Enumerable harms can be trained against, and Part XX §33
+  measured how well that holds. What is left is the unenumerated remainder, and no specification
+  covers a set you cannot list.</p>
+  <p><b>Corrigibility.</b> "Accept correction and shutdown" conflicts with almost any objective a
+  system is given, since being stopped scores badly on nearly everything. Stating it without
+  contradiction is an open problem, not an engineering detail.</p>
+  <p><b>Whose preferences.</b> The methods in Part XX aggregate annotator preferences. Which
+  annotators, weighted how, resolving disagreement by what rule: these are choices currently made
+  implicitly by whoever assembles the dataset. That is a political question wearing a technical
+  costume, and §41 classes it as the third kind of unknown.</p>
+</div>
+
+<h3><span class="num">§24</span> What movement C establishes</h3>
+
+<div class="box intuition">
+  <span class="label">Three things</span>
+  <p><b>The gap between the objective and the intention is the durable problem</b>, and it needs no
+  exotic assumptions. It is present in a misfitted regression and becomes dangerous only when
+  optimisation pressure gets large.</p>
+  <p><b>Goodhart has a condition, and it is the tail, not the correlation.</b> Figure 4's two arms
+  have identical correlation and opposite outcomes. This makes the standard mitigations legible:
+  KL penalties bound the search, ensembles thin the tail, and neither is about accuracy.</p>
+  <p><b>The proxy looks healthy throughout the failure.</b> The heavy-tailed arm reaches its best
+  proxy score at the moment the true reward has collapsed to 0.097. Any monitoring that routes
+  through the objective is blind to this by construction, which is why movement D is a separate
+  measurement discipline rather than a subsection here.</p>
+</div>

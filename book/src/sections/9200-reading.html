@@ -1,0 +1,1681 @@
+<div class="partopen">
+  <div class="pnum">Back matter</div>
+  <h1>Reading the<br><span style="font-weight:300">Literature</span></h1>
+  <p class="tag">How to read a research paper, and the index of the papers this book has
+  been pointing you at all along.</p>
+  <div class="rule"></div>
+  <div class="meta">
+    A skill, then the index.<br>
+    <b>314 papers gathered here, each introduced at the moment it is first needed.</b>
+  </div>
+</div>
+
+<h2 class="nobreak">Reading the literature</h2>
+
+<p class="lede">At some point the textbooks stop and the papers begin. That transition is
+where most self-taught people stall, not because the papers are too hard, but because
+nobody explains that they are read differently from everything else, and for different
+purposes.</p>
+
+<h3><span class="num">§1</span> Papers are not read linearly</h3>
+
+<p>A paper is not a chapter. It is a compressed argument written for reviewers, under a page
+limit, by authors who assume you already know the field. Reading one from the first word to
+the last is the slowest possible approach and usually ends in abandonment.</p>
+
+<p>The standard technique is <b>three passes</b>, each with a different goal. It is worth
+adopting deliberately.</p>
+
+<div class="box def">
+  <span class="label">The three-pass method</span>
+  <dl>
+    <dt>Pass one: five to ten minutes. <i>Should I read this at all?</i></dt>
+    <dd>Title, abstract, section headings, every figure and its caption, the conclusion.
+    Skip the body entirely. You are answering: what problem, what claim, does it concern me?
+    Most papers stop here, and that is the correct outcome.</dd>
+
+    <dt>Pass two: about an hour. <i>What did they do?</i></dt>
+    <dd>Read the body, but skip proofs and derivations. Look hard at the experiments: what
+    was the baseline, what was held fixed, what does the main table actually compare? You
+    should end able to summarise the method and its evidence to someone else.</dd>
+
+    <dt>Pass three: several hours. <i>Could I have written this?</i></dt>
+    <dd>Reconstruct the work. Re-derive the key result, challenge every assumption, note what
+    you would have done differently. Reserve this for papers you intend to build on, but do
+    it properly a handful of times, because it is what turns reading into ability.</dd>
+  </dl>
+</div>
+
+<p>The three-pass framing is due to Srinivasan Keshav, whose short note <i>How to Read a
+Paper</i> (2007) is itself a ten-minute read and worth doing first.</p>
+
+<h3><span class="num">§2</span> Read the figures before the text</h3>
+
+<p>In an empirical paper the figures and tables <i>are</i> the argument; the prose explains
+and defends them. Reading captions first tells you what the authors think they showed, in
+about ninety seconds.</p>
+
+<p>It also protects you. Prose can imply more than the evidence supports: a phrase like
+"substantially outperforms" is doing rhetorical work that the table may not back. Looking at
+the numbers first means you form your own impression before being told what to think of
+it.</p>
+
+<h3><span class="num">§3</span> The questions to ask</h3>
+
+<p>Everything in Part V applies to papers, and applying it is the difference between
+reading and evaluating. The questions below will feel mechanical the first few times; with
+practice they become automatic.</p>
+
+<table>
+  <thead><tr><th>Ask</th><th>Because</th></tr></thead>
+  <tbody>
+    <tr><td><b>What exactly is the claim?</b></td><td>Stated precisely, it is usually narrower than the title suggests.</td></tr>
+    <tr><td><b>What is the baseline, and was it tuned?</b></td><td>An untuned baseline is the most common way to manufacture an improvement. Part VI §11.</td></tr>
+    <tr><td><b>Is the difference larger than the noise?</b></td><td>Look for intervals or seed variation. If there are none, you cannot tell. Part V §16.</td></tr>
+    <tr><td><b>How many configurations were tried?</b></td><td>The reported best of a large search is biased upward. Part V §14.</td></tr>
+    <tr><td><b>What is <i>not</i> compared?</b></td><td>The omitted baseline is often the informative one.</td></tr>
+    <tr><td><b>What would falsify this?</b></td><td>If nothing would, it is not an empirical claim.</td></tr>
+    <tr><td><b>Does the ablation isolate the contribution?</b></td><td>A method with five changes and one aggregate number tells you nothing about which change mattered.</td></tr>
+  </tbody>
+</table>
+
+<div class="box pitfall">
+  <span class="label">Pitfall: the failure modes to expect</span>
+  <p><b>Baseline neglect.</b> The proposed method got a hyperparameter search; the baseline
+  got defaults. This is common and frequently accounts for the entire reported gap.</p>
+  <p><b>Test set as validation.</b> Architectural choices made by looking at test
+  performance, then that same number reported. Part V §15.</p>
+  <p><b>Single seed.</b> One run, no variance estimate. On many benchmarks the seed-to-seed
+  spread exceeds the improvements being claimed.</p>
+  <p><b>Cherry-picked datasets.</b> Strong results on four benchmarks, with no statement of
+  how many were tried.</p>
+  <p>None of these mean the work is wrong. They mean the evidence is weaker than presented,
+  and noticing is the skill.</p>
+</div>
+
+<h3><span class="num">§4</span> Read old papers</h3>
+
+<p>There is a strong pull toward reading whatever appeared last month. It is worth resisting,
+for three reasons.</p>
+
+<p>Older papers are frequently <b>clearer</b>. They were written when the idea was new, so
+the authors had to explain it rather than assume it. Shannon's 1948 paper builds information
+theory from nothing and is more readable than most textbook treatments of it. Hochreiter
+and Schmidhuber's 1997 paper derives the LSTM from first principles in a way that no
+subsequent survey reproduces.</p>
+
+<p>They tell you <b>what problem the idea solved</b>. A technique encountered in a modern
+survey arrives as a component with no motivation. In the original it is the answer to a
+question someone urgently needed answered, which is the same argument the history boxes
+throughout this book make.</p>
+
+<p>And they show you <b>what was not obvious</b>. Reading a foundational paper reveals the
+alternatives that were live at the time and the reasons they lost. That is the part
+textbooks compress out entirely, and it is where the most useful understanding lives.</p>
+
+<h3><span class="num">§5</span> The reading list, gathered</h3>
+
+<p>Every paper below has already appeared in a <span class="readnow-inline">Go and
+read</span> panel at the point in the book where its idea is developed. That is the intended
+way to meet them: a paper read the week you first need it lands differently from one read
+off a list, because you already know the question it answers.</p>
+
+<p>This is the index. One or two primary sources per major idea, arranged by part, so that you
+can find one again, survey the foundations of a part before starting it, or plan a stretch of
+reading without hunting through the chapters.</p>
+
+<h4>Part 0: Mathematics and automatic differentiation</h4>
+
+<dl class="gloss biblio">
+  <dt>Linnainmaa (1970): the general reverse-mode algorithm <span class="where">Part 0 §17</span></dt>
+  <dd>Automatic differentiation stated in general form, as a master's thesis, fifteen years
+  before backpropagation was popularised. The chain rule of §17, carefully organised and
+  analysed for error accumulation. Read it to see how fully the idea was worked out before
+  the field knew it needed it.</dd>
+
+  <dt>Rumelhart, Hinton &amp; Williams (1986): <i>Learning representations by back-propagating errors</i> <span class="where">Part 0 §24</span></dt>
+  <dd>The paper that made backpropagation widely known and sparked the second connectionist era.
+  Short, readable, and the citation most people mean when they say "backpropagation was invented
+  in 1986," though as §24's history box notes, not the first derivation of the algorithm.
+  Read it for the representations argument: the point is not the algorithm but what it learns.</dd>
+
+  <dt>Baydin, Pearlmutter, Radul &amp; Siskind (2018): <i>Automatic differentiation in machine learning: a survey</i> <span class="where">Part VII §13</span></dt>
+  <dd>The clearest modern account of forward versus reverse mode and what frameworks actually
+  do. Read before writing an autograd engine.</dd>
+
+  <dt>Goldberg (1991): <i>What every computer scientist should know about floating-point arithmetic</i> <span class="where">Part 0 §26</span></dt>
+  <dd>Long, thorough, and the definitive treatment of Part 0 §26 and Part III's Part A.</dd>
+</dl>
+
+<h4>Part I: Linear algebra</h4>
+
+<dl class="gloss biblio">
+  <dt>Pearson (1901); Hotelling (1933) <span class="where">Part I §23</span></dt>
+  <dd>The two origins of principal components: Pearson's geometric derivation as best-fitting
+  lines and planes, and Hotelling's formulation via the covariance eigenvectors, which is the
+  derivation in §23. The thirty-two years between them reflect how long it took to see that
+  the two approaches are the same thing.</dd>
+
+  <dt>Eckart &amp; Young (1936) <span class="where">Part I §19</span></dt>
+  <dd>The optimality theorem: truncating the SVD gives the provably best low-rank
+  approximation. Short, and the result everything in §19 rests on.</dd>
+
+  <dt>Golub &amp; Kahan (1965) <span class="where">Part I §19</span></dt>
+  <dd>The first numerically stable SVD algorithm: the reason a theorem from 1873 became
+  usable technology.</dd>
+
+  <dt>Hu et al. (2021): <i>LoRA: Low-rank adaptation of large language models</i> <span class="where">Part I §11</span></dt>
+  <dd>Rank, applied. The modern payoff of §11, and a good example of an old idea becoming
+  load-bearing again.</dd>
+</dl>
+
+<h4>Part II: Probability and information theory</h4>
+
+<dl class="gloss biblio">
+  <dt>Shannon (1948): <i>A mathematical theory of communication</i> <span class="where">Part II §23</span></dt>
+  <dd><b>Read this one.</b> An entire field, arriving nearly complete in a single paper, written
+  with unusual clarity. The proofs are elementary; the ideas are not. If you read one paper from
+  this list, make it this one. The Bell System Technical Journal version is freely available and
+  includes Warren Weaver's accessible companion essay.</dd>
+
+  <dt>Kullback &amp; Leibler (1951): <i>On information and sufficiency</i> <span class="where">Part II §24</span></dt>
+  <dd>The origin of the divergence in §24, framed as discriminating between hypotheses.</dd>
+
+  <dt>Jaynes (1957): <i>Information theory and statistical mechanics</i> <span class="where">Part II §15</span></dt>
+  <dd>The maximum entropy principle, the second of §15's three justifications for the
+  Gaussian, argued properly.</dd>
+
+  <dt>Metropolis &amp; Ulam (1949): <i>The Monte Carlo method</i> <span class="where">Part II §10</span></dt>
+  <dd>The original statement of the technique, two pages, from the people who named it. The
+  named it after Monaco's casino because Ulam's uncle gambled there. Short enough to read in
+  the time it takes to decide whether to read it.</dd>
+
+  <dt>Tversky &amp; Kahneman (1974): <i>Judgment under uncertainty: heuristics and biases</i> <span class="where">Part II §22</span></dt>
+  <dd>Why §22's base rate result fools nearly everyone, including experts, along with the cognitive
+  mechanisms behind it. Not a mathematics paper; one of the most cited in psychology; and among
+  the most practically useful things on this list, because the errors it describes are not
+  corrected by knowing about them.</dd>
+</dl>
+
+<h4>Part III: Numerical computation and optimisation</h4>
+
+<dl class="gloss biblio">
+  <dt>Turing (1948): <i>Rounding-off errors in matrix processes</i> <span class="where">Part III §5</span></dt>
+  <dd>Where the condition number was named, and where conditioning was first separated from
+  algorithmic stability.</dd>
+
+  <dt>Robbins &amp; Monro (1951): <i>A stochastic approximation method</i> <span class="where">Part III §14</span></dt>
+  <dd>The ancestor of SGD, written for the problem of finding a root of a function observed
+  with noise (with no connection to machine learning). The step-size conditions proved here
+  ($\sum\alpha_t = \infty$, $\sum\alpha_t^2 < \infty$) are the theoretical reason learning
+  rate schedules decay rather than staying constant.</dd>
+
+  <dt>Polyak (1964); Nesterov (1983) <span class="where">Part III §15</span></dt>
+  <dd>Momentum, and its accelerated variant. The theory behind §15.</dd>
+
+  <dt>Duchi, Hazan &amp; Singer (2011): AdaGrad; Kingma &amp; Ba (2015): Adam <span class="where">Part III §16</span></dt>
+  <dd>The adaptive gradient methods of §16, in their original form. AdaGrad accumulates squared
+  gradients without forgetting, which works for sparse problems and fails on non-convex ones.
+  Adam corrects this with exponential decay. Adam's paper is unusually readable for an
+  optimisation paper; the convergence proof in it, however, contains an error; see Reddi
+  et al. below.</dd>
+
+  <dt>Reddi, Kale &amp; Kumar (2018): <i>On the convergence of Adam and beyond</i> <span class="where">Part III §16</span></dt>
+  <dd>The paper that found the error in Adam's proof and constructed a counterexample. Read it
+  alongside the original: the pair is an education in how this field actually operates.</dd>
+
+  <dt>Loshchilov &amp; Hutter (2019): <i>Decoupled weight decay regularization</i> <span class="where">Part III §17</span></dt>
+  <dd>Why weight decay and $L^2$ regularization are <i>not</i> the same thing once an adaptive
+  optimiser is involved. A precise, useful correction.</dd>
+</dl>
+
+<h4>Part IV: The framework</h4>
+
+<dl class="gloss biblio">
+  <dt>Paszke et al. (2019): <i>PyTorch: an imperative style, high-performance deep learning library</i> <span class="where">Part IV §5</span></dt>
+  <dd>The design paper for the library this part describes. Worth reading for the argument
+  rather than the API: it is an explicit defence of building the graph as the code runs,
+  against the then-dominant define-then-run approach, and it is candid about what that
+  choice costs in optimisation opportunities.</dd>
+
+  <dt>Abadi et al. (2016): <i>TensorFlow: a system for large-scale machine learning</i> <span class="where">Part IV §5</span></dt>
+  <dd>The other side of that argument, from the system that made the opposite choice. Read
+  the two together and the design space becomes visible; read either alone and its decisions
+  look inevitable.</dd>
+
+  <dt>Micikevicius et al. (2018): <i>Mixed precision training</i> <span class="where">Part IV §2</span></dt>
+  <dd>Why 16-bit training works and what has to be done to make it safe: loss scaling, and
+  keeping a 32-bit copy of the weights. It is Part III §1's precision-versus-range trade
+  worked out at production scale, and it explains why bfloat16 later displaced the float16
+  scheme this paper describes.</dd>
+</dl>
+
+<h4>Part V: Statistics and estimation</h4>
+
+<dl class="gloss biblio">
+  <dt>Student [Gosset] (1908): <i>The probable error of a mean</i> <span class="where">Part V §7</span></dt>
+  <dd>The $t$-distribution, published under a pseudonym for the reasons in §7's history box.</dd>
+
+  <dt>Efron (1979): <i>Bootstrap methods: another look at the jackknife</i> <span class="where">Part V §10</span></dt>
+  <dd>The bootstrap, introduced. Notable for how simple the idea is once stated.</dd>
+
+  <dt>Benjamini &amp; Hochberg (1995): controlling the false discovery rate <span class="where">Part V §14</span></dt>
+  <dd>The practical alternative to Bonferroni when screening many hypotheses. Drill S4.</dd>
+
+  <dt>Ioannidis (2005): <i>Why most published research findings are false</i> <span class="where">Part V §14</span></dt>
+  <dd>Multiple comparisons, publication incentives and low power, combined into an argument
+  about an entire literature. Directly applicable to benchmark-driven fields.</dd>
+
+  <dt>Wasserstein &amp; Lazar (2016): the ASA statement on p-values <span class="where">Part V §12</span></dt>
+  <dd>The American Statistical Association stating plainly, in an official statement, what a
+  p-value is not. Two pages with six numbered principles. Worth reading because the
+  misconceptions it corrects are universal and because the authority of the source makes it
+  useful to cite when disagreeing with someone who should know better.</dd>
+
+  <dt>Dwork et al. (2015): <i>The reusable holdout</i> <span class="where">Part V §15</span></dt>
+  <dd>The formal treatment of §15's test-set problem, with an actual mechanism for surviving
+  adaptive reuse.</dd>
+
+  <dt>Belkin, Hsu, Ma &amp; Mandal (2019); Nakkiran et al. (2019) <span class="where">Part V §20</span></dt>
+  <dd>Double descent, named and then demonstrated across modern architectures. The papers
+  behind §20's caveat.</dd>
+</dl>
+
+<h4>Part VI: Machine learning</h4>
+
+<dl class="gloss biblio">
+  <dt>Wolpert (1996): <i>The lack of a priori distinctions between learning algorithms</i> <span class="where">Part VI §7</span></dt>
+  <dd>No free lunch, stated carefully. Worth reading because the theorem is more often invoked
+  than understood.</dd>
+
+  <dt>Cover &amp; Hart (1967): <i>Nearest neighbor pattern classification</i> <span class="where">Part VI §16</span></dt>
+  <dd>The surprising result that 1-NN's asymptotic error is at most twice the best
+  possible.</dd>
+
+  <dt>Boser, Guyon &amp; Vapnik (1992); Cortes &amp; Vapnik (1995) <span class="where">Part VI §14</span></dt>
+  <dd>The kernel trick and support vector networks: the two papers behind §14 and §15.</dd>
+
+  <dt>Breiman (2001): <i>Random forests</i> <span class="where">Part VI §16</span></dt>
+  <dd>Ensembling as variance reduction, done properly.</dd>
+
+  <dt>Breiman (2001): <i>Statistical modeling: the two cultures</i> <span class="where">Part VI §16</span></dt>
+  <dd>An essay, not a method. On the split between modelling the data-generating process and
+  predicting well without one. It predicted the shape of the following two decades and is the
+  best single argument for why this field looks the way it does.</dd>
+
+  <dt>Domingos (2012): <i>A few useful things to know about machine learning</i> <span class="where">Part VI §7</span></dt>
+  <dd>Practical wisdom, densely packed. Much of Part VI's Section 7 and Section 21 in short
+  form.</dd>
+
+  <dt>Zhang et al. (2017): <i>Understanding deep learning requires rethinking generalization</i> <span class="where">Part VI §6</span></dt>
+  <dd>Networks trained on randomly labelled data fit the training set perfectly, which means
+  no classical capacity measure (VC dimension, Rademacher complexity, uniform stability) can
+  explain why the same architectures generalise on real labels. The paper that made the puzzle
+  explicit and forced the field to look for a different account.</dd>
+
+  <dt>Grinsztajn, Oyallon &amp; Varoquaux (2022): why tree-based models still outperform deep learning on tabular data <span class="where">Part VI §16</span></dt>
+  <dd>A careful, honest answer to the question §16 raises: when should you not use a neural
+  network? The inductive biases that favour trees on tabular data are identified and tested
+  individually, which is the right way to answer the question rather than the common way.</dd>
+
+  <dt>Sculley et al. (2015): <i>Hidden technical debt in machine learning systems</i> <span class="where">Part VI §20</span></dt>
+  <dd>What happens to these systems after the paper is written. Read once you have deployed
+  something.</dd>
+</dl>
+
+<h4>Part VII: Neural networks</h4>
+
+<dl class="gloss biblio">
+  <dt>Rosenblatt (1958): <i>The perceptron</i> <span class="where">Part VII §1</span></dt>
+  <dd>Where trainable linear classifiers begin, along with the enthusiasm (and the overclaims)
+  that followed. Read it as a historical document and notice how much of the modern
+  understanding of learning is already present, and how much is confidently wrong.</dd>
+
+  <dt>Minsky &amp; Papert (1969): <i>Perceptrons</i> <span class="where">Part VII §1</span></dt>
+  <dd>The book that proved single-layer perceptrons cannot compute parity or XOR, and whose
+  conclusion (that neural networks were fundamentally limited) was correct about single layers
+  and wrong about networks in general. Widely blamed for the first AI winter. Read the actual
+  argument rather than the reputation.</dd>
+
+  <dt>Cybenko (1989); Hornik (1991) <span class="where">Part VII §3</span></dt>
+  <dd>The universal approximation theorems of §3. Cybenko proved the result for sigmoid
+  activations; Hornik extended it to a broad class of non-constant, bounded, continuous
+  functions. Short, and worth reading precisely to see how little they promise: the
+  guarantees say nothing about how many units are needed, whether gradient descent will
+  find the solution, or whether it will generalise.</dd>
+
+  <dt>Glorot &amp; Bengio (2010); He et al. (2015) <span class="where">Part VII §11</span></dt>
+  <dd>The initialisation scales of §11, derived from keeping variance constant across depth.
+  The second adds the factor of two for ReLU.</dd>
+
+  <dt>Glorot, Bordes &amp; Bengio (2011): deep sparse rectifier networks <span class="where">Part VII §7</span></dt>
+  <dd>The case for ReLU, made empirically at the moment it was still contentious.</dd>
+
+  <dt>Krizhevsky, Sutskever &amp; Hinton (2012): ImageNet classification with deep CNNs <span class="where">Part VII §7</span></dt>
+  <dd>The result that effectively ended the argument about whether deep learning was viable.
+  Worth reading as an artefact: ReLU activations, dropout, data augmentation, GPU training
+  and scale, each component present because it was measurably needed, combined and shown
+  to work at a margin that made the result difficult to dispute.</dd>
+
+  <dt>He, Zhang, Ren &amp; Sun (2016): deep residual learning <span class="where">Part VII §18</span></dt>
+  <dd>The skip connection. One structural change, and depth stopped being the limiting
+  factor.</dd>
+</dl>
+
+<h4>Part VIII: Regularization</h4>
+
+<dl class="gloss biblio">
+  <dt>Srivastava et al. (2014): <i>Dropout: a simple way to prevent neural networks from overfitting</i> <span class="where">Part VIII §19</span></dt>
+  <dd>The paper that made dropout standard. Read it for the ensemble interpretation: the
+  argument that training with dropout is approximately training exponentially many weight-sharing
+  subnetworks. Notice how much of it is empirical: the method was adopted on overwhelming
+  evidence, and its theoretical account remains contested. A technique whose mechanism is still
+  debated is not unusual in this field.</dd>
+
+  <dt>Tibshirani (1996): <i>Regression shrinkage and selection via the lasso</i> <span class="where">Part VIII §5</span></dt>
+  <dd>Where $L^1$ enters statistics, with the geometric argument for sparsity that Part I §15
+  and §6 of this part both use. Unusually readable for a methods paper.</dd>
+
+  <dt>Goodfellow, Shlens &amp; Szegedy (2015): <i>Explaining and harnessing adversarial examples</i> <span class="where">Part VIII §20</span></dt>
+  <dd>The argument that adversarial examples come from <b>linearity in high dimensions</b>
+  rather than from anything exotic about deep networks, plus the fast gradient sign method
+  that Figure 8 uses. It is the paper that reframed the phenomenon.</dd>
+
+  <dt>Zhang et al. (2017): <i>Understanding deep learning requires rethinking generalization</i> <span class="where">Part VI §6</span></dt>
+  <dd>Already cited for Part VI. Appears here because it belongs alongside Part VIII as much
+  as Part VI: a network that memorises random labels has not regularised in any meaningful
+  sense, yet dropout and weight decay do not prevent it. Read it alongside Part V §20's
+  double descent; together they are the honest state of what the field understands about
+  why overparameterised networks generalise.</dd>
+
+  <dt>Loshchilov &amp; Hutter (2019): <i>Decoupled weight decay regularization</i> <span class="where">Part III §17</span></dt>
+  <dd>Already cited for Part III, and it belongs here too: weight decay and $L^2$ stop being
+  the same thing once an adaptive optimiser rescales the gradient.</dd>
+</dl>
+
+<h4>Part IX: Optimization</h4>
+
+<dl class="gloss biblio">
+  <dt>Bottou &amp; Bousquet (2008): <i>The tradeoffs of large scale learning</i> <span class="where">Part IX §13</span></dt>
+  <dd>The argument behind §13: once you account for the fact that generalisation error cannot
+  improve faster than $O(1/k)$, pursuing an optimiser that converges faster stops being
+  obviously worthwhile. Short, and it changes how you read convergence-rate claims.</dd>
+
+  <dt>Dauphin et al. (2014): <i>Identifying and attacking the saddle point problem in
+  high-dimensional non-convex optimization</i> <span class="where">Part IX §8</span></dt>
+  <dd>The paper that moved the field off local minima. Contains both the evidence that real
+  networks are covered in high-cost saddles and the saddle-free Newton method of §8. Read the
+  eigenvalue-versus-cost result carefully; it is the part that explains why the many local
+  minima are harmless.</dd>
+
+  <dt>Goodfellow, Vinyals &amp; Saxe (2015): <i>Qualitatively characterizing neural network
+  optimization problems</i> <span class="where">Part IX §12</span></dt>
+  <dd>Where the visualisations behind §12 come from. Its most useful contribution is negative:
+  the projected cost surfaces of real networks show far fewer obstacles than everyone expected,
+  and most of training is spent traversing a long arc rather than escaping anything.</dd>
+
+  <dt>Saxe, McClelland &amp; Ganguli (2013): <i>Exact solutions to the nonlinear dynamics of
+  learning in deep linear networks</i> <span class="where">Part IX §8</span></dt>
+  <dd>Deep <i>linear</i> networks have a non-convex loss and can be solved exactly, which makes
+  them the best available model of what depth does to optimisation. The source of both the
+  orthogonal initialisation of §16 and the no-bad-local-minima result of §8.</dd>
+
+  <dt>Sussillo &amp; Abbott (2014): <i>Random walks: training very deep nonlinear feed-forward
+  networks with smart initialization</i> <span class="where">Part IX §10</span></dt>
+  <dd>Trains a thousand-layer feedforward network with nothing but a correctly chosen gain,
+  which is the cleanest evidence for §10's claim that depth with independent weights is a
+  different problem from depth with a shared matrix.</dd>
+
+  <dt>Ioffe &amp; Szegedy (2015): <i>Batch normalization: accelerating deep network training by reducing internal covariate shift</i> <span class="where">Part IX §23</span></dt>
+  <dd>The method, from its authors. The explanation in the title (internal covariate shift,
+  the changing distribution of each layer's inputs as earlier layers are updated) is the
+  account the authors give and the account that is probably wrong. The method itself works;
+  derived in §23.</dd>
+
+  <dt>Santurkar et al. (2018): <i>How does batch normalization help optimization?</i> <span class="where">Part IX §23</span></dt>
+  <dd>Presents controlled experiments showing that internal covariate shift is not the
+  mechanism, and argues that the real effect is smoothing the loss landscape. Read it
+  directly after Ioffe and Szegedy: the pair is among the clearest examples in this book
+  of a method that outlived its own explanation and kept working anyway.</dd>
+
+  <dt>Bengio et al. (2009): <i>Curriculum learning</i> <span class="where">Part IX §28</span></dt>
+  <dd>The paper that connected shaping to continuation methods. Worth reading alongside Zaremba
+  and Sutskever's finding that only the <b>stochastic</b> curriculum helps: §28's pitfall, and
+  the reason most curriculum implementations do nothing.</dd>
+
+  <dt>Romero et al. (2015): <i>FitNets: hints for thin deep nets</i> <span class="where">Part IX §26</span></dt>
+  <dd>The result of §26. Note what is being measured: without hints the deep thin student is
+  poor on the <b>training</b> set, which is how you tell an optimisation obstacle from a
+  representational one. Almost no paper reports that number, and it is the one that matters.</dd>
+
+  <dt>Martens (2010): <i>Deep learning via Hessian-free optimization</i> <span class="where">Part IX §21</span></dt>
+  <dd>The most serious attempt to make second-order methods work at scale, using
+  Hessian-vector products and conjugate gradients rather than forming $H$, making §§20 and 21
+  practical. Also the source of the sparse initialisation of §16. It did not displace SGD, and
+  the reasons are §5's batch-size result and §8's saddles.</dd>
+</dl>
+
+<h4>Part X: Convolutional models</h4>
+
+<dl class="gloss biblio">
+  <dt>LeCun et al. (1998): <i>Gradient-based learning applied to document recognition</i> <span class="where">Part X §2</span></dt>
+  <dd>The convolutional network, complete, from the group that built it. No new mathematics and
+  no trick, just a principled architecture, stated clearly, validated at production scale on a tenth
+  of the cheques processed in the United States. The longest paper on this list, but repays
+  reading end to end: section VII's graph transformer network is a reminder of how much was
+  tried before the simple version won.</dd>
+
+  <dt>Luo et al. (2016): <i>Understanding the effective receptive field in deep convolutional neural networks</i> <span class="where">Part X §10</span></dt>
+  <dd>The $\sqrt{L}$ result of §10's Figure 4: the region actually influencing an output
+  grows as $\sqrt{L}$, not $L$, because central pixels are reachable by many paths and edge
+  pixels by one. Obvious once stated; unstated for twenty-five years during which everyone
+  designed against the theoretical field of $1+2L$.</dd>
+
+  <dt>Springenberg et al. (2015): <i>Striving for simplicity: the all convolutional net</i> <span class="where">Part X §15</span></dt>
+  <dd>Removes pooling and finds the network no worse. One of the cleanest ablations in vision,
+  and the beginning of the end for an operation that was in every diagram.</dd>
+
+  <dt>Zhang (2019): <i>Making convolutional networks shift-invariant again</i> <span class="where">Part X §15</span></dt>
+  <dd>Downsampling by any means aliases, and the fix is a low-pass filter, the classical answer,
+  rediscovered here about thirty years late.</dd>
+
+  <dt>Simonyan &amp; Zisserman (2015): <i>Very deep convolutional networks</i> <span class="where">Part X §21</span></dt>
+  <dd>One idea applied with total consistency: only $3\times3$ kernels, stacked. §2.3 has the
+  receptive-field argument in full.</dd>
+
+  <dt>Szegedy et al. (2015): <i>Going deeper with convolutions</i> <span class="where">Part X §21</span></dt>
+  <dd>Inception: why pick a kernel size at all? Also the source of the $1\times1$ reduction that
+  §19 generalises, and of the auxiliary heads of Part IX §27.</dd>
+
+  <dt>Liu et al. (2022): <i>A ConvNet for the 2020s</i> <span class="where">Part X §26</span></dt>
+  <dd>The method is the contribution: a ResNet modernised one measured change at a time, until
+  it matches transformers. Read it as a model of how an ablation should be reported, then reread
+  the papers whose claims it deflates.</dd>
+
+  <dt>Odena, Dumoulin &amp; Olah (2016): <i>Deconvolution and checkerboard artifacts</i> <span class="where">Part X §27</span></dt>
+  <dd>Diagnoses an artefact everyone had seen and nobody had explained, and gives the arithmetic
+  condition Figure 9 verifies.</dd>
+
+  <dt>Ronneberger et al. (2015): <i>U-Net</i> <span class="where">Part X §27</span></dt>
+  <dd>Why a segmentation decoder <b>needs</b> skip connections from the encoder rather than
+  merely benefiting from them: the fine spatial information was destroyed on the way down.</dd>
+
+  <dt>Hubel &amp; Wiesel (1962): <i>Receptive fields, binocular interaction and functional architecture in the cat's visual cortex</i> <span class="where">Part X §31</span></dt>
+  <dd>Two people, an electrode and bars of light. Simple cells, complex cells and the
+  detector-then-pool hierarchy, all present in 1962.</dd>
+
+  <dt>Olshausen &amp; Field (1996): <i>Emergence of simple-cell receptive field properties by learning a sparse code for natural images</i> <span class="where">Part X §31</span></dt>
+  <dd>A sparse coding objective on natural images recovers Gabor-like filters with no
+  supervision. Read §31's pitfall before drawing the obvious conclusion.</dd>
+
+  <dt>Dosovitskiy et al. (2021): <i>An image is worth 16×16 words: transformers for image recognition at scale</i> <span class="where">Part X §32</span></dt>
+  <dd>Reopens the question of whether convolution is necessary for vision, and is honest
+  about the condition on the answer: with limited data the transformer loses decisively, and
+  wins only with very large datasets. The convolutional inductive bias has a price and a
+  value, and the authors quantify both. §11's infinitely strong prior, costed by the
+  people who removed it.</dd>
+</dl>
+
+<h4>Part XI: Sequence models</h4>
+
+<dl class="gloss biblio">
+  <dt>Elman (1990): <i>Finding structure in time</i> <span class="where">Part XI §2</span></dt>
+  <dd>Where the recurrent network in its modern form begins. Elman's argument (that time
+  should be represented by its effect on the internal state of a processor rather than as an
+  explicit input dimension) is the founding idea of §2, and it was not obvious then. The
+  simple recurrent network (SRN) he introduces is the architecture this book calls an RNN.</dd>
+
+  <dt>Bengio, Simard &amp; Frasconi (1994): <i>Learning long-term dependencies with gradient descent is difficult</i> <span class="where">Part XI §11</span></dt>
+  <dd>The result Part C is about. §III has the argument of §12: storing memories robustly
+  <b>requires</b> the region where gradients vanish, so the two are one condition rather than a
+  defect.</dd>
+
+  <dt>Pascanu, Mikolov &amp; Bengio (2013): <i>On the difficulty of training recurrent neural networks</i> <span class="where">Part XI §11</span></dt>
+  <dd>The geometric picture of the cliffs, and norm clipping. The more practical of the pair.</dd>
+
+  <dt>Hochreiter &amp; Schmidhuber (1997): <i>Long short-term memory</i> <span class="where">Part XI §18</span></dt>
+  <dd>Written as an error-flow analysis first and an architecture second: the gates are derived
+  from what the gradient equations require, not proposed and tested. The most carefully motivated
+  architecture in the sequence modelling literature. Note that the original LSTM has <b>no
+  forget gate</b>: that came three years later, and the version everyone uses is Gers et al.'s
+  modification.</dd>
+
+  <dt>Gers, Schmidhuber &amp; Cummins (2000): <i>Learning to forget: continual prediction with LSTM</i> <span class="where">Part XI §18</span></dt>
+  <dd>Adds the forget gate to the original LSTM, and establishes the bias-of-1 initialisation
+  that §20 measures. The version most implementations use is this paper's, not Hochreiter
+  and Schmidhuber's. Read both in order.</dd>
+
+  <dt>Greff et al. (2017): <i>LSTM: a search space odyssey</i> <span class="where">Part XI §21</span></dt>
+  <dd>Eight variants, thousands of runs: none reliably beats the standard cell, and the forget
+  gate is the component that matters.</dd>
+
+  <dt>Jozefowicz, Zaremba &amp; Sutskever (2015): <i>An empirical exploration of recurrent network architectures</i> <span class="where">Part XI §21</span></dt>
+  <dd>Ten thousand architectures searched, and a bias of 1 on the forget gate makes the plain
+  LSTM as strong as anything found. Two large studies whose finding is that an initialisation was
+  doing the work.</dd>
+
+  <dt>Graves, Wayne &amp; Danihelka (2014): <i>Neural Turing machines</i> <span class="where">Part XI §26</span></dt>
+  <dd>A memory the network addresses rather than one it is. Its addressing operation <b>is</b>
+  attention, reached from computer architecture rather than translation.</dd>
+
+  <dt>Sutskever, Vinyals &amp; Le (2014): <i>Sequence to sequence learning with neural networks</i> <span class="where">Part XI §27</span></dt>
+  <dd>The encoder–decoder architecture and the first competitive neural machine translation
+  system. The key engineering insight (reversing the source sentence before encoding) is
+  worth noting as a sign of how empirical the field was: nobody predicted it would help,
+  but it did.</dd>
+
+  <dt>Bahdanau, Cho &amp; Bengio (2015): <i>Neural machine translation by jointly learning to align and translate</i> <span class="where">Part XI §27</span></dt>
+  <dd>Identifies the fixed-size context vector as the bottleneck and replaces it with a
+  mechanism that lets the decoder query the encoder's hidden states directly. The moment
+  attention enters deep learning, introduced as a repair to a specific architectural flaw,
+  not as a revolution. Read it immediately after Sutskever et al.: the problem statement is
+  in one paper and the solution in the next.</dd>
+</dl>
+
+<h4>Part XII: Attention and transformers</h4>
+
+<dl class="gloss biblio">
+  <dt>Bahdanau, Cho &amp; Bengio (2015): <i>Neural machine translation by jointly learning to align and translate</i> <span class="where">Part XII §6</span></dt>
+  <dd>Attention, invented as a <b>repair</b> to the encoder–decoder bottleneck rather than as
+  an architecture. Worth reading for how narrowly it is framed: nothing here suggests the
+  component is about to replace everything around it.</dd>
+
+  <dt>Vaswani et al. (2017): <i>Attention is all you need</i> <span class="where">Part XII §7</span></dt>
+  <dd>The title is a joke about exactly that. Read §3.2 for the scaled dot-product and the
+  footnote justifying the $\sqrt{d_k}$: it is the variance argument of §4, in two sentences.</dd>
+
+  <dt>Su et al. (2024): <i>RoFormer: enhanced transformer with rotary position embedding</i> <span class="where">Part XII §11</span></dt>
+  <dd>RoPE. The derivation is short and the property it establishes is exact rather than
+  encouraged, which is what distinguishes it from everything before it.</dd>
+
+  <dt>Xiong et al. (2020): <i>On layer normalization in the transformer architecture</i> <span class="where">Part XII §17</span></dt>
+  <dd>Where pre-norm was analysed rather than merely adopted. Read it against Figure 7, which
+  finds the usual one-line summary of this paper too strong.</dd>
+
+  <dt>Dao et al. (2022): <i>FlashAttention: fast and memory-efficient exact attention with IO-awareness</i> <span class="where">Part XII §29</span></dt>
+  <dd>The word <b>exact</b> in the title is the point. It computes the same function and made
+  long context practical where a decade of approximations did not, because the resource that
+  mattered was memory traffic rather than arithmetic.</dd>
+
+  <dt>Shazeer (2019): <i>Fast transformer decoding: one write-head is all you need</i> <span class="where">Part XII §30</span></dt>
+  <dd>Multi-query attention, two pages, and an unusually clean case of a deployment constraint
+  reaching back into the architecture.</dd>
+
+  <dt>Shazeer et al. (2017): <i>Outrageously large neural networks: the sparsely-gated mixture-of-experts layer</i> <span class="where">Part XII §33</span></dt>
+  <dd>Conditional computation, and the balancing problem that comes with it. Note where the
+  experts are placed: the feedforward layer, because §15 says that is where the parameters are.</dd>
+
+  <dt>Dosovitskiy et al. (2021): <i>An image is worth 16x16 words</i> <span class="where">Part XII §35</span></dt>
+  <dd>Already cited for Part X §32 and it belongs here too, because the honest reading needs both
+  architectures derived: the transformer loses below about a hundred million images and wins
+  above. Part X §11's prior, priced.</dd>
+
+  <dt>Jain &amp; Wallace (2019): <i>Attention is not explanation</i> <span class="where">Part XII §36</span></dt>
+  <dd>Constructs substantially different attention distributions producing near-identical
+  predictions. Read it before trusting any attention heatmap, including your own.</dd>
+
+  <dt>Elhage et al. (2021): <i>A mathematical framework for transformer circuits</i> <span class="where">Part XII §37</span></dt>
+  <dd>Where the residual-stream reading of §16 and the induction circuit of §37 come from. Long,
+  and the first half (the one- and two-layer analysis) is the part to read; it is the clearest
+  worked example of a mechanism identified from structure and then confirmed.</dd>
+
+  <dt>Brown et al. (2020): <i>Language models are few-shot learners</i> <span class="where">Part XII §38</span></dt>
+  <dd>In-context learning, reported. Read it for what it does <b>not</b> contain: no mechanism,
+  no explanation, and a capability nobody set out to build. That absence is still the state of
+  the question.</dd>
+
+  <dt>Gu &amp; Dao (2024): <i>Mamba: linear-time sequence modeling with selective state spaces</i> <span class="where">Part XII §40</span></dt>
+  <dd>The recurrent end of §40's axis, made serious: a state large enough to be useful and an
+  input-dependent transition, which is Part XI §18's gating promoted to the central mechanism.</dd>
+</dl>
+
+<h4>Part XIII: Data</h4>
+
+<dl class="gloss biblio">
+  <dt>Aroyo &amp; Welty (2015): <i>Truth is a lie: crowd truth and the seven myths of human annotation</i> <span class="where">Part XIII §5</span></dt>
+  <dd>Seven assumptions about annotation, dismantled, including that disagreement is noise.
+  The argument that it is signal about the task is the one worth carrying.</dd>
+
+  <dt>Geirhos et al. (2020): <i>Shortcut learning in deep neural networks</i> <span class="where">Part XIII §8</span></dt>
+  <dd>Named the phenomenon and gave it a taxonomy. A shortcut is a correct solution to the
+  problem you posed; the problem you posed is your dataset.</dd>
+
+  <dt>Kapoor &amp; Narayanan (2023): <i>Leakage and the reproducibility crisis in machine-learning-based science</i> <span class="where">Part XIII §11</span></dt>
+  <dd>294 papers across seventeen fields, with leakage in a large fraction. The errors are
+  ordinary and the work was reviewed, which is the uncomfortable part.</dd>
+
+  <dt>Broder (1997): <i>On the resemblance and containment of documents</i> <span class="where">Part XIII §15</span></dt>
+  <dd>MinHash, for the problem of duplicate web pages. The identity is derived in a
+  paragraph.</dd>
+
+  <dt>Lee et al. (2022): <i>Deduplicating training data makes language models better</i> <span class="where">Part XIII §15</span></dt>
+  <dd>What deduplication does to a real corpus: better models from fewer tokens, and
+  substantially less memorisation. One intervention improving several things at once.</dd>
+
+  <dt>Gebru et al. (2021): <i>Datasheets for datasets</i> <span class="where">Part XIII §19</span></dt>
+  <dd>The documentation template. Read it for the questions, especially what the dataset
+  should <b>not</b> be used for, which is the section most often left blank.</dd>
+
+  <dt>Shumailov et al. (2024): <i>AI models collapse when trained on recursively generated data</i> <span class="where">Part XIII §28</span></dt>
+  <dd>Named model collapse. Read alongside Figure 5, which finds the sampling-error mechanism
+  much weaker than the summary suggests and locates the damage in filtering instead.</dd>
+
+  <dt>Gerstgrasser et al. (2024): <i>Is model collapse inevitable?</i> <span class="where">Part XIII §28</span></dt>
+  <dd>Collapse largely disappears when generated data <b>accumulates</b> alongside real data
+  rather than replacing it. A difference in pipeline design, not in mathematics.</dd>
+
+  <dt>Carlini et al. (2021): <i>Extracting training data from large language models</i> <span class="where">Part XIII §33</span></dt>
+  <dd>Verbatim training text, including personal information, extracted from a deployed
+  model.</dd>
+
+  <dt>Carlini et al. (2023): <i>Quantifying memorization across neural language models</i> <span class="where">Part XIII §33</span></dt>
+  <dd>Memorisation grows with model scale, with data duplication, and with prompt length. The
+  relationship Figure 6 reproduces in miniature.</dd>
+</dl>
+
+<h4>Part XIV: Practice and Diagnosis</h4>
+
+<dl class="gloss biblio">
+  <dt>Guo et al. (2017): <i>On calibration of modern neural networks</i> <span class="where">Part XIV §5</span></dt>
+  <dd>Modern networks are <b>worse</b> calibrated than the smaller ones they replaced, despite
+  being more accurate. One scalar temperature, fitted on validation data, fixes most of it and
+  beats the elaborate alternatives.</dd>
+
+  <dt>Squire &amp; Trapp (1998): <i>Using complex variables to estimate derivatives of real functions</i> <span class="where">Part XIV §9</span></dt>
+  <dd>Four pages. Removes the subtraction from a finite difference and with it the entire
+  cancellation problem, for any analytic function. Figure 3 is this result.</dd>
+
+  <dt>Bergstra &amp; Bengio (2012): <i>Random search for hyper-parameter optimization</i> <span class="where">Part XIV §16</span></dt>
+  <dd>Simpler, cheaper and better, argued from one observation: few hyperparameters matter and
+  you do not know which. Among the highest value-per-page results in the field.</dd>
+
+  <dt>Li et al. (2018): <i>Hyperband: a novel bandit-based approach to hyperparameter optimization</i> <span class="where">Part XIV §17</span></dt>
+  <dd>Successive halving with the aggressiveness hedged, framed as a bandit problem, which is
+  the reframing that makes the analysis work.</dd>
+
+  <dt>Falkner, Klein &amp; Hutter (2018): <i>BOHB: robust and efficient hyperparameter optimization at scale</i> <span class="where">Part XIV §18</span></dt>
+  <dd>A surrogate model with early stopping. The honest answer to the objection that Bayesian
+  optimisation throws away the information a human uses most.</dd>
+
+  <dt>Dodge et al. (2019): <i>Show your work: improved reporting of experimental results</i> <span class="where">Part XIV §20</span></dt>
+  <dd>A score is meaningless without the compute budget that produced it. Report expected best
+  performance <i>as a function of trials</i>: Figure 7's hazard, turned into a curve you
+  publish. Largely ignored.</dd>
+
+  <dt>Recht et al. (2019): <i>Do ImageNet classifiers generalize to ImageNet?</i> <span class="where">Part XIV §22</span></dt>
+  <dd>A fresh test set built to the original protocol. Every model dropped substantially; the
+  <b>ranking</b> survived almost perfectly. Both halves matter.</dd>
+
+  <dt>Zheng et al. (2023): <i>Judging LLM-as-a-judge with MT-Bench and Chatbot Arena</i> <span class="where">Part XIV §24</span></dt>
+  <dd>Measures the model judge against human preference, and its biases (position, verbosity,
+  self-preference) rather than assuming them away.</dd>
+</dl>
+
+<h4>Part XV: Representation Learning</h4>
+
+<dl class="gloss biblio">
+  <dt>Vincent et al. (2010): <i>Stacked denoising autoencoders</i> <span class="where">Part XV §11</span></dt>
+  <dd>The paper that made denoising a representation-learning method rather than a way to
+  clean images. Its framing (corruption forces the model to learn the data's structure) is
+  the one the whole modern stack inherited.</dd>
+
+  <dt>Vincent (2011): <i>A connection between score matching and denoising autoencoders</i> <span class="where">Part XV §12</span></dt>
+  <dd>Four pages establishing the identity Figure 3 measures, and the single most consequential
+  result in this part. Read it before Part XVI rather than during.</dd>
+
+  <dt>Olshausen &amp; Field (1996): <i>Emergence of simple-cell receptive field properties by learning a sparse code</i> <span class="where">Part XV §10</span></dt>
+  <dd>Sparse coding, proposed as a claim about how natural signals are structured. Worth reading
+  now because §34 applies the same penalty to a transformer's activations thirty years later, and
+  it works for the reason this paper gives.</dd>
+
+  <dt>Rifai et al. (2011): <i>Contractive auto-encoders</i> <span class="where">Part XV §13</span></dt>
+  <dd>The Jacobian penalty, and the observation that its surviving singular directions are the
+  manifold's tangent directions. The clearest worked instance of the manifold reading.</dd>
+
+  <dt>Bengio, Courville &amp; Vincent (2013): <i>Representation learning: a review and new perspectives</i> <span class="where">Part XV §41</span></dt>
+  <dd>The survey the source chapter's prior list comes from. Read for the list of assumptions,
+  and read it against §41's verdicts: several have since been settled, one negatively.</dd>
+
+  <dt>Chen et al. (2020): <i>A simple framework for contrastive learning of visual representations</i> <span class="where">Part XV §19</span></dt>
+  <dd>SimCLR. Its most valuable section is the augmentation ablation, which is Figure 4's argument
+  on real images: the composition of augmentations is the design decision, and cropping plus
+  colour distortion is doing nearly all of the work.</dd>
+
+  <dt>He et al. (2020): <i>Momentum contrast for unsupervised visual representation learning</i> <span class="where">Part XV §17</span></dt>
+  <dd>MoCo. Decouples the number of negatives from the batch size with a queue, and explains why
+  the momentum encoder is required rather than convenient.</dd>
+
+  <dt>Chen &amp; He (2021): <i>Exploring simple Siamese representation learning</i> <span class="where">Part XV §21</span></dt>
+  <dd>SimSiam. Strips BYOL to its essentials and shows the momentum encoder is not one of them.
+  Its ablations are the evidence that the predictor and the stop-gradient are each load-bearing,
+  and its hypothesis section is honest about how much remains unexplained.</dd>
+
+  <dt>He et al. (2022): <i>Masked autoencoders are scalable vision learners</i> <span class="where">Part XV §22</span></dt>
+  <dd>MAE, and the 75% mask ratio. Read §4's ablation for why the ratio is so much higher than
+  BERT's: it is a measurement of image redundancy, not a tuning result.</dd>
+
+  <dt>Radford et al. (2021): <i>Learning transferable visual models from natural language supervision</i> <span class="where">Part XV §36</span></dt>
+  <dd>CLIP. The supervision is the pairing, which exists on the web without anyone labelling
+  anything. Read the zero-shot evaluation with §38's caveat in hand: prompt wording is a
+  hyperparameter, and the corpus is unpublished.</dd>
+
+  <dt>Hewitt &amp; Liang (2019): <i>Designing and interpreting probes with control tasks</i> <span class="where">Part XV §32</span></dt>
+  <dd>The paper behind Figure 9, and the one that should have changed probing practice more than
+  it did. Selectivity, not accuracy, and the demonstration that a sufficiently powerful probe
+  learns anything you give it.</dd>
+
+  <dt>Locatello et al. (2019): <i>Challenging common assumptions in the unsupervised learning of disentangled representations</i> <span class="where">Part XV §39</span></dt>
+  <dd>The impossibility theorem plus 12,000 trained models. Read both halves: the proof settles
+  what is achievable, and the study shows seeds mattered more than methods and that the good
+  hyperparameters could not be chosen without the ground truth.</dd>
+
+  <dt>Elhage et al. (2022): <i>Toy models of superposition</i> <span class="where">Part XV §33</span></dt>
+  <dd>The model Figure 10 reproduces. Explains polysemantic neurons as a consequence of packing
+  rather than a failure, and is unusually clear about what its toy setting does and does not
+  establish.</dd>
+
+  <dt>Bricken et al. (2023): <i>Towards monosemanticity: decomposing language models with dictionary learning</i> <span class="where">Part XV §34</span></dt>
+  <dd>Sparse autoencoders on a real model's activations. Read the limitations section as carefully
+  as the results: dead features, reconstruction error and feature-set instability are all named
+  there, and are usually dropped when the work is cited.</dd>
+
+  <dt>Wang &amp; Isola (2020): <i>Understanding contrastive representation learning through alignment and uniformity on the hypersphere</i> <span class="where">Part XV §18</span></dt>
+  <dd>Decomposes the contrastive objective into the two forces and shows they can be optimised
+  directly. The cleanest account of what the negatives are actually doing.</dd>
+</dl>
+
+<h4>Part XVI: Generative Models</h4>
+
+<dl class="gloss biblio">
+  <dt>Hyvärinen (2005): <i>Estimation of non-normalized statistical models by score matching</i> <span class="where">Part XVI §23</span></dt>
+  <dd>The integration by parts that removes both the partition function and the unknown data
+  score. Read it for the derivation, which is three pages, and note the second-derivative cost
+  that kept it unused for a decade.</dd>
+
+  <dt>Vincent (2011): <i>A connection between score matching and denoising autoencoders</i> <span class="where">Part XVI §25</span></dt>
+  <dd>The identity the whole movement turns on, and the paper to read before anything else here.
+  Removes the second derivative and the coverage problem in one move.</dd>
+
+  <dt>Kingma &amp; Welling (2014): <i>Auto-encoding variational Bayes</i> <span class="where">Part XVI §16</span></dt>
+  <dd>The VAE. Its contribution is narrower and more important than "a generative model": the
+  reparameterisation trick, which turned an intractable expectation into an ordinary
+  differentiable expression.</dd>
+
+  <dt>Burda, Grosse &amp; Salakhutdinov (2016): <i>Importance weighted autoencoders</i> <span class="where">Part XVI §17</span></dt>
+  <dd>The tighter bound, and the one to report if you are reporting a likelihood at all. Read §3
+  for why it tightens with $k$.</dd>
+
+  <dt>Goodfellow et al. (2014): <i>Generative adversarial networks</i> <span class="where">Part XVI §34</span></dt>
+  <dd>The paper. Read §4's proof that the optimal discriminator turns the objective into
+  Jensen–Shannon: it is the clearest statement of what a learned loss function is.</dd>
+
+  <dt>Arjovsky, Chintala &amp; Bottou (2017): <i>Wasserstein GAN</i> <span class="where">Part XVI §37</span></dt>
+  <dd>Diagnoses the vanishing gradient as a consequence of using a divergence that is undefined
+  when the supports do not overlap, and proposes a distance that is not. The diagnosis outlasted
+  the specific fix.</dd>
+
+  <dt>Ho, Jain &amp; Abbeel (2020): <i>Denoising diffusion probabilistic models</i> <span class="where">Part XVI §27</span></dt>
+  <dd>The paper that made diffusion work, largely by simplifying the loss to plain
+  noise-prediction. Read §3 for the parameterisation argument, which is the part that mattered.</dd>
+
+  <dt>Song &amp; Ermon (2019): <i>Generative modeling by estimating gradients of the data distribution</i> <span class="where">Part XVI §26</span></dt>
+  <dd>The multi-noise-level argument, stated directly: this is the paper that identifies coverage
+  and mode weighting as the two failures and fixes both with a schedule. Figure 2 is its
+  argument.</dd>
+
+  <dt>Song et al. (2021): <i>Score-based generative modeling through stochastic differential equations</i> <span class="where">Part XVI §29</span></dt>
+  <dd>Unifies the discrete-step and continuous views and produces the deterministic sampler as a
+  consequence. Where the few-step samplers come from.</dd>
+
+  <dt>Ho &amp; Salimans (2022): <i>Classifier-free diffusion guidance</i> <span class="where">Part XVI §30</span></dt>
+  <dd>One network, label dropout, and a weight at sampling time. Read it alongside Figure 7:
+  the paper is clear that guidance changes the distribution being sampled, which is often lost
+  in retelling.</dd>
+
+  <dt>Nichol &amp; Dhariwal (2021): <i>Improved denoising diffusion probabilistic models</i> <span class="where">Part XVI §31</span></dt>
+  <dd>The cosine schedule, and the demonstration that the corruption process is part of the model.
+  A rare case of a large gain from touching no architecture.</dd>
+
+  <dt>Lipman et al. (2023): <i>Flow matching for generative modeling</i> <span class="where">Part XVI §32</span></dt>
+  <dd>The same destination reached without a Markov chain or a noise schedule. Worth reading after
+  the diffusion papers so the simplification is visible.</dd>
+
+  <dt>Rombach et al. (2022): <i>High-resolution image synthesis with latent diffusion models</i> <span class="where">Part XVI §20</span></dt>
+  <dd>Compress first, then diffuse in the latent space: Part XV's autoencoder and this part's
+  density model, split. The architecture behind most deployed image generators.</dd>
+
+  <dt>Theis, van den Oord &amp; Bethge (2016): <i>A note on the evaluation of generative models</i> <span class="where">Part XVI §41</span></dt>
+  <dd>Short, and the most useful thing written on the subject. Log-likelihood, sample quality and
+  nearest-neighbour checks are largely independent, and a model can be excellent on any one while
+  failing the others. Everything in movement F is downstream of this.</dd>
+
+  <dt>Kynkäänniemi et al. (2019): <i>Improved precision and recall metric for assessing generative models</i> <span class="where">Part XVI §43</span></dt>
+  <dd>The two-number replacement for a single distance, with a support estimate that works from
+  samples. What should be reported by default and usually is not.</dd>
+</dl>
+
+<h4>Part XVII: Scale</h4>
+
+<dl class="gloss biblio">
+  <dt>Kaplan et al. (2020): <i>Scaling laws for neural language models</i> <span class="where">Part XVII §10</span></dt>
+  <dd>The paper that made scaling a research programme. Read it for the method and read §6's
+  allocation conclusion knowing it was corrected: the reasoning is sound and one procedural
+  choice was not.</dd>
+
+  <dt>Hoffmann et al. (2022): <i>Training compute-optimal large language models</i> <span class="where">Part XVII §12</span></dt>
+  <dd>Chinchilla. Three independent estimation methods agreeing, and a model four times smaller
+  than the previous generation beating it at equal compute. Read §3 for what the schedule error
+  was and why it tilted the answer.</dd>
+
+  <dt>Schaeffer, Miranda &amp; Koyejo (2023): <i>Are emergent abilities of large language models a mirage?</i> <span class="where">Part XVII §7</span></dt>
+  <dd>The deflation, and a clean piece of methodological work: the same runs produce a sharp curve
+  or a smooth one depending on whether the metric is discontinuous.</dd>
+
+  <dt>Rajbhandari et al. (2020): <i>ZeRO: memory optimizations toward training trillion parameter models</i> <span class="where">Part XVII §18</span></dt>
+  <dd>The three sharding stages, with the memory arithmetic worked out explicitly. Read it with
+  Figure 1 in hand and note which category is missing from the analysis.</dd>
+
+  <dt>Shoeybi et al. (2019): <i>Megatron-LM: training multi-billion parameter language models using model parallelism</i> <span class="where">Part XVII §23</span></dt>
+  <dd>Tensor parallelism, and the column-then-row split that needs only one all-reduce per block.
+  Short, concrete, and the communication analysis is the part to read.</dd>
+
+  <dt>Narayanan et al. (2021): <i>Efficient large-scale language model training on GPU clusters using Megatron-LM</i> <span class="where">Part XVII §26</span></dt>
+  <dd>How the three forms of parallelism are combined in practice, with the cost model that decides
+  the assignment. The clearest published account of choosing a configuration by arithmetic.</dd>
+
+  <dt>Micikevicius et al. (2018): <i>Mixed precision training</i> <span class="where">Part XVII §19</span></dt>
+  <dd>The fp32 master copy, loss scaling, and which operations must stay in higher precision.
+  Predates bf16 hardware, which is why so much of it is about managing a range problem that bf16
+  removes.</dd>
+
+  <dt>Fedus, Zoph &amp; Shazeer (2022): <i>Switch transformers</i> <span class="where">Part XVII §30</span></dt>
+  <dd>Top-1 routing, the auxiliary balancing loss, and the capacity factor. Read §2.2 on load
+  balancing and note that the drop rate is discussed there and rarely reported elsewhere.</dd>
+
+  <dt>Yang et al. (2022): <i>Tensor programs V: tuning large neural networks via zero-shot hyperparameter transfer</i> <span class="where">Part XVII §34</span></dt>
+  <dd>μP. The derivation is long; the practical claim is short and checkable, and §7's transfer
+  experiments are the part worth reading first.</dd>
+
+  <dt>McCandlish et al. (2018): <i>An empirical model of large-batch training</i> <span class="where">Part XVII §33</span></dt>
+  <dd>The gradient noise scale, and the prediction that it sets the batch size beyond which
+  parallelism stops buying speed. One of the few results here with a derivation rather than a
+  fit.</dd>
+</dl>
+
+<h4>Part XVIII: Reinforcement Learning</h4>
+
+<dl class="gloss biblio">
+  <dt>Sutton &amp; Barto (2018): <i>Reinforcement Learning: An Introduction</i> <span class="where">Part XVIII, throughout</span></dt>
+  <dd>The textbook, and unusually one worth reading rather than consulting. Chapters 3–6 are the
+  exact case and the sampled case done properly; §11.3's account of the deadly triad is the
+  clearest there is.</dd>
+
+  <dt>Mnih et al. (2015): <i>Human-level control through deep reinforcement learning</i> <span class="where">Part XVIII §22</span></dt>
+  <dd>DQN. Its contribution is not that it was best at any game but that one architecture and one
+  hyperparameter setting worked across dozens, which is what made it convincing.</dd>
+
+  <dt>van Hasselt, Guez &amp; Silver (2016): <i>Deep reinforcement learning with double Q-learning</i> <span class="where">Part XVIII §19</span></dt>
+  <dd>The maximisation bias measured on real value estimates, and a one-line restructuring that
+  removes it. Read §3 for the demonstration that the learned values were systematically too
+  high.</dd>
+
+  <dt>Schulman et al. (2015): <i>Trust region policy optimization</i> <span class="where">Part XVIII §31</span></dt>
+  <dd>The monotonic improvement argument and the KL constraint. Worth reading for why the
+  constraint belongs in policy space, which is the idea PPO keeps.</dd>
+
+  <dt>Schulman et al. (2017): <i>Proximal policy optimization algorithms</i> <span class="where">Part XVIII §31</span></dt>
+  <dd>Short, and the clipped objective is the whole method. Read the $\min$ carefully: it is what
+  makes a too-large step buy nothing rather than cost something.</dd>
+
+  <dt>Schulman et al. (2016): <i>High-dimensional continuous control using generalized advantage estimation</i> <span class="where">Part XVIII §29</span></dt>
+  <dd>GAE, and the clearest treatment of the bias–variance trade in the actor's target.</dd>
+
+  <dt>Engstrom et al. (2020): <i>Implementation matters in deep RL: a case study on PPO and TRPO</i> <span class="where">Part XVIII §32</span></dt>
+  <dd>The replication that found much of PPO's advantage in code-level details rather than in the
+  clipping. An uncomfortable paper and a model of how to check a method.</dd>
+
+  <dt>Henderson et al. (2018): <i>Deep reinforcement learning that matters</i> <span class="where">Part XVIII §43</span></dt>
+  <dd>Seeds, implementations and reporting. Results varying more across seeds than across the
+  algorithms being compared, with three seeds the norm. Read alongside Part XIV §19.</dd>
+
+  <dt>Ng, Harada &amp; Russell (1999): <i>Policy invariance under reward transformations</i> <span class="where">Part XVIII §39</span></dt>
+  <dd>The proof that potential-based shaping leaves the optimal policy unchanged, and that
+  essentially nothing else does. Short, and the telescoping argument is worth seeing once.</dd>
+
+  <dt>Christiano et al. (2017): <i>Deep reinforcement learning from human preferences</i> <span class="where">Part XVIII §41</span></dt>
+  <dd>The construction behind RLHF, several years before it was used that way. Comparisons rather
+  than scores, a learned reward model, and policy optimisation against it.</dd>
+
+  <dt>Gao, Schulman &amp; Hilton (2023): <i>Scaling laws for reward model overoptimisation</i> <span class="where">Part XVIII §41</span></dt>
+  <dd>Reward-model score rising while true quality peaks and falls, measured across model sizes.
+  The quantitative version of why the KL penalty is the main knob.</dd>
+
+  <dt>Levine et al. (2020): <i>Offline reinforcement learning: tutorial, review, and perspectives</i> <span class="where">Part XVIII §40</span></dt>
+  <dd>Why learning from a fixed dataset is not simply supervised learning: the max in the Bellman
+  target ranges over actions the data does not cover, and nothing corrects the extrapolation.</dd>
+</dl>
+
+<h4>Part XIX: Efficiency and Deployment</h4>
+
+<dl class="gloss biblio">
+  <dt>Williams, Waterman &amp; Patterson (2009): <i>Roofline: an insightful visual performance model</i> <span class="where">Part XIX §3</span></dt>
+  <dd>Predates all of this and explains most of it. Arithmetic intensity against a machine's ridge
+  point, and the observation that an operation's bottleneck follows from its shape.</dd>
+
+  <dt>Dettmers et al. (2022): <i>LLM.int8(): 8-bit matrix multiplication for transformers at scale</i> <span class="where">Part XIX §10</span></dt>
+  <dd>The outlier finding: a small number of fixed feature dimensions carry very large activations,
+  and keeping just those in higher precision rescues 8-bit inference. Read §3 for the structure,
+  which is what the later methods exploit.</dd>
+
+  <dt>Frantar et al. (2023): <i>GPTQ: accurate post-training quantization for generative pre-trained transformers</i> <span class="where">Part XIX §11</span></dt>
+  <dd>Column-by-column quantization with second-order error compensation. The idea worth taking is
+  that it fixes the error's downstream effect rather than rounding better.</dd>
+
+  <dt>Lin et al. (2024): <i>AWQ: activation-aware weight quantization</i> <span class="where">Part XIX §11</span></dt>
+  <dd>Not all weights matter equally: protect the ones multiplying large activations, by scaling
+  rather than by mixed precision. Simpler than GPTQ and competitive.</dd>
+
+  <dt>Frankle &amp; Carbin (2019): <i>The lottery ticket hypothesis</i> <span class="where">Part XIX §18</span></dt>
+  <dd>Sparse subnetworks that train to full accuracy from their original initialisation. Read the
+  reset step carefully (it is the whole claim), and read the follow-up work on rewinding, which is
+  what made it hold at scale.</dd>
+
+  <dt>Hinton, Vinyals &amp; Dean (2015): <i>Distilling the knowledge in a neural network</i> <span class="where">Part XIX §25</span></dt>
+  <dd>Soft targets, temperature, and the dark knowledge in the wrong answers. Short, and its
+  framing of what a teacher's distribution contains is the part that transfers.</dd>
+
+  <dt>Hu et al. (2022): <i>LoRA: low-rank adaptation of large language models</i> <span class="where">Part XIX §32</span></dt>
+  <dd>The method, and §7's analysis of the update's rank. Read that section against Figure 6 and
+  note the difference between an update being low rank and a rank-$r$ constraint being sufficient.</dd>
+
+  <dt>Dettmers et al. (2023): <i>QLoRA: efficient finetuning of quantized LLMs</i> <span class="where">Part XIX §34</span></dt>
+  <dd>A 4-bit frozen base with 16-bit adapters, which is what put fine-tuning a large model on one
+  device. The paged optimiser and the NF4 format are the engineering that makes it work.</dd>
+
+  <dt>Kwon et al. (2023): <i>Efficient memory management for large language model serving with PagedAttention</i> <span class="where">Part XIX §39</span></dt>
+  <dd>An operating-systems idea applied to the KV cache, and the clearest published account of why
+  cache fragmentation, not compute, limits serving throughput.</dd>
+
+  <dt>Leviathan, Kalman &amp; Matias (2023): <i>Fast inference from transformers via speculative decoding</i> <span class="where">Part XIX §40</span></dt>
+  <dd>The rejection rule and its proof that the output distribution is unchanged. Worth reading for
+  the proof, because "exactly the same distribution" is a rare property in this part.</dd>
+
+  <dt>Salimans &amp; Ho (2022): <i>Progressive distillation for fast sampling of diffusion models</i> <span class="where">Part XIX §29</span></dt>
+  <dd>Distilling a procedure rather than a function: halve the sampler's step count, repeatedly.
+  The technique behind real-time image generation, and honest about the diversity it costs.</dd>
+</dl>
+
+<h4>Part XX: Language Models</h4>
+
+<dl class="gloss biblio">
+  <dt>Sennrich, Haddow &amp; Birch (2016): <i>Neural machine translation of rare words with subword units</i> <span class="where">Part XX §2</span></dt>
+  <dd>Byte-pair encoding brought to neural sequence models, and the argument for why the unknown
+  token had to go. Short, and the algorithm is three lines.</dd>
+
+  <dt>Brown et al. (2020): <i>Language models are few-shot learners</i> <span class="where">Part XX §17</span></dt>
+  <dd>The paper that made in-context learning a subject. Read §3's task list for the breadth and
+  §5's honest limitations, which are more careful than the reception was.</dd>
+
+  <dt>Olsson et al. (2022): <i>In-context learning and induction heads</i> <span class="where">Part XX §18</span></dt>
+  <dd>Ties the capability to a mechanism and to a moment in training. One of the few results in
+  this part that explains rather than describes.</dd>
+
+  <dt>Min et al. (2022): <i>Rethinking the role of demonstrations</i> <span class="where">Part XX §19</span></dt>
+  <dd>The finding that randomising demonstration labels costs surprisingly little. Read it together
+  with the work that finds the opposite on novel mappings: the disagreement is about whether the
+  task was already learnable from the weights, and that is the transferable lesson.</dd>
+
+  <dt>Wei et al. (2022): <i>Chain-of-thought prompting elicits reasoning in large language models</i> <span class="where">Part XX §21</span></dt>
+  <dd>The observation, and the scaling behaviour that made it interesting. Read alongside the work
+  on faithfulness, which establishes that the chain helps without being a transcript.</dd>
+
+  <dt>Ouyang et al. (2022): <i>Training language models to follow instructions with human feedback</i> <span class="where">Part XX §26</span></dt>
+  <dd>InstructGPT, and the three-stage pipeline as it is actually run. The striking number is how
+  little preference data changes how usable the model is.</dd>
+
+  <dt>Rafailov et al. (2023): <i>Direct preference optimization</i> <span class="where">Part XX §29</span></dt>
+  <dd>The derivation that removes the reward model and the RL loop. Read §4 for what is given up
+  (the online loop) because that is the part the simplification costs.</dd>
+
+  <dt>Liu et al. (2024): <i>Lost in the middle: how language models use long contexts</i> <span class="where">Part XX §12</span></dt>
+  <dd>The position effect, measured. The reason to report a depth profile rather than a window
+  size.</dd>
+
+  <dt>Lewis et al. (2020): <i>Retrieval-augmented generation</i> <span class="where">Part XX §34</span></dt>
+  <dd>The construction, and the argument for why knowledge belongs in a document store rather than
+  in weights: current, attributable, editable and access-controlled.</dd>
+
+  <dt>Zhao et al. (2021): <i>Calibrate before use: improving few-shot performance of language models</i> <span class="where">Part XX §22</span></dt>
+  <dd>How much performance moves with the order and formatting of demonstrations. The measurement
+  that makes single-prompt evaluation indefensible.</dd>
+
+  <dt>Olah et al. (2020): <i>Zoom in: an introduction to circuits</i> <span class="where">Part XXI §11</span></dt>
+  <dd>The programme stated: features, circuits, and universality. Read it for what a circuit claim
+  is supposed to consist of, then hold everything after it to that standard.</dd>
+
+  <dt>Adebayo et al. (2018): <i>Sanity checks for saliency maps</i> <span class="where">Part XXI §14</span></dt>
+  <dd>The control that ended a literature. Randomise the weights, re-run the method, and see
+  whether the output changes: for several published methods it barely did. The most efficient
+  paper in this list, and the one whose <i>method</i> generalises furthest beyond its subject.</dd>
+
+  <dt>Meng et al. (2022): <i>Locating and editing factual associations in GPT</i> <span class="where">Part XXI §10</span></dt>
+  <dd>Activation patching applied at scale, and then the editing that tests the localisation
+  causally. The pairing is the point: a claim about where something lives, followed by an
+  intervention that would fail if the claim were wrong.</dd>
+
+  <dt>Gao, Schulman &amp; Hilton (2023): <i>Scaling laws for reward model overoptimisation</i> <span class="where">Part XXI §18</span></dt>
+  <dd>Read a second time here, for the shape rather than the coefficients: true reward rises, peaks
+  and falls as the proxy is optimised harder. Figure 4 reproduces that shape in three lines of
+  simulation and isolates the condition that produces it.</dd>
+
+  <dt>Burns et al. (2023): <i>Weak-to-strong generalization</i> <span class="where">Part XXI §22</span></dt>
+  <dd>Read for the experimental design rather than the headline. The analogy between "weak model
+  supervising strong model" and "human supervising superhuman model" is the load-bearing
+  assumption, the authors say so, and how much weight it carries is the thing to form a view
+  on.</dd>
+
+  <dt>Kleinberg, Mullainathan &amp; Raghavan (2016): <i>Inherent trade-offs in the fair determination of risk scores</i> <span class="where">Part XXI §29</span></dt>
+  <dd>The impossibility theorem behind §29. Short, entirely elementary, and it converts an
+  interminable argument into a choice that has to be made and defended.</dd>
+
+  <dt>Pearl (2009): <i>Causality: models, reasoning and inference</i> <span class="where">Part XXII §14</span></dt>
+  <dd>Chapter 3 is the one to read: the do-calculus, and the completeness results that turn "can
+  this be estimated from observational data" from a judgement call into a decision procedure.
+  Dense, and the three rules repay the effort.</dd>
+
+  <dt>Hernán &amp; Robins: <i>Causal Inference: What If</i> <span class="where">Part XXII §12</span></dt>
+  <dd>The applied companion to Pearl, free online, written by people who have had to defend these
+  assumptions to regulators. Read it for the estimand discipline and for how carefully it separates
+  identification from estimation.</dd>
+
+  <dt>Angrist &amp; Pischke (2009): <i>Mostly Harmless Econometrics</i> <span class="where">Part XXII §26</span></dt>
+  <dd>The design tradition: instruments, differences, discontinuities, and an unusually honest
+  running commentary on when each one is not credible. Read it alongside Pearl rather than instead:
+  the two fields solved the same problem in different languages and are still translating.</dd>
+
+  <dt>Peters, Janzing &amp; Schölkopf (2017): <i>Elements of Causal Inference</i> <span class="where">Part XXII §34</span></dt>
+  <dd>Where causality meets machine learning: invariance, transfer, and causal discovery, with the
+  identifiability results stated properly. The chapter on invariant prediction is the theory behind
+  Figure 6.</dd>
+
+  <dt>Chernozhukov et al. (2018): <i>Double/debiased machine learning</i> <span class="where">Part XXII §21</span></dt>
+  <dd>How to use flexible models for the nuisance functions in a doubly robust estimator without
+  their regularisation bias contaminating the effect estimate. Cross-fitting is the mechanism, and
+  it is the same honest-splitting idea as the causal forest.</dd>
+
+  <dt>Athey &amp; Imbens (2016): <i>Recursive partitioning for heterogeneous causal effects</i> <span class="where">Part XXII §33</span></dt>
+  <dd>Trees that split on effect heterogeneity rather than outcome variation, with honest sample
+  splitting. Read §3 for why the same data cannot both choose a split and estimate within it, the
+  problem Part XIV §20 measures in another setting.</dd>
+
+  <dt>Vapnik &amp; Chervonenkis (1971): <i>On the uniform convergence of relative frequencies of events to their probabilities</i> <span class="where">Part XXIII §12</span></dt>
+  <dd>The paper the subject is built on. Worth reading for the shape of the argument (a
+  combinatorial fact about labellings converted into a statistical rate), which is still the
+  template every later bound follows.</dd>
+
+  <dt>Shalev-Shwartz &amp; Ben-David (2014): <i>Understanding Machine Learning: From Theory to Algorithms</i> <span class="where">Part XXIII §13</span></dt>
+  <dd>The standard modern treatment, and the place to go for the fundamental theorem stated
+  properly with both directions. Chapters 3–6 cover this part's movements A and B at full rigour.</dd>
+
+  <dt>Zhang et al. (2017): <i>Understanding deep learning requires rethinking generalization</i> <span class="where">Part XXIII §23</span></dt>
+  <dd>The randomised-label experiment, run cleanly, with the consequences stated plainly. Short, and
+  entirely readable after movement B: the contribution is noticing that an obvious experiment
+  settles a question the field had assumed was open.</dd>
+
+  <dt>Belkin et al. (2019): <i>Reconciling modern machine-learning practice and the classical bias–variance trade-off</i> <span class="where">Part XXIII §25</span></dt>
+  <dd>Double descent, named and measured across several model families. Read it together with
+  Nakkiran et al. (2019), which finds the same curve in the number of training steps as well as the
+  number of parameters.</dd>
+
+  <dt>Bartlett, Long, Lugosi &amp; Tsigler (2020): <i>Benign overfitting in linear regression</i> <span class="where">Part XXIII §26</span></dt>
+  <dd>The sharp characterisation for linear models: exactly which covariance spectra allow
+  interpolation of noise without harm. The one place in this movement where the theory is complete.</dd>
+
+  <dt>Dziugaite &amp; Roy (2017): <i>Computing nonvacuous generalization bounds for deep networks</i> <span class="where">Part XXIII §29</span></dt>
+  <dd>PAC-Bayes bounds that come in under 1 on a real network, the first ones that did. Note
+  carefully which object is bounded: a stochastic network, not the deterministic one you would
+  deploy.</dd>
+
+  <dt>Sagawa et al. (2020): <i>Distributionally robust neural networks for group shifts</i> <span class="where">Part XXIII §43</span></dt>
+  <dd>Group DRO, and the finding that strong regularization is what makes it work. Read it for the
+  worst-group framing, which is more useful than the algorithm and is the right way to report almost
+  any accuracy number.</dd>
+
+  <dt>Rasmussen &amp; Williams (2006): <i>Gaussian Processes for Machine Learning</i> <span class="where">Part XXIV §9</span></dt>
+  <dd>Free online, and chapter 2 is the clearest derivation of the posterior anywhere. Read chapter
+  5 for the marginal likelihood as model selection: Occam's razor arriving as a log determinant
+  rather than as a preference.</dd>
+
+  <dt>Angelopoulos &amp; Bates (2023): <i>A gentle introduction to conformal prediction</i> <span class="where">Part XXIV §24</span></dt>
+  <dd>The best entry point to the subject: the guarantee, the proof in a paragraph, and the
+  practical variants. Read §2 and then implement it: the whole method is a sort and an index, and
+  writing it is what makes the guarantee believable.</dd>
+
+  <dt>Lakshminarayanan, Pritzel &amp; Blundell (2017): <i>Simple and scalable predictive uncertainty using deep ensembles</i> <span class="where">Part XXIV §19</span></dt>
+  <dd>The paper that established ensembles as the practical baseline. Read it for the honesty of the
+  framing: it does not claim a Bayesian derivation, and the measured results are what carried the
+  argument.</dd>
+
+  <dt>Guo et al. (2017): <i>On calibration of modern neural networks</i> <span class="where">Part XXIV §6</span></dt>
+  <dd>That accuracy improved while calibration got worse, and that temperature scaling fixes most of
+  it for one parameter. Read it alongside Part XIV §5, and note what it does not address, which is
+  anything off the distribution it was measured on.</dd>
+
+  <dt>Kendall &amp; Gal (2017): <i>What uncertainties do we need in Bayesian deep learning for computer vision?</i> <span class="where">Part XXIV §5</span></dt>
+  <dd>The aleatoric/epistemic split made operational, with the heteroscedastic loss written out.
+  Read §3 for the loss and then look for the failure mode Part XXIV §5 describes, which the paper
+  does not dwell on.</dd>
+
+  <dt>Tibshirani et al. (2019): <i>Conformal prediction under covariate shift</i> <span class="where">Part XXIV §29</span></dt>
+  <dd>How to restore the guarantee when exchangeability fails, by weighting the calibration scores
+  with the likelihood ratio. The same positivity requirement as everywhere else in this book, and
+  the paper is clear about it.</dd>
+
+  <dt>Breiman (2001): <i>Random forests</i> <span class="where">Part XXV §11</span></dt>
+  <dd>The variance identity of §9 is stated here and is the whole argument. Read it for that, and
+  note that the strength-and-correlation bound it proves is an upper bound rather than a promise
+  that subsampling pays on your data.</dd>
+
+  <dt>Friedman (2001): <i>Greedy function approximation: a gradient boosting machine</i> <span class="where">Part XXV §17</span></dt>
+  <dd>Boosting derived as gradient descent in function space, which is the derivation that makes the
+  loss swappable. Section 4 introduces shrinkage and reports what Figure 4 measures.</dd>
+
+  <dt>Chen &amp; Guestrin (2016): <i>XGBoost: a scalable tree boosting system</i> <span class="where">Part XXV §17</span></dt>
+  <dd>The second-order formulation with explicit penalties, and an unusually candid systems section.
+  Read §2 for the gain expression that scores a split and sets the leaf in one computation.</dd>
+
+  <dt>Ke et al. (2017): <i>LightGBM: a highly efficient gradient boosting decision tree</i> <span class="where">Part XXV §23</span></dt>
+  <dd>Histogram splitting, leaf-wise growth and the sibling-subtraction trick. Most of the speed in
+  modern boosting is here rather than in the statistics.</dd>
+
+  <dt>Grinsztajn, Oyallon &amp; Varoquaux (2022): <i>Why do tree-based models still outperform deep learning on typical tabular data?</i> <span class="where">Part XXV §28</span></dt>
+  <dd>Read a second time here, for the mechanism rather than the headline: the paper's ablations
+  point at irregular target functions and uninformative features, which is a claim about the
+  generating process. Figure 7 splits four such processes two–two.</dd>
+
+  <dt>Hyndman &amp; Athanasopoulos: <i>Forecasting: Principles and Practice</i> <span class="where">Part XXV §35</span></dt>
+  <dd>Free online, and the best single source for movements E and F. Chapter 5 on evaluation is the
+  one to read first, because the split is what decides a forecasting result.</dd>
+
+  <dt>Makridakis, Spiliotis &amp; Assimakopoulos (2020): <i>The M4 competition: 100,000 time series</i> <span class="where">Part XXV §44</span></dt>
+  <dd>What actually wins forecasting competitions, measured at scale. The finding that combinations
+  and simple statistical methods held their own is the reason §35's baselines are baselines rather
+  than history.</dd>
+
+  <dt>Kipf &amp; Welling (2017): <i>Semi-supervised classification with graph convolutional networks</i> <span class="where">Part XXVI §9</span></dt>
+  <dd>The paper that made graph learning ordinary, and short enough to read in one sitting. Note
+  what it does not say: the symmetric normalisation is presented as a first-order approximation to a
+  spectral filter, and the two-layer depth that everyone copied was a practical choice whose reason
+  Part XXVI §13 measures.</dd>
+
+  <dt>Gilmer et al. (2017): <i>Neural message passing for quantum chemistry</i> <span class="where">Part XXVI §8</span></dt>
+  <dd>The unification. Read §2, which shows a dozen separately published architectures as the same
+  loop with different messages and aggregators, the single most clarifying page in this area.</dd>
+
+  <dt>Xu et al. (2019): <i>How powerful are graph neural networks?</i> <span class="where">Part XXVI §16</span></dt>
+  <dd>The Weisfeiler&ndash;Leman bound, and the reason sum aggregation is an expressivity choice
+  rather than a preference. The proof is short and the consequence is the only exact capability
+  limit in this book.</dd>
+
+  <dt>Alon &amp; Yahav (2021): <i>On the bottleneck of graph neural networks and its practical implications</i> <span class="where">Part XXVI §20</span></dt>
+  <dd>Over-squashing named and measured. Read it beside the over-smoothing literature, because the
+  two failures pull in opposite directions and a paper addressing one usually worsens the other.</dd>
+
+  <dt>Bronstein et al. (2021): <i>Geometric deep learning: grids, groups, graphs, geodesics and gauges</i> <span class="where">Part XXVI §32</span></dt>
+  <dd>The general statement of the argument Part X made for translation and Part XXVI generalises.
+  Long; read the first sixty pages for the blueprint and treat the rest as reference.</dd>
+
+  <dt>Satorras, Hoogeboom &amp; Welling (2021): <i>E(n) equivariant graph neural networks</i> <span class="where">Part XXVI §35</span></dt>
+  <dd>The scalar-and-vector construction of §35, written out in about a page of arithmetic. Worth
+  reading immediately after the higher-order literature, to see how much of the benefit is available
+  without it.</dd>
+
+  <dt>Shchur et al. (2018): <i>Pitfalls of graph neural network evaluation</i> <span class="where">Part XXVI §41</span></dt>
+  <dd>The re-evaluation that found a well-tuned simple model matching most of what was published to
+  beat it. Read it as a method paper about comparison, not as a result about graphs.</dd>
+
+  <dt>Shannon (1949): <i>Communication in the presence of noise</i> <span class="where">Part XXVII §2</span></dt>
+  <dd>The sampling theorem, stated and proved in a few pages of unusually clear prose. Read §II for
+  the statement and the reconstruction formula; the rest is the founding paper of a different
+  subject and worth the detour.</dd>
+
+  <dt>Cooley &amp; Tukey (1965): <i>An algorithm for the machine calculation of complex Fourier series</i> <span class="where">Part XXVII §12</span></dt>
+  <dd>Four pages that changed what was computationally possible. Gauss had it around 1805 in an
+  unpublished notebook, which makes it among the most rediscovered results in numerical
+  mathematics.</dd>
+
+  <dt>Oppenheim &amp; Schafer: <i>Discrete-Time Signal Processing</i> <span class="where">Part XXVII §17</span></dt>
+  <dd>The standard reference for movements A to C, and the place to go when you need a filter design
+  rather than an explanation of what a filter is. Chapter 4 on sampling is the one to read first.</dd>
+
+  <dt>Oppenheim &amp; Lim (1981): <i>The importance of phase in signals</i> <span class="where">Part XXVII §18</span></dt>
+  <dd>The magnitude-and-phase swap, done properly. Figure 4 reproduces it. Read it before designing
+  any loss that compares spectra, because it says what such a loss cannot see.</dd>
+
+  <dt>Rahaman et al. (2019): <i>On the spectral bias of neural networks</i> <span class="where">Part XXVII §29</span></dt>
+  <dd>The phenomenon named and measured. Read §4 for the argument from the eigenvalues, then read
+  it again beside Part XXIII's movement on infinite width, which is where the argument becomes a
+  derivation.</dd>
+
+  <dt>Tancik et al. (2020): <i>Fourier features let networks learn high frequency functions in low dimensional domains</i> <span class="where">Part XXVII §36</span></dt>
+  <dd>The remedy, with the bandwidth made explicit as a hyperparameter. Unusually candid about the
+  trade: the paper shows the failure at both ends of the range, which most method papers do not.</dd>
+
+  <dt>Zhang (2019): <i>Making convolutional networks shift-invariant again</i> <span class="where">Part XXVII §6</span></dt>
+  <dd>Anti-aliased downsampling in a real architecture. The diagnosis is sixty years old and the
+  paper's contribution is noticing that nobody had applied it, which is worth remembering as a
+  category of available result.</dd>
+
+  <dt>Su et al. (2021): <i>RoFormer: enhanced transformer with rotary position embedding</i> <span class="where">Part XXVII §34</span></dt>
+  <dd>Rotary embeddings, and the derivation showing the dot product depends only on relative
+  position. Read §3.4, then read a context-extension paper and watch it edit the frequency bank.</dd>
+
+  <dt>Pearl (1988): <i>Probabilistic Reasoning in Intelligent Systems</i> <span class="where">Part XXVIII §4</span></dt>
+  <dd>Where graphical models and d-separation come from. Chapter 3 is the one to read; the collider
+  argument in it is the same one Part XXII needs and is stated more clearly here than in most
+  causal-inference texts.</dd>
+
+  <dt>Rabiner (1989): <i>A tutorial on hidden Markov models</i> <span class="where">Part XXVIII §12</span></dt>
+  <dd>Still the clearest exposition of forward–backward, including the scaling that stops the
+  recursion underflowing, which most modern treatments omit and every implementer rediscovers.</dd>
+
+  <dt>Dempster, Laird &amp; Rubin (1977): <i>Maximum likelihood from incomplete data via the EM algorithm</i> <span class="where">Part XXVIII §15</span></dt>
+  <dd>The monotonicity proof, which is short and is the whole guarantee. Read it beside the ELBO
+  derivation and notice they are the same inequality.</dd>
+
+  <dt>Blei, Kucukelbir &amp; McAuliffe (2017): <i>Variational inference: a review for statisticians</i> <span class="where">Part XXVIII §18</span></dt>
+  <dd>The best single entry point to movement C. §2.2 states the mean-field underestimate that
+  Figure 4 measures, and is unusually direct about it being a property of the objective.</dd>
+
+  <dt>Betancourt (2017): <i>A conceptual introduction to Hamiltonian Monte Carlo</i> <span class="where">Part XXVIII §29</span></dt>
+  <dd>Why the gradient helps, argued geometrically rather than algebraically. Also the best available
+  discussion of what diagnostics can and cannot establish, which is Figure 6's subject.</dd>
+
+  <dt>Song et al. (2021): <i>Score-based generative modeling through stochastic differential equations</i> <span class="where">Part XXVIII §36</span></dt>
+  <dd>The paper that unified the diffusion literature by writing it as an SDE, and that introduced
+  the probability-flow ODE. Read §3 and §4; everything Part XVI taught discretely is here
+  continuously.</dd>
+
+  <dt>Peyré &amp; Cuturi (2019): <i>Computational Optimal Transport</i> <span class="where">Part XXVIII §41</span></dt>
+  <dd>Free online, and the reference for movement F. Chapter 4 on Sinkhorn is what made transport
+  usable inside a training loop.</dd>
+
+  <dt>Arjovsky, Chintala &amp; Bottou (2017): <i>Wasserstein GAN</i> <span class="where">Part XXVIII §41</span></dt>
+  <dd>Read it for §2, which is Figure 8's argument made carefully: a worked example where the
+  likelihood-ratio divergences give no gradient and the transport distance does.</dd>
+
+  <dt>Hartley &amp; Zisserman: <i>Multiple View Geometry in Computer Vision</i> <span class="where">Part XXIX §25</span></dt>
+  <dd>The reference for movement D and one of the few textbooks in this list that has not been
+  superseded. Chapters 6 and 9 are the ones to read; the rest is there when you need it. Nothing in
+  it depends on what models are fashionable, which is the point.</dd>
+
+  <dt>Lin et al. (2017): <i>Focal loss for dense object detection</i> <span class="where">Part XXIX §14</span></dt>
+  <dd>The paper that closed the one-stage accuracy gap, and it is worth reading for the diagnosis
+  rather than the fix: §3 shows the problem was the summed loss of easy negatives, not the hard
+  ones, which is not what the name suggests.</dd>
+
+  <dt>Lin et al. (2017): <i>Feature pyramid networks for object detection</i> <span class="where">Part XXIX §15</span></dt>
+  <dd>Read beside Figure 4. The architecture is simple and the argument for it is arithmetic:
+  small objects are not represented at the depth where the semantics live.</dd>
+
+  <dt>Carion et al. (2020): <i>End-to-end object detection with transformers</i> <span class="where">Part XXIX §11</span></dt>
+  <dd>Detection as set prediction, with a matching loss and no suppression step. The strongest
+  argument in it is the one about removing a non-differentiable, untuned post-process from the
+  middle of a system.</dd>
+
+  <dt>Zhang (1999): <i>Flexible camera calibration by viewing a plane from unknown orientations</i> <span class="where">Part XXIX §27</span></dt>
+  <dd>The checkerboard calibration everybody uses. Short, and reading it once removes the sense
+  that calibration is a black box in somebody's library.</dd>
+
+  <dt>Lucas &amp; Kanade (1981): <i>An iterative image registration technique</i> <span class="where">Part XXIX §21</span></dt>
+  <dd>Where the brightness-constancy formulation and the local-constancy assumption come from. The
+  aperture problem is visible in the algebra on the second page, forty years before anyone measured
+  it with a network.</dd>
+
+  <dt>Luiten et al. (2021): <i>HOTA: a higher order metric for evaluating multi-object tracking</i> <span class="where">Part XXIX §37</span></dt>
+  <dd>Why one tracking number is not enough, and how to decompose it into detection and association
+  terms that separate teams can act on. A good example of a metric paper that is really an
+  engineering paper.</dd>
+
+  <dt>Graves et al. (2006): <i>Connectionist temporal classification</i> <span class="where">Part XXX §11</span></dt>
+  <dd>The forward recursion, the blank, and the collapse rule. Short. Read §3 and notice that the
+  independence assumption is stated plainly in the paper and is usually dropped from later
+  summaries.</dd>
+
+  <dt>Graves (2012): <i>Sequence transduction with recurrent neural networks</i> <span class="where">Part XXX §15</span></dt>
+  <dd>The transducer, which is CTC with the coupling term put back. Read it directly after the
+  above; the difference between the two papers is exactly what Figure 4 measures.</dd>
+
+  <dt>Griffin &amp; Lim (1984): <i>Signal estimation from modified short-time Fourier transform</i> <span class="where">Part XXX §7</span></dt>
+  <dd>Alternating projection for phase estimation, and unusually clear about what it converges to.
+  Figure 2 is this algorithm measured in both spaces at once.</dd>
+
+  <dt>van den Oord et al. (2017): <i>Neural discrete representation learning</i> <span class="where">Part XXX §20</span></dt>
+  <dd>Vector quantisation inside an autoencoder, with the commitment loss and the straight-through
+  estimator. The codebook-collapse problem is visible in the appendix and is the first thing to
+  check in any implementation.</dd>
+
+  <dt>Défossez et al. (2022): <i>High fidelity neural audio compression</i> <span class="where">Part XXX §22</span></dt>
+  <dd>A residual-quantiser codec written up carefully, including the parts that usually go
+  unreported: codebook usage, the effect of stage count, and what the adversarial term buys.</dd>
+
+  <dt>Radford et al. (2021): <i>Learning transferable visual models from natural language supervision</i> <span class="where">Part XXX §25</span></dt>
+  <dd>The two-tower construction at scale. Read §3 for the training details and then read §7 on
+  limitations, which is more candid than the paper is usually given credit for.</dd>
+
+  <dt>Liang et al. (2022): <i>Mind the gap: understanding the modality gap in multi-modal contrastive representation learning</i> <span class="where">Part XXX §35</span></dt>
+  <dd>Where the modality gap was named and traced to initialisation. Read it beside Figure 8, which
+  is drawn as an illustration because this book's own setup could not elicit the phenomenon.</dd>
+
+  <dt>Åström &amp; Murray: <i>Feedback Systems</i> <span class="where">Part XXXI §3</span></dt>
+  <dd>Free online, and the best entry point to movement A for someone arriving from machine
+  learning. Chapter 1 makes the argument that feedback substitutes for knowledge better than any
+  paper does.</dd>
+
+  <dt>Bertsekas: <i>Dynamic Programming and Optimal Control</i> <span class="where">Part XXXI §10</span></dt>
+  <dd>The reference for movement B, and the book that makes the identity between optimal control and
+  reinforcement learning unavoidable. Read the LQR chapter beside Part XXVIII §13 and the duality
+  stops being a curiosity.</dd>
+
+  <dt>Rawlings, Mayne &amp; Diehl: <i>Model Predictive Control</i> <span class="where">Part XXXI §14</span></dt>
+  <dd>Including the parts about stability guarantees, which are the difference between MPC as an
+  idea and MPC as something you can deploy. Chapter 2 is the one to read.</dd>
+
+  <dt>Ross, Gordon &amp; Bagnell (2011): <i>A reduction of imitation learning and structured prediction to no-regret online learning</i> <span class="where">Part XXXI §19</span></dt>
+  <dd>Where the compounding-error argument is made precisely and the repair (labelling the states
+  the learner reaches) is derived rather than proposed. Short, and the bound is the point.</dd>
+
+  <dt>Kalman (1960): <i>A new approach to linear filtering and prediction problems</i> <span class="where">Part XXXI §28</span></dt>
+  <dd>Worth reading in the original for how little it assumes. The covariance recursion is the part
+  that matters here: it is what lets a system say it does not know.</dd>
+
+  <dt>LaValle: <i>Planning Algorithms</i> <span class="where">Part XXXI §29 · Part XXXIII §23</span></dt>
+  <dd>Free online, and the reference for movement D's planning. Chapter 5 on sampling-based methods
+  explains what they give up as carefully as what they buy, which is rare.</dd>
+
+  <dt>Kalra &amp; Paddock (2016): <i>Driving to safety: how many miles of driving would it take to demonstrate autonomous vehicle reliability?</i> <span class="where">Part XXXI §42</span></dt>
+  <dd>Figure 8's arithmetic, worked through for real fleets and real rates. The conclusion (that the
+  required mileage is infeasible for the rates that matter) is why a safety case is an argument
+  rather than an odometer reading.</dd>
+
+  <dt>Amodei et al. (2016): <i>Concrete problems in AI safety</i> <span class="where">Part XXXI §35</span></dt>
+  <dd>Read again here, for the sections on safe exploration and distributional shift. What Part XXI
+  treats as an alignment question is, for a system with a body, an engineering one with a
+  fallback controller in it.</dd>
+
+  <dt>Williams, Waterman &amp; Patterson (2009): <i>Roofline: an insightful visual performance model</i> <span class="where">Part XXXII §4</span></dt>
+  <dd>Where the model comes from, and short. Its argument is that a single plot answers "what should
+  I work on" better than a profile does, which is still true fifteen years later.</dd>
+
+  <dt>Hennessy &amp; Patterson: <i>Computer Architecture: A Quantitative Approach</i> <span class="where">Part XXXII §2</span></dt>
+  <dd>The reference for movement A. Read the memory-hierarchy chapter; everything else in this part's
+  first half is a consequence of it.</dd>
+
+  <dt>Thakur, Rabenseifner &amp; Gropp (2005): <i>Optimization of collective communication operations in MPICH</i> <span class="where">Part XXXII §18</span></dt>
+  <dd>Why a library switches algorithm by message size, worked through for each collective. The
+  volume-versus-latency trade Figure 4 leaves implicit is explicit here.</dd>
+
+  <dt>Dwork &amp; Roth: <i>The Algorithmic Foundations of Differential Privacy</i> <span class="where">Part XXXII §26</span></dt>
+  <dd>Free online. Chapters 2 and 3 are the definition and composition, which is all most readers
+  need, and reading the definition once removes the temptation to treat epsilon as a dial.</dd>
+
+  <dt>Abadi et al. (2016): <i>Deep learning with differential privacy</i> <span class="where">Part XXXII §27</span></dt>
+  <dd>Clipping, noise, and the accountant that makes a long training run's budget tractable. Read §3
+  for the mechanism and note how much of the paper is the accounting rather than the algorithm.</dd>
+
+  <dt>Shokri et al. (2017): <i>Membership inference attacks against machine learning models</i> <span class="where">Part XXXII §30</span></dt>
+  <dd>The attack, and the connection to overfitting. Worth reading for the experimental design: it is
+  one of the few security papers where the ground truth is available and used.</dd>
+
+  <dt>Carlini et al. (2021): <i>Extracting training data from large language models</i> <span class="where">Part XXXII §31</span></dt>
+  <dd>The leak that needs no attack. Read it beside Part XIII §21 on deduplication, which turns out
+  to be the most effective available mitigation.</dd>
+
+  <dt>Athalye, Carlini &amp; Wagner (2018): <i>Obfuscated gradients give a false sense of security</i> <span class="where">Part XXXII §38</span></dt>
+  <dd>Seven defences broken in one paper, all by the same mechanism. The single most useful thing to
+  read before proposing a defence, and the source of §38's rule: if a defence works because the
+  attacker cannot compute something, assume it will be computed.</dd>
+  <dt>Russell &amp; Norvig: <i>Artificial Intelligence: A Modern Approach</i> <span class="where">Part XXXIII §2</span></dt>
+  <dd>The reference for this whole part, and the book this one deliberately does not try to be.
+  Chapters 3 to 5 cover movements A, B and E at far greater length. Read it for the breadth that was
+  trimmed here (logic, constraint satisfaction, classical planning) rather than for the parts this
+  part measures.</dd>
+
+  <dt>Hart, Nilsson &amp; Raphael (1968): <i>A formal basis for the heuristic determination of minimum cost paths</i> <span class="where">Part XXXIII §8</span></dt>
+  <dd>A* and its optimality proof, in the original. Short, and the proof is the same three lines
+  &sect;9 gives. Worth reading to see how much of what is now standard vocabulary arrived at once.</dd>
+
+  <dt>Pohl (1970): <i>Heuristic search viewed as path finding in a graph</i> <span class="where">Part XXXIII §11</span></dt>
+  <dd>Where weighted A* and its bounded-suboptimality guarantee come from. Figure 2 is a measurement
+  of how loose that bound is, which the paper does not claim otherwise.</dd>
+
+  <dt>Korf (1985): <i>Depth-first iterative-deepening: an optimal admissible tree search</i> <span class="where">Part XXXIII §21</span></dt>
+  <dd>IDA*, and the analysis of why re-expanding everything each round costs so little. The argument
+  that memory rather than time is the binding constraint is made here more clearly than anywhere
+  since.</dd>
+
+  <dt>Culberson &amp; Schaeffer (1998): <i>Pattern databases</i> <span class="where">Part XXXIII §13</span></dt>
+  <dd>Heuristics as precomputed exact solutions to projections of the problem. The additive case and
+  its disjointness condition are the part worth the attention: it is the reason adding
+  heuristics is usually illegal and occasionally not.</dd>
+
+  <dt>Knuth &amp; Moore (1975): <i>An analysis of alpha-beta pruning</i> <span class="where">Part XXXIII §36</span></dt>
+  <dd>The closed form Figure 7 lands on exactly. Read it for the demonstration that "optimal move
+  ordering" has a precise cost rather than an asymptotic one, which is rarer than it sounds.</dd>
+
+  <dt>Auer, Cesa-Bianchi &amp; Fischer (2002): <i>Finite-time analysis of the multiarmed bandit problem</i> <span class="where">Part XXXIII §30</span></dt>
+  <dd>UCB1 and its logarithmic regret bound. The source of the exploration term that reappears in
+  UCT, in Part XVIII's exploration bonuses, and in most places anyone writes a square root over a
+  visit count.</dd>
+
+  <dt>Kocsis &amp; Szepesv&aacute;ri (2006): <i>Bandit based Monte-Carlo planning</i> <span class="where">Part XXXIII §31</span></dt>
+  <dd>UCT: applying the bandit rule at every node of a tree. The observation that this makes the
+  estimate converge to the value under optimal play rather than under random play is the whole
+  paper, and it is the difference between a search and an average.</dd>
+
+  <dt>Browne et al. (2012): <i>A survey of Monte Carlo tree search methods</i> <span class="where">Part XXXIII §31</span></dt>
+  <dd>The map of the variants, from before learned priors changed the subject. Useful for seeing how
+  many of the tricks in modern systems were already named, and under what conditions each helps.</dd>
+
+  <dt>Silver et al. (2018): <i>A general reinforcement learning algorithm that masters chess, shogi and Go through self-play</i> <span class="where">Part XXXIII §33</span></dt>
+  <dd>Search and learning as one loop: the network supplies a prior and a value, the search improves
+  on the prior, and training on the search closes it. Read it as a policy-improvement operator in
+  Part XXII's sense rather than as a result about board games.</dd>
+
+  <dt>Kavraki, &Scaron;vestka, Latombe &amp; Overmars (1996): <i>Probabilistic roadmaps for path planning in high-dimensional configuration spaces</i> <span class="where">Part XXXIII §26</span></dt>
+  <dd>The paper that made motion planning practical by refusing to represent the free space. The
+  narrow-passage problem is stated honestly here, which is more than most of the follow-up
+  literature does.</dd>
+
+  <dt>LaValle &amp; Kuffner (2001): <i>Randomized kinodynamic planning</i> <span class="where">Part XXXIII §27</span></dt>
+  <dd>RRTs, including the Voronoi-bias argument for why the tree explores without being told to. The
+  kinodynamic half is the part that matters for anything with a body, and it is the half usually
+  skipped.</dd>
+
+  <dt>Karaman &amp; Frazzoli (2011): <i>Sampling-based algorithms for optimal motion planning</i> <span class="where">Part XXXIII §28</span></dt>
+  <dd>Proves that RRT converges to a suboptimal path with probability one, then fixes it. The
+  shrinking connection radius and its <span class="m">$1/d$</span> exponent are where the dimension
+  reappears after sampling seemed to have removed it.</dd>
+
+  <dt>Meister, Vieira &amp; Cotterell (2020): <i>If beam search is the answer, what was the question?</i> <span class="where">Part XXXIII §18</span></dt>
+  <dd>Takes the observation behind Figure 4 seriously: a narrow beam is not an approximation that
+  happens to work, it is an implicit regulariser, and the paper identifies what it is regularising
+  toward. The honest treatment of a result usually stated as folklore.</dd>
+
+  <dt>Wang et al. (2023): <i>Self-consistency improves chain of thought reasoning in language models</i> <span class="where">Part XXXIII §39</span></dt>
+  <dd>Majority voting over sampled derivations, with no verifier anywhere. Read it beside Part XIII's
+  treatment of ensembles: it removes variance and cannot remove bias, which predicts exactly where it
+  stops helping.</dd>
+
+  <dt>Cobbe et al. (2021): <i>Training verifiers to solve math word problems</i> <span class="where">Part XXXIII §40</span></dt>
+  <dd>Where the generator-plus-verifier shape enters the language-model literature. The result that a
+  verifier beats fine-tuning at equal compute is the one that made everything in movement F worth
+  building.</dd>
+
+  <dt>Lightman et al. (2023): <i>Let's verify step by step</i> <span class="where">Part XXXIII §40</span></dt>
+  <dd>Process supervision against outcome supervision, measured. The reason to pay for step-level
+  labels is not accuracy alone: only a process verifier has an opinion about an unfinished solution,
+  which is what a tree search needs.</dd>
+
+  <dt>Snell, Lee, Xu &amp; Kumar (2024): <i>Scaling LLM test-time compute optimally can be more effective than scaling model parameters</i> <span class="where">Part XXXIII §42</span></dt>
+  <dd>The budget-allocation question stated as a budget-allocation question. Its finding that the
+  best way to spend test-time compute depends on the difficulty of the question is &sect;44's fourth
+  test in a different vocabulary.</dd>
+
+  <dt>Stroebl, Kapoor &amp; Narayanan (2024): <i>Inference scaling flaws: the limits of LLM resampling with imperfect verifiers</i> <span class="where">Part XXXIII §41</span></dt>
+  <dd>Figure 8's result, argued from the other direction. The claim that resampling against an
+  imperfect verifier cannot reach the ceiling (and past a point moves away from it) is
+  the single most useful correction to the "just sample more" reflex.</dd>
+  <dt>Jacot, Gabriel &amp; Hongler (2018): <i>Neural tangent kernel: convergence and generalization in neural networks</i> <span class="where">Part XXIII §47</span></dt>
+  <dd>The result itself: in the infinite-width limit the tangent kernel is deterministic and constant
+  during training, so gradient descent on a network is kernel regression. Read it for the derivation
+  and read &sect;48 and &sect;49 for what the limit costs.</dd>
+
+  <dt>Lee et al. (2019): <i>Wide neural networks of any depth evolve as linear models under gradient descent</i> <span class="where">Part XXIII §48</span></dt>
+  <dd>The empirical companion, and the more useful of the two here because it measures the
+  approximation rather than only proving it. The finite-width corrections it reports are the same
+  phenomenon Figure 8 measures.</dd>
+
+  <dt>Chizat, Oyallon &amp; Bach (2019): <i>On lazy training in differentiable programming</i> <span class="where">Part XXIII §49</span></dt>
+  <dd>Where the word comes from, and the argument that laziness is a property of the output scale
+  rather than of the architecture, which is what makes Figure 9's sweep possible at fixed width. The
+  paper's point is that the lazy limit is a choice, and usually not the one you want.</dd>
+
+  <dt>Yang &amp; Hu (2021): <i>Tensor Programs IV: feature learning in infinite-width neural networks</i> <span class="where">Part XXIII §50</span></dt>
+  <dd>Proves that the standard infinite-width limits cannot learn features, and constructs the
+  parameterisation that can. The classification of what each choice of exponent gives you is the part
+  to read; it is why μP is one solution to a system of constraints rather than a set of tricks.</dd>
+
+  <dt>Yang et al. (2022): <i>Tensor Programs V: tuning large neural networks via zero-shot hyperparameter transfer</i> <span class="where">Part XXIII §52</span></dt>
+  <dd>The result Part XVII §34 has been using. Figure 11 is its central claim at a scale a figure
+  script can reach; the paper's version is at a scale where the saving is measured in millions of
+  dollars. The coordinate-check procedure in its appendix is the practical contribution.</dd>
+
+  <dt>Poole et al. (2016): <i>Exponential expressivity in deep neural networks through transient chaos</i> <span class="where">Part XXIII §53</span></dt>
+  <dd>The order-to-chaos transition and the correlation map, derived. Read it beside Figure 12's first
+  panel; the depth scale it defines is what initialisation is really choosing.</dd>
+
+  <dt>Schoenholz et al. (2017): <i>Deep information propagation</i> <span class="where">Part XXIII §54</span></dt>
+  <dd>Turns the phase diagram into a prediction about trainability. Worth reading alongside Figure
+  12's third panel, which reproduces its ordered-phase prediction and not its chaotic-phase one: the
+  asymmetry being that the ordered phase destroys information while the chaotic phase only destroys
+  scale.</dd>
+  <dt>Katharopoulos et al. (2020): <i>Transformers are RNNs: fast autoregressive transformers with linear attention</i> <span class="where">Part XI §31</span></dt>
+  <dd>The reassociation, and the observation in the title. Read it for the derivation and Figure 11
+  for what the substitution costs: the paper is clear that it is a substitution, and the follow-up
+  literature is often less so.</dd>
+
+  <dt>Gu, Goel &amp; R&eacute; (2022): <i>Efficiently modeling long sequences with structured state spaces</i> <span class="where">Part XI §34</span></dt>
+  <dd>S4: the discretised linear system as a sequence layer, the convolutional view, and the HiPPO
+  initialisation. The part to read is why the initialisation matters, which is §12's vanishing
+  gradient restated as a choice about where the timescales go.</dd>
+
+  <dt>Gu &amp; Dao (2024): <i>Mamba: linear-time sequence modeling with selective state spaces</i> <span class="where">Part XI §36</span></dt>
+  <dd>Selectivity, and the hardware-aware scan that makes it trainable. Figure 14 is its central
+  motivation at a scale a figure script can reach. Note what is given up: input-dependence destroys
+  time invariance, so the convolution is gone and the scan is all that is left.</dd>
+
+  <dt>Blelloch (1990): <i>Prefix sums and their applications</i> <span class="where">Part XI §33</span></dt>
+  <dd>Where the work-efficient scan comes from, decades before anyone applied it to a sequence model.
+  Worth reading to see that the algorithmic fact modern architectures depend on was available the
+  whole time and simply had nothing to be used on.</dd>
+
+  <dt>Arora et al. (2024): <i>Zoology: measuring and improving recall in efficient language models</i> <span class="where">Part XI §35</span></dt>
+  <dd>Isolates associative recall as the thing fixed-state models lose, and shows the state size
+  controls it. Figure 13 measures the same relationship without any training, which is a cleaner
+  demonstration that the limit belongs to the representation rather than to the optimiser.</dd>
+
+  <dt>Beltagy, Peters &amp; Cohan (2020): <i>Longformer: the long-document transformer</i> <span class="where">Part XI §37</span></dt>
+  <dd>Sliding-window attention with a few global positions. The earliest widely used version of the
+  hybrid argument in §37: keep exact attention where it is needed and bound the cache everywhere
+  else.</dd>
+  <dt>French (1999): <i>Catastrophic forgetting in connectionist networks</i> <span class="where">Part XX §47</span></dt>
+  <dd>The problem stated clearly, long before anyone was doing sequential post-training on production
+  models. Worth reading to see how little the diagnosis has changed and how much the setting has.</dd>
+
+  <dt>Kirkpatrick et al. (2017): <i>Overcoming catastrophic forgetting in neural networks</i> <span class="where">Part XX §48</span></dt>
+  <dd>Elastic weight consolidation: penalise movement in the directions the old task cared about.
+  Read it as the principled version of §47's finding that forgetting is a distance: the Fisher
+  information decides which directions the distance should be measured in.</dd>
+
+  <dt>Frankle et al. (2020): <i>Linear mode connectivity and the lottery ticket hypothesis</i> <span class="where">Part XX §49</span></dt>
+  <dd>Where the barrier in Figure 7 comes from, and the observation that sharing an early portion of
+  training is what puts two models in the same basin. The precondition for everything in §49.</dd>
+
+  <dt>Wortsman et al. (2022): <i>Model soups: averaging weights of multiple fine-tuned models</i> <span class="where">Part XX §49</span></dt>
+  <dd>Averaging fine-tunes of one base model, at scale, and getting a better model for no extra
+  inference cost. Note how carefully the setup satisfies the shared-ancestor condition; the result
+  does not survive relaxing it.</dd>
+
+  <dt>Ilharco et al. (2023): <i>Editing models with task arithmetic</i> <span class="where">Part XX §50</span></dt>
+  <dd>Task vectors, added and negated. Figure 8 reproduces the effect and adds the control the claim
+  needs: what each fine-tune already scores on the other task. The interference-versus-angle
+  relationship is the part that generalises.</dd>
+
+  <dt>Meng et al. (2022): <i>Locating and editing factual associations in GPT</i> <span class="where">Part XX §51</span></dt>
+  <dd>ROME: the rank-one update Figure 9 abstracts. Read it with the follow-up work on sequential
+  editing, which finds the accumulation problem the figure measures: a single edit is exact and a
+  thousand are a slow deletion.</dd>
+  <dt>Cover &amp; Thomas: <i>Elements of Information Theory</i>, chapter 10 <span class="where">Part XV §43</span></dt>
+  <dd>Rate–distortion theory, derived. The Gaussian case Figure 11 measures against is worked in
+  full, and the chapter is unusually clear that the function belongs to the source rather than to any
+  method.</dd>
+
+  <dt>Gersho &amp; Gray: <i>Vector Quantization and Signal Compression</i> <span class="where">Part XV §43</span></dt>
+  <dd>Where the quarter-bit space-filling constant comes from, and the lattice results. Read it for
+  the distinction Figure 11 turns into a finding: the quantiser that is optimal at a fixed number of
+  levels is not the one that is optimal at a fixed entropy.</dd>
+
+  <dt>Rissanen (1978): <i>Modeling by shortest data description</i> <span class="where">Part XV §44</span></dt>
+  <dd>MDL in the original. Short, and the argument that a model is a code for its data is made more
+  plainly here than in most of what followed.</dd>
+
+  <dt>Grünwald: <i>The Minimum Description Length Principle</i> <span class="where">Part XV §44</span></dt>
+  <dd>The modern treatment, including the part §47 flags: code lengths depend on the code, so MDL
+  relocates arbitrariness rather than removing it. The chapters on universal codes are where that
+  relocation is made rigorous.</dd>
+
+  <dt>Tishby, Pereira &amp; Bialek (1999): <i>The information bottleneck method</i> <span class="where">Part XV §45</span></dt>
+  <dd>The objective and its fixed-point iteration, which is what Figure 13 runs. Read it as a
+  statement of what a representation is for; the later claims about deep learning's compression phase
+  are a separate and more contested matter.</dd>
+
+  <dt>Saxe et al. (2019): <i>On the information bottleneck theory of deep learning</i> <span class="where">Part XV §47</span></dt>
+  <dd>The rebuttal, and the reason §47 treats the bottleneck as a description rather than an
+  explanation. Its central point is that mutual information in a deterministic network is either
+  infinite or an artefact of the binning, so the compression phase depends on a choice nobody
+  reports.</dd>
+</dl>
+
+<h3><span class="num">§6</span> Practical notes</h3>
+
+<p><b>Where to find them.</b> Nearly everything published since 2012 is free on arXiv. Older
+papers are usually findable through an author's page or an institutional repository. When a
+paper is behind a paywall, the authors' own copy is very often a search away, and emailing
+an author for a copy works more often than people expect.</p>
+
+<p><b>Preprints are not peer reviewed.</b> arXiv is a posting service, not a journal. That
+is mostly good (it is why the field moves quickly), but it means the filtering is yours to
+do. §3's questions are how you do it, and the pitfall box is what to watch for.</p>
+
+<p><b>Follow citations backwards, not forwards.</b> When a paper uses a technique you do not
+know, find the paper it cites for that technique, and repeat. Two or three hops usually
+reaches something foundational and clear. Searching forwards through everything that has
+cited a paper is how you drown.</p>
+
+<p><b>Reproduce one number.</b> Nothing establishes whether you understood a paper like
+implementing its central experiment and obtaining roughly the reported result. When you
+cannot, the reason is informative: sometimes the problem is in your implementation, and
+sometimes the problem is in the paper.</p>
+
+<div class="box why">
+  <span class="label">Why this section exists</span>
+  <p>The material in this book has an end. The field does not.</p>
+  <p>Everything in the parts that follow was a paper before it was a chapter, and the papers
+  being written now will be the chapters of whatever replaces this. Being able to read them
+  (quickly, critically, without deference) is the difference between a practitioner who can
+  only use what has been packaged and one who can evaluate what is new before it is packaged.</p>
+  <p>It is also, unlike most skills in this book, one that improves fastest by doing it badly
+  at first. Pick a paper on something you already understand from these parts and read it this
+  week. The first one is slow. The tenth is not.</p>
+</div>

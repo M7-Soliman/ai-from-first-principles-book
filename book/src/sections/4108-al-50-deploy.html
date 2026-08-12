@@ -1,0 +1,197 @@
+<h2><span class="part-kicker">Part E</span>Deployment and consequence</h2>
+
+<p class="mvt">Everything so far has been about the artefact. This movement is about the
+system it becomes part of, and about the effects that are not properties of the model at all.
+They belong in a technical book because the technical choices determine them, and because
+the people who make those choices are the readers of books like this one.</p>
+
+<h3><span class="num">§34</span> What changes at deployment</h3>
+
+<div class="box intuition">
+  <span class="label">The three changes that matter</span>
+  <p><b>The input distribution stops being yours.</b> Every evaluation in Part XIV and every
+  measurement in movement D was made on a distribution you chose. Users choose the deployed one,
+  and it moves: sometimes because the world moved, sometimes because users adapted to the
+  system.</p>
+  <p><b>The stakes become asymmetric.</b> A benchmark scores an average. A deployment is judged
+  by its worst outputs, in volume, and the two are related only loosely, which is §27's
+  arithmetic restated in the place where it costs money.</p>
+  <p><b>The system acquires parts you did not train.</b> Retrieval, tools, filters, retries, a
+  cache, a fallback model, a human in the loop. The behaviour you are responsible for is the
+  system's, and the model is one component of it.</p>
+</div>
+
+<p>Part XIX §37 chose a serving configuration and Part XX §36 assembled an agent. Neither asked
+what happens after the first week. This section is that question, and the answer is that most of
+what goes wrong at deployment is not a model failure in the sense the earlier parts would
+recognise. It is a distribution that moved, a component that failed open, or a metric that was
+measuring something adjacent to what mattered.</p>
+
+<div class="box why">
+  <span class="label">Why the model is rarely the whole story</span>
+  <p>Consider a system that answers questions from a document store. Its failures divide roughly
+  into: the retriever returned nothing relevant; the retriever returned something relevant and
+  the model ignored it; the document store was stale; the model was right and the user asked the
+  wrong question; the model hallucinated despite good context. Only the last two are the model in
+  the sense a benchmark measures.</p>
+  <p>This is why the deployment metric and the model metric come apart, and why improving the
+  model can leave the deployment unchanged. Measure the system, then attribute: Part XIV §21's
+  ablation discipline, applied to something larger than a network.</p>
+</div>
+
+<h3><span class="num">§35</span> Monitoring</h3>
+
+<p>Monitoring is evaluation that continues after you stop looking. It is the only part of the
+safety story that survives contact with a distribution you do not control, and it is usually the
+part that is built last and least.</p>
+
+<div class="box shapes">
+  <span class="label">What to record, and what each one catches</span>
+  <p><b>Input distribution statistics.</b> Length, language, topic clusters, rate. Catches the
+  drift that invalidates every offline measurement you made.</p>
+  <p><b>Model confidence, calibrated.</b> Part XIV §5's calibration is what makes a confidence
+  number an actionable threshold rather than a decoration. Catches the region where the model has
+  quietly stopped knowing.</p>
+  <p><b>Refusal and filter rates.</b> A sharp change means either an attack or a regression, and
+  the two look identical for the first hour.</p>
+  <p><b>User-side signals.</b> Retries, edits, abandonment, thumbs. Noisy, biased towards the
+  annoyed, and still the only measurement of whether the output was useful.</p>
+  <p><b>Sampled human review.</b> Expensive, irreplaceable, and the only one of these that can
+  discover a failure mode nobody anticipated. Everything else can only count failures of a kind
+  you already named.</p>
+</div>
+
+<div class="box pitfall">
+  <span class="label">Pitfall: a monitor that only counts known failures</span>
+  <p>Automated monitoring measures the categories you defined. The failures that matter most are
+  the ones outside them, and by construction those produce no alert. This is the same structure
+  as §30's validity problem: the instrument sees what it was built to see.</p>
+  <p>The correction is the sampled review above, and the fact that it is expensive is not a reason
+  to skip it. It is the only channel through which an unanticipated failure can reach you before
+  a user publicises it.</p>
+</div>
+
+<h3><span class="num">§36</span> Open weights</h3>
+
+<p>Whether to release weights is the decision on which the technical community is most visibly
+split, and the split is not mainly about facts. It is about which risk you weight more heavily
+under shared uncertainty. Setting out the actual structure of the disagreement is more useful
+than adjudicating it.</p>
+
+<div class="box def">
+  <span class="label">What release actually changes</span>
+  <p><b>It is irreversible.</b> An API can be withdrawn, rate-limited, filtered or patched. Weights,
+  once distributed, cannot. Every argument on both sides runs through this asymmetry.</p>
+  <p><b>It removes the safety training's guarantee.</b> Part XX §30 measured what alignment
+  training changes; fine-tuning reverses most of it cheaply, and the published cost of doing so is
+  small. Safety properties of open weights are properties of the default, not of the artefact.</p>
+  <p><b>It removes the monitoring channel.</b> Everything in §35 requires that inference passes
+  through infrastructure you operate. With open weights it does not, so nobody, including the
+  releaser, can measure how the system is being used.</p>
+  <p><b>It distributes the capability to everyone at once</b>, which is the argument for as much as
+  against: researchers who can study the model, small organisations that can deploy without a
+  gatekeeper, countries that would otherwise depend on a foreign vendor, and a check on the
+  concentration §37 describes.</p>
+</div>
+
+<div class="box why">
+  <span class="label">Where the disagreement actually lives</span>
+  <p>Both sides agree on the four facts above. The disagreement is about the <b>marginal</b>
+  contribution: how much a released model adds to what a determined actor could already do with
+  the open models that exist, the closed models they can jailbreak, and the internet. If the
+  margin is small, the costs above buy little and the benefits are real. If it is large, the
+  irreversibility dominates.</p>
+  <p>That is an empirical question about the near future, which is why it cannot be settled by
+  argument, and why the evaluations in movement D, specifically §28's, are the thing that would
+  settle it. Treat anyone confident in either direction as making a forecast, not stating a
+  result.</p>
+</div>
+
+<h3><span class="num">§37</span> Concentration</h3>
+
+<p>Part XVII §16 counted what a frontier training run costs in memory and Part XIX §31 counted
+what adaptation costs. Put the numbers together and the structural consequence is visible: the
+set of organisations that can train a frontier model from scratch is small, and it is not growing
+as fast as the models are.</p>
+
+<div class="box shapes">
+  <span class="label">The three concentrations, which are separable</span>
+  <p><b>Compute.</b> Concentrated in a handful of firms and a smaller handful of chip suppliers.
+  Follows directly from the capital cost of a frontier run.</p>
+  <p><b>Data.</b> Concentrated in whoever holds large proprietary corpora and whoever crawled the
+  web before the licensing regime changed: Part XIII §34's point, arriving as an economic
+  fact.</p>
+  <p><b>Capability.</b> <i>Less</i> concentrated than either, and this is the interesting part.
+  Distillation (Part XIX), open weights (§36), and the fact that a good small model beats a bad
+  large one mean that the ability to <i>deploy</i> a capable system is far more widely distributed
+  than the ability to <i>create</i> the frontier.</p>
+  <p>Conflating the three produces bad predictions in both directions. The first two are
+  concentrating; the third is diffusing.</p>
+</div>
+
+<h3><span class="num">§38</span> Labour</h3>
+
+<div class="box intuition">
+  <span class="label">What the technology actually does to a job</span>
+  <p>A model automates <b>tasks</b>, and a job is a bundle of tasks. Whether a job disappears
+  depends on what fraction of its bundle is automatable, what the remaining fraction requires, and
+  whether cheaper output raises demand enough to need the same number of people doing the
+  residual.</p>
+  <p>That is why "which jobs will AI replace" is the wrong unit of analysis and why answers to it
+  have historically been poor. The right unit is the task, and the composition of jobs from tasks
+  is what determines the outcome.</p>
+</div>
+
+<p>Two things in this book bear on it directly, and are worth stating because they are technical
+results rather than opinions. First, the capability–reliability gap of Part XX §44: a system that
+is capable but unreliable does not remove the person, it changes their work into checking. Whether
+that is a better job or a worse one is a real question and is not answered by the accuracy number.
+Second, the annotation labour of Part XIII §5 and Part XX §27: the preference data that makes
+these systems usable is produced by people, often under conditions the resulting product does not
+advertise. A book that counts FLOPs and forgets that is not being rigorous. It is being selective
+about which costs it counts.</p>
+
+<h3><span class="num">§39</span> Environmental cost</h3>
+
+<div class="box def">
+  <span class="label">The arithmetic, and where the honest uncertainty is</span>
+  <p>Energy for a training run is <span class="m">$\text{GPU-hours} \times \text{power per GPU}
+  \times \text{PUE}$</span>, and each factor is knowable. What converts it to emissions is the
+  grid the datacentre sits on, which varies by more than an order of magnitude between regions and
+  by a factor of several within a day.</p>
+  <p>The larger term is usually not training but <b>inference</b>, integrated over the deployment.
+  A frontier run is a one-off; serving it is continuous, and Part XIX's whole subject is that
+  inference cost is where the engineering effort goes for exactly this reason. Any comparison that
+  cites a training number alone is measuring the smaller quantity.</p>
+</div>
+
+<div class="box pitfall">
+  <span class="label">Pitfall: the comparison that is almost always missing</span>
+  <p>The number that matters is the <i>difference</i> between the system and what it displaced,
+  not the system's absolute cost. A query that replaces a search plus three page loads, or a
+  simulation that replaces a physical experiment, has a negative marginal footprint; one that
+  replaces nothing has its full cost.</p>
+  <p>Both directions of this argument get abused. The honest position is that the counterfactual
+  is hard to establish, that this makes the net effect genuinely uncertain, and that the
+  uncertainty is not a licence to assume the favourable answer.</p>
+</div>
+
+<h3><span class="num">§40</span> The questions this book cannot answer</h3>
+
+<div class="box why">
+  <span class="label">Four, stated plainly</span>
+  <p><b>How capable these systems will become.</b> Part XVII's scaling laws extrapolate loss, and
+  Part XX §44 showed that loss and capability are related loosely and non-monotonically. Nobody has
+  a law that predicts capability, and the confident forecasts in both directions are not derived
+  from anything in this book.</p>
+  <p><b>Whether current methods suffice for alignment at higher capability.</b> §21's scalable
+  oversight problem is unsolved and the proposals in §22 are not yet demonstrated at the scale
+  where they would be needed.</p>
+  <p><b>What the aggregate economic effect is.</b> §38's task decomposition tells you the shape of
+  the analysis, not the answer.</p>
+  <p><b>Whether the governance mechanisms will keep pace.</b> Out of scope for a technical book,
+  and load-bearing for every outcome in it.</p>
+  <p>A book that claimed otherwise on any of these would be doing something other than what the
+  rest of it does. The measurement discipline that governs the previous nine hundred pages does not
+  suspend itself for the questions where measurement is hardest.</p>
+</div>

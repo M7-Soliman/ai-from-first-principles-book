@@ -1,0 +1,224 @@
+<h2><span class="part-kicker">Part B</span>Algebra that must be automatic</h2>
+
+<p class="lede">This is the part people are tempted to skip. Do not. Every failure to
+follow a derivation later traces back to an algebra step that took too long, not
+because you could not do it, but because doing it consumed the attention you needed for
+the actual idea.</p>
+
+<h3><span class="num">§3</span> Rearranging expressions</h3>
+
+<p>Almost all of the algebra in this book is one activity: taking an expression that is
+correct but unhelpful and turning it into a different expression that is equally correct
+and more useful. Nothing is being discovered when you do this. The two forms mean the
+same thing and always did; you are choosing which of several equivalent faces of the
+same object to look at, the way you might rotate a physical thing in your hand to find
+the side with the label on it.</p>
+
+<p>That framing matters because it tells you what "getting stuck" actually is. When a
+derivation loses you, it is very rarely because a new fact appeared. It is because the
+author rotated the object and you did not see the rotation, so the next line looks like
+it came from nowhere. Fluency in algebra is largely the ability to watch an expression
+change shape and register that <i>nothing happened</i>.</p>
+
+<h4>The distributive law, forwards and backwards</h4>
+
+$$a(b + c) = ab + ac$$
+
+<p>Forwards this is expanding; backwards it is factoring. Both directions matter, and
+the backwards one is the one that atrophies:</p>
+
+$$3x + 3y = 3(x + y), \qquad x^2 + x = x(x + 1), \qquad e^x y + e^x z = e^x(y + z)$$
+
+<p>That last one is the pattern you will actually use: pulling a common factor out of a
+messy expression is how most derivations get shortened.</p>
+
+<p>It is worth pausing on why one direction is easy and the other is not. Expanding is
+mechanical: the instructions are visible in the expression itself, you follow them, and
+there is only one place to go. Factoring is a search. Nothing in $e^x y + e^x z$ announces
+that you should pull out the $e^x$; you have to <i>notice</i> the repetition first, and
+noticing is a different skill from executing. This is why factoring decays so fast when
+you stop practising and why it comes back so fast when you start: the mechanics were never
+the hard part, and the mechanics are not what you lost.</p>
+
+<p>What makes it worth recovering is that essentially every simplification you will
+watch happen in this book is a factoring step in disguise. A derivation that runs for
+half a page and then collapses into one line has almost always collapsed because
+something common was pulled out of a sum. When the sigmoid's derivative turns into
+$\sigma(1-\sigma)$ in §18, and when cross-entropy's gradient collapses to $a - 1$ in
+Part VII, both are this move. If you can see the common factor, those results look
+inevitable. If you cannot, they look like magic performed by someone cleverer than you,
+which is a discouraging and completely false impression.</p>
+
+<h4>Combining like terms</h4>
+
+<p>Only terms with identical variable parts combine. $3x^2 + 5x^2 = 8x^2$, but
+$3x^2 + 5x$ does not simplify at all; different powers are different species.</p>
+
+<p>The reason is worth having in words rather than as a rule, because the rule is easy to
+misapply under pressure. The expression $3x^2 + 5x^2$ combines because it is literally
+three of something plus five of the same something: three $x^2$'s and five more $x^2$'s,
+which is eight of them, in the same way that three apples and five apples are eight
+apples. But $3x^2 + 5x$ is three of one thing and five of a <i>different</i> thing. Three
+apples and five oranges are not eight of anything; the only honest description is "three
+apples and five oranges", which is exactly what $3x^2 + 5x$ already says. An expression
+that will not simplify is not a failure on your part. It is a finished answer.</p>
+
+<div class="box pitfall">
+  <span class="label">Pitfall: the errors that come back when you are rusty</span>
+  <p>Every one of these is <b>wrong</b>. Read them slowly; each is a genuine trap.</p>
+  <ul class="tight">
+    <li>$(a + b)^2 \neq a^2 + b^2$. &nbsp; It is $a^2 + 2ab + b^2$. The cross term is real.</li>
+    <li>$\sqrt{a + b} \neq \sqrt{a} + \sqrt{b}$. &nbsp; Check: $\sqrt{9+16} = 5$, but $3 + 4 = 7$.</li>
+    <li>$\frac{1}{a + b} \neq \frac{1}{a} + \frac{1}{b}$. &nbsp; Check with $a = b = 1$: $\frac12$ versus $2$.</li>
+    <li>$\log(a + b) \neq \log a + \log b$. &nbsp; The log rule is about <i>products</i>, not sums. See §10.</li>
+    <li>$e^{a+b} \neq e^a + e^b$. &nbsp; It is $e^a \cdot e^b$.</li>
+  </ul>
+  <p>The unifying pattern: <b>most operations do not distribute over addition.</b>
+  Squaring, square roots, reciprocals, logs, and exponentials all fail this. When in
+  doubt, test with actual numbers; it takes ten seconds and settles it permanently.</p>
+</div>
+
+<h3><span class="num">§4</span> Powers, roots, and fractions</h3>
+
+<h4>The exponent rules</h4>
+
+<p>Six rules, and every one of them follows from what an exponent means. $x^3$ is three
+copies of $x$ multiplied, so:</p>
+
+<table class="compact">
+  <thead><tr><th>Rule</th><th>Why</th></tr></thead>
+  <tbody>
+    <tr><td>$x^a \cdot x^b = x^{a+b}$</td><td>3 copies then 2 more copies is 5 copies</td></tr>
+    <tr><td>$\dfrac{x^a}{x^b} = x^{a-b}$</td><td>dividing cancels copies</td></tr>
+    <tr><td>$(x^a)^b = x^{ab}$</td><td>$b$ groups of $a$ copies each</td></tr>
+    <tr><td>$x^0 = 1$</td><td>forced by the rule above: $x^a / x^a = x^0$ and also $=1$</td></tr>
+    <tr><td>$x^{-a} = \dfrac{1}{x^a}$</td><td>same reason: it makes the division rule keep working</td></tr>
+    <tr><td>$x^{1/2} = \sqrt{x}$</td><td>because $x^{1/2} \cdot x^{1/2} = x^1$</td></tr>
+  </tbody>
+</table>
+
+<p>The last three are worth dwelling on, and they are worth more than the one line above,
+because they are your first sight of a habit that mathematics uses everywhere and rarely
+explains.</p>
+
+<p>Start from the only meaning an exponent has when you first meet it: $x^3$ is $x$
+multiplied by itself three times. Under that definition, the first three rules are not
+really rules at all, they are observations. Three copies then two more copies is five
+copies, so $x^3 x^2 = x^5$. Cancelling copies is division. Groups of groups multiply. Fine, but now ask what $x^0$ means. Zero copies of $x$ multiplied together is not a sentence
+that means anything. The definition has run out.</p>
+
+<p>So the question changes. Instead of asking <i>what does $x^0$ mean</i>, mathematics
+asks: <b>if this symbol is going to mean something, what would it have to mean for
+everything we already established to keep working?</b> The division rule says
+$x^a / x^a = x^{a-a} = x^0$. But anything divided by itself is 1. So if $x^0$ is to have
+a value at all, the value must be 1, not by decree, not by convention, but because every
+other choice breaks a rule that was true before the question arose.</p>
+
+<p>Run the same argument again and negative exponents fall out: $x^0 / x^a$ is $1/x^a$ by
+arithmetic and $x^{-a}$ by the rule, so $x^{-a}$ must be $1/x^a$. Once more and you get
+fractional ones: $x^{1/2} \cdot x^{1/2} = x^1 = x$, and the thing which gives $x$ when
+multiplied by itself is $\sqrt{x}$. Three new species of exponent, none of them
+postulated, all of them forced.</p>
+
+<p>This is how mathematics extends itself almost every time, and recognising the pattern
+will save you real confusion later. When you meet a definition that seems arbitrary
+($0! = 1$, a matrix raised to a power, the entropy of a continuous distribution), the
+right question is almost never "why would anyone define it that way". It is "what would
+break if they had defined it otherwise", and the answer is usually that the whole
+surrounding structure would.</p>
+
+<h4>Fractions</h4>
+
+$$\frac{a}{b} \cdot \frac{c}{d} = \frac{ac}{bd}, \qquad \frac{a}{b} \div \frac{c}{d} = \frac{a}{b} \cdot \frac{d}{c}, \qquad \frac{a}{c} + \frac{b}{c} = \frac{a+b}{c}$$
+
+<p>The one that trips people: to add fractions with <i>different</i> denominators you
+must find a common one first. $\frac{1}{2} + \frac{1}{3} = \frac{3}{6} + \frac{2}{6} =
+\frac{5}{6}$.</p>
+
+<div class="box pitfall">
+  <span class="label">Pitfall: cancelling across a sum</span>
+  <p>$\dfrac{a + b}{a}$ does <b>not</b> equal $b$. You may only cancel factors, never
+  terms of a sum. Correctly: $\dfrac{a+b}{a} = 1 + \dfrac{b}{a}$.</p>
+  <p>Test it: $\frac{2+6}{2} = 4$, and $1 + \frac62 = 4$. ✓. Whereas the wrong version
+  would have given 6.</p>
+</div>
+
+<h3><span class="num">§5</span> Solving for a variable</h3>
+
+<p>One principle, applied repeatedly: <b>whatever you do to one side, do to the
+other.</b> An equation is a claim that two things are equal; any operation applied to
+both keeps them equal.</p>
+
+<p>The image that makes this stick is a balance scale. An equation says the two pans are
+level. You may add a kilogram, provided you add it to both pans; you may halve what is
+there, provided you halve both. Any of those leaves the scale level, which is to say
+leaves the equation true. What you may never do is act on one side alone, and if you have
+ever produced a confidently wrong answer in three lines of algebra, that is almost
+certainly what happened.</p>
+
+<p>The strategy is to peel operations off the variable you want, in reverse order:
+outermost first, exactly like undoing a stack.</p>
+
+<p>That reversal deserves a moment, because it is the part people execute backwards. Think
+about how the expression was <i>built</i>. To construct $3(x+2)^2 - 5$ from $x$, you would
+add 2, then square, then multiply by 3, then subtract 5, in that order, innermost first.
+Taking it apart runs the film backwards: undo the subtraction, undo the multiplication,
+undo the square, undo the addition. Last thing done is first thing undone.</p>
+
+<p>It is exactly getting dressed and undressed. Socks then shoes; shoes then socks. Nobody
+has to be taught the second order, because attempting it wrongly is physically impossible. Algebra's only real disadvantage here is that doing it in the wrong order is
+<i>not</i> impossible, merely wrong. So when you look at an expression and cannot see where
+to start, do not hunt for the variable. Ask which operation was performed last, and undo
+that one. There is always exactly one answer, and it is always at the outside.</p>
+
+<div class="worked">
+  <span class="label">Worked: solve $3(x + 2)^2 - 5 = 43$ for $x$</span>
+  <p>The operations wrapping $x$, from the outside in: subtract 5, multiply by 3, square,
+  add 2. Undo them in that order.</p>
+  <p>$3(x+2)^2 = 48$ &nbsp;&nbsp; <span class="muted">(add 5 to both sides)</span></p>
+  <p>$(x+2)^2 = 16$ &nbsp;&nbsp; <span class="muted">(divide both sides by 3)</span></p>
+  <p>$x + 2 = \pm 4$ &nbsp;&nbsp; <span class="muted">(square root; note the $\pm$)</span></p>
+  <p>$x = 2$ or $x = -6$ &nbsp;&nbsp; <span class="muted">(subtract 2)</span></p>
+  <p>Check $x = 2$: $3(4)^2 - 5 = 48 - 5 = 43$. ✓</p>
+</div>
+
+<div class="box pitfall">
+  <span class="label">Pitfall: losing the negative root</span>
+  <p>Taking a square root of both sides introduces <b>two</b> solutions, because both
+  $4^2$ and $(-4)^2$ equal 16. Forgetting the $\pm$ silently discards half your answers.
+  This is the single most common error in solving, and it survives well into graduate
+  work.</p>
+</div>
+
+<h4>Rearranging without solving</h4>
+
+<p>Often you do not want a number; you want the formula rewritten to isolate a
+different symbol. This is the skill that matters for reading derivations.</p>
+
+<div class="worked">
+  <span class="label">Worked: solve $y = \dfrac{1}{1 + e^{-x}}$ for $x$</span>
+  <p>This is the sigmoid from §18, and inverting it produces something you will meet as
+  the <b>logit</b>. Peel from the outside in.</p>
+  <p>$y(1 + e^{-x}) = 1$ &nbsp;&nbsp; <span class="muted">(multiply both sides by the denominator)</span></p>
+  <p>$1 + e^{-x} = \dfrac{1}{y}$ &nbsp;&nbsp; <span class="muted">(divide by $y$)</span></p>
+  <p>$e^{-x} = \dfrac{1}{y} - 1 = \dfrac{1-y}{y}$ &nbsp;&nbsp; <span class="muted">(subtract 1, combine)</span></p>
+  <p>$-x = \ln\!\left(\dfrac{1-y}{y}\right)$ &nbsp;&nbsp; <span class="muted">(take $\ln$ of both sides: §10)</span></p>
+  <p>$x = \ln\!\left(\dfrac{y}{1-y}\right)$ &nbsp;&nbsp; <span class="muted">(negate; flipping a log's fraction negates it)</span></p>
+  <p>That final expression is the <b>log-odds</b>, and it is what a classifier's raw
+  output actually represents. You have just derived it.</p>
+</div>
+
+<div class="box try">
+  <span class="label">Try it</span>
+  <p>Solve each for $x$:</p>
+  <p>(a) $2x + 7 = 3x - 4$ &nbsp;&nbsp; (b) $\dfrac{x}{x+1} = \dfrac{2}{3}$ &nbsp;&nbsp;
+  (c) $ax + b = c$, for general $a \neq 0$</p>
+</div>
+
+<p><b>Answers.</b> (a) Collect: $7 + 4 = 3x - 2x$, so $x = 11$. Check: $2(11)+7 = 29$
+and $3(11)-4 = 29$. ✓</p>
+<p>(b) Cross-multiply: $3x = 2(x+1) = 2x + 2$, so $x = 2$. Check:
+$\frac{2}{3}$. ✓</p>
+<p>(c) $ax = c - b$, so $x = \dfrac{c-b}{a}$. The condition $a \neq 0$ matters:
+dividing by zero is undefined, and stating such conditions is a habit worth
+keeping.</p>

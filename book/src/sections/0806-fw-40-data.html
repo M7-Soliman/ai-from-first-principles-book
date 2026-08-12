@@ -1,0 +1,153 @@
+<h2><span class="part-kicker">Part D</span>Data, batching, devices</h2>
+
+<h3><span class="num">§11</span> <code>Dataset</code> and <code>DataLoader</code></h3>
+
+<div class="sixty">
+  <span class="label">In 60 seconds</span>
+  <p>A <b>Dataset</b> answers two questions: how many examples are there, and give me
+  number $i$. A <b>DataLoader</b> wraps one and produces shuffled batches. That is the whole
+  abstraction, and it is deliberately small: the split exists so that the batching logic can
+  be written once for every dataset that will ever exist.</p>
+</div>
+
+<p>Part III §14 established why we train on minibatches: the gradient is an average, an
+average can be estimated by sampling, and the estimate costs a fixed amount regardless of
+dataset size. This section is the plumbing that supplies those samples.</p>
+
+<pre><code><span class="k">from</span> torch.utils.data <span class="k">import</span> Dataset, DataLoader, TensorDataset
+
+<span class="c"># the two-method interface, in full</span>
+<span class="k">class</span> MyDataset(Dataset):
+    <span class="k">def</span> __len__(self):          <span class="k">return</span> len(self.items)
+    <span class="k">def</span> __getitem__(self, i):   <span class="k">return</span> self.x[i], self.y[i]
+
+<span class="c"># when your data is already tensors, use the built-in</span>
+ds = TensorDataset(X, y)
+dl = DataLoader(ds, batch_size=<span class="n">64</span>, shuffle=<span class="k">True</span>)
+
+<span class="k">for</span> xb, yb <span class="k">in</span> dl:               <span class="c"># xb is (64, ...), yb is (64,)</span>
+    ...
+</code></pre>
+
+<p>The division of labour is the point. A <code>Dataset</code> knows how to produce
+<i>one</i> example (read a file, decode an image, tokenise a sentence) and knows nothing
+about batching, shuffling or parallelism. The <code>DataLoader</code> knows all of those and
+nothing about your data. Write the first, get the second free.</p>
+
+<div class="box why">
+  <span class="label">Why <code>shuffle=True</code> is not cosmetic</span>
+  <p>Part II §17 defined the empirical distribution (a Dirac spike on each training point,
+  each with weight $1/m$) and observed that <b>sampling from it means picking a training
+  example uniformly at random</b>. <code>shuffle=True</code> is that sentence implemented.</p>
+  <p>Turn it off and the "random" sample of Part III §14 is not random: you get the data in
+  whatever order it was stored. If that order is meaningful (sorted by class, by date, by
+  source, which is extremely common), then each batch is drawn from a different distribution,
+  the gradient estimate is no longer unbiased, and the model spends each epoch overfitting
+  whichever region it is currently passing through.</p>
+  <p>The symptom is a loss curve that oscillates on a period matching the epoch length. If
+  you see that, check the shuffle flag before anything else.</p>
+</div>
+
+<h4>The arguments that matter</h4>
+
+<table class="compact">
+  <thead><tr><th>Argument</th><th>What it does</th></tr></thead>
+  <tbody>
+    <tr><td><code>batch_size</code></td><td>Part III §14's $b$: the noise/cost trade</td></tr>
+    <tr><td><code>shuffle</code></td><td><b>True for training, False for evaluation.</b> Evaluation is a sum; order is irrelevant and shuffling only costs time</td></tr>
+    <tr><td><code>num_workers</code></td><td>subprocesses decoding data in parallel. Set above 0 if the GPU is waiting on the CPU</td></tr>
+    <tr><td><code>drop_last</code></td><td>discard the final short batch. Matters when a layer needs a fixed batch size, or when a tiny last batch makes a noisy gradient</td></tr>
+    <tr><td><code>pin_memory</code></td><td>stage batches in memory the GPU can read faster. Free speed when training on a GPU</td></tr>
+  </tbody>
+</table>
+
+<figure>
+  <img src="figures/fw/03-throughput.svg" alt="Examples processed per second against batch size, measured on one CPU thread">
+  <figcaption><b>Figure 3.</b> Why batching exists at all, measured on a single CPU thread
+  so nothing is hidden by parallelism. Every configuration does <i>identical arithmetic per
+  example</i>: the same layers, the same loss, the same update. On the machine that measured
+  this figure, going from batch 1 to batch 256 raised throughput from about 6,700 to about
+  484,000 examples per second, a factor of <b>72</b>, purely from doing the work as matrix
+  multiplications rather than one example at a time. <b>The exact multiple is hardware- and
+  load-dependent and will not reproduce on yours</b> (P.5 has you measure your own); the
+  shape (flat at small batch, then a steep climb, then levelling off) is what to expect
+  everywhere. This is Part I §5's "matrix-matrix is matrix-vector done in parallel",
+  priced.</figcaption>
+</figure>
+
+<p>That figure is the practical argument behind a claim made twice already. Part I said
+batching exists because matrix-matrix multiplication is matrix-vector multiplication done to
+several vectors at once; Part III said the accuracy bought by a large batch is mostly
+wasted. Together they imply a batch should be <b>as large as the noise budget and memory
+allow</b>, and Figure 3 is why the lower bound is not 1.</p>
+
+<h3><span class="num">§12</span> Devices</h3>
+
+<p>A tensor lives somewhere, and operations require their operands to live in the same
+place. There is no automatic transfer, and the refusal is deliberate: moving data between
+main memory and an accelerator is slow enough that doing it silently, inside a loop, would
+destroy performance in a way nobody could see.</p>
+
+<pre><code>device = torch.device(<span class="s">"cuda"</span> <span class="k">if</span> torch.cuda.is_available() <span class="k">else</span> <span class="s">"cpu"</span>)
+
+model = model.to(device)          <span class="c"># moves every parameter and buffer</span>
+
+<span class="k">for</span> xb, yb <span class="k">in</span> dl:
+    xb, yb = xb.to(device), yb.to(device)   <span class="c"># and the data, every batch</span>
+    ...
+</code></pre>
+
+<div class="box pitfall">
+  <span class="label">Pitfall: the model moves once, the data moves every batch</span>
+  <p>The asymmetry catches everyone. <code>model.to(device)</code> is called once because
+  parameters persist; <code>xb.to(device)</code> is called every iteration because each batch
+  is a new tensor freshly produced by the loader.</p>
+  <p>Move the model and forget the data and you get <code>RuntimeError: Expected all
+  tensors to be on the same device</code>. It is one of the clearer messages the library
+  produces, and §16 lists it with the rest.</p>
+  <p>Note also that <code>model.to(device)</code> modifies the model in place and returns
+  it, while <code>tensor.to(device)</code> returns a <b>new tensor</b> and leaves the
+  original alone. So <code>xb.to(device)</code> on its own line does nothing at all: you
+  must assign the result. This inconsistency is a genuine wart, and it is the single most
+  common device bug.</p>
+</div>
+
+<p>Two habits make device handling painless. Define <code>device</code> once at the top of
+the script and refer to it everywhere, rather than writing <code>"cuda"</code> in a dozen
+places, so the script then runs unchanged on a laptop. And create tensors on the right device
+in the first place, <code>torch.zeros(n, device=device)</code>, rather than creating them on
+the CPU and moving them.</p>
+
+<div class="box why">
+  <span class="label">Why the GPU is where all of this is going</span>
+  <p>Part I §1 said the reason matrices dominate is hardware: a GPU is in essence a
+  machine built to multiply matrices very fast in parallel, and that expressing a computation
+  in that form is what makes it affordable.</p>
+  <p>Devices are where that claim becomes an API. Every design decision in this part points
+  the same way: batching exists so the work is matrix-shaped, dtypes are 32- or 16-bit so
+  more of it fits, transfers are explicit so you cannot accidentally spend your time moving
+  bytes instead of multiplying them. <b>The framework is an interface to that hardware</b>,
+  and the parts of it that feel arbitrary are usually the parts where the hardware is
+  showing through.</p>
+</div>
+
+<div class="box try">
+  <span class="label">Try it</span>
+  <p>This evaluation loop is correct on a CPU and fails on a GPU. Find both bugs.</p>
+  <p><code>model.to(device)</code><br>
+     <code>for xb, yb in val_dl:</code><br>
+     <code>&nbsp;&nbsp;&nbsp;&nbsp;xb.to(device)</code><br>
+     <code>&nbsp;&nbsp;&nbsp;&nbsp;total += (model(xb).argmax(1) == yb).sum()</code></p>
+</div>
+
+<p><b>Answer.</b> <b>First:</b> <code>xb.to(device)</code> returns a new tensor and discards
+it. The line has no effect, <code>xb</code> is still on the CPU, and
+<code>model(xb)</code> raises a device mismatch. It must be
+<code>xb = xb.to(device)</code>.</p>
+<p><b>Second:</b> even once that is fixed, <code>yb</code> was never moved, so the comparison
+<code>== yb</code> compares a GPU tensor against a CPU one and raises the same error one
+line later.</p>
+<p>A third thing is not an error but is wrong anyway: there is no
+<code>with torch.no_grad()</code>, so this loop builds a full graph for every batch and
+retains it inside <code>total</code>, exactly the leak of §7's Try it. Correct, slow, and
+eventually out of memory.</p>

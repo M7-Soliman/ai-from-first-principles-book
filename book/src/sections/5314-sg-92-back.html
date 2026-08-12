@@ -1,0 +1,219 @@
+<h2><span class="part-kicker">Build</span>The project</h2>
+
+<p class="lede">Ten to fourteen hours. You write the transform from the definition upward, then use it
+to audit a model you already have, and find, in an architecture this book taught you in Part X,
+a defect that has a textbook remedy nobody applied.</p>
+
+<h3><span class="num">P.1</span> What you are building</h3>
+
+<p><b><code>spectra</code></b>: the discrete transform, a radix-2 FFT, filters with their responses,
+a windowed short-time transform, a calibrated spectral estimator, and a shift-consistency audit that
+runs against any model you can call.</p>
+
+<p>The rule: <b>numpy only, and every spectral routine checked against a signal whose answer you
+know</b>. A transform that is silently off by a factor of <span class="m">$n$</span> produces
+plausible plots forever.</p>
+
+<h3><span class="num">P.2</span> Stage 1: the transform</h3>
+
+<ol>
+  <li>Build the DFT matrix and apply it. Verify on a tone landing exactly on a bin: one non-zero
+  magnitude, everything else at rounding.</li>
+  <li>Check Parseval. Then break the normalisation on purpose and confirm the check catches it.</li>
+  <li>Implement radix-2 Cooley–Tukey and verify it against the matrix.</li>
+  <li>Time both against length and fit exponents. Fit over the whole range and over the largest
+  sizes only, and report both.</li>
+</ol>
+
+<p><b>Deliverable:</b> the two fits and the crossover. Step four is where you find out that a
+complexity claim and a wall clock are different measurements, and which one your reader will
+reproduce.</p>
+
+<h3><span class="num">P.3</span> Stage 2: aliasing</h3>
+
+<ol>
+  <li>Sample a sinusoid above Nyquist, transform, and read the peak. Confirm it lands where
+  §3 says.</li>
+  <li>Sample two different tones that alias onto each other and show the sample vectors are equal.
+  That is what "unrecoverable" means, stated as an equality.</li>
+  <li>Build a low-pass filter and confirm its response is what you intended.</li>
+  <li>Filter, then sample, and confirm the peak is where it should be.</li>
+</ol>
+
+<p><b>Deliverable:</b> the two spectra and the equality from step two. Most treatments assert
+aliasing; step two demonstrates it.</p>
+
+<h3><span class="num">P.4</span> Stage 3: the audit</h3>
+
+<ol>
+  <li>Write the shift-consistency test: pool a model's output, shift the input by one pixel,
+  measure the relative change.</li>
+  <li>Run it on a random convolutional stack with one, two, three and four strided stages.</li>
+  <li>Insert a blur before each stride and re-run.</li>
+  <li>Run it on a trained classifier you already have, over shifts one through eight.</li>
+</ol>
+
+<p><b>Deliverable:</b> Figure 1 reproduced, plus the number for your own model. Then say whether
+that number is larger or smaller than the accuracy differences you have been reporting.</p>
+
+<h3><span class="num">P.5</span> Stage 4: filters and phase</h3>
+
+<ol>
+  <li>Build low-pass, high-pass and band-pass kernels; verify each by its frequency response rather
+  than by its name.</li>
+  <li>Check the centred difference [−1, 0, 1] and find its two zeros.</li>
+  <li>Swap magnitude and phase between two images and measure the correlations.</li>
+  <li>Reconstruct an image from magnitude alone with random phase.</li>
+</ol>
+
+<p><b>Deliverable:</b> the response plots and the correlation table. Step two is a label the
+response contradicts; step four is why a magnitude-only loss is a bad idea.</p>
+
+<h3><span class="num">P.6</span> Stage 5: windows and the spectrogram</h3>
+
+<ol>
+  <li>Transform a tone that falls between bins, with and without a window, and measure the
+  leakage.</li>
+  <li>Implement the short-time transform.</li>
+  <li>Build a signal with a steady tone and a transient. Sweep the window length and measure both
+  resolutions.</li>
+  <li>Report the product across window lengths.</li>
+</ol>
+
+<p><b>Deliverable:</b> the resolution table. If the product is not constant, your two measurements
+are not measuring what you think.</p>
+
+<h3><span class="num">P.7</span> Stage 6: spectra, calibrated</h3>
+
+<ol>
+  <li>Write down your predictions first, in a file, before running anything.</li>
+  <li>Implement the radially averaged power spectrum.</li>
+  <li><b>Calibrate it</b> on synthetic images built to have a chosen exponent. Do not proceed until
+  it recovers what you set.</li>
+  <li>Measure the exponent on real images from at least three sources, at native resolution, and
+  report the spread across tiles.</li>
+  <li>Downsample fourfold with and without filtering and compare spectra.</li>
+  <li>Score your predictions.</li>
+</ol>
+
+<p><b>Deliverable:</b> the calibration, the measured exponent with its spread, and the scored
+predictions. Step three is the difference between a number about the world and a number about your
+code, and step four is where you find out that "natural images" is a claim about a sample.</p>
+
+<h3><span class="num">P.8</span> Stage 7: spectral bias</h3>
+
+<ol>
+  <li>Fit a small network to a sum of sinusoids and track each component's recovered amplitude.</li>
+  <li>Reverse the amplitudes so the highest frequency is loudest, and re-run.</li>
+  <li>Replace the input with a bank of Fourier features and re-run again.</li>
+  <li>Raise the bank's bandwidth until the network fits noise on the first epoch.</li>
+</ol>
+
+<p><b>Deliverable:</b> the three convergence plots and the bandwidth at which step four happens.
+That last number is the cutoff you took away from the optimiser and are now responsible for.</p>
+
+<h3><span class="num">P.9</span> Stretch</h3>
+
+<ul>
+  <li><b>Anti-alias a real classifier</b> throughout, retrain, and measure accuracy alongside
+  consistency.</li>
+  <li><b>A long-convolution sequence layer</b> computed through the FFT.</li>
+  <li><b>Rotary embeddings</b>, then three context-extension methods compared beyond the training
+  length.</li>
+  <li><b>A learned audio front end</b> against a mel spectrogram, at matched compute.</li>
+  <li><b>The graph Laplacian's eigenbasis</b>, with Part XXVI's over-smoothing expressed in it.</li>
+  <li><b>An audit</b> of every resampling step in a pipeline you run.</li>
+</ul>
+
+<h3><span class="num">P.10</span> Done when</h3>
+
+<ul class="checklist">
+  <li>Your transform puts a bin-aligned tone in exactly one bin.</li>
+  <li>Parseval holds, and you have seen your own check catch a broken normalisation.</li>
+  <li>Your FFT agrees with the definition and you have both timing fits.</li>
+  <li>You have two tones whose sample vectors are equal, and can say why that ends the argument.</li>
+  <li>You have Figure 1's curve, and the same number for a model you actually use.</li>
+  <li>You know which of your kernels are band-pass despite being called something else.</li>
+  <li>You have measured what phase carries and what magnitude does not.</li>
+  <li>Your time–frequency product is constant across window lengths.</li>
+  <li>Your spectral estimator recovers an exponent you set before you quote one you did not.</li>
+  <li>You have a natural-image exponent with a spread beside it, from more than one source.</li>
+  <li>You wrote predictions down before Stage 6 and scored them afterwards.</li>
+  <li>You know the Fourier-feature bandwidth at which your network starts fitting noise.</li>
+  <li>Your README names one resampling step in your pipeline that does not filter first.</li>
+</ul>
+
+<div class="box why">
+  <span class="label">Why this project</span>
+  <p>Stage 3 is the one that pays for the rest. Every reader of this book has trained a network with
+  strided downsampling, and almost none has measured what it does to shift-consistency. The
+  measurement takes twenty minutes once the transform exists, the number is usually larger than the
+  effects being reported around it, and the remedy is sixty years old.</p>
+  <p>Stage 6 step three is the second. Fitting a power law is easy and quoting one is easy; knowing
+  that your estimator recovers an exponent you set is what separates a measurement from a plausible
+  number, and it is why the failure recorded against Figure 6 is honest rather than embarrassing.</p>
+</div>
+
+<h2 class="nobreak"><span class="part-kicker">Assess</span>Checkpoint</h2>
+
+<ul class="checklist">
+  <li>State the sampling theorem and say what "loses nothing" means precisely.</li>
+  <li>Explain why the threshold is twice the highest frequency and not some other multiple.</li>
+  <li>Say what happens to a component above Nyquist, and why no later processing recovers it.</li>
+  <li>Explain why every stride in a network is a resampling.</li>
+  <li>Say why a ReLU makes the situation worse.</li>
+  <li>Give Figure 1's number at four stages and compare it with Part X §9's.</li>
+  <li>Describe anti-aliased downsampling and say why it does not reduce the error to zero.</li>
+  <li>Say what property of sinusoids makes them the natural basis for translation.</li>
+  <li>Write the DFT as a matrix and give its cost.</li>
+  <li>State the assumption the DFT makes about your record, and what it causes.</li>
+  <li>State Parseval's identity and say what it licenses.</li>
+  <li>Explain the divide-and-conquer step in the FFT and why it works for this matrix.</li>
+  <li>Say what Figure 2 measured for the exponent of each implementation, and why they differ from
+  theory in opposite directions.</li>
+  <li>Give the bin-to-frequency conversion and say what sets the spacing.</li>
+  <li>State the convolution theorem and give the eigenvector reading of it.</li>
+  <li>Explain why a 3×3 kernel cannot be sharply frequency-selective, and why a deep stack can.</li>
+  <li>Give the crossover kernel size in Figure 3 and say why deep learning is almost always on the
+  left of it.</li>
+  <li>Say which carries an image's structure, magnitude or phase, with the measured numbers.</li>
+  <li>Explain why a magnitude-only spectral loss accepts wrong output.</li>
+  <li>Name the four filter types and give a kernel for each.</li>
+  <li>Say why the centred difference is not a high-pass filter.</li>
+  <li>Distinguish FIR from IIR and say which a recurrent layer is.</li>
+  <li>Explain spectral leakage and what a window does about it.</li>
+  <li>State the time–frequency uncertainty relation and give Figure 5's measured product.</li>
+  <li>Name the three parameters of a spectrogram.</li>
+  <li>Say what the mel scale assumes and when that assumption is wrong.</li>
+  <li>Explain in what sense frequency is an eigenbasis rather than a fact about waves.</li>
+  <li>Write the graph Laplacian and say why its eigenvalues order eigenvectors by frequency.</li>
+  <li>Express Part XXVI's over-smoothing in that basis.</li>
+  <li>Give Figure 6's measured exponent for natural images and for white noise.</li>
+  <li>Say why the estimator was calibrated before the exponent was quoted, and what that decides.</li>
+  <li>Explain what careless downsampling does to a spectrum, with the measured factor.</li>
+  <li>Define spectral bias and give Figure 7's numbers.</li>
+  <li>Say whether frequency or amplitude sets the order, and how that was tested.</li>
+  <li>Give both explanations of spectral bias and say why they are the same one.</li>
+  <li>Explain why early stopping is a low-pass filter.</li>
+  <li>Say why label noise is fitted last.</li>
+  <li>Show that a positional encoding is a frequency bank and that a shift acts linearly on it.</li>
+  <li>Explain what rotary embeddings change and why relative position becomes exact.</li>
+  <li>Give three context-extension methods and say why frequency-dependent scaling wins.</li>
+  <li>Say what Fourier features do to spectral bias, and what they do not do.</li>
+  <li>Explain why a trained first layer looks like a filterbank.</li>
+  <li>Give four situations where the frequency view misleads.</li>
+  <li>Name the four checks that catch a spectral bug.</li>
+</ul>
+
+<div class="box fw">
+  <span class="label">The framework, and the basis</span>
+  <p>Dataset, model family, loss, optimiser. Part XXV said the family is a prior about the shape of
+  the function; Part XXVI said that prior can be a symmetry group. This part says what the choice
+  looks like from underneath: <b>a symmetry picks a basis, and the basis decides what is easy</b>.</p>
+  <p>Translation picks sinusoids, which is why convolution is multiplication and why a filter has a
+  one-line description. Permutation on a graph picks the Laplacian's eigenvectors, which is the same
+  construction with a different notion of neighbour. And the choice reaches further than the
+  architecture: gradient descent's order of learning is a statement in that basis (low frequencies
+  first, measured at 50 steps against never) so the basis decides not only what the model can
+  express cheaply, but what it will find first.</p>
+</div>

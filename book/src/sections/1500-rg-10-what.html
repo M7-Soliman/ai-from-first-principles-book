@@ -1,0 +1,144 @@
+<h2><span class="part-kicker">Part A</span>What regularization is</h2>
+
+<h3><span class="num">§1</span> The definition, and why it is broader than a penalty</h3>
+
+<div class="sixty">
+  <span class="label">In 60 seconds</span>
+  <p>Regularization is <b>any modification made to a learning algorithm intended to reduce
+  its generalisation error but not its training error.</b> That definition is deliberately
+  wide: it covers penalties, but also early stopping, data augmentation, dropout,
+  ensembling and architecture. What unites them is not a formula: it is that each expresses
+  a <b>preference</b> among functions that fit the data equally well.</p>
+</div>
+
+<p>You already know why something like this is needed. Part VI §4 split the risk into
+training error plus a generalisation gap, and Part VI §6 showed the two conflict: capacity that
+drives the first down widens the second. Regularization is the machinery for managing that
+trade, and Part V §4 gave the licence, since total error is variance plus squared bias and
+you may pay one to reduce the other.</p>
+
+<p>What is worth being careful about is how <i>wide</i> the category is. Regularization is
+usually introduced as "add a penalty term", and a reader who stops there will fail to
+recognise most of it.</p>
+
+<div class="box def">
+  <span class="label">Definition: regularization</span>
+  <p>Any modification to a learning algorithm intended to reduce generalisation error, but
+  not training error.</p>
+  <p>Note the second clause. A change that reduces both is not regularization; it is
+  simply a better model. Regularization is specifically the trade: <b>you accept worse
+  performance on the data you have, in exchange for better performance on data you do
+  not.</b></p>
+</div>
+
+<p>That clause is the test to apply. Adding a feature that genuinely carries signal
+improves both errors and is not regularization. Adding a penalty, deleting units at random,
+or stopping before convergence all make the training fit <i>worse</i>, and are worth doing
+anyway.</p>
+
+<div class="box intuition">
+  <span class="label">Intuition: a preference among equally good fits</span>
+  <p>The cleanest way to hold the whole category at once.</p>
+  <p>Part VI §22 established that many functions fit any finite dataset, and that the data
+  alone cannot choose between them. Something must. Regularization is that something: a
+  statement of which of the fitting functions you would rather have, imposed before you see
+  which ones fit.</p>
+  <p>Every technique in this part is such a statement, and they differ only in what they
+  prefer. $L^2$ prefers small weights. $L^1$ prefers few non-zero weights. Augmentation
+  prefers functions invariant to transformations you consider irrelevant. Early stopping
+  prefers functions reachable quickly from where you started. Dropout prefers functions
+  that do not depend on any single unit.</p>
+  <p><b>Reading a regulariser as a preference tells you when it will help</b>: exactly when
+  the preference happens to be true of the problem. This is Part VI §7's no-free-lunch
+  theorem arriving in a very practical costume: there is no universally good regulariser,
+  only ones whose assumptions match your data.</p>
+</div>
+
+<h3><span class="num">§2</span> The five views, reconciled</h3>
+
+<p>Regularization has appeared in every part of this book so far, each time from a
+different direction and each time apparently about something else. Before adding anything
+new, it is worth putting the five side by side, because they describe one object.</p>
+
+<table>
+  <thead><tr><th>Part</th><th>Says regularization is</th><th>And therefore</th></tr></thead>
+  <tbody>
+    <tr><td><b>I §15</b><br><span class="small muted">geometric</span></td>
+        <td>a constraint region (a ball whose shape decides what the optimum looks like)</td>
+        <td>the $L^1$ ball has corners on the axes, so its optima are sparse</td></tr>
+    <tr><td><b>II §17</b><br><span class="small muted">probabilistic</span></td>
+        <td>a prior over the weights</td>
+        <td>Gaussian prior gives $L^2$; Laplace gives $L^1$</td></tr>
+    <tr><td><b>III §7</b><br><span class="small muted">numerical</span></td>
+        <td>adding $\alpha$ to every eigenvalue</td>
+        <td>it lifts the smallest one off the floor and cuts the condition number</td></tr>
+    <tr><td><b>V §18</b><br><span class="small muted">statistical</span></td>
+        <td>deliberately accepting bias</td>
+        <td>total error falls when the variance saved exceeds the bias bought</td></tr>
+    <tr><td><b>VI §8</b><br><span class="small muted">capacity</span></td>
+        <td>a continuous capacity dial</td>
+        <td>you keep the large model class and express a preference within it</td></tr>
+  </tbody>
+</table>
+
+<p>These are not five analogies. They are five true descriptions of the same operation, and
+which one you reach for should depend on what you are trying to work out.</p>
+
+<div class="box why">
+  <span class="label">Why the multiplicity is useful rather than confusing</span>
+  <p>Each view answers a question the others answer badly.</p>
+  <p><b>Why does $L^1$ give exact zeros and $L^2$ not?</b> The geometric view answers this
+  in one picture and the others struggle; §7's figure is the argument.</p>
+  <p><b>How strong should the penalty be?</b> The probabilistic view turns this into a
+  question about how confident you are, which is at least a question about the world:
+  $\lambda = 1/2\tau^2$, so a strong belief that weights are small is a large $\lambda$.
+  (§4 writes the penalty as $(\alpha/2)\|\mathbf{w}\|_2^2$, so $\alpha = 2\lambda = 1/\tau^2$,
+  a different symbol for the same strength, scaling by the factor of 2 in the prior's
+  exponent.)</p>
+  <p><b>Why does it stabilise a fit that was wildly unstable?</b> Only the numerical view
+  explains that, and Part III §7 showed the mechanism has nothing to do with overfitting;
+  it is the condition number.</p>
+  <p><b>Will it actually help here?</b> Only the statistical view answers this, and its
+  answer is a genuine trade that can go either way. Part V §5's drill made the point
+  sharply: with four data points, the useless constant estimator beat the sample mean by a
+  factor of 25.</p>
+  <p>When a regularization question is hard, the productive move is usually to <b>change
+  which of the five you are thinking in.</b></p>
+</div>
+
+<h3><span class="num">§3</span> Where the preference comes from</h3>
+
+<p>If a regulariser is a preference, the obvious question is where the preference is
+supposed to come from, and there are only three honest sources.</p>
+
+<dl>
+  <dt>From knowledge of the domain</dt>
+  <dd>You know a rotated digit is still that digit, so you prefer functions invariant to
+  rotation, and you get there by augmenting the data. This is the best case, and it is the
+  only one where the regulariser is <i>true</i> rather than merely useful.</dd>
+
+  <dt>From a generic preference for simplicity</dt>
+  <dd>You do not know much, but you would rather have small weights than large ones,
+  because large weights mean the output swings wildly for small input changes. This is
+  where $L^2$ comes from, and it is a weak assumption that is usually mildly right.</dd>
+
+  <dt>From the optimiser, whether you asked or not</dt>
+  <dd>Early stopping, a finite learning rate, and the initialisation you happened to use
+  all restrict which functions you can reach. These are regularisers you did not choose and
+  frequently do not notice: §14 shows early stopping is a penalty in disguise, and Part VI
+  §6's "effective capacity" is exactly this effect.</dd>
+</dl>
+
+<div class="box pitfall">
+  <span class="label">Pitfall: a wrong preference is worse than none</span>
+  <p>Because a regulariser is an assumption, it can be false. Penalising the weights of a
+  model whose true solution genuinely has large weights makes the fit worse in both errors,
+  which is the one outcome the definition in §1 rules out as a good idea.</p>
+  <p>The symptom is underfitting: training error rises and test error rises with it, and no
+  amount of extra data helps because data is not the constraint. Part VI §6's learning
+  curves diagnose it, and the fix is to weaken or remove the regulariser rather than to
+  tune it harder.</p>
+  <p>This is why $\lambda$ is chosen on a validation set rather than reasoned about. You
+  are not measuring how much regularization is good in general; you are measuring whether
+  <i>this</i> preference is true of <i>this</i> problem, and by how much.</p>
+</div>

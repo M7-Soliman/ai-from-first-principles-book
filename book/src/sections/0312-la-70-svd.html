@@ -1,0 +1,473 @@
+<h3><span class="num">§19</span> Singular value decomposition</h3>
+
+<div class="sixty">
+  <span class="label">In 60 seconds</span>
+  <p><b>Every</b> matrix (any shape, any rank, no conditions) factors as
+  $A = U\Sigma V^\top$: rotate, stretch along axes, rotate again. That is all a linear
+  transformation can ever do. Keeping only the largest few stretch factors gives the
+  provably best low-rank approximation, which is the engine behind PCA, compression, the
+  pseudoinverse and LoRA.</p>
+</div>
+
+<div class="readnow"><span class="label">Go and read</span><p><span class="src">Eckart &amp; Young (1936)</span>. Two pages establishing that truncating the SVD gives the <b>provably best</b> low-rank approximation: not a good one, the best one. Everything this section claims about compression rests on it. Pair it with <span class="src">Golub &amp; Kahan (1965)</span>, the first numerically stable way to compute the thing, which is why a theorem from 1873 became technology in the 1960s.</p></div>
+
+<div class="box history">
+  <span class="label">History: discovered five times, by people who had not read each other</span>
+  <p>Some results are found once. The singular value decomposition was found over and
+  over, which is the strongest evidence that an idea is natural rather than
+  invented.</p>
+  <p>Eugenio Beltrami published it in <span class="year">1873</span>, in an Italian
+  journal, framed as a problem about bilinear forms. Camille Jordan arrived at it
+  independently in <span class="year">1874</span>, by a different route. Sylvester found
+  it again in <span class="year">1889</span> and evidently did not know of either. Autonne
+  extended it to complex matrices in <span class="year">1915</span>. Eckart and Young
+  proved the optimality theorem in <span class="year">1936</span>: the result that makes
+  it useful for approximation, and the one this section is really about.</p>
+  <p>It then waited for computers. A numerically stable algorithm did not exist until
+  Golub and Kahan produced one in <span class="year">1965</span>, and it is that
+  algorithm, refined, that <code>numpy.linalg.svd</code> calls today. A theorem from 1873
+  became practical technology ninety years later, and a workhorse of machine learning a
+  century after that.</p>
+</div>
+
+<p>Eigendecomposition is powerful and fragile. It requires a square matrix, it requires
+enough independent eigenvectors, and outside the symmetric case it can produce complex
+numbers and non-perpendicular axes. Real data matrices are rarely square and never
+guaranteed to cooperate.</p>
+
+<p>The singular value decomposition removes every one of those restrictions. It is the
+most generally useful factorisation in the chapter, and arguably in applied
+mathematics.</p>
+
+<div class="box def">
+  <span class="label">Definition: the SVD</span>
+  <p><b>Every</b> matrix $A \in \mathbb{R}^{m \times n}$ (any shape, any rank, no
+  conditions whatsoever) can be written
+  $$A = U \Sigma V^\top$$
+  where $U \in \mathbb{R}^{m \times m}$ is orthogonal, $V \in \mathbb{R}^{n \times n}$
+  is orthogonal, and $\Sigma \in \mathbb{R}^{m \times n}$ is diagonal with non-negative
+  entries $\sigma_1 \geq \sigma_2 \geq \cdots \geq 0$ called the <b>singular
+  values</b>.</p>
+</div>
+
+<p>The word "every" is doing enormous work there. No hypotheses, no exceptions.</p>
+
+<div class="box intuition">
+  <span class="label">Intuition: why this works when eigendecomposition does not</span>
+  <p>The two decompositions look similar enough that the difference in their power seems
+  mysterious. It comes down to a single concession.</p>
+  <p>Eigendecomposition insists that a vector come out pointing <b>the way it went in</b>:
+  $A\mathbf{v} = \lambda\mathbf{v}$, same direction, only the length changed. That demand
+  is what forces the restrictions. A matrix that maps $\mathbb{R}^3 \to \mathbb{R}^5$
+  cannot possibly satisfy it: input and output do not even live in the same space, so
+  "same direction" is not a sentence that means anything. And even for square matrices it
+  can be impossible: a rotation of the plane by 30° turns <i>every</i> direction, so it has
+  no real eigenvector at all.</p>
+  <p>The SVD gives up that demand. It asks for something weaker and achievable: a set of
+  perpendicular directions in the <b>input</b> space that land on a set of perpendicular
+  directions in the <b>output</b> space, with a stretch factor for each pairing. In
+  symbols, $A\mathbf{v}_i = \sigma_i \mathbf{u}_i$, where $\mathbf{u}_i$ is allowed to be
+  a completely different vector from $\mathbf{v}_i$.</p>
+  <p><b>Two bases instead of one.</b> That is the entire difference, and it is why the
+  SVD has no hypotheses. There is always a way to line up perpendicular directions on one
+  side with perpendicular directions on the other; there is not always a way to make them
+  the same directions.</p>
+</div>
+
+<h4>What it says geometrically</h4>
+
+<p>Read the three factors right to left, as a sequence of actions:</p>
+
+<ol>
+  <li>$V^\top$: <b>rotate.</b> Orthogonal, so it turns space without deforming it.</li>
+  <li>$\Sigma$: <b>stretch along the axes.</b> Diagonal, so it scales each coordinate
+  independently by $\sigma_i$.</li>
+  <li>$U$: <b>rotate again.</b> Orthogonal, another rigid turn.</li>
+</ol>
+
+<p>Which yields a genuinely surprising claim: <b>every linear transformation, no matter
+how complicated it looks, is a rotation, then an axis-aligned stretch, then another
+rotation.</b> There is nothing else a matrix can do.</p>
+
+<figure>
+  <img src="figures/la/07-svd-stages.svg" alt="SVD as rotate, stretch, rotate">
+  <figcaption><b>Figure 8.</b> The SVD of
+  $A = \left[\begin{smallmatrix} 1.6 & 1.1 \\ 0.2 & 1.4 \end{smallmatrix}\right]$,
+  applied one factor at a time. The dots are evenly spaced on the starting circle so you
+  can watch them bunch up where the stretching is uneven. Panel 2 turns the circle;
+  panel 3 stretches it into an ellipse aligned with the axes; panel 4 turns that ellipse
+  into its final orientation. Each panel is computed from
+  <code>numpy.linalg.svd</code>.</figcaption>
+</figure>
+
+<p>This also explains the promise made back in Figure 3: that a matrix always maps the
+unit circle to an ellipse. A circle is unchanged by the first rotation, becomes an
+axis-aligned ellipse under $\Sigma$, and is merely turned by the second rotation. The
+singular values <i>are</i> the semi-axis lengths of that ellipse: $\sigma_1$ is the
+largest stretch the matrix ever applies, and $\sigma_n$ the smallest.</p>
+
+<h4>How it relates to eigendecomposition</h4>
+
+<p>The two are close relatives. For any $A$, the matrices $A^\top A$ and $AA^\top$ are
+symmetric and positive semidefinite, so §17 applies to them cleanly. It turns out:</p>
+
+<ul>
+  <li>$V$ holds the eigenvectors of $A^\top A$: the <b>right singular vectors</b>.</li>
+  <li>$U$ holds the eigenvectors of $AA^\top$: the <b>left singular vectors</b>.</li>
+  <li>The singular values are the square roots of the shared non-zero eigenvalues:
+  $\sigma_i = \sqrt{\lambda_i}$.</li>
+</ul>
+
+<p>So the SVD is what you get by pushing eigendecomposition through a symmetrisation
+trick. That is also how you can reason about it when the geometry gets slippery, and
+it is why the SVD inherits the good behaviour of the symmetric case rather than the
+pathologies of the general one.</p>
+
+<div class="box shapes">
+  <span class="label">Watch the shapes</span>
+  <p>For $A$ that is $4 \times 3$: $U$ is $4 \times 4$, $\Sigma$ is $4 \times 3$, and
+  $V^\top$ is $3 \times 3$. Chaining: $(4\times4)(4\times3)(3\times3) \to 4 \times 3$.
+  ✓. Note $\Sigma$ is rectangular here; "diagonal" for a non-square matrix means
+  non-zero only where the row and column index coincide, with the leftover rows or
+  columns entirely zero. In practice you usually want the <b>thin</b> SVD, which drops
+  those structural zeros: <code>np.linalg.svd(A, full_matrices=False)</code>.</p>
+</div>
+
+<h4>Why it matters: low-rank approximation</h4>
+
+<p>Here is the property that makes the SVD indispensable. Expand the product as a sum of
+simple pieces:</p>
+
+$$A = \sum_{i=1}^{r} \sigma_i \, \mathbf{u}_i \mathbf{v}_i^\top$$
+
+<p>Each term is an outer product (a full matrix of rank 1, from §6), scaled by its
+singular value. Since the $\sigma_i$ are sorted in decreasing order, <b>the first terms
+carry the most of the matrix</b>. Keep the top $k$ and discard the rest:</p>
+
+<p>Before the formula, it is worth being clear about what that sum is doing, because
+"expand the product as a sum of rank-1 pieces" is a sentence that can pass by without
+depositing anything.</p>
+
+<p>Think of it as decomposing a signal into ingredients ordered by importance. The first
+term is the single best rank-1 description of the whole matrix: the one pattern that, if
+you were allowed to keep only one, explains the most. The second term is the best
+correction to what the first missed. The third corrects what the first two missed, and so
+on down. Every term is perpendicular to the ones before it, so none of them repeats work
+already done, and the singular value in front says how much that particular ingredient
+contributes.</p>
+
+<p>Because they arrive in order of importance, you can stop early and know exactly what
+you gave up. This is the same bargain as compressing an image: keep the broad shapes and
+discard the fine texture, and the result is smaller and still recognisable. The
+difference is that here the ordering is not a heuristic someone chose. It is provably the
+right one, which is what Eckart–Young says.</p>
+
+$$A_k = \sum_{i=1}^{k} \sigma_i \, \mathbf{u}_i \mathbf{v}_i^\top$$
+
+<p>The Eckart–Young theorem then says something remarkably strong: $A_k$ is the
+<b>best possible</b> rank-$k$ approximation to $A$, measured in Frobenius norm. Not a
+good heuristic: provably optimal. No cleverer rank-$k$ matrix exists.</p>
+
+<pre><code><span class="k">import</span> numpy <span class="k">as</span> np
+
+rng = np.random.default_rng(<span class="n">0</span>)
+A = rng.normal(size=(<span class="n">80</span>, <span class="n">60</span>))
+U, s, Vt = np.linalg.svd(A, full_matrices=<span class="k">False</span>)
+
+<span class="c"># rebuild using only the top k components</span>
+<span class="k">for</span> k <span class="k">in</span> [<span class="n">1</span>, <span class="n">5</span>, <span class="n">20</span>, <span class="n">60</span>]:
+    Ak = U[:, :k] @ np.diag(s[:k]) @ Vt[:k, :]
+    err = np.linalg.norm(A - Ak) / np.linalg.norm(A)
+    stored = k * (<span class="n">80</span> + <span class="n">60</span> + <span class="n">1</span>)
+    print(<span class="s">f"k={k:3d}   relative error {err:.3f}   numbers stored {stored:6d} / 4800"</span>)
+
+<span class="o">### k=  1   relative error 0.972   numbers stored    141 / 4800</span>
+<span class="o">### k=  5   relative error 0.869   numbers stored    705 / 4800</span>
+<span class="o">### k= 20   relative error 0.553   numbers stored   2820 / 4800</span>
+<span class="o">### k= 60   relative error 0.000   numbers stored   8460 / 4800</span>
+</code></pre>
+
+<p>This particular matrix is pure noise, so its singular values decay slowly and
+compression buys little, which is itself the lesson. <b>Low-rank approximation works
+precisely to the extent that your data has structure.</b> Run the same code on a
+photograph or a real dataset and the error at $k=20$ collapses, because real data is
+enormously redundant. Noise is incompressible; structure is not.</p>
+
+<div class="box fw">
+  <span class="label">In the framework: the decompositions, and why they are worth calling</span>
+  <p>Everything in Part F is one call, in every library, and the names are close to
+  identical because they all wrap the same LAPACK routines underneath:</p>
+<pre><code><span class="k">import</span> torch
+
+U, s, Vh = torch.linalg.svd(A, full_matrices=<span class="k">False</span>)  <span class="c"># the thin SVD -- s is DESCENDING</span>
+w, V     = torch.linalg.eigh(S)        <span class="c"># symmetric only -- w is ASCENDING</span>
+torch.linalg.pinv(A)                   <span class="c"># the pseudoinverse of section 20</span>
+torch.linalg.lstsq(A, b).solution      <span class="c"># least squares, done properly</span>
+torch.linalg.cond(A)                   <span class="c"># = s[0] / s[-1], no separate computation</span>
+torch.linalg.matrix_rank(A)            <span class="c"># counts singular values above a tolerance</span>
+</code></pre>
+  <p><b>Note the two orderings, and note that they disagree.</b> The SVD returns singular
+  values largest first; <code>eigh</code> returns eigenvalues smallest first. Slicing
+  <code>[:k]</code> therefore takes the most important components from one and the
+  <i>least</i> important from the other, which is exactly the silent PCA bug in §23's
+  pitfall list, and the reason that section recommends the SVD route.</p>
+
+  <h4>Truncation is slicing, which is the whole point</h4>
+<pre><code>k = <span class="n">20</span>
+A_k = U[:, :k] @ torch.diag(s[:k]) @ Vh[:k, :]   <span class="c"># best rank-20 approximation</span>
+</code></pre>
+  <p>Because Eckart–Young guarantees the top $k$ terms are optimal, and because the library
+  hands them to you already sorted, <b>the best rank-$k$ approximation to any matrix is three
+  array slices.</b> No search, no optimisation, no training loop. That is an unusually good
+  deal and it is why the SVD sits underneath so much: PCA, model compression, LoRA, the
+  pseudoinverse and the condition number are all this operation with different framing.</p>
+
+  <h4>Why you should reach for <code>lstsq</code> and not the formula</h4>
+  <p>Given $A$ and $\mathbf{b}$ it is tempting to write the normal equations from Part I's
+  drill S3: <code>torch.linalg.solve(A.T @ A, A.T @ b)</code>. It is one line, it is
+  algebraically correct, and Part III §20 measures how badly it fails: forming $A^\top A$
+  squares the condition number and therefore doubles the digits you lose.
+  <code>lstsq</code> never forms that product. Same answer in exact arithmetic, several
+  orders of magnitude better in floating point.</p>
+  <p>The general habit is worth stating once, because it recurs: <b>when a library provides a
+  named function for something you could assemble from primitives, the name usually encodes a
+  numerical decision.</b> <code>lstsq</code> over normal equations, <code>logsumexp</code>
+  over log-of-sum-of-exp, <code>cross_entropy</code> over log-of-softmax. In each case the
+  assembled version is the formula and the provided version is the algorithm, and Part III is
+  about the gap between them.</p>
+  <p>TensorFlow mirrors all of this under <code>tf.linalg</code>:
+  <code>tf.linalg.svd</code>, <code>tf.linalg.eigh</code>, <code>tf.linalg.lstsq</code>,
+  with one caveat worth knowing: its <code>svd</code> returns $V$ rather than $V^\top$, so a
+  formula ported directly between the two libraries will be silently transposed.</p>
+</div>
+
+<div class="box why">
+  <span class="label">Why deep learning cares</span>
+  <p>The SVD is the machinery behind an unusual number of things you will meet:
+  <b>PCA</b> is the SVD of centred data, as §23 derives from scratch. The
+  <b>pseudoinverse</b> in §20 is defined through it. <b>Model compression</b> replaces
+  a big weight matrix with a low-rank factorisation to shrink a network. <b>LoRA</b>
+  fine-tunes enormous language models by constraining the update to be low-rank,
+  training a few million parameters instead of a few billion. And the ratio
+  $\sigma_1 / \sigma_n$ is exactly the condition number from §13; the SVD is where
+  that quantity comes from.</p>
+</div>
+
+<h3><span class="num">§20</span> The Moore–Penrose pseudoinverse</h3>
+
+<p>Section 12 left us with a genuine problem. When $A$ is not square (the normal case
+in machine learning) there is no inverse, so $\mathbf{x} = A^{-1}\mathbf{b}$ is not
+available. We still want the best available answer.</p>
+
+<div class="box def">
+  <span class="label">Definition: pseudoinverse</span>
+  <p>The <b>Moore–Penrose pseudoinverse</b> of $A$, written $A^+$, is defined via the
+  SVD:
+  $$A^+ = V \Sigma^+ U^\top$$
+  where $\Sigma^+$ is formed by taking the reciprocal of each non-zero entry of
+  $\Sigma$ and then transposing.</p>
+</div>
+
+<p>Notice the construction is exactly "undo the SVD": reverse the rotations by
+transposing them, and invert the stretches by reciprocating them. Where a stretch was
+zero (a direction the matrix annihilated) there is nothing to undo, so we leave a
+zero and accept the loss. That single choice is what makes the pseudoinverse
+well-defined for every matrix.</p>
+
+<p>When $A$ has full column rank, $A^+$ also has the closed forms
+$(A^\top A)^{-1}A^\top$ (overdetermined, $m > n$) or $A^\top(AA^\top)^{-1}$
+(underdetermined, $m < n$), which is where the normal equations of drill S3 come
+from. They agree with the SVD definition above whenever both are defined; the SVD
+route is the one that still works when $A$ does not have full rank, so it is the
+definition this section leads with.</p>
+
+<p>What $\mathbf{x} = A^+\mathbf{b}$ gives you depends on which case from §12 you are
+in, and it does the sensible thing in each:</p>
+
+<table>
+  <thead><tr><th>Case</th><th>What $A^+\mathbf{b}$ returns</th></tr></thead>
+  <tbody>
+    <tr><td><b>Overdetermined</b><br><span class="small muted">no exact solution</span></td>
+        <td>The $\mathbf{x}$ minimising $\|A\mathbf{x} - \mathbf{b}\|_2$: the <b>least
+        squares</b> solution, the closest miss available.</td></tr>
+    <tr><td><b>Underdetermined</b><br><span class="small muted">infinitely many solutions</span></td>
+        <td>Among all exact solutions, the one with smallest $\|\mathbf{x}\|_2$: the
+        <b>minimum norm</b> solution.</td></tr>
+    <tr><td><b>Square, invertible</b></td>
+        <td>Exactly $A^{-1}\mathbf{b}$. The pseudoinverse is a strict generalisation of
+        the inverse.</td></tr>
+  </tbody>
+</table>
+
+<figure>
+  <img src="figures/la/09-projection.svg" alt="Least squares as projection onto the column space">
+  <figcaption><b>Figure 9.</b> Least squares, geometrically. The shaded plane is
+  everything $A$ can reach (its column space from §12). The target $\mathbf{b}$ sits off
+  that plane, so no exact solution exists. The best we can do is its shadow: the point
+  $A\hat{\mathbf{x}}$ directly beneath it. The residual is perpendicular to the plane,
+  and perpendicular is exactly the condition that makes it as short as possible. Any
+  other point in the plane would be further away.</figcaption>
+</figure>
+
+<div class="box intuition">
+  <span class="label">Intuition: "closest" means perpendicular</span>
+  <p>Why must the best approximation have a perpendicular residual? Suppose it did not.
+  Then the error would have some component lying <i>within</i> the plane, and you could
+  slide your answer along the plane to cancel that component, getting closer. Only when
+  nothing remains to cancel, meaning the residual is entirely perpendicular, is
+  improvement impossible. That argument is the whole of least squares, and it is why
+  fitting a model is a projection.</p>
+</div>
+
+<div class="box why">
+  <span class="label">Why deep learning cares</span>
+  <p>Linear regression <i>is</i> the pseudoinverse. Given a data matrix $X$ and targets
+  $\mathbf{y}$, the fitted weights are $\mathbf{w} = X^+\mathbf{y}$; this is not an
+  analogy, it is the same computation. Part VI §12 develops exactly this and builds
+  outward. The underdetermined row of the table is quietly important too: modern
+  overparameterized networks have infinitely many perfect fits available, and the
+  minimum-norm preference is a first model of why the one gradient descent finds tends
+  to generalise rather than merely memorise.</p>
+</div>
+
+<pre><code><span class="k">import</span> numpy <span class="k">as</span> np
+
+<span class="c"># fit a line through noisy points: 10 equations, 2 unknowns -> overdetermined</span>
+rng = np.random.default_rng(<span class="n">1</span>)
+x = np.linspace(<span class="n">0</span>, <span class="n">10</span>, <span class="n">10</span>)
+y = <span class="n">2.5</span> * x + <span class="n">1.0</span> + rng.normal(<span class="n">0</span>, <span class="n">1.5</span>, size=<span class="n">10</span>)   <span class="c"># true slope 2.5, intercept 1</span>
+
+A = np.column_stack([x, np.ones_like(x)])          <span class="c"># shape (10, 2)</span>
+w = np.linalg.pinv(A) @ y                          <span class="c"># least squares via pseudoinverse</span>
+print(<span class="s">f"slope {w[0]:.3f}, intercept {w[1]:.3f}"</span>)
+<span class="o">### slope 2.495, intercept 1.361   -- recovered despite the noise</span>
+
+<span class="c"># in production, prefer lstsq: same answer, better conditioned</span>
+w2, *_ = np.linalg.lstsq(A, y, rcond=<span class="k">None</span>)
+print(np.allclose(w, w2))     <span class="o">### True</span>
+</code></pre>
+
+<h3><span class="num">§21</span> Trace</h3>
+
+<p>A short section: the trace is simple, and its value is in the identities it
+enables.</p>
+
+$$\tr(A) = \sum_i A_{i,i}$$
+
+<p>Just the sum of the diagonal. Three facts justify its existence:</p>
+
+<p><b>It rewrites the Frobenius norm.</b> From §14:</p>
+
+$$\|A\|_F = \sqrt{\tr(A^\top A)}$$
+
+<p>which converts a double sum over every entry into a single trace, and lets norm
+manipulations happen inside the matrix algebra rather than outside it.</p>
+
+<p><b>It is invariant under cyclic permutation.</b> Provided the shapes work out:</p>
+
+$$\tr(ABC) = \tr(BCA) = \tr(CAB)$$
+
+<p>You may rotate factors around the cycle, though not reorder them arbitrarily. This
+is a workhorse identity in derivations, because it lets you move an awkward factor to
+where it is convenient. Strikingly, $\tr(AB) = \tr(BA)$ holds even when $AB$ and $BA$
+are different sizes, as long as both products are defined.</p>
+
+<p><b>It equals the sum of the eigenvalues.</b></p>
+
+$$\tr(A) = \sum_i \lambda_i$$
+
+<p>Which is a genuinely useful shortcut: you can total the eigenvalues by adding
+diagonal entries, without computing a single eigenvector. In §23 this gives us total
+variance for free.</p>
+
+<h3><span class="num">§22</span> Determinant</h3>
+
+<div class="box history">
+  <span class="label">History: determinants came first, and got demoted</span>
+  <p>Determinants predate matrices by roughly a hundred and seventy years, which explains
+  why §2's naming story runs the way it does.</p>
+  <p>In <span class="year">1683</span> the Japanese mathematician Seki Takakazu wrote
+  down determinants for systems of equations. In the same decade (and with no possible
+  contact, Japan being closed to most foreign exchange) Leibniz described them in
+  correspondence, using them to decide when a system has a solution. Two independent
+  discoveries, half a world apart, within a few years.</p>
+  <p>For the next two centuries determinants were the prestigious object. Enormous effort
+  went into their theory. Sylvester named the matrix, as §2 recounts, purely as the thing
+  determinants were born from.</p>
+  <p>Then the hierarchy inverted. Matrices turned out to be the richer structure, and
+  determinants turned out to be numerically treacherous at any real scale: they overflow,
+  they underflow, and they answer a question that rank and the singular values answer
+  more robustly. Today the determinant is a superb tool for <i>thinking</i> and a poor one
+  for <i>computing</i>, which is precisely the pitfall this section closes with.</p>
+</div>
+
+<p>The determinant, written $\det(A)$ or $|A|$, is a single number summarising a square
+matrix. The formula is awkward; the meaning is not.</p>
+
+<div class="box intuition">
+  <span class="label">Intuition: the determinant is a volume scale factor</span>
+  <p>Feed the unit square (or cube, or its $n$-dimensional analogue) through $A$ and it
+  comes out a parallelogram. <b>$|\det(A)|$ is how much the area or volume changed.</b>
+  A determinant of 3 triples volumes; a determinant of $0.5$ halves them.</p>
+  <p>The <b>sign</b> carries extra information: a negative determinant means the
+  transformation flipped orientation, turning the space over, like a mirror.</p>
+</div>
+
+<figure>
+  <img src="figures/la/08-determinant.svg" alt="Determinant as area scaling of the unit square">
+  <figcaption><b>Figure 10.</b> The grey unit square and its orange image under three
+  matrices. Left: a pure stretch, tripling area. Middle: a shear, which slants the
+  square but preserves area exactly ($\det = 1$). Right: a singular matrix, which
+  flattens the square onto a line. The image has zero area, so
+  $\det = 0$.</figcaption>
+</figure>
+
+<p>The right-hand panel is the important one, and it connects everything in Part C:</p>
+
+<div class="box def">
+  <span class="label">The determinant test</span>
+  <p>$\det(A) = 0$ $\iff$ $A$ is singular $\iff$ $A$ has a zero eigenvalue $\iff$ $A$ is
+  rank-deficient $\iff$ $A$ is not invertible $\iff$ $A$ collapses space onto a
+  lower-dimensional set.</p>
+  <p>Six statements, one condition. Every one of them says <i>information was
+  destroyed</i>.</p>
+</div>
+
+<p>For a $2 \times 2$ matrix the formula is worth memorising, and it is the only one
+you will compute by hand with any regularity:</p>
+
+$$\det\begin{bmatrix} a & b \\ c & d \end{bmatrix} = ad - bc$$
+
+<p>Two further identities that connect the determinant to the rest of the chapter:</p>
+
+$$\det(AB) = \det(A)\det(B), \qquad \det(A) = \prod_i \lambda_i$$
+
+<p>The first is exactly what the volume reading predicts: apply two transformations in
+sequence and the volume scalings multiply. The second pairs with §21 to give a tidy
+mnemonic: <b>the trace adds the eigenvalues, the determinant multiplies them.</b> And
+the product form makes the determinant test obvious, since a product is zero exactly
+when one of its factors is.</p>
+
+<div class="box pitfall">
+  <span class="label">Pitfall: determinants are numerically unreliable</span>
+  <p>Do not test invertibility in code by checking <code>det(A) == 0</code>. Floating
+  point arithmetic essentially never produces exactly zero, and determinants of large
+  matrices overflow or underflow readily; the determinant of a $1000\times1000$ matrix
+  with modest entries can easily exceed what a float can represent. Use
+  <code>np.linalg.matrix_rank</code>, or inspect the singular values from the SVD, or
+  check <code>np.linalg.cond</code>. The determinant is a superb conceptual tool and a
+  poor numerical one, and knowing the difference is part of maturing as a
+  practitioner.</p>
+</div>
+
+<div class="box try">
+  <span class="label">Try it</span>
+  <p>Compute $\det\begin{bmatrix} 4 & 2 \\ 2 & 1 \end{bmatrix}$. What does the answer
+  tell you about invertibility, and can you see it directly in the columns?</p>
+</div>
+
+<p><b>Answer.</b> $\det = 4(1) - 2(2) = 0$. So the matrix is singular and has no
+inverse. Looking at the columns, $(4,2)$ and $(2,1)$: the first is exactly twice the
+second. They are linearly dependent, the rank is 1, and the whole plane gets flattened
+onto the single line through $(2,1)$. Every one of the six equivalent statements in the
+determinant test is visible in this one small example.</p>

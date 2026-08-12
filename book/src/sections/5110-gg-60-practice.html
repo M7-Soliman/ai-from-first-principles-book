@@ -1,0 +1,131 @@
+<h2><span class="part-kicker">Part F</span>Practice</h2>
+
+<p class="mvt">Whether you have a graph problem at all, what to check before reaching for an
+architecture, and what a result on a graph owes its reader.</p>
+
+<h3><span class="num">§39</span> Do you have a graph problem</h3>
+
+<div class="box try">
+  <span class="label">Three questions, in order</span>
+  <p><b>Is the structure informative?</b> Fit a model on the node features alone, ignoring every
+  edge. If it matches the graph model, the edges are decoration and you have a tabular problem
+  (Part XXV's) with an expensive wrapper.</p>
+  <p><b>Is the graph homophilous?</b> Measure the fraction of edges joining nodes with the same
+  label. Message passing assumes neighbours are alike, and on a heterophilous graph the aggregation
+  is averaging away the signal. Below about half, standard architectures underperform a
+  feature-only baseline.</p>
+  <p><b>How far does the information have to travel?</b> If the answer is one or two hops, keep the
+  network shallow and neither §13's collapse nor §20's dilution has room to bite. If it is far,
+  expect both and read §23.</p>
+  <p>These three take an afternoon and decide more than the choice of architecture does.</p>
+</div>
+
+<h3><span class="num">§40</span> The baselines that must be reported</h3>
+
+<div class="box shapes">
+  <span class="label">Four, and the first two are usually missing</span>
+  <p><b>Features only.</b> A tabular model on the node features, no graph. This is the baseline the
+  graph has to beat and it is left out of most papers.</p>
+  <p><b>Structure only.</b> Degree, spectral coordinates, subgraph counts, no features. Tells you
+  which of the two sources carries the signal.</p>
+  <p><b>Label propagation.</b> Spread known labels along edges with no learning at all. On a
+  homophilous graph it is remarkably hard to beat, and it costs nothing.</p>
+  <p><b>A shallow message-passing network.</b> Two layers, standard. Most of the reported gains from
+  elaborate architectures are within noise of this.</p>
+</div>
+
+<h3><span class="num">§41</span> The reproducibility problem in this area</h3>
+
+<div class="readnow"><span class="label">Go and read</span><p><span class="src">Shchur et al. (2018)</span>, <i>Pitfalls of graph neural network evaluation</i>. The re-evaluation that found a well-tuned simple model matching most of what was published to beat it. Read it as a method paper about comparison, not as a result about graphs.</p></div>
+
+<div class="box why">
+  <span class="label">Why published comparisons on graphs are unusually unreliable</span>
+  <p>Several causes compound. The standard node-classification benchmarks are small, so the spread
+  between seeds is comparable to the differences between methods. Splits vary between papers and are
+  often not the published ones. Baselines are frequently untuned while the proposed method is not:
+  Part XXV §27's requirement, ignored. And §27's leakage is easy and silent.</p>
+  <p>Careful re-evaluations have repeatedly found that a well-tuned two-layer network matches most
+  of what was reported to beat it. Read a graph result by asking which of these four applies before
+  asking what the architecture does.</p>
+</div>
+
+<h3><span class="num">§42</span> What to report</h3>
+
+<div class="box shapes">
+  <span class="label">Six things</span>
+  <p><b>The split, and whether it is transductive or inductive.</b> They are different problems.</p>
+  <p><b>The feature-only baseline.</b> Without it the graph's contribution is unmeasured.</p>
+  <p><b>Homophily.</b> One number, and it predicts whether the architecture suits the graph.</p>
+  <p><b>The spread over seeds.</b> On these benchmarks it is often larger than the effect.</p>
+  <p><b>How negatives were sampled</b>, for link prediction, since the metric depends on it.</p>
+  <p><b>Which symmetry the architecture assumes</b>, and whether the problem has it.</p>
+</div>
+
+<h3><span class="num">§43</span> Where this connects</h3>
+
+<div class="box shapes">
+  <span class="label">Five places</span>
+  <p><b>Part X §9.</b> Convolution is the translation case of §32's general argument. This part is
+  what that section's reasoning looks like when generalised.</p>
+  <p><b>Part XII.</b> A transformer is a graph network on a complete graph, and §22's graph
+  transformer is that fact used deliberately.</p>
+  <p><b>Part XXIII §13.</b> A symmetry restricts the hypothesis class, and sample complexity scales
+  with the size of that class, which is why Figure 5's gap moves with data at all (rising while
+  both models are still weak, then narrowing) rather than staying fixed, and why Part XXIII §14's
+  no-free-lunch result is the reason the restriction is worth anything at all.</p>
+  <p><b>Part XXV §45.</b> The model family is a prior about the shape of the function; this part
+  says the prior is a group.</p>
+  <p><b>Part XXII §4.</b> A graph's edges frequently encode a causal structure, and message passing
+  does not distinguish an edge that means "causes" from one that means "co-occurs".</p>
+</div>
+
+<h3><span class="num">§44</span> What is unsolved</h3>
+
+<div class="box why">
+  <span class="label">Four, distinguished by kind</span>
+  <p><b>Not yet measured.</b> Whether higher-order equivariant networks are worth their cost across
+  tasks. The reported gains are real and the comparisons are usually against weaker baselines than
+  §40 requires.</p>
+  <p><b>Not currently measurable.</b> Whether a large model trained on enough data learns a symmetry
+  well enough that building it in stops paying. Figure 5 measures the gap narrowing; where it lands
+  at scales nobody has run is an extrapolation.</p>
+  <p><b>Genuinely open.</b> Long-range dependence on graphs, given that over-smoothing and
+  over-squashing pull opposite ways. Rewiring and transformers each trade something away and neither
+  is a solution.</p>
+  <p><b>Not empirical.</b> Whether a rewired graph is still the object you were asked about. That is
+  a question about the problem, not about the model.</p>
+</div>
+
+<h3><span class="num">§45</span> What to carry forward</h3>
+
+<div class="box intuition">
+  <span class="label">Five things</span>
+  <p><b>An architecture is a declaration about a symmetry group.</b> Convolution declares
+  translation, message passing declares permutation, a molecular network declares both permutation
+  and rigid motion. Getting the group wrong in either direction is a modelling error.</p>
+  <p><b>Building a symmetry in is exact; learning it is approximate.</b> Figure 1 measures 1.000
+  against 0.947 on relabelled graphs with augmentation, and Figure 5 measures a gap that rises from
+  0.004 to 0.073 as both models leave the weak-data regime, then narrows to 0.039, and does not
+  close.</p>
+  <p><b>Depth on a graph is reach, and the operator is a diffusion.</b> Figure 2's representations
+  collapse to a mean pairwise distance of zero, taking the task with them. More layers is not more
+  capacity.</p>
+  <p><b>The family has an exact expressive ceiling.</b> Figure 3's two graphs receive identical
+  representations to exactly zero at every depth, because message passing is colour refinement with
+  a learned hash. This is a proof, not a tendency.</p>
+  <p><b>Check whether you have a graph problem first.</b> A feature-only baseline, a homophily
+  number and the distance the information must travel decide more than the architecture, and all
+  three are an afternoon's work.</p>
+</div>
+
+<div class="sixty">
+  <span class="label">Sixty seconds</span>
+  <p>A graph has no node ordering and a molecule has no orientation, so a model reading either
+  should be built not to notice. That is what an architecture is: a claim about which
+  transformations leave the answer alone, and the claim buys you the samples you would otherwise
+  spend learning it. Message passing is the standard way to make the claim for permutations, and it
+  comes with two structural limits (representations collapse as you add rounds, and distant
+  information is diluted before it arrives), plus an exact ceiling on what it can distinguish at
+  all. Before any of that, check whether the edges are carrying anything: fit the features alone,
+  measure how often neighbours agree, and ask how far the signal has to go.</p>
+</div>

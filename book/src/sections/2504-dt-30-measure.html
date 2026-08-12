@@ -1,0 +1,206 @@
+<h2><span class="part-kicker">Part C</span>Measuring it</h2>
+
+<p class="lede">Part B was a list of things that go wrong. This movement is the instruments,
+because "data quality" is not a property you assess by looking, it is a set of quantities you
+either measure or do not.</p>
+
+<h3><span class="num">§14</span> Quality has to be operationalised</h3>
+
+<p>"High-quality data" is used constantly and means nothing until it is turned into something
+you can compute. The useful move is to refuse the abstraction and name the specific property
+you want.</p>
+
+<div class="box def">
+  <span class="label">Five properties, each with a measurement</span>
+  <table class="compact">
+    <thead><tr><th>Property</th><th>How you measure it</th></tr></thead>
+    <tbody>
+      <tr><td><b>Label accuracy</b></td><td>Relabel a random sample carefully; report the
+      disagreement rate with an interval (Part V §8)</td></tr>
+      <tr><td><b>Coverage</b></td><td>Counts along the axes of §3, against a target
+      distribution you wrote down first</td></tr>
+      <tr><td><b>Redundancy</b></td><td>Near-duplicate rate, §15</td></tr>
+      <tr><td><b>Contamination</b></td><td>Overlap with every evaluation set, §16</td></tr>
+      <tr><td><b>Provenance</b></td><td>Fraction of records whose source and licence are
+      recorded, §19</td></tr>
+    </tbody>
+  </table>
+  <p>Each is a number you can put on a dashboard and watch move. "Quality" is not.</p>
+</div>
+
+<div class="box why">
+  <span class="label">Why the sample-and-relabel is worth more than it costs</span>
+  <p>Take 500 random records and have someone competent label them carefully, blind to the
+  existing label. You now have an estimate of your label accuracy with a confidence interval,
+  which is the single most useful number about a dataset and one that almost nobody has.</p>
+  <p>It costs a day. It tells you the ceiling on any model you will train, it tells you whether
+  a reported improvement is inside the noise of your own labels, and (Part V §20) it is the
+  only estimate of irreducible error you are going to get.</p>
+</div>
+
+<h3><span class="num">§15</span> Finding near-duplicates at scale</h3>
+
+<div class="readnow"><span class="label">Go and read</span><p><span class="src">Broder (1997)</span>, <i>On the resemblance and containment of documents</i>. Where MinHash comes from, written for the problem of finding duplicate web pages. Short, and the identity in §15 is derived in a paragraph. Then <span class="src">Lee et al. (2022)</span>, <i>Deduplicating training data makes language models better</i>, for what happens when you actually apply it to a modern corpus: better models from fewer tokens, and substantially less memorisation.</p></div>
+
+<p>Exact duplicates are a hash set. Near-duplicates are the problem, and the naive approach is
+$O(n^2)$ pairwise comparisons, impossible past a few hundred thousand documents.</p>
+
+<div class="box def">
+  <span class="label">Shingles, Jaccard, MinHash</span>
+  <p><b>Shingle</b> each document into the set of its overlapping $k$-grams. Similarity is then
+  the <b>Jaccard index</b> of two sets:</p>
+  <p>$$J(A, B) = \frac{|A \cap B|}{|A \cup B|}$$</p>
+  <p>Computing that for every pair is still $O(n^2)$. The trick: for a random permutation
+  $\pi$ of the universe of shingles,</p>
+  <p>$$\Pr\big[\min \pi(A) = \min \pi(B)\big] = J(A, B)$$</p>
+  <p>This is because the minimum over $A \cup B$ is equally likely to be any of its elements, and it
+  lands in the intersection exactly $J$ of the time. So take $k$ permutations, record the $k$
+  minima as a <b>signature</b>, and the fraction of matching entries estimates the Jaccard
+  index.</p>
+</div>
+
+<figure>
+  <img src="figures/dt/04-minhash.svg" alt="MinHash estimate against true Jaccard similarity, and error against the number of permutations">
+  <figcaption><b>Figure 4.</b> Left: the estimate against the exact value, for three signature
+  lengths. Right: mean absolute error against the number of permutations, with $1/\sqrt{k}$
+  overlaid. With 256 permutations the mean error is <b>0.0095</b>, a document of any length
+  reduced to 256 numbers, from which similarity is recovered to about one part in a
+  hundred.</figcaption>
+</figure>
+
+<div class="box why">
+  <span class="label">Why $1/\sqrt{k}$, and why that makes this practical</span>
+  <p>Each permutation is a Bernoulli trial with success probability $J$. The signature match
+  rate is their mean, so by Part V §3 its standard error is $\sqrt{J(1-J)/k}$, the same
+  $1/\sqrt{n}$ that governs every estimate in this book.</p>
+  <p>Which is why a few hundred permutations suffice <b>whatever the corpus size</b>. The
+  accuracy depends on the signature length, not on how many documents you have.</p>
+  <p>The remaining problem is that comparing all pairs of signatures is still $O(n^2)$.
+  <b>Locality-sensitive hashing</b> solves it: split each signature into bands, hash each band,
+  and only compare documents that collide in at least one band. Similar documents collide with
+  high probability; dissimilar ones almost never do. The band structure gives you an explicit
+  knob on the precision–recall trade, and the whole thing is one pass over the corpus.</p>
+</div>
+
+<h3><span class="num">§16</span> Detecting contamination</h3>
+
+<p>Contamination is a search problem: for each evaluation item, is it in the training corpus?</p>
+
+<div class="box def">
+  <span class="label">Three levels, in ascending cost and descending certainty</span>
+  <p><b>Exact match.</b> Hash the evaluation items and scan. Catches copies, misses everything
+  reformatted.</p>
+  <p><b>$n$-gram overlap.</b> Flag a training document containing, say, a 13-gram from an
+  evaluation item. This is the standard method and its threshold is arbitrary: too short and
+  you flag common phrases, too long and paraphrase escapes.</p>
+  <p><b>Semantic.</b> Embed both and search for near neighbours. Catches paraphrase, and has no
+  natural threshold at all, so it produces a ranked list a human must adjudicate.</p>
+</div>
+
+<div class="box pitfall">
+  <span class="label">Pitfall: contamination is not binary and the report should not be either</span>
+  <p>The instinct is to report "the corpus is decontaminated". Nothing supports that claim: you
+  removed what your method found, at the threshold you chose.</p>
+  <p>Report the method, the threshold, the count removed, and (this is the informative part)
+  <b>the score on the contaminated subset against the clean one</b>. If they differ, you have
+  measured the contamination's effect rather than asserting you removed it. If they do not,
+  that is evidence the leakage was not doing much, which is also worth knowing.</p>
+</div>
+
+<h3><span class="num">§17</span> Filtering</h3>
+
+<p>§3 established that filters are sampling decisions. Here is what the standard ones actually
+select for.</p>
+
+<div class="box def">
+  <span class="label">The usual pipeline, and what each stage removes</span>
+  <ul class="tight">
+    <li><b>Language identification.</b> Removes text the classifier does not recognise,
+    which includes code-switching, minority languages and dialects it was not trained on.</li>
+    <li><b>Heuristics.</b> Length bounds, punctuation ratios, repetition detection, blocklists.
+    Cheap, transparent, and they remove more than intended at the margins.</li>
+    <li><b>A quality classifier.</b> Usually trained to distinguish a "good" reference corpus
+    from crawled text. This is the consequential one, and it inherits every judgement in the
+    choice of reference.</li>
+    <li><b>Deduplication.</b> §15.</li>
+    <li><b>Contamination removal.</b> §16.</li>
+  </ul>
+</div>
+
+<div class="box why">
+  <span class="label">Why the quality classifier deserves the most scrutiny and gets the least</span>
+  <p>A classifier trained to separate a reference corpus from the open web learns <b>"resembles
+  the reference"</b>, not "is good". If the reference is encyclopaedic and edited prose, the
+  filter removes conversational text, regional varieties, and anything written by people whose
+  writing does not resemble the reference, which is a sampling decision about people, made by
+  a model, on a threshold nobody chose deliberately.</p>
+  <p>The honest procedure is cheap and rare: <b>sample what the filter removed and read it.</b>
+  A hundred rejected documents, read by a person, will tell you more about your corpus than any
+  aggregate statistic, and it is the only way to discover that the filter is removing a
+  category you wanted.</p>
+</div>
+
+<h3><span class="num">§18</span> Diversity</h3>
+
+<p>Coverage (§3) asks whether the axes you named are represented. Diversity asks a harder
+question: is the data varied, along axes you did not name?</p>
+
+<div class="box def">
+  <span class="label">Measurements that are actually computable</span>
+  <ul class="tight">
+    <li><b>Type–token ratio</b> and its variants: vocabulary richness per unit length.</li>
+    <li><b>Embedding dispersion.</b> Embed a sample and measure the mean pairwise distance, or
+    the effective rank of Part XII §26. A corpus concentrated in one region has low effective
+    rank.</li>
+    <li><b>Cluster occupancy.</b> Cluster the embeddings and look at the size distribution. A
+    corpus that is 70% one cluster is not what its size suggests.</li>
+    <li><b>Near-duplicate rate</b> (§15), which is diversity's crudest and most reliable
+    proxy.</li>
+  </ul>
+</div>
+
+<div class="box pitfall">
+  <span class="label">Pitfall: every one of these is measured through a model</span>
+  <p>Embedding dispersion measures diversity <b>as represented by the embedding model</b>. Two
+  documents that model considers similar are similar by its lights, and its lights come from
+  its own training corpus.</p>
+  <p>So a diversity metric computed with an embedding model trained on English web text will
+  report low diversity for a corpus it represents poorly, which is the opposite of the truth
+  and points you at removing exactly the material you were short of.</p>
+  <p>This is a general hazard with model-based data metrics and it has no clean fix. Use
+  several instruments, prefer the model-free ones where they exist, and treat a surprising
+  number as a hypothesis rather than a finding.</p>
+</div>
+
+<h3><span class="num">§19</span> Writing it down</h3>
+
+<div class="readnow"><span class="label">Go and read</span><p><span class="src">Gebru et al. (2021)</span>, <i>Datasheets for datasets</i>. The template this section follows. Read it for the questions rather than the format, particularly the ones about collection and about what the dataset should <b>not</b> be used for, which are the sections most often left blank and the ones that would have prevented the most trouble.</p></div>
+
+<p>The last instrument is not a measurement. It is documentation, and it is the one that makes
+the others usable by anyone else (including you, later).</p>
+
+<div class="box def">
+  <span class="label">What a dataset document has to contain</span>
+  <ul class="tight">
+    <li><b>Motivation.</b> What was it built for? What was it not built for?</li>
+    <li><b>Composition.</b> How many records, of what, from where, over what period.</li>
+    <li><b>Collection.</b> The frame (§2), stated explicitly. How records were sampled. What
+    was excluded and by what rule.</li>
+    <li><b>Labels.</b> Who annotated, under what guideline, with what agreement (§5). Whether
+    the label is a proxy (§6) and for what.</li>
+    <li><b>Preprocessing.</b> Every filter, with its threshold and its measured effect.</li>
+    <li><b>Provenance and licence.</b> §32.</li>
+    <li><b>Known gaps.</b> The most valuable section and the one most often empty.</li>
+  </ul>
+</div>
+
+<div class="box why">
+  <span class="label">Why this is a technical artefact, not a compliance exercise</span>
+  <p>Every failure in Part B is invisible in the data and obvious in the documentation, if the
+  documentation exists. Selection bias is a sentence about the frame. Shortcut risk is a
+  sentence about collection. Contamination is a sentence about what was checked.</p>
+  <p>The test of whether a dataset document is real: <b>can someone use it to predict where your
+  model will fail?</b> If it lists counts and licences but does not tell a reader what is
+  missing, it is describing the dataset without documenting it, and the "known gaps" section is
+  where the difference shows.</p>
+</div>

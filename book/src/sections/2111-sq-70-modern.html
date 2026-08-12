@@ -1,0 +1,256 @@
+<h2><span class="part-kicker">Part G</span>What came after, and what came back</h2>
+
+<p class="mvt">§28 ended at a bottleneck, and Part XII answers it with attention. This movement is
+what happened next: attention's cost became the binding constraint, and people went back to the
+recurrence of §1 carrying the one thing it had always lacked: a way to run it in parallel. So the
+part ends where it began. The interesting question is what the round trip cost, and the answer is
+specific enough to measure.</p>
+
+<h3><span class="num">§29</span> Reading this movement in order</h3>
+
+<div class="box why">
+  <span class="label">Written last, and it depends on what follows it</span>
+  <p>Everything here postdates Part XII, and several sections assume attention (XII), the cost model
+  of serving (XIX), and the memory hierarchy (XXXII §1). If you are reading straight through, this
+  movement is better after those than before them, and nothing later depends on it.</p>
+  <p>It is in Part XI rather than in a part of its own because the object under discussion is a
+  <b>recurrence</b>, and everything §1 to §15 established about recurrences (the state as a
+  bottleneck, the gradient through repeated multiplication, the memory the state can hold) applies
+  unchanged. What changed is one algorithmic fact and one design idea, and both are cheap to state
+  once the recurrence is already understood.</p>
+</div>
+
+<h3><span class="num">§30</span> The cost, counted properly</h3>
+
+<figure>
+  <img src="figures/sq/10-cost-crossover.svg" alt="FLOPs against sequence length for attention and a linear layer, crossing at a marked length, beside per-token generation cost where attention grows and the recurrent layer is flat">
+  <figcaption><b>Figure 10.</b> Arithmetic counted rather than timed. Attention costs
+  <span class="m">$4L^2d + 6Ld^2$</span> per layer and a linear-state layer
+  <span class="m">$10Ld^2$</span>, so they cross at exactly <span class="m">$L = d$</span>: the projection terms
+  cancel, and the crossover is the model dimension itself. <b>L = 512</b> at
+  <span class="m">$d=512$</span>, <b>L = 4,096</b> at <span class="m">$d=4096$</span>. The right panel is per generated token, where attention costs
+  <span class="m">$4Ld + 6d^2$</span> and grows with the context already produced while the recurrent
+  layer is flat at <span class="m">$10d^2$</span>.</figcaption>
+</figure>
+
+<div class="box why">
+  <span class="label">The case for recurrence is an inference case</span>
+  <p>"Attention is quadratic, so it is expensive" skips a step. The quadratic term does not dominate
+  until the sequence exceeds the model dimension, so a model with
+  <span class="m">$d=4096$</span> run at a 4,096-token context is at the crossover exactly, and
+  below it attention is the cheaper of the two. In <i>training</i> arithmetic the two are much closer
+  than the complexity classes suggest, and which wins depends on a ratio nobody quotes.</p>
+  <p>Where the argument is unanswerable is generation. Attention must attend to everything already
+  produced, so the cost of the next token grows without bound and the KV cache grows with it, which
+  is Part XIX's whole subject. A fixed-size state makes both constant. That is the trade being
+  bought, and stating it as "linear versus quadratic" hides which half of the workload it applies
+  to.</p>
+</div>
+
+<h3><span class="num">§31</span> Removing the softmax</h3>
+
+<div class="readnow"><span class="label">Go and read</span><p><span class="src">Katharopoulos, Vyas, Pappas &amp; Fleuret (2020)</span>, <i>Transformers are RNNs: fast autoregressive transformers with linear attention</i>. The reassociation below, and the observation stated in the title. Read it for the derivation and Figure 11 for what the substitution costs: the paper is clear that it is a substitution, and the follow-up literature is often less so.</p></div>
+
+<div class="box def">
+  <span class="label">Why the exponential is what costs</span>
+  <p>Attention computes <span class="m">$\sum_j \frac{\exp(q_i\!\cdot\!k_j)}{\sum_l \exp(q_i\!\cdot\!k_l)} v_j$</span>.
+  The exponential of a <i>product</i> cannot be factored, so every pair
+  <span class="m">$(i,j)$</span> must be formed: that is where the
+  <span class="m">$L^2$</span> comes from.</p>
+  <p>Replace <span class="m">$\exp(q\cdot k)$</span> with <span class="m">$\phi(q)\cdot\phi(k)$</span>
+  for some positive feature map and the sum reassociates:</p>
+  <p class="m">$$\sum_j \phi(q_i)^{\!\top}\phi(k_j)\,v_j^{\!\top} = \phi(q_i)^{\!\top}\underbrace{\sum_j \phi(k_j)v_j^{\!\top}}_{\text{a matrix, not a list}}$$</p>
+  <p>The inner sum does not depend on <span class="m">$i$</span>. Accumulate it once, and the whole
+  layer is a <b>recurrence with a matrix-valued state</b>:
+  <span class="m">$S_t = S_{t-1} + \phi(k_t)v_t^{\!\top}$</span>. Linear attention and a linear RNN
+  are the same object written twice.</p>
+</div>
+
+<h3><span class="num">§32</span> What that costs</h3>
+
+<figure>
+  <img src="figures/sq/11-linear-attention.svg" alt="Peak attention weight against sequence length, softmax far above linear which tracks the uniform line, beside peak weight against dimension where softmax rises to one and linear stays flat">
+  <figcaption><b>Figure 11.</b> The largest weight a layer can place on one position, with the query
+  set to the target key, the best either mechanism can do. Softmax reaches <b>0.98</b> at
+  <span class="m">$L=16$</span>; linear attention reaches <b>0.089</b>, against a uniform
+  <span class="m">$1/L$</span> of 0.063. The gap grows from <b>11× to 647×</b> across the lengths
+  shown. The right panel raises the dimension at fixed length: softmax goes <b>0.104 → 1.000</b>,
+  linear attention <b>0.0027 → 0.0028</b>.</figcaption>
+</figure>
+
+<div class="box why">
+  <span class="label">The limitation is the missing exponential, not the resolution</span>
+  <p>The flat line in the right panel is the result worth carrying. More dimension does not help
+  linear attention point more sharply, at all, and the reason is structural: with a positive feature
+  map every score is a sum of <span class="m">$m$</span> positive terms sharing a large common
+  component. The discriminative part grows like <span class="m">$\sqrt{m}$</span> and the common part
+  like <span class="m">$m$</span>, so relative concentration <i>does not improve</i> with dimension:
+  essentially flat, matching Figure 11's dimension sweep, rather than sharpening the way a bigger
+  head would for softmax.</p>
+  <p>So this is not an approximation that a bigger head closes. Softmax's exponential is what turns a
+  difference in scores into a ratio of weights, and any mechanism that drops it to gain
+  associativity gives up the ability to select, permanently, and by more as the context grows. Every
+  serious system that uses a linear-state layer therefore keeps some attention as well, which is
+  §37.</p>
+</div>
+
+<h3><span class="num">§33</span> The parallel scan</h3>
+
+<div class="readnow"><span class="label">Go and read</span><p><span class="src">Blelloch (1990)</span>, <i>Prefix sums and their applications</i>. Not a deep-learning paper, a parallel-algorithms technical report, and that is the point: the depth-versus-work trade below is not new to sequence models, it is decades old and imported wholesale. Read §1-2 for the two-pass, work-efficient scan that gives the "Blelloch form" below its name, and notice the algorithm predates the hardware that makes it worth using by thirty years.</p></div>
+
+<div class="box def">
+  <span class="label">The algorithmic fact the 1990s did not have</span>
+  <p>A <b>linear</b> recurrence <span class="m">$h_t = a_t h_{t-1} + b_t$</span> composes
+  associatively: applying <span class="m">$(a_1,b_1)$</span> then <span class="m">$(a_2,b_2)$</span>
+  is <span class="m">$(a_1a_2,\; a_2b_1+b_2)$</span>, and that composition is associative. Anything
+  associative can be evaluated by a <b>scan</b> in logarithmic depth.</p>
+  <p>This is why the nonlinearity had to go. §16's gates buy the gradient behaviour by making the
+  recurrence nonlinear, and a nonlinear recurrence has no associative composition, so it must be
+  walked one step at a time. Linearity is the price of parallelism, and gating had to be recovered a
+  different way (§35).</p>
+</div>
+
+<figure>
+  <img src="figures/sq/12-parallel-scan.svg" alt="Sequential steps against sequence length, linear for the sequential recurrence and logarithmic for the scan, beside operation counts where the scan does more total work">
+  <figcaption><b>Figure 12.</b> Both scans were checked to agree exactly wherever both were run. Depth
+  falls from <span class="m">$L$</span> to <span class="m">$\log_2 L$</span>: <b>1,048,576 steps to
+  20</b>. The right panel is what pays for it: the scan does <b>6× to 30× more arithmetic</b>, a ratio
+  growing like <span class="m">$3\log_2 L$</span>. On this machine the wall-clock crossover is at
+  <b>L = 512</b>.</figcaption>
+</figure>
+
+<div class="box why">
+  <span class="label">Two algorithms both called "parallel scan"</span>
+  <p>The measured work ratio grows with a log factor because the implementation is the simple
+  Hillis–Steele form, which does <span class="m">$O(L\log L)$</span> work. The Blelloch form does
+  <span class="m">$O(L)$</span> (about twice the sequential work, with no log) at the cost of two
+  passes and more awkward indexing. Both are called "parallel scan" constantly and the difference is
+  exactly a factor of <span class="m">$\log L$</span> in arithmetic.</p>
+  <p>Either way the trade has the same shape as Part XXXII's hardware accounting, though the axis
+  there (§1) is bytes moved against FLOPs rather than depth against work: <b>depth is what costs on
+  parallel hardware and work is not</b>. Spending 30× the arithmetic to cut 1,000,000 sequential
+  steps to 20 is an obviously good deal on a machine with thousands of lanes and an obviously bad one
+  on a machine with one.</p>
+</div>
+
+<h3><span class="num">§34</span> State space models</h3>
+
+<div class="readnow"><span class="label">Go and read</span><p><span class="src">Gu, Goel &amp; R&eacute; (2022)</span>, <i>Efficiently modeling long sequences with structured state spaces</i> (S4). The discretised linear system as a sequence layer, the convolutional view, and the HiPPO initialisation. The part to read is why the initialisation matters, which is §12's vanishing gradient restated as a choice about where the timescales go.</p></div>
+
+<div class="box def">
+  <span class="label">The same recurrence, discretised from a continuous system</span>
+  <p>Write a linear system in continuous time, <span class="m">$h'(t) = Ah(t) + Bx(t)$</span>,
+  <span class="m">$y = Ch$</span> (Part XXXI's state space model, used here as a sequence layer).
+  Discretising with step <span class="m">$\Delta$</span> gives
+  <span class="m">$h_t = \bar{A}h_{t-1} + \bar{B}x_t$</span> with
+  <span class="m">$\bar{A} = \exp(\Delta A)$</span>.</p>
+  <p>Three things come free. It is linear, so §33's scan applies. Unrolled, it is a
+  <b>convolution</b> with kernel <span class="m">$(C\bar{B},\, C\bar{A}\bar{B},\, C\bar{A}^2\bar{B},\dots)$</span>,
+  so training can use an FFT instead. And the eigenvalues of <span class="m">$A$</span> are the
+  timescales, made explicit; §12's vanishing gradient becomes a statement about where you put them,
+  which is what the HiPPO initialisation is: a choice of <span class="m">$A$</span> whose state
+  approximates a basis of the history rather than decaying arbitrarily.</p>
+</div>
+
+<h3><span class="num">§35</span> What a fixed state cannot hold</h3>
+
+<div class="readnow"><span class="label">Go and read</span><p><span class="src">Arora et al. (2024)</span>, <i>Zoology: measuring and improving recall in efficient language models</i>. The paper that isolated the gap Figure 13 measures in miniature: subquadratic models match attention on average perplexity and lose badly and specifically on associative recall, with the loss concentrated in an identifiable slice of tokens rather than spread evenly across them. Read §4 for the synthetic recall task this section's figure is a stripped-down version of.</p></div>
+
+<figure>
+  <img src="figures/sq/13-recall.svg" alt="Recall accuracy against number of stored pairs for four state sizes, each falling from one to zero, with larger states failing later">
+  <figcaption><b>Figure 13.</b> Associative recall from a linear outer-product memory (exactly a
+  linear-attention state, with no training involved, so nothing here depends on an optimiser). Recall
+  falls below 50% at <b>128, 256, 512 and 1,024</b> stored pairs for states of 16, 32, 64 and 128:
+  <b>doubling the state exactly doubles the usable length</b>. The fall is a smooth sigmoid spanning
+  two to four doublings, not a cliff.</figcaption>
+</figure>
+
+<div class="box why">
+  <span class="label">The one thing attention has that a recurrence cannot</span>
+  <p>§8 said the state is a bottleneck. Figure 13 puts a number on it. A fixed state has a capacity,
+  the capacity is proportional to its size, and past it the information is not degraded but gone.
+  Attention has no such limit because it keeps every key: that is what the KV cache <i>is</i>, and
+  it is the same fact seen from the cost side in Figure 10.</p>
+  <p>This is why "linear-time model matches transformer on perplexity" and "linear-time model is much
+  worse at retrieving a fact from long context" are both true and not in tension. Perplexity averages
+  over predictions that mostly need recent context; exact retrieval is the measurement that isolates
+  capacity. If your workload is long-context retrieval, Figure 13 is the figure that applies to you
+  and an average loss is not.</p>
+</div>
+
+<h3><span class="num">§36</span> Selectivity</h3>
+
+<div class="readnow"><span class="label">Go and read</span><p><span class="src">Gu &amp; Dao (2024)</span>, <i>Mamba: linear-time sequence modeling with selective state spaces</i>. Selectivity, and the hardware-aware scan that makes it trainable. Figure 14 is its central motivation at a scale a figure script can reach. Note what is given up: input-dependence destroys time invariance, so the convolution §34 relied on is gone and the scan is all that is left.</p></div>
+
+<figure>
+  <img src="figures/sq/14-selective.svg" alt="Measured half-life against one over one minus lambda following a straight line, beside correlation with the target against decay for a fixed gate with a much higher selective line">
+  <figcaption><b>Figure 14.</b> Left: a fixed decay's half-life is the
+  <span class="m">$h$</span> solving <span class="m">$\lambda^h = 1/2$</span>, which the familiar
+  <span class="m">$\ln 2/(1-\lambda)$</span> approximates as
+  <span class="m">$\lambda\to1$</span>, and overstates by 5% already at
+  <span class="m">$\lambda=0.9$</span>. Right: selective copying, recovering the last
+  <i>marked</i> token's value among noise. The best fixed decay reaches a correlation of <b>0.166</b>,
+  at <span class="m">$\lambda=0.9$</span>. An input-dependent gate reaches <b>1.000</b>, and still
+  beats every fixed decay when it is wrong on <b>20%</b> of tokens.</figcaption>
+</figure>
+
+<div class="box why">
+  <span class="label">What "selective" means, and why it was the missing piece</span>
+  <p>A classical state space model has a decay fixed at training time, so it applies the same
+  forgetting to every token. It is a <i>linear time-invariant</i> system, and the price of time
+  invariance is that it cannot condition on content: it cannot decide that <i>this</i> token is worth
+  keeping and the next thousand are not.</p>
+  <p>Making <span class="m">$\Delta$</span>, <span class="m">$B$</span> and <span class="m">$C$</span>
+  functions of the input restores that, and Figure 14 measures what it is worth: on a task that is
+  entirely about ignoring the irrelevant, a perfect gate is exact and no fixed decay reaches 0.17.
+  The state is a single number in both arms: <b>the mechanism buys this, not the capacity</b>.</p>
+  <p>The cost is that the system is no longer time-invariant, so it is no longer a convolution and
+  the FFT route is gone. What remains is §33's scan, which is why the associativity is load-bearing
+  rather than an optimisation: without it, selectivity would put you back at
+  <span class="m">$O(L)$</span> sequential steps and the whole approach would be untrainable at
+  scale. The engineering that makes this fast, keeping the state in fast memory and never
+  materialising it, is Part XXXII §9's fusion applied to a scan.</p>
+</div>
+
+<h3><span class="num">§37</span> What practice settled on</h3>
+
+<div class="readnow"><span class="label">Go and read</span><p><span class="src">Beltagy, Peters &amp; Cohan (2020)</span>, <i>Longformer: the long-document transformer</i>. An early instance of the hybrid below: local windowed attention everywhere, plus a handful of tokens given unrestricted global attention by task-specific design. Read §2's dilated-window construction beside the "hybrids" idea that follows (the same two knobs, windowed exactness and sparse global reach, worked out from the attention side years before the recurrent forms reinvented them from the other direction).</p></div>
+
+<div class="box shapes">
+  <span class="label">Hybrids, and the reason they are hybrids</span>
+  <p>Figures 11 and 13 are two views of one limitation: a fixed-size state cannot select and cannot
+  store. Figure 10 is the compensating advantage: constant cost per generated token. Neither
+  dominates, so what practice arrived at is <b>mixtures</b>: mostly recurrent layers with a small
+  number of full-attention layers interleaved.</p>
+  <p>The reasoning is capacity accounting rather than taste. The attention layers supply exact recall
+  and sharp selection where those are needed; the recurrent layers supply cheap generation everywhere
+  else; and the ratio is set by how much of your workload actually needs retrieval. A few attention
+  layers in a deep stack recover most of the retrieval ability at a small fraction of the cache.</p>
+  <p>Two related families are worth naming since they are the same trade at different points.
+  <b>Sliding-window attention</b> keeps exact attention within a window and drops everything beyond
+  it (a fixed cache, like a recurrence, with exact recall inside the window instead of lossy recall
+  everywhere). <b>Gated linear attention</b> and the modern linear-RNN family put a decay back into
+  the linear-attention state so it forgets rather than saturating, which is §36's idea applied to
+  §31's mechanism. These are not competing lineages; they are the same two knobs.</p>
+</div>
+
+<h3><span class="num">§38</span> What to carry forward</h3>
+
+<div class="box intuition">
+  <span class="label">Five things</span>
+  <p><b>The recurrence came back because inference is not training.</b> Figure 10 puts the training
+  crossover at exactly <span class="m">$L=d$</span>, so the two are comparable across the range most
+  systems run, while the per-token generation gap is unbounded. State the workload before quoting a
+  complexity.</p>
+  <p><b>Linearity is the price of parallelism.</b> A linear recurrence composes associatively and
+  scans in <span class="m">$\log_2 L$</span> depth; Figure 12 measures 1,048,576 steps becoming 20,
+  paid for with 30× the arithmetic. Gating then has to be recovered some other way.</p>
+  <p><b>Dropping the softmax gives up selection permanently.</b> Figure 11 measures linear attention
+  near uniform, worsening from 11× to 647× behind softmax with length, and <b>not improving with
+  dimension at all</b>: the limitation is the missing exponential, not the resolution.</p>
+  <p><b>A fixed state has a capacity and it is reached.</b> Figure 13 measures usable length exactly
+  proportional to state size. Perplexity will not show you this; exact retrieval will.</p>
+  <p><b>Selectivity is a mechanism, not a size.</b> Figure 14 measures a perfect input-dependent gate
+  at 1.000 against 0.166 for the best fixed decay, with one number of state in both arms, and it
+  costs time invariance, which is why the scan rather than the FFT is what makes it work.</p>
+</div>

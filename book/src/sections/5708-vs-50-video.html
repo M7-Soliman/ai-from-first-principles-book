@@ -1,0 +1,118 @@
+<h2><span class="part-kicker">Part E</span>Video and tracking</h2>
+
+<p class="mvt">A sequence of frames is not a set of images: consecutive frames are almost identical,
+which is both an enormous amount of redundancy to exploit and the reason a per-frame metric can be
+near-perfect while the system is unusable.</p>
+
+<h3><span class="num">§33</span> What a video adds</h3>
+
+<div class="box shapes">
+  <span class="label">Three things, and a cost</span>
+  <p><b>Evidence.</b> A pedestrian ambiguous in one frame is unambiguous over ten. Accumulating that
+  evidence is most of what tracking is for.</p>
+  <p><b>Motion.</b> Velocity and acceleration are not in a single frame, and a planner needs
+  them.</p>
+  <p><b>Identity.</b> Knowing that this is the same object as before is what makes "it is slowing
+  down" a sentence you can say.</p>
+  <p><b>The cost</b> is that frames are correlated, so a random split leaks, Part XXV §36's finding
+  in a different shape. Splitting a video dataset by frame rather than by sequence reports a system
+  that does not exist, and it is a mistake with a long history in this field.</p>
+</div>
+
+<h3><span class="num">§34</span> Tracking as association</h3>
+
+<div class="box def">
+  <span class="label">Detect, then match</span>
+  <p>Run a detector on each frame, then decide which detection continues which track. Given a cost
+  between every track and every detection, the assignment is a bipartite matching problem solvable
+  exactly in polynomial time, the same problem the set-prediction detectors of §11 solve inside
+  their loss.</p>
+  <p>What the cost is made of is the design decision: overlap, distance between predicted and
+  observed positions, appearance similarity, or a learned combination. Everything else about the
+  tracker follows from that choice.</p>
+</div>
+
+<h3><span class="num">§35</span> Motion models</h3>
+
+<div class="box def">
+  <span class="label">Predicting where it should be</span>
+  <p>Associating on <i>observed</i> position fails as soon as objects move appreciably between
+  frames. Predicting each track forward and associating on the <i>predicted</i> position is the fix,
+  and the standard predictor is Part XXVIII §13's Kalman filter with a constant-velocity model.</p>
+  <p>Constant velocity is wrong for anything turning or braking, and it is wrong in a way that
+  degrades gracefully over a few frames and catastrophically over many, which §36 measures. It is
+  also exactly the case where the filter's covariance is doing useful work: a track that has not
+  been seen for ten frames should have a large gate, and the filter produces that number without
+  anybody tuning it.</p>
+</div>
+
+<h3><span class="num">§36</span> Through occlusion</h3>
+
+<figure>
+  <img src="figures/vs/08-tracking.svg" alt="Percentage of objects misidentified on the first frame after an occlusion, against occlusion length, for two association strategies and three object counts">
+  <figcaption><b>Figure 8.</b> Objects on crossing trajectories with acceleration noise, occluded
+  through the crossing, scored on whether identity is correct at the first frame back. Associating on
+  last-seen position fails as the gap grows: from <b>7.5%</b> to <b>100%</b> misidentified with two
+  objects, and it is already at <b>55.1%</b> with eight objects and no gap at all, because they cross.
+  A constant-velocity prediction holds at <b>0.0%</b> through most of the range and begins to fail at
+  the end: <b>7.5%</b> at sixteen frames with eight objects, as the motion model's own error
+  outgrows the spacing between them.</figcaption>
+</figure>
+
+<div class="box why">
+  <span class="label">Two readings</span>
+  <p><b>The motion model is worth an enormous amount</b> and costs almost nothing: a four-state
+  linear filter against a detector with tens of millions of parameters. It is the cheapest accuracy
+  in the stack and it is often the last thing tuned.</p>
+  <p><b>It has a horizon.</b> The failure at the right of the figure is not a bug; it is the
+  prediction's uncertainty growing until it exceeds the distance between objects. Past that point
+  the only thing that recovers identity is appearance, which is why re-identification exists and why
+  it matters most exactly where the geometry has stopped helping.</p>
+</div>
+
+<h3><span class="num">§37</span> The metrics, and what they trade</h3>
+
+<div class="readnow"><span class="label">Go and read</span><p><span class="src">Luiten et al. (2021)</span>, <i>HOTA: a higher order metric for evaluating multi-object tracking</i>. Why one tracking number is not enough, and how to decompose it into detection and association terms that separate teams can act on. A good example of a metric paper that is really an engineering paper.</p></div>
+
+<div class="box shapes">
+  <span class="label">Three families, and the reason there are three</span>
+  <p><b>Detection-weighted.</b> MOTA sums missed objects, false positives and identity switches into
+  one number, which is dominated by detection quality: a tracker can improve its identity handling
+  and barely move it.</p>
+  <p><b>Identity-weighted.</b> IDF1 measures how long identities are held correctly, and rewards a
+  tracker that keeps a consistent identity even when detections are imperfect.</p>
+  <p><b>Balanced.</b> HOTA decomposes into a detection term and an association term explicitly, so
+  the two can be reported separately, which is the useful property, because they are separate
+  engineering problems solved by separate teams.</p>
+  <p>The general point is Part XIV §33's: a single number that mixes two things you can trade
+  against each other tells you nothing about which one to work on.</p>
+</div>
+
+<h3><span class="num">§38</span> End-to-end, and what it gives up</h3>
+
+<div class="box why">
+  <span class="label">The argument, honestly stated on both sides</span>
+  <p><b>For.</b> A modular stack optimises each piece against a proxy metric, and the proxies do not
+  compose: a detector tuned for AP is not tuned for what the planner needs. Training the whole
+  system against driving performance removes every interface mismatch at once, and interfaces are
+  where systems fail.</p>
+  <p><b>Against.</b> The intermediate representations are what make a system debuggable, testable
+  against ground truth, and arguable about in a safety case. Remove them and a failure has no
+  locus: you cannot say the perception was wrong, only that the output was.</p>
+  <p>Note what is <i>not</i> in dispute: geometry. Calibration, projection and triangulation are
+  correct by construction, and a learned system must rediscover them approximately from data. The
+  interesting middle ground keeps the geometry as structure and learns everything else, which is
+  §31's third approach.</p>
+</div>
+
+<h3><span class="num">§39</span> What movement E establishes</h3>
+
+<div class="box intuition">
+  <span class="label">Three things</span>
+  <p><b>Frames are correlated, so a per-frame split leaks and a per-frame metric misleads.</b> Split
+  by sequence, and measure temporal consistency separately.</p>
+  <p><b>A four-state linear filter buys most of the association problem.</b> Figure 8 measures 100%
+  misidentification without one and 0.0% with one, over most of the range.</p>
+  <p><b>It has a horizon set by uncertainty against object spacing</b>, and past it only appearance
+  helps.</p>
+</div>

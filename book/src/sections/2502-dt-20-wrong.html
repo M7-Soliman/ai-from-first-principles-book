@@ -1,0 +1,225 @@
+<h2><span class="part-kicker">Part B</span>Getting it wrong</h2>
+
+<p class="lede">Seven failure modes. Each is common, each is silent, and each produces a number
+that looks fine. They are ordered roughly by how hard they are to notice, which is the reverse
+of how often they are discussed.</p>
+
+<h3><span class="num">§7</span> Selection bias</h3>
+
+<p>The frame gap of §2, given its proper name and its worst instances.</p>
+
+<div class="box def">
+  <span class="label">Three shapes it takes</span>
+  <p><b>Survivorship.</b> You observe only what survived. Loan defaults among people who were
+  <i>granted</i> loans; equipment failures among machines still in service; user behaviour among
+  users who did not leave.</p>
+  <p><b>Self-selection.</b> Subjects chose to be in the data. Reviews are written by people
+  moved to write; survey respondents differ from non-respondents in exactly the ways surveys
+  are used to measure.</p>
+  <p><b>Feedback.</b> The system's own past decisions determined what data exists. This is the
+  one that gets worse over time, and Part XIV returns to it.</p>
+</div>
+
+<div class="box worked">
+  <span class="label">Worked: the loan model that cannot be evaluated</span>
+  <p>You have five years of lending records: applicant features, and whether they repaid. Train
+  a model, hold out a year, measure accuracy. It looks good.</p>
+  <p>The outcome is only recorded for applicants who <b>were granted a loan</b>. Applicants who
+  were rejected have no repayment outcome, so they are not in your data at all, and they were
+  rejected by the previous policy, which used the very features you are modelling.</p>
+  <p>So your model is trained and evaluated on the region of input space where the old policy
+  said yes. Its accuracy there may be excellent. Its behaviour on the rejected region is
+  <b>completely unconstrained by data</b> and completely untested, and that region is precisely
+  where a new model would differ from the old one, which is the only reason to build it.</p>
+  <p>The fix is not statistical. It is to have granted some loans at random, which someone must
+  have decided to do years earlier.</p>
+</div>
+
+<h3><span class="num">§8</span> Shortcuts</h3>
+
+<div class="readnow"><span class="label">Go and read</span><p><span class="src">Geirhos et al. (2020)</span>, <i>Shortcut learning in deep neural networks</i>. The survey that gave the phenomenon its name and its taxonomy. Read it for the framing: a shortcut is not a bug in the model, it is a <b>correct solution to the problem you posed</b>, and the problem you posed is your dataset, not your intention.</p></div>
+
+<p>A model minimises the loss. It has no preference for the feature you had in mind, and if
+something easier predicts the label, it will use that instead.</p>
+
+<div class="box def">
+  <span class="label">Shortcut learning</span>
+  <p>A feature that predicts the label <b>in your dataset</b> and does not correspond to the
+  thing you meant. The model is not malfunctioning: the shortcut genuinely has lower loss on the
+  data you supplied.</p>
+  <p>Standard instances: images of one class photographed on a different background; scans from
+  the machine at the hospital that treats the sicker patients; a hospital identifier burned into
+  a corner of the image; a document class that happens to be longer.</p>
+</div>
+
+<div class="box why">
+  <span class="label">Why held-out data cannot detect this</span>
+  <p>The shortcut is in your test set too, because the test set came from the same frame. Every
+  metric you have will report that the model works.</p>
+  <p>It fails in deployment, when the correlation that was an artefact of collection does not
+  hold. And by then the score has been reported and believed.</p>
+  <p>Three things do detect it, all requiring deliberate work. <b>Test on data from a different
+  source</b>: a different hospital, a different year, a different photographer. <b>Ablate the
+  suspected shortcut</b>: mask the corner, crop the background, truncate to a fixed length, and
+  see how much accuracy survives. And <b>look at what the model is using</b>, with the caveats
+  Part XII §36 attached to that.</p>
+  <p>The general principle is Part V's: a number is only evidence about the conditions under
+  which it was measured, and a test set drawn from the training frame measures the frame.</p>
+</div>
+
+<h3><span class="num">§9</span> Label noise, and how much a model absorbs</h3>
+
+<p>§4 distinguished random from systematic noise. Here is what random noise actually costs, and
+it is much less than intuition suggests.</p>
+
+<figure>
+  <img src="figures/dt/02-label-noise.svg" alt="Test and training accuracy against the fraction of flipped training labels">
+  <figcaption><b>Figure 2.</b> Training labels flipped at random with probability $p$; test
+  accuracy measured against <b>clean</b> labels, averaged over five seeds. At 20% noise the
+  model reaches <b>0.948</b>; at 40% it still reaches <b>0.838</b>, while its training accuracy
+  has fallen to 0.582. Only past 45%, where the label is nearly independent of the truth,
+  does it break down. Right: the gap between the two, which is the useful diagnostic.</figcaption>
+</figure>
+
+<div class="box why">
+  <span class="label">Why random noise is survivable and what it destroys instead</span>
+  <p>Symmetric noise shifts the label distribution without moving the <b>decision boundary</b>:
+  if 40% of labels are flipped, the majority label on each side of the boundary is still the
+  correct one. A model with limited capacity fits the majority, which is the signal.</p>
+  <p>What noise destroys is your ability to <b>measure</b>. Notice the right panel: at 30% noise
+  the model scores 0.918 on clean labels and 0.672 on its own training labels. If your test set
+  carries the same noise, your reported accuracy is capped at roughly $1-p$ however good the
+  model is, so you cannot tell a 0.92 model from a 0.99 one.</p>
+  <p>Two consequences worth acting on. <b>Clean the test set even if you cannot clean the
+  training set</b>: relabelling a thousand test items carefully is cheap and buys you back the
+  ability to measure. And be suspicious when training accuracy is far below test accuracy: that
+  gap is a noise signature, not a bug.</p>
+  <p>None of this applies to systematic noise. A consistent bias moves the boundary, the model
+  learns it as signal, and no amount of capacity or data corrects it.</p>
+</div>
+
+<h3><span class="num">§10</span> Imbalance</h3>
+
+<p>One class is 99% of the data. Accuracy 99% is achieved by a constant. This is the most
+discussed problem in the part and, usually, the least real.</p>
+
+<div class="box pitfall">
+  <span class="label">Pitfall: resampling is the wrong fix for the usual problem</span>
+  <p>The standard advice is to oversample the minority or undersample the majority. Before doing
+  either, ask what is actually wrong.</p>
+  <p><b>If the metric is wrong</b> (you are reporting accuracy on a 99/1 split), the fix is the
+  metric. Precision, recall, and the precision–recall curve, which Part XIV treats properly.
+  Resampling to make accuracy meaningful is fixing the thermometer.</p>
+  <p><b>If the threshold is wrong</b> (the model ranks well but predicts the majority
+  everywhere), the fix is the threshold. A well-calibrated model with a moved threshold is at
+  least as good as a resampled model at its default, and it stays movable: the threshold can be
+  set per deployment, after training, without retraining.</p>
+  <p><b>If the cost is asymmetric</b> (a missed fraud costs more than a false alarm), the fix is
+  a weighted loss, which states the asymmetry explicitly rather than smuggling it in by
+  duplicating rows.</p>
+  <p><b>If the minority is genuinely under-observed</b> (you have forty examples of it), then
+  resampling does not help either. You have a data problem and duplicating forty rows does not
+  create information.</p>
+  <p>Oversampling also breaks calibration and, if done before splitting, causes §11's leakage in
+  its most embarrassing form: the same row in train and test.</p>
+</div>
+
+<h3><span class="num">§11</span> Leakage</h3>
+
+<div class="readnow"><span class="label">Go and read</span><p><span class="src">Kapoor &amp; Narayanan (2023)</span>, <i>Leakage and the reproducibility crisis in machine-learning-based science</i>. Surveys 294 papers across seventeen fields and finds leakage in a large fraction of them, with a taxonomy this section follows. The uncomfortable part is how ordinary the errors are: mostly the preprocessing and temporal cases, in published work that was reviewed.</p></div>
+
+<p>Information about the target reaching the model that will not be available at prediction
+time. It is the most common cause of a result that is too good, and it comes in several shapes
+that are worth separating because they have different fixes.</p>
+
+<div class="box def">
+  <span class="label">The taxonomy</span>
+  <p><b>Target leakage.</b> A feature computed from the outcome. A "days since account closed"
+  field predicts churn perfectly and does not exist before churn.</p>
+  <p><b>Train–test contamination.</b> The same or near-identical records on both sides. §12 and
+  §13.</p>
+  <p><b>Temporal leakage.</b> Training on data from after the test period. Any random split of a
+  time series does this, and time series are far more common than people notice: user
+  behaviour, prices, anything with a trend.</p>
+  <p><b>Preprocessing leakage.</b> Fitting a scaler, an imputer, a vocabulary or a feature
+  selector on the <b>whole</b> dataset before splitting. The test set's statistics have then
+  informed the training pipeline.</p>
+  <p><b>Group leakage.</b> Records that are not independent split across train and test:
+  multiple images of the same patient, multiple sessions from the same user. Each record is
+  distinct; the underlying unit is not.</p>
+</div>
+
+<div class="box why">
+  <span class="label">Why preprocessing leakage is the one that survives review</span>
+  <p>The others are visible once you look. This one is a two-line ordering mistake that produces
+  no warning and appears in a great deal of published work.</p>
+  <p><b>Wrong:</b> <code>scaler.fit(X); X = scaler.transform(X); split(X)</code></p>
+  <p><b>Right:</b> <code>split(X); scaler.fit(X_train); transform both</code></p>
+  <p>The effect is usually small, which is worse than if it were large: it inflates by a few
+  tenths of a point, which is exactly the margin most papers are claiming. Fit every
+  transformation inside the training fold, without exception, and let a pipeline object enforce
+  it rather than your memory.</p>
+</div>
+
+<h3><span class="num">§12</span> Duplicates</h3>
+
+<p>Real corpora contain the same content many times. Web pages are mirrored, boilerplate
+repeats, articles are syndicated, code is vendored. Measured on large web corpora, a substantial
+fraction of documents have a near-duplicate elsewhere in the same corpus.</p>
+
+<div class="box def">
+  <span class="label">Three kinds, needing three tools</span>
+  <p><b>Exact.</b> Byte-identical. A hash set finds them in one pass.</p>
+  <p><b>Near.</b> Differing by a template, a date, a boilerplate header. §15's MinHash.</p>
+  <p><b>Semantic.</b> The same content expressed differently: a translation, a paraphrase, the
+  same fact restated. Embedding similarity finds some of it, and the notion is not
+  well defined enough to have a complete answer.</p>
+</div>
+
+<p>Duplicates do two distinct kinds of damage, and it is worth keeping them apart. Within the
+training set they <b>reweight</b> it: a document repeated a thousand times is a thousand
+gradient contributions, so you are training on a distribution you did not choose, and §33 shows
+what that does to memorisation. Across the split they are <b>contamination</b>, which is §13.</p>
+
+<h3><span class="num">§13</span> Contamination</h3>
+
+<div class="sixty">
+  <span class="label">In 60 seconds</span>
+  <p>Test material present in the training data. It has always existed; what changed is scale.
+  When a corpus is most of the reachable web, it contains the benchmarks, and every published
+  score on those benchmarks is measuring something other than generalisation, with no way to
+  tell from the number.</p>
+</div>
+
+<figure>
+  <img src="figures/dt/03-contamination.svg" alt="Reported and honest accuracy against the contaminated fraction of the test set">
+  <figcaption><b>Figure 3.</b> A fraction of the test set copied into training, and a
+  nearest-neighbour model. Even <b>2%</b> contamination inflates the reported score by 0.007;
+  50% inflates it by <b>0.195</b>. Note the blue curve: the score on the <i>uncontaminated</i>
+  part <b>falls</b> from 0.665 to 0.610 as contamination rises. The leaked copies displace real
+  training signal, so you are simultaneously reporting a better number and holding a worse
+  model.</figcaption>
+</figure>
+
+<div class="box why">
+  <span class="label">Why the falling blue line is the part people miss</span>
+  <p>Contamination is usually described as inflating a score. Figure 3 shows it is worse than
+  that: at a fixed training budget, every leaked test item is a training slot not spent on
+  something new.</p>
+  <p>So you get a number that is too high <i>and</i> a model that is genuinely worse than the one
+  you would have had. The two errors point in opposite directions, which is precisely why the
+  problem is invisible: the metric moves the wrong way, so nothing looks wrong.</p>
+</div>
+
+<div class="box pitfall">
+  <span class="label">Pitfall: you cannot check a corpus you cannot see</span>
+  <p>Detecting contamination requires searching the training data for the test items. For a
+  model whose corpus is not published, which is most of them, <b>this check is impossible for
+  anyone outside</b>, including you if you did not build the corpus.</p>
+  <p>Three partial substitutes, all imperfect. Test on material created <b>after</b> the training
+  cutoff, which is the strongest available evidence and gets weaker every month. Check whether
+  the model can <b>complete</b> a benchmark item from its first few tokens, which detects
+  memorisation but not paraphrase. And compare performance on a benchmark against a freshly
+  constructed equivalent: a gap between them is the measurement, and it is Part XIV's
+  instrument.</p>
+</div>

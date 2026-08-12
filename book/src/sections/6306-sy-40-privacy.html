@@ -1,0 +1,155 @@
+<h2><span class="part-kicker">Part D</span>Privacy</h2>
+
+<p class="mvt">A model trained on data about people carries information about those people, and the
+question is how much. Two of the answers are precise (a definition with a composition theorem, and
+an attack with ground truth), and the gap between what is provable and what is deployed is the
+subject.</p>
+
+<h3><span class="num">§25</span> What a model leaks</h3>
+
+<div class="box shapes">
+  <span class="label">Four things, in increasing severity</span>
+  <p><b>Aggregate properties</b> of the training set: that it was mostly one dialect, or one
+  hospital. Usually unobjectionable and sometimes commercially sensitive.</p>
+  <p><b>Membership</b>: whether a particular record was in the training set. In a medical setting
+  that alone can be the disclosure.</p>
+  <p><b>Attributes</b>: recovering a field of a record from the rest.</p>
+  <p><b>The record itself.</b> Part XIII §33's memorisation, which large models do verbatim and
+  which is retrievable by anyone who can prompt them.</p>
+</div>
+
+<h3><span class="num">§26</span> Differential privacy</h3>
+
+<div class="box def">
+  <span class="label">A definition, not a technique</span>
+  <p>A randomised algorithm is <span class="m">$(\varepsilon, \delta)$</span>-differentially private
+  if, for any two datasets differing in one record and any set of outcomes,</p>
+  <p class="m">$$\Pr[A(D) \in S] \le e^{\varepsilon}\Pr[A(D') \in S] + \delta$$</p>
+  <p>Read it as: the output distribution barely changes when one person is added or removed, so
+  nothing an adversary concludes could have depended much on that person. It is a property of the
+  <b>algorithm</b>, holds against any adversary with any side information, and does not depend on
+  what anyone happens to know, which is what makes it different in kind from anonymisation.</p>
+</div>
+
+<div class="box why">
+  <span class="label">Two things that make it usable, and one that limits it</span>
+  <p><b>Composition.</b> Running two private algorithms is private, with budgets that add. So a
+  training run of many steps has an accountable total, which is the whole basis of private
+  learning, though "add" is the loose form of accounting; §27 states the one DP-SGD actually
+  uses.</p>
+  <p><b>Post-processing.</b> Anything computed from a private output is private. You cannot leak by
+  analysing further.</p>
+  <p><b>The unit.</b> The guarantee is about one <i>record</i>. If a person contributes a thousand
+  records, their protection is a thousand times weaker, and defining the unit correctly is where
+  most deployed guarantees are weakest.</p>
+</div>
+
+<h3><span class="num">§27</span> Making training private</h3>
+
+<div class="box def">
+  <span class="label">Clip, then add noise</span>
+  <p>Bound each example's gradient to a fixed norm, so no single record can move the parameters far;
+  then add Gaussian noise calibrated to that bound. Both steps are necessary: clipping without
+  noise bounds influence but does not hide it, and noise without clipping is calibrated to nothing.</p>
+  <p>What it costs is accuracy, and what buys it back is data: more records means the noise is
+  averaged over more signal at the same budget. So <b>privacy and scale are complements</b>, which
+  is an unusually convenient fact and the reason private training is most practical exactly where
+  the data is most sensitive and most plentiful.</p>
+</div>
+
+<div class="box pitfall">
+  <span class="label">Pitfall: "budgets add" is the loose bound, not the one this run reports</span>
+  <p>Basic composition (§26) is <b>valid</b> (it really is an upper bound on the budget of a
+  multi-step algorithm), but it is the <b>loosest</b> valid one, because it treats every step as if
+  its worst case aligned with every other step's. It is also not what the clip-and-noise procedure
+  above actually accounts. Each step touches a random subsample of the data (a fraction
+  <span class="m">$q = $</span> batch size over dataset size), and subsampling itself buys privacy:
+  a step that would cost <span class="m">$\varepsilon_0$</span> against the whole dataset costs
+  roughly <span class="m">$q\varepsilon_0$</span> against a <span class="m">$q$</span>-fraction
+  sample, since most records were never touched by it.</p>
+  <p>Capturing that amplification needs a finer tool than summing worst cases: Abadi et al.'s
+  <b>moments accountant</b> (equivalently, composing in <b>Rényi differential privacy</b> and
+  converting back to <span class="m">$(\varepsilon,\delta)$</span> at the end) tracks a tighter
+  quantity than any single step's worst case, and over <span class="m">$T$</span> steps at sampling
+  rate <span class="m">$q$</span> and noise multiplier <span class="m">$\sigma$</span> it gives a
+  budget growing like</p>
+  <p class="m">$$\varepsilon = O\!\left(\frac{q\sqrt{T\ln(1/\delta)}}{\sigma}\right)$$</p>
+  <p>Which is proportional to <span class="m">$\sqrt{T}$</span>, not <span class="m">$T$</span>. Over the
+  10<sup>3</sup>–10<sup>4</sup> steps a real training run takes, basic composition overstates the
+  true budget by one to two orders of magnitude. That gap is not a rounding error: it is why
+  DP-SGD is practical at production scale rather than a method whose accountable cost only a toy
+  run could afford. Basic composition is the number to reach for on paper; the moments accountant
+  is the number a real system reports.</p>
+</div>
+
+<h3><span class="num">§28</span> The shape of the trade</h3>
+
+<figure class="illus">
+  <img src="figures/sy/05-privacy.svg" alt="Schematic of utility against privacy budget for two dataset sizes, with the unconstrained level marked">
+  <figcaption><span class="illus-tag">Illustrative</span><b>Figure 5.</b> The relationship private
+  training lives on. Tightening the budget costs utility, and the cost is steep at the budgets
+  usually described as strong. More data moves the whole curve up, because the noise is averaged
+  over more signal, so the same guarantee is cheaper on a larger dataset. This diagram carries no
+  measured quantities.</figcaption>
+</figure>
+
+<h3><span class="num">§29</span> Federated learning</h3>
+
+<div class="box shapes">
+  <span class="label">Keeping the data where it is, and what that does not solve</span>
+  <p>Train on device, send updates rather than records, aggregate centrally. The data never moves,
+  which addresses a governance problem directly.</p>
+  <p><b>What it does not do is make anything private.</b> An update is a function of the data and
+  leaks accordingly: gradients can be inverted to recover inputs in some settings. Federation is a
+  <i>data-movement</i> property; privacy requires differential privacy on top, and secure
+  aggregation so the server sees only the sum.</p>
+  <p>Its real difficulties are statistical: devices have non-identically-distributed data, most are
+  unavailable at any moment, and the ones that participate are not a random sample, which is Part
+  XIII §7's selection bias arriving in the training loop itself.</p>
+</div>
+
+<h3><span class="num">§30</span> Membership inference</h3>
+
+<figure class="illus">
+  <img src="figures/sy/06-membership.svg" alt="Schematic of membership-inference success against the train-test gap, rising from chance">
+  <figcaption><span class="illus-tag">Illustrative</span><b>Figure 6.</b> The relationship the
+  attack rests on. A model that fits its training data better than held-out data has, in that gap, a
+  signal distinguishing the two, so attack success rises with the generalisation gap and the same
+  regularisation that improves accuracy reduces the leak. It does not fall to chance for a
+  well-generalising model: some signal survives. This diagram carries no measured
+  quantities.</figcaption>
+</figure>
+
+<div class="box why">
+  <span class="label">Why this is the attack to reason about</span>
+  <p>It has <b>ground truth</b>. The defender knows who was in the training set, so the attack can
+  be scored exactly rather than estimated, which makes it the standard empirical measure of leakage
+  and the thing to run before claiming a model is safe to release.</p>
+  <p>It also connects two subjects that look separate: overfitting is a privacy problem, and the
+  gap between train and test accuracy is a leakage statistic as well as a generalisation one.</p>
+</div>
+
+<h3><span class="num">§31</span> Memorisation in large models</h3>
+
+<div class="box pitfall">
+  <span class="label">Pitfall: the leak that needs no attack</span>
+  <p>Large language models reproduce training data verbatim when prompted with a prefix of it, and
+  the effect grows with model size and with how often a sequence was duplicated. No inference is
+  required: the model simply emits the record.</p>
+  <p>Which makes <b>deduplication a privacy control</b> as well as a data-quality one (Part XIII
+  §21's finding, reread). And it makes the standard defences awkward: differential privacy at a
+  meaningful budget is expensive at this scale, so what is deployed is usually filtering, dedup and
+  output-side checks, none of which carries a guarantee.</p>
+</div>
+
+<h3><span class="num">§32</span> What movement D establishes</h3>
+
+<div class="box intuition">
+  <span class="label">Three things</span>
+  <p><b>Differential privacy is a property of the algorithm</b>, holds against any adversary, and
+  composes, which is what makes a whole training run accountable rather than one query.</p>
+  <p><b>Privacy and scale are complements.</b> More data makes the same guarantee cheaper, so the
+  trade is most favourable where the data is most plentiful.</p>
+  <p><b>Federation moves data, not risk.</b> An update leaks; privacy needs a mechanism on top of
+  the architecture.</p>
+</div>

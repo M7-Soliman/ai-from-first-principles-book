@@ -1,0 +1,371 @@
+<h2><span class="part-kicker">Part A</span>What learning is</h2>
+
+<h3><span class="num">§1</span> Task, experience, performance</h3>
+
+<div class="sixty">
+  <span class="label">In 60 seconds</span>
+  <p>A program learns if its <b>performance</b> at some <b>task</b> improves with
+  <b>experience</b>. Those three words are the whole definition, and being explicit about
+  each is the difference between a project that can succeed and one that cannot, because a
+  vaguely specified performance measure is a target nothing can hit.</p>
+</div>
+
+<p>The standard framing has three components, and it is worth being pedantic about them
+because most failed projects fail on one.</p>
+
+<dl>
+  <dt>The task, $T$</dt>
+  <dd>What you want done, stated as a mapping. Classification maps an input to one of $k$
+  categories. Regression maps an input to a real number. Others include transcription,
+  translation, denoising, anomaly detection, and density estimation.</dd>
+
+  <dt>The experience, $E$</dt>
+  <dd>What the system gets to look at. Usually a dataset of examples; the crucial
+  question is what, if anything, accompanies each example.</dd>
+
+  <dt>The performance measure, $P$</dt>
+  <dd>A number saying how well the task is being done. Accuracy, error rate, squared error,
+  log-likelihood. It must be computable on data the system did not learn from.</dd>
+</dl>
+
+<div class="box pitfall">
+  <span class="label">Pitfall: the performance measure is the hard part</span>
+  <p>Choosing $P$ looks like bookkeeping and is where most of the difficulty hides.</p>
+  <p>Accuracy is meaningless on imbalanced data: a detector for a condition affecting 0.1%
+  of cases achieves 99.9% by always saying no, which is Part II §22's base rate arriving in
+  a new costume. Squared error punishes large mistakes quadratically, which is right if a
+  double-sized error is four times as bad and wrong otherwise. And frequently the quantity
+  you actually care about (a diagnosis being useful, a translation being good) is not
+  measurable at all, so you optimise a proxy and inherit whatever gap exists between the
+  proxy and the goal.</p>
+  <p><b>The model will optimise exactly what you asked for.</b> That is the danger, not a
+  reassurance.</p>
+</div>
+
+<h3><span class="num">§2</span> Supervised, unsupervised, and the boundary between them</h3>
+
+<p>The usual taxonomy turns on what accompanies each example.</p>
+
+<table>
+  <thead><tr><th>Kind</th><th>Experience</th><th>Learns</th></tr></thead>
+  <tbody>
+    <tr><td><b>Supervised</b></td><td>inputs $\mathbf{x}$ with targets $y$</td><td>$p(y \mid \mathbf{x})$, a mapping</td></tr>
+    <tr><td><b>Unsupervised</b></td><td>inputs alone</td><td>$p(\mathbf{x})$, structure</td></tr>
+    <tr><td><b>Reinforcement</b></td><td>interaction and reward</td><td>a policy, what to do</td></tr>
+  </tbody>
+</table>
+
+<div class="box intuition">
+  <span class="label">Intuition: the boundary is softer than it looks</span>
+  <p>The chain rule of Part II §8 dissolves the distinction. A joint distribution factors as
+  $p(\mathbf{x}, y) = p(y \mid \mathbf{x})\,p(\mathbf{x})$, so unsupervised learning of the
+  joint gives you the supervised conditional for free; and conversely, supervised learning
+  of many conditionals reconstructs the joint.</p>
+  <p>This is not a technicality. <b>Self-supervised learning</b> (the technique behind
+  every large language model) works by inventing a supervised task from unlabelled data:
+  hide part of the input and predict it from the rest. There are no labels, and the training
+  is supervised. The taxonomy is a convenience, not a law.</p>
+</div>
+
+<h3><span class="num">§3</span> The learning problem, stated</h3>
+
+<p>Formally, and this is the object every later section manipulates:</p>
+
+<div class="box def">
+  <span class="label">The supervised learning problem</span>
+  <p>There is an unknown distribution $p_{\text{data}}(\mathbf{x}, y)$. You observe $m$
+  samples from it. You choose a function $f$ from some set $\mathcal{F}$, and you want to
+  minimise the <b>expected</b> loss on new draws:</p>
+  <p>$$R(f) = \mathbb{E}_{(\mathbf{x},y) \sim p_{\text{data}}}\big[L(f(\mathbf{x}), y)\big]$$</p>
+</div>
+
+<p>That quantity is called the <b>risk</b>, and you cannot compute it: it is an expectation
+over a distribution you do not have. What you can compute is its average over the data you
+do have:</p>
+
+$$\hat{R}(f) = \frac{1}{m}\sum_{i=1}^{m} L\big(f(\mathbf{x}^{(i)}), y^{(i)}\big)$$
+
+<p>the <b>empirical risk</b>. Minimising it is what every training loop does.</p>
+
+<div class="box why">
+  <span class="label">Why this matters: the entire subject in one gap</span>
+  <p>You can compute $\hat{R}$ and you care about $R$. <b>Machine learning is the study of
+  when minimising the first achieves the second.</b></p>
+  <p>Nothing guarantees it does. A model can drive $\hat{R}$ to exactly zero by memorising
+  every training example and behaving arbitrarily elsewhere: perfect empirical risk,
+  useless risk. Part V's empirical distribution said the same thing in different words:
+  $\hat{p}_{\text{data}}$ is not $p_{\text{data}}$, and the difference is where all the
+  difficulty lives.</p>
+  <p>Sections 4 through 9 are about closing that gap. Everything after them is about doing
+  it for harder function classes.</p>
+</div>
+
+<h2><span class="part-kicker">Part B</span>Generalisation</h2>
+
+<h3><span class="num">§4</span> Training error and generalisation error</h3>
+
+<div class="sixty">
+  <span class="label">In 60 seconds</span>
+  <p>Two numbers matter: error on the data you fitted, and error on data you did not. The
+  first is optimistic by construction. Their <b>gap</b> is the generalisation gap, and
+  controlling it (not minimising training error) is the actual objective.</p>
+</div>
+
+<p>The central factorisation of the whole part:</p>
+
+$$\underbrace{R(f)}_{\text{what you want}} \;=\; \underbrace{\hat{R}(f)}_{\text{training error}} \;+\; \underbrace{\big(R(f) - \hat{R}(f)\big)}_{\text{generalisation gap}}$$
+
+<p>Trivially true, and useful because it splits the problem in two. Make training error
+small (an optimisation problem, and Part III's subject). Make the gap small (a statistical
+problem, and this part's subject). <b>The two goals conflict</b>, and Section 6 explains
+why.</p>
+
+<h4>Why training error is optimistic by construction</h4>
+
+<p>That phrase gets used constantly and deserves unpacking, because the reason is sharper
+than "the model has seen the data" and it connects this part to Part V in a way that is
+easy to miss.</p>
+
+<p>Consider evaluating a <b>fixed</b> function (one written down in advance, before any data
+arrived) on your training set. By §5's independence assumption the training set is just a
+sample, so its average loss is an unbiased estimate of the risk. No optimism at all. The
+training set is not magic; a function that had no chance to react to it is measured
+honestly.</p>
+
+<p>Now consider what training actually does. It searches a whole family of functions and
+returns the one with the <b>lowest</b> loss on that specific sample. Every candidate's
+measured loss is its true risk plus noise, and taking the minimum selects for favourably
+negative noise just as much as for genuine quality. The winner won partly because it
+suited this particular sample.</p>
+
+<div class="box intuition">
+  <span class="label">Intuition: you have already seen this exact bias</span>
+  <p>This is Part V §14's result, mirrored. There, taking the <b>maximum</b> accuracy over
+  many hyperparameter configurations produced a number biased <i>upward</i>, even when every
+  configuration was identical. Here, taking the <b>minimum</b> loss over many functions
+  produces a number biased <i>downward</i>, for exactly the same reason.</p>
+  <p>Training is a selection procedure, and every selection procedure inherits the optimism
+  of the maximum. Which reframes the whole part: <b>the generalisation gap is the price of
+  having searched.</b> A larger model class means a wider search, which means more
+  opportunity to find a function that fits this sample's noise, and §6's claim that the gap
+  widens with capacity is that sentence restated.</p>
+</div>
+
+<p>The practical corollary is worth carrying, because it explains a discipline that
+otherwise looks like superstition. Held-out data is honest for the same reason the fixed
+function above was honest: <b>the model could not react to it.</b> The moment it does, the
+moment you use validation loss to pick a model or decide when to stop, that set has entered
+the search, and its optimism starts to accumulate. Slowly, because the choices are few, but
+it starts. §9's discipline and Part V §15's warning about test set reuse are the same fact
+arriving from two directions.</p>
+
+<h3><span class="num">§5</span> The assumption everything rests on</h3>
+
+<p>None of this works without an assumption, and it is worth stating it explicitly because
+it is violated constantly in practice.</p>
+
+<div class="box def">
+  <span class="label">The i.i.d. assumption</span>
+  <p>Training and test examples are drawn <b>independently</b> from the <b>same</b>
+  distribution.</p>
+</div>
+
+<p>Under it, the training error is an unbiased estimate of the risk for any <i>fixed</i>
+function, which is Part V §1, applied. That is what makes learning from a sample
+possible at all.</p>
+
+<div class="box pitfall">
+  <span class="label">Pitfall: it is nearly always false, and sometimes fatally</span>
+  <p><b>Not independent:</b> consecutive video frames, time series, sentences from one
+  document, patients from one hospital. Correlated examples mean your effective sample size
+  is far smaller than your row count, so every interval in Part V is too narrow.</p>
+  <p><b>Not identically distributed:</b> the deployment distribution differs from the
+  training one: a different season, a different demographic, a different camera. This is
+  <b>distribution shift</b>, and it is the single most common reason a model that validated
+  well fails in production.</p>
+  <p>The classic failure is temporal leakage: shuffling a time series before splitting lets
+  the model train on the future and be tested on the past. Accuracy is superb and the model
+  is worthless. If your data has an order, split on it.</p>
+</div>
+
+<h3><span class="num">§6</span> Capacity</h3>
+
+<div class="sixty">
+  <span class="label">In 60 seconds</span>
+  <p><b>Capacity</b> is the range of functions a model can represent, and it is the dial that
+  trades §4's two error terms against each other: raise it and bias falls while variance
+  rises. Parameter count is a poor proxy for it: what matters is which functions are
+  actually <b>reachable</b>, by the model and by the training procedure that searches it. Too
+  little capacity underfits, too much overfits, and Figure 1's U-curve is that trade, made
+  visible.</p>
+</div>
+
+<div class="readnow"><span class="label">Go and read</span><p><span class="src">Zhang et al. (2017)</span>, <i>Understanding deep learning requires rethinking generalization</i>. A network with enough capacity will fit <b>randomly shuffled labels</b> perfectly, which means no account of generalisation based on capacity alone can be right as stated. Read it after this section rather than before, so that you have the classical picture clearly in mind when it is taken away from you. Part V §20's double descent is the other half of the same problem.</p></div>
+
+<div class="box def">
+  <span class="label">Definition: capacity</span>
+  <p>The <b>capacity</b> of a model is the range of functions it can represent. A
+  higher-capacity model can fit more patterns, including patterns that are not there.</p>
+</div>
+
+<p>Capacity is the knob that trades the two terms of §4 against each other, and it does so
+in the manner Part V §20 derived: <b>bias falls with capacity, variance rises</b>.</p>
+
+<p>The obvious next question is how you measure it, and the obvious answer (count the
+parameters) is wrong in ways worth knowing, because the entire folklore of "big models
+overfit" rests on it.</p>
+
+<p>Two examples settle it. A single-parameter model $y = \sin(\theta x)$ can, by choosing
+$\theta$ astronomically large, fit essentially any labelling of any finite set of points on
+the real line: one parameter, unbounded capacity. Meanwhile a linear model with a million
+parameters and a severe $L^2$ penalty behaves like a model with far fewer, because the
+penalty puts most of the parameter space out of reach. <b>Capacity is about which functions
+are reachable, and parameter count is a poor proxy for that.</b></p>
+
+<div class="box intuition">
+  <span class="label">Intuition: representational capacity versus effective capacity</span>
+  <p>Two different quantities travel under one word, and separating them dissolves most of
+  the confusion.</p>
+  <p><b>Representational capacity</b> is what the model family could express if you searched
+  it perfectly: every function some setting of the parameters can produce.</p>
+  <p><b>Effective capacity</b> is what your <i>training procedure</i> actually reaches. It is
+  smaller, sometimes far smaller, because the optimiser starts somewhere particular, moves
+  in particular directions, and stops. Regularization shrinks it. Early stopping shrinks it.
+  A finite learning rate shrinks it. So does the optimiser's own preference among the many
+  solutions that fit, per Part V §20's minimum-norm remark.</p>
+  <p>The gap between the two is why the classical U-curve mispredicts deep networks. Their
+  representational capacity is enormous, and their effective capacity is governed by what
+  gradient descent from a small random start actually finds, which is a much narrower and
+  much better-behaved set. Double descent is what you see when you plot against the first
+  quantity while the second is doing the work.</p>
+</div>
+
+<p>Which is why this part measures capacity by its <i>symptom</i> rather than its
+definition. The gap between training and test error is observable, it is what you care
+about, and it does not require deciding what to count. Figure 2's learning curves are that
+measurement, and they remain the most reliable diagnostic available precisely because they
+sidestep the question.</p>
+
+<p class="mnote">The classical combinatorial measure of capacity (the <b>VC dimension</b>,
+due to Vapnik and Chervonenkis) is omitted here deliberately: Zhang et al. (2017), above,
+showed that bounds derived from VC dimension "cannot be right as stated" for real networks,
+so the symptom-based picture is the reliable one.</p>
+
+<figure>
+  <img src="figures/ml/01-capacity.svg" alt="Training error falling monotonically while test error turns upward">
+  <figcaption><b>Figure 1.</b> Polynomials of increasing degree fitted to the same 18
+  points. Training error falls monotonically; more capacity always fits the training data
+  better. Test error falls, reaches a minimum, and then climbs. <b>The gap between the two
+  curves is the generalisation gap</b>, and it widens with capacity.</figcaption>
+</figure>
+
+<p>Two regimes, with opposite remedies:</p>
+
+<dl>
+  <dt>Underfitting: capacity too low</dt>
+  <dd>Training error is high. The model cannot represent the pattern. More data does not
+  help; a richer model does.</dd>
+
+  <dt>Overfitting: capacity too high</dt>
+  <dd>Training error is low and the gap is large. The model has fitted noise. More data
+  helps; more capacity makes it worse.</dd>
+</dl>
+
+<p>The U-curve's minimum has a floor that no classifier can break, regardless of capacity.
+The <b>Bayes error</b> is the lowest achievable error rate on a given problem: the
+irreducible error that remains even when the true distribution $p(y \mid \mathbf{x})$ is
+known exactly and exploited optimally. It is positive whenever the class distributions
+overlap, because some inputs are genuinely ambiguous. No learning algorithm, however
+powerful, can do better; the goal is to approach it.</p>
+
+<figure>
+  <img src="figures/ml/02-learning-curves.svg" alt="Learning curves for a high-bias and a high-variance model">
+  <figcaption><b>Figure 2.</b> Error against training set size. Left, a model that is too
+  simple: both curves flatten at a high value and <b>more data changes nothing</b>. Right, a
+  model that is too flexible: a large gap that closes steadily as data arrives. The shape of
+  these curves is the most reliable diagnostic available, and it tells you whether to buy
+  labels or change the model.</figcaption>
+</figure>
+
+<h3><span class="num">§7</span> No free lunch</h3>
+
+<div class="sixty">
+  <span class="label">In 60 seconds</span>
+  <p>Averaged over <b>all possible</b> target functions, every learning algorithm has
+  identical expected performance, and it equals random guessing. There is no universally
+  best learner. Any algorithm that beats another on some problems must lose to it on others,
+  by exactly as much.</p>
+</div>
+
+<div class="readnow"><span class="label">Go and read</span><p><span class="src">Wolpert (1996)</span>, <i>The lack of a priori distinctions between learning algorithms</i>. The theorem stated carefully, which matters here more than usual: this is a result far more often invoked than read, and most of what is claimed in its name does not follow from it. Then <span class="src">Domingos (2012)</span>, <i>A few useful things to know about machine learning</i>: twelve pages of practical judgement that cover much of this section and §21, and which you will get more from after finishing the part than before.</p></div>
+
+<figure>
+  <img src="figures/ml/13-no-free-lunch.svg" alt="Three learners all achieving chance accuracy averaged over random target functions">
+  <figcaption><b>Figure 3.</b> Three learners evaluated on 40,000 randomly generated target
+  functions. Always-predict-zero, majority vote, and nearest neighbour all land at chance:
+  0.497, 0.499, 0.501. <b>Averaged over every possible problem, sophistication buys
+  nothing.</b></figcaption>
+</figure>
+
+<div class="box intuition">
+  <span class="label">Intuition: why this is not despair</span>
+  <p>The theorem averages over <i>all</i> target functions, and almost all of them are
+  structureless noise, arbitrary label assignments with no pattern to find. Of course no
+  algorithm beats chance on those.</p>
+  <p>But we do not care about all possible problems. We care about the tiny, wildly
+  unrepresentative subset that arises in the physical world: images of objects, recorded
+  speech, written language. Those have enormous structure: locality, hierarchy, smoothness,
+  compositionality.</p>
+  <p>So the real content of the theorem is a redirection. <b>The question is never "what is
+  the best learning algorithm?" It is "what is true of the problems I care about, and which
+  algorithm assumes that?"</b> Convolution assumes spatial locality. Recurrence assumes
+  temporal structure. Both are wrong in general and right on the problems they were built
+  for.</p>
+</div>
+
+<h3><span class="num">§8</span> Regularization</h3>
+
+<p>Section 6 framed capacity as a dial with an optimum. In practice it is rarely a clean
+dial: you cannot easily build a model of "degree 7.3". Regularization is the continuous
+version: keep the large model class, and express a <b>preference</b> among its members.</p>
+
+$$\tilde{L}(\boldsymbol{\theta}) = \underbrace{L(\boldsymbol{\theta})}_{\text{fit}} + \underbrace{\lambda\,\Omega(\boldsymbol{\theta})}_{\text{preference}}$$
+
+<p class="mnote">A stated preference for the simpler of two models that fit equally well is
+<b>Occam's razor</b>, named for William of Ockham (14th century); regularization is that
+preference made computable, with $\lambda$ setting how strongly it is enforced.</p>
+
+<figure>
+  <img src="figures/ml/03-regularization-path.svg" alt="Coefficients shrinking with lambda, and test error minimised at an intermediate value">
+  <figcaption><b>Figure 4.</b> Ridge regression across seven orders of magnitude of
+  $\lambda$. Left: every coefficient shrinks toward zero as the penalty grows. Right: test
+  error is a U: too little regularization overfits, too much underfits, and the optimum is
+  strictly in between. Both panels are real fits.</figcaption>
+</figure>
+
+<div class="box why">
+  <span class="label">Why this matters: you have now seen this four times</span>
+  <p>Regularization has appeared in every part, from a different direction each time:</p>
+  <ul class="tight">
+    <li><b>Part I §15</b>: geometrically, as the corners of the $L^1$ ball producing sparsity.</li>
+    <li><b>Part II §17</b>: probabilistically, as a Laplace or Gaussian prior.</li>
+    <li><b>Part III §7</b>: numerically, as lifting the smallest eigenvalue and cutting the condition number.</li>
+    <li><b>Part V §20</b>: statistically, as accepting bias to reduce variance.</li>
+  </ul>
+  <p>Four framings, one procedure. That convergence is the strongest evidence in this book
+  that the parts are describing the same object from different sides.</p>
+</div>
+
+<div class="box try">
+  <span class="label">Try it</span>
+  <p>A model has 8% training error and 9% test error. Adding capacity is proposed. Good idea?
+  Now the same model has 1% training and 15% test. Same question.</p>
+</div>
+
+<p><b>Answer.</b> <b>First:</b> yes. The gap is tiny, so it is not overfitting: it is
+underfitting, and 8% training error means it cannot even represent the training data. Add
+capacity, or better features. More data would achieve almost nothing.</p>
+<p><b>Second:</b> no, and it would make things worse. A 14-point gap is overfitting. Reduce
+capacity, add regularization, or get more data. This is the diagnosis from Part V §20, and
+the reason to make it before spending anything is that the two situations look identically
+like "the model is bad" and call for opposite responses.</p>

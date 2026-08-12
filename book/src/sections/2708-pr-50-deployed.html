@@ -1,0 +1,176 @@
+<h2><span class="part-kicker">Part E</span>After deployment</h2>
+
+<p class="lede">Everything in Parts A–D happens before the system meets the world. This movement
+is about what changes afterwards, and the recurring theme is that the assumption every earlier
+guarantee rests on, that the data is i.i.d. from a fixed distribution, stops being true the
+moment you ship.</p>
+
+<h3><span class="num">§26</span> The distribution moves</h3>
+
+<div class="box def">
+  <span class="label">Three kinds of shift, needing three responses</span>
+  <p><b>Covariate shift.</b> $p(\mathbf{x})$ changes, $p(y \mid \mathbf{x})$ does not. New users,
+  new devices, a new season. The relationship you learned is still true; you are being asked
+  about a different region of it.</p>
+  <p><b>Label shift.</b> $p(y)$ changes, $p(\mathbf{x} \mid y)$ does not. A disease becomes more
+  common; fraud rates rise. Often correctable by adjusting the threshold or reweighting, because
+  the model's ranking is still valid.</p>
+  <p><b>Concept drift.</b> $p(y \mid \mathbf{x})$ itself changes. What counts as spam changes
+  because spammers adapt. Nothing but new labels fixes this: the function you learned is now
+  the wrong function.</p>
+  <p>Telling them apart matters: the first two are often repairable without relabelling, and the
+  third is not.</p>
+</div>
+
+<div class="box why">
+  <span class="label">Why the third is the one that ends systems</span>
+  <p>Covariate shift degrades a model. Concept drift <b>invalidates</b> it, and it is the shift
+  most likely to be caused by the system's own existence.</p>
+  <p>Any system whose outputs affect the world it is measuring will change that world. A fraud
+  detector changes what fraud looks like, because the people committing it observe what gets
+  caught. A recommender changes what people watch, so tomorrow's data reflects yesterday's
+  recommendations. §28 is about this specifically.</p>
+</div>
+
+<h3><span class="num">§27</span> Monitoring when you have no labels</h3>
+
+<p>The central practical difficulty of deployment: you find out the model is wrong long after it
+was wrong, and often never. Labels arrive late, or partially, or not at all.</p>
+
+<div class="box def">
+  <span class="label">What you can watch without knowing the answer</span>
+  <ul class="tight">
+    <li><b>Input distribution.</b> Per-feature summaries against the training distribution.
+    Catches covariate shift, and catches broken upstream pipelines faster than anything else.</li>
+    <li><b>Prediction distribution.</b> The rate at which each class is predicted. A sudden move
+    is either the world changing or your pipeline breaking, and both are worth a page.</li>
+    <li><b>Confidence.</b> The distribution of the model's own confidence, which (<b>if it is
+    calibrated</b>, §5) shifts before accuracy does.</li>
+    <li><b>Refusal or fallback rate</b>, where §4's coverage is in use. This is the cleanest
+    early signal there is, because it is a direct measure of the model finding its inputs
+    unfamiliar.</li>
+    <li><b>Latency and error rates.</b> Not about the model, and the majority of real incidents.</li>
+  </ul>
+</div>
+
+<div class="box pitfall">
+  <span class="label">Pitfall: input monitoring catches pipeline bugs far more often than drift</span>
+  <p>Distribution monitoring is usually motivated by concept drift, which is real and slow. What
+  it actually catches, most of the time, is a change upstream: a field that started arriving in
+  a different unit, an encoder version bump, a default that changed, a join that silently began
+  dropping rows.</p>
+  <p>These are more common than drift, faster in onset, and completely fixable, which makes
+  them the better justification for the monitoring. Set the alert on the input distribution
+  before the model one.</p>
+</div>
+
+<div class="box why">
+  <span class="label">Why a small labelled stream is worth its cost</span>
+  <p>Every proxy above is a proxy. The only thing that measures whether the model is right is
+  labels.</p>
+  <p>So label a small random sample of live traffic, continuously, forever. A few hundred a week
+  gives you an accuracy estimate with an interval (Part V §6) on the <b>current</b>
+  distribution, which is the number every monitoring dashboard is trying to approximate and
+  none of the proxies actually provides.</p>
+  <p>It must be <b>random</b>, not the cases someone flagged. Part XIII §30's warning: a sample
+  selected by uncertainty or by complaint is not a sample of your traffic, and the errors you
+  most need to find are the confident ones nobody flagged.</p>
+</div>
+
+<h3><span class="num">§28</span> Feedback loops</h3>
+
+<p>The failure mode with no analogue in the offline setting, and the one that gets worse the
+longer it runs.</p>
+
+<div class="box worked">
+  <span class="label">Worked: how a model becomes right by making itself right</span>
+  <p>A model predicts which regions have high crime, and patrols are allocated accordingly. More
+  patrols in a region means more incidents <b>recorded</b> there. The recorded data confirms the
+  prediction. The model is retrained on it and becomes more confident.</p>
+  <p>Nothing about the underlying rate needs to have been true for this to happen. The system is
+  measuring its own past decisions and the loop closes with no external correction.</p>
+  <p>The same structure appears benignly and everywhere: a recommender whose training data is
+  what people clicked on, which is what it recommended; a search ranker trained on clicks it
+  determined the position of; a hiring filter trained on outcomes for candidates it approved,
+  which is Part XIII §7's lending problem, running continuously.</p>
+</div>
+
+<div class="box def">
+  <span class="label">The only reliable defence is randomisation</span>
+  <p>Serve a small fraction of traffic from a policy the model did not choose: random,
+  uniformly explored, or a deliberately held-back control. That fraction is the only data you
+  have about the region the model does not select, and it is what makes the counterfactual
+  question answerable at all.</p>
+  <p>It costs a little performance on that slice, permanently. It buys the ability to detect that
+  the loop has closed, and Part XIII §7's lesson is that this decision cannot be made
+  retroactively: the data either exists because someone chose to collect it years ago, or it does
+  not exist.</p>
+</div>
+
+<h3><span class="num">§29</span> The long tail</h3>
+
+<p>Failures that are invisible in aggregate and dominate the experience of some users.</p>
+
+<div class="box why">
+  <span class="label">Why an average is the wrong summary of a deployed system</span>
+  <p>A model at 95% accuracy might be at 98% for most users and 60% for a subgroup: an accent,
+  a dialect, a device, a lighting condition, a rare but important category. The aggregate cannot
+  show this and will not move if the subgroup is small.</p>
+  <p>The remedy is to <b>decide the slices in advance</b> and report per slice, always. The
+  slices come from Part XIII §3's coverage checklist, which is the same list for the same reason:
+  the axes along which your frame might be unrepresentative are the axes along which your
+  performance might be unrepresentative.</p>
+  <p>Report the <b>worst</b> slice alongside the mean. It is the number a user in that slice
+  experiences, and it is the number that will appear in a complaint.</p>
+</div>
+
+<h3><span class="num">§30</span> Shipping so you can unship</h3>
+
+<div class="box def">
+  <span class="label">The mechanics that make a deployment reversible</span>
+  <ul class="tight">
+    <li><b>Shadow mode.</b> Run the new model on live traffic, log its outputs, serve the old
+    one. Free measurement on the real distribution with no risk.</li>
+    <li><b>Gradual rollout.</b> A small fraction first, watched, then more. The alternative is
+    discovering the problem at full scale.</li>
+    <li><b>A held-back control.</b> Keep a slice on the old model indefinitely: otherwise
+    "performance changed" and "the world changed" are indistinguishable.</li>
+    <li><b>Versioned everything.</b> Model, code, <b>and the data it was trained on</b> (Part
+    XIII §32). A rollback that cannot reproduce the previous model is a hope.</li>
+    <li><b>A rollback that has been tested.</b> Under load, before you need it.</li>
+  </ul>
+</div>
+
+<div class="box why">
+  <span class="label">Why the held-back control is the one that gets cut</span>
+  <p>It looks like pure cost: a slice of users permanently on a worse model. It is the only
+  thing that separates your model's effect from everything else that changed.</p>
+  <p>Without it, every metric movement after a launch is confounded with seasonality, a marketing
+  campaign, a competitor, an upstream change, and the launch. With it, the difference is a
+  measurement. This is Part V's control group, and the argument for it is the same argument.</p>
+</div>
+
+<h3><span class="num">§31</span> What accumulates</h3>
+
+<div class="readnow"><span class="label">Go and read</span><p><span class="src">Sculley et al. (2015)</span>, <i>Hidden technical debt in machine learning systems</i>. Already cited for Part VI and it belongs here more. Entanglement, undeclared consumers, pipeline sprawl and configuration debt, named by people running these systems at scale. Read it once you have deployed something; before that it reads as a list and afterwards as a description.</p></div>
+
+<p>A last observation about the shape of these systems over time, and it is not about models.</p>
+
+<div class="box why">
+  <span class="label">Why the model is the small part</span>
+  <p>In a deployed machine learning system, the model is a small fraction of the code. The rest
+  is data collection, feature computation, serving, monitoring, configuration and analysis, and
+  that surrounding code has failure modes ordinary software does not.</p>
+  <p><b>Entanglement.</b> Changing any input changes everything downstream, because the model
+  mixes all of them. There are no independent components to reason about, so the usual discipline
+  of modular change does not apply.</p>
+  <p><b>Undeclared consumers.</b> A model's output becomes an input to another team's system,
+  which you find out when you change it.</p>
+  <p><b>Pipeline sprawl.</b> Transformations accumulate, each defensible, and after two years
+  nobody can say what the features mean.</p>
+  <p><b>Configuration.</b> The settings outgrow the code and go untested.</p>
+  <p>The reason this belongs in a book about the mathematics: it is where the time goes. Every
+  measurement in Parts A–D is only as good as the pipeline computing it, and the failure modes
+  above produce numbers that are wrong in ways no statistical technique detects, because the
+  statistics are correct and the quantity is not what you think it is.</p>
+</div>

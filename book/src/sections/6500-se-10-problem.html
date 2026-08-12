@@ -1,0 +1,136 @@
+<h2><span class="part-kicker">Part A</span>The search problem</h2>
+
+<p class="mvt">Almost everything in this book so far computes an answer. Search does something different:
+it proposes answers and checks them, and the intelligence is in how few it has to propose. That
+shift, from evaluating a function to exploring a space, is what this part is about, and it is
+worth taking slowly, because the vocabulary is shared by everything after it.</p>
+
+<h3><span class="num">§1</span> Where this fits</h3>
+
+<div class="box why">
+  <span class="label">One pass buys one pass</span>
+  <p>A network of fixed depth applied once does a fixed amount of computation, whatever the question.
+  That is a strange property for a problem solver. Multiplying two three-digit numbers and proving a
+  theorem should not cost the same, and the fact that they do is a statement about the architecture
+  rather than about the problems.</p>
+  <p>Search is the standard way out. Given a way to <b>propose</b> next steps and a way to
+  <b>evaluate</b> where you have got to, you can spend as much computation as the problem deserves.
+  The proposal and the evaluation can both be learned (that is §38 onwards) but the machinery for
+  spending the computation well is older than any of the learning, and it is the same machinery.</p>
+</div>
+
+<div class="box hist">
+  <span class="label">The excluded pillar</span>
+  <p>This book's plan originally left the symbolic tradition out, on the grounds that it is a
+  different lineage with different foundations. That was defensible in 2015 and is not now. Systems
+  that sample many candidate solutions and select among them, that expand a tree of partial
+  reasoning steps, or that call a verifier before committing, are doing state-space search with
+  learned components, and the properties of that search (completeness, admissibility, the effect of
+  ordering, the value of a bound) are the classical properties. The decision was reversed rather
+  than quietly amended, which is the more informative record.</p>
+  <p>What the reversal buys is this movement and the five after it, not the whole lineage. Resolution
+  theorem proving, unification, knowledge representation and STRIPS-style classical planning are
+  named in §45 and deliberately not covered.</p>
+</div>
+
+<h3><span class="num">§2</span> The state space</h3>
+
+<div class="box def">
+  <span class="label">Five things, and nothing else</span>
+  <p>A search problem is a set of <b>states</b>, an <b>initial state</b>, a set of <b>actions</b>
+  available in each state, a <b>transition</b> saying where each action leads, and a <b>goal test</b>.
+  Add a <b>step cost</b> and the problem has an objective as well as a target.</p>
+  <p>Everything else is derived. A <i>path</i> is a sequence of actions; its cost is the sum of the
+  step costs; a <i>solution</i> is a path from the initial state to a goal; an <i>optimal</i>
+  solution is a cheapest one. The state space is the graph these definitions describe, and it is
+  almost never written down; it is generated as you go, which is the only reason any of this is
+  feasible.</p>
+</div>
+
+<p>Two things about this abstraction are worth stating because they get lost. First, the graph is
+usually <b>enormous and implicit</b>: a Rubik's cube has about 4.3 × 10<sup>19</sup> states and a
+program that enumerated them would never finish, yet every one is one move from twelve others and
+that local description fits in a line of code. Second, the abstraction says nothing about what a
+state <i>is</i>. It can be a board position, a robot's joint angles, a partially written proof, or a
+prefix of generated text. Search algorithms do not know the difference, and that is precisely why
+they transfer.</p>
+
+<h3><span class="num">§3</span> The choice of state is the modelling</h3>
+
+<div class="box why">
+  <span class="label">Where the real work is</span>
+  <p>Given a state space, choosing an algorithm is a small decision from a short menu. Choosing the
+  state space is not, and it determines everything the algorithm can do.</p>
+  <p>Consider planning a route for a vehicle. If a state is a position, the search is a shortest-path
+  problem and a lane change is instantaneous. If a state is a position and a velocity, the search
+  can respect acceleration limits but not steering geometry. If it is position, heading, velocity and
+  steering angle, the search can produce a trajectory the vehicle can actually follow, and the space
+  is now four-dimensional and continuous, which rules out every algorithm in this movement and forces
+  §23 onwards.</p>
+  <p>The same choice appears in reasoning systems. If a state is a whole candidate answer, search
+  means sampling and selecting. If a state is a partial chain of steps, search can expand promising
+  prefixes and abandon others, but now you need to evaluate an unfinished argument, which is a much
+  harder thing to learn. Neither is right; they are different problems wearing the same clothes.</p>
+</div>
+
+<h3><span class="num">§4</span> Searching without a clue</h3>
+
+<div class="box shapes">
+  <span class="label">Four algorithms that differ only in which node comes off the frontier next</span>
+  <p><b>Breadth-first</b> takes the shallowest node. Complete, and optimal when every step costs the
+  same. Memory <span class="m">$O(b^d)$</span>: it holds an entire level at once, which is what kills
+  it.</p>
+  <p><b>Depth-first</b> takes the deepest. Memory <span class="m">$O(bd)$</span>, which is the whole
+  attraction. Not optimal, and not even complete on an infinite or cyclic space.</p>
+  <p><b>Uniform-cost</b> takes the node of least path cost. Optimal for any non-negative costs; this
+  is Dijkstra's algorithm, arrived at from the other direction.</p>
+  <p><b>Iterative deepening</b> runs depth-first to depth 1, then 2, then 3. Breadth-first's
+  completeness and optimality with depth-first's memory, at the price of re-expanding the shallow
+  levels, which costs a factor of <span class="m">$b/(b-1)$</span>, so about 1.5 at branching factor
+  3 and less as the branching grows. Repeating work to save memory is a good trade far more often
+  than it sounds.</p>
+</div>
+
+<p>The list is short and the point is not the list. All four are the same algorithm with a different
+priority on the frontier, and the informed algorithms in the next movement are also that algorithm
+with a different priority. Once that is clear, A* is not a new idea but a particular choice of
+number to sort by.</p>
+
+<h3><span class="num">§5</span> The four questions</h3>
+
+<div class="box def">
+  <span class="label">What to ask of any search algorithm</span>
+  <p><b>Completeness.</b> If a solution exists, is it guaranteed to be found?</p>
+  <p><b>Optimality.</b> Is the solution it finds guaranteed to be a cheapest one?</p>
+  <p><b>Time.</b> How many nodes does it generate, as a function of branching factor
+  <span class="m">$b$</span> and solution depth <span class="m">$d$</span>?</p>
+  <p><b>Space.</b> How many does it hold at once? In practice this is the binding constraint, and it
+  is the reason depth-first survives despite being worse on the other three.</p>
+</div>
+
+<p>These four are worth memorising as a habit rather than as facts, because they are the questions to
+ask about a learned search procedure too, where nobody states them. A system that samples 64
+candidate answers and picks the best is <b>not complete</b> (it may never propose the right answer)
+and <b>not optimal</b> (its selection rule is a learned approximation). Both failures are
+real and both are invisible in an accuracy number. §41 measures what the second one costs.</p>
+
+<h3><span class="num">§6</span> The frontier and the closed list</h3>
+
+<div class="box shapes">
+  <span class="label">Two data structures, and the bug that lives between them</span>
+  <p>The <b>frontier</b> (or open list) holds generated-but-not-expanded nodes, ordered by whatever
+  the algorithm sorts by. The <b>closed list</b> holds states already expanded, so that a state
+  reached by two paths is not searched twice.</p>
+  <p>The closed list is where correctness goes wrong. Discarding a state because it is closed is only
+  safe if the first time you expanded it you had already found its cheapest path, which is
+  guaranteed for uniform-cost search, guaranteed for A* with a <i>consistent</i> heuristic, and
+  <b>not guaranteed</b> for A* with a merely admissible one. §12 measures exactly what that costs,
+  and it is not a small correction.</p>
+</div>
+
+<p>Two practical notes that cost people days. A node's priority can improve after it is on the
+frontier, and a binary heap has no decrease-key operation; the standard fix is to push the improved
+entry and ignore stale ones on pop, which is why implementations keep a <span class="m">$g$</span>
+table and compare against it. And the frontier is usually the memory bottleneck rather than the
+closed list, because it holds a whole level while the closed list holds only states: a distinction
+that disappears in the asymptotic notation and dominates in practice.</p>

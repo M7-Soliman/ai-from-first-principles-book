@@ -1,0 +1,289 @@
+<h2><span class="part-kicker">Part B</span>Why it works, measured</h2>
+
+<p class="lede">Three properties are usually listed as the reasons convolution works: sparse
+interactions, parameter sharing and equivariance. They are genuinely different claims, they
+buy different things, and two of them are routinely confused with a fourth property that
+convolution does not have.</p>
+
+<h3><span class="num">§7</span> Sparse interactions</h3>
+
+<p>A dense layer has a parameter for every input–output pair. Making the kernel smaller than
+the input means each output sees only a few inputs, and §4's matrix is mostly zero.</p>
+
+<div class="box def">
+  <span class="label">What sparsity buys, in three currencies</span>
+  <p>With $m$ inputs and $n$ outputs, a dense layer needs $m \times n$ parameters and
+  $O(m \times n)$ operations. Limit each output to $k$ connections and both become
+  $O(k \times n)$.</p>
+  <ul class="tight">
+    <li><b>Memory.</b> Fewer parameters to store.</li>
+    <li><b>Compute.</b> Fewer multiply-accumulates per example.</li>
+    <li><b>Statistical efficiency.</b> Fewer parameters to estimate from the same data, Part
+    VI §6's capacity argument, and the one that matters most.</li>
+  </ul>
+  <p>In practice $k$ can be several orders of magnitude below $m$ without hurting.</p>
+</div>
+
+<div class="box intuition">
+  <span class="label">Intuition: why locality is a defensible assumption about images</span>
+  <p>Sparsity is only free if the connections you removed were not carrying anything. For
+  images they mostly were not, and the reason is physical rather than statistical.</p>
+  <p>A pixel's value is determined by the surface patch that projected onto it. Two pixels
+  that are adjacent almost always come from the same surface; two pixels at opposite corners
+  usually do not. So the strong statistical dependencies in an image are <b>short-range</b>,
+  and a small kernel is not throwing away much.</p>
+  <p>It is not throwing away <i>nothing</i>, which §32 returns to. Long-range structure is
+  real (the two ends of a shadow, the two sides of a symmetric object) and convolution has
+  to reach it by stacking layers rather than directly. Whether that is enough is precisely the
+  question vision transformers reopened.</p>
+</div>
+
+<h3><span class="num">§8</span> Parameter sharing</h3>
+
+<p>Sparsity says an output looks at few inputs. Sharing says that <b>the same weights</b> are
+used at every position. In §4's matrix, the first constraint made most entries zero and the
+second made the survivors repeat: 324 nonzero entries taking 9 distinct values.</p>
+
+<p>The saving is different in kind from sparsity's. Sharing does not change the forward
+runtime at all (it is still $O(k \times n)$ multiply-accumulates) but it takes the storage
+from $k \times n$ to $k$.</p>
+
+<div class="box why">
+  <span class="label">Why this is Part VIII §15, arriving as architecture</span>
+  <p>Part VIII §15 distinguished a tying <i>penalty</i>, which says two weights should be
+  similar, from parameter <i>sharing</i>, which says they are one weight. Sharing removes
+  parameters outright rather than constraining them.</p>
+  <p>Convolution is that idea taken as far as it goes. The claim is not that the edge detector
+  at the top-left should resemble the one at the bottom-right; it is that <b>there is one edge
+  detector</b>, and it is evaluated in many places.</p>
+  <p>The consequence for learning is the one that matters. A dense layer must see an edge at
+  every position to learn to detect edges at every position. A convolutional layer that sees an
+  edge <i>anywhere</i> has learned to detect it <i>everywhere</i>. Every training example
+  contributes to every position's detector, which is a form of data amplification that no
+  penalty can imitate.</p>
+</div>
+
+<div class="box def">
+  <span class="label">The middle ground: locally connected and tiled layers</span>
+  <p>Sparsity and sharing are separable, and the layers in between have names.</p>
+  <p>A <b>locally connected</b> layer, or <b>unshared convolution</b>, has convolution's
+  connectivity and no sharing: a separate weight for every (position, offset, channel pair):</p>
+  <p>$$Z_{i,j,k} = \sum_{l,m,n} V_{l,\,j+m-1,\,k+n-1}\;w_{i,j,k,l,m,n}$$</p>
+  <p>Note the extra indices $j,k$ on $w$. This is right when features should be local but
+  <i>not</i> the same everywhere: face images cropped and centred, where the top of the frame
+  needs eyebrow detectors and the bottom needs a chin.</p>
+  <p><b>Tiled convolution</b> interpolates: learn $t$ kernels and cycle through them as you
+  move across the image, so neighbouring positions differ but positions $t$ apart share.
+  Memory grows by a factor of $t$ rather than by the size of the feature map.</p>
+  <p>Neither is much used, and both are worth knowing because they show that convolution is a
+  <b>point on a spectrum</b> rather than the only option. The spectrum runs from "every
+  position gets its own weights" to "one set of weights for all positions", and convolution
+  sits at the far end.</p>
+</div>
+
+<h3><span class="num">§9</span> Equivariance, precisely</h3>
+
+<div class="sixty">
+  <span class="label">In 60 seconds</span>
+  <p>Shift the input and the output shifts identically. That is <b>equivariance</b>, and it
+  follows from sharing rather than from sparsity. It is exact, measured here at float32
+  rounding. And it holds for translation <b>only</b>: rotate or rescale the input and the
+  output is essentially unrelated, which is the most over-assumed fact in this part.</p>
+</div>
+
+<div class="box def">
+  <span class="label">Equivariance</span>
+  <p>$f$ is equivariant to $g$ when $f(g(\mathbf{x})) = g(f(\mathbf{x}))$: doing $g$ first
+  and doing it afterwards give the same answer.</p>
+  <p>For convolution and any translation $g$: shifting an image and then convolving equals
+  convolving and then shifting. A feature map is therefore a <b>map of where things are</b>,
+  and moving the thing moves its entry.</p>
+</div>
+
+<figure>
+  <img src="figures/cv/03-equivariance.svg" alt="Relative equivariance error for translations, a rotation and a rescaling">
+  <figcaption><b>Figure 3.</b> A three-layer convolutional stack, measuring
+  $\max|f(g(\mathbf{x})) - g(f(\mathbf{x}))|$ relative to the activation range, with a border
+  excluded to avoid wrap-around. Translation, for every shift tested: <b>at or below
+  $3.6\times10^{-7}$</b>, float32 rounding, and nothing else. Rotation by 90°: <b>0.95</b>.
+  Rescaling by 2: <b>0.89</b>. On a scale where 1 means "unrelated", the two transformations
+  people assume come for free score 0.95 and 0.89.</figcaption>
+</figure>
+
+<div class="box pitfall">
+  <span class="label">Pitfall: the three things equivariance is not</span>
+  <p><b>It is not invariance.</b> Equivariance says the output <i>moves</i> with the input;
+  invariance says it <i>does not change</i>. They are close to opposite, and §13 is about the
+  distinction because it is muddled constantly.</p>
+  <p><b>It is not rotation or scale equivariance.</b> Figure 3 measures those failing. If your
+  task has objects at arbitrary orientations, convolution gives you nothing for it, and you
+  need augmentation (Part VIII §10), a different architecture, or pooling over rotated copies
+  (§14). And the exactness measured here is exactness of the <i>convolution</i>: Part XXVII §5
+  measures what a strided downsample does to the same guarantee, which is five orders of magnitude
+  worse and has a sixty-year-old remedy. Part XXVI generalises this section's argument: convolution prices one symmetry, and the
+  same reasoning applied to permutation and to rotation gives the architectures for graphs and for
+  molecules.</p>
+  <p><b>It is not exact at the boundary.</b> Padding breaks it: a shifted object near the
+  edge meets a different number of implicit zeros. Figure 3 excludes a border for that reason,
+  and real networks do have a border artefact, which is one reason they can quietly learn to
+  use absolute position.</p>
+</div>
+
+<h3><span class="num">§10</span> Receptive fields, and the gap you were not told about</h3>
+
+<div class="readnow"><span class="label">Go and read</span><p><span class="src">Luo et al. (2016)</span>, <i>Understanding the effective receptive field in deep convolutional neural networks</i>. The paper behind Figure 4, and one of those results that is obvious once stated and was not stated for twenty-five years. Everyone had been computing $1+2L$ and designing against it. The $\sqrt{L}$ argument is short and you should try to reconstruct it before reading, and the hint is that it is a random walk; you met the same argument in Part V §3.</p></div>
+
+<p>An output unit's <b>receptive field</b> is the set of input pixels that can affect it. For
+one $3\times3$ layer it is $3\times3$. Stack two and it is $5\times5$; stack $L$ and the
+arithmetic gives $1 + 2L$. This is how a network built from tiny kernels comes to see whole
+objects, and the formula is in every tutorial.</p>
+
+<p>The formula is also, in a sense that matters, wrong.</p>
+
+<figure>
+  <img src="figures/cv/04-receptive-field.svg" alt="Theoretical and effective receptive field against depth, and gradient profiles">
+  <figcaption><b>Figure 4.</b> Receptive field measured by gradient, the set of inputs whose
+  gradient with respect to one central output unit is nonzero, against the region holding 95%
+  of that gradient's mass. The theoretical field grows as $1+2L$; the <b>effective</b> field
+  grows with a measured log-log slope of <b>0.45</b>, which is $\sqrt{L}$. At $L=48$ the
+  theoretical field is 97 pixels and the effective one is 33, <b>34%</b>. Right: the gradient
+  profile through the centre, with the theoretical edge dotted. The support really does reach
+  that far; almost nothing is out there.</figcaption>
+</figure>
+
+<div class="box intuition">
+  <span class="label">Intuition: why $\sqrt{L}$, and why you should have expected it</span>
+  <p>The gradient reaching an input pixel is a sum over every path from that pixel to the
+  output. A pixel at the very edge of the receptive field is reachable by exactly <b>one</b>
+  path: straight out, one step per layer. A pixel at the centre is reachable by an enormous
+  number.</p>
+  <p>So the number of paths falls off sharply with distance, and the profile is a sum of many
+  independent contributions with a distance that accumulates one step at a time. That is a
+  <b>random walk</b>, and by Part V §3 a random walk over $L$ steps spreads like $\sqrt{L}$,
+  not like $L$.</p>
+  <p>The same argument, in the same book, has now explained three things: why the standard
+  error of a mean falls like $1/\sqrt{n}$, why a deep feedforward network's scale drifts rather
+  than exploding (Part IX §10), and why stacking $3\times3$ kernels buys reach far more slowly
+  than the arithmetic promises.</p>
+</div>
+
+<div class="box why">
+  <span class="label">Why this changes design decisions</span>
+  <p>The naive calculation says a 20-layer stack of $3\times3$ kernels has a 41-pixel
+  receptive field and can therefore see a 41-pixel object. Figure 4 says most of the gradient
+  is confined to a fraction of that, so it effectively cannot.</p>
+  <p>Three standard practices exist because of it, and they look unrelated until you see the
+  cause:</p>
+  <ul class="tight">
+    <li><b>Downsampling</b> (pooling and stride, §12, §15). Halving the resolution doubles
+    what every subsequent pixel covers, which multiplies reach without multiplying depth.</li>
+    <li><b>Dilated convolution</b> (§29), which spreads the kernel out and buys reach with no
+    extra parameters or compute at all.</li>
+    <li><b>Skip connections</b> (§23), which shorten the path and, as a side effect, widen the
+    effective field by giving the gradient a route that does not decay.</li>
+  </ul>
+  <p>And it is why "just add more layers" is a poor answer to "the model cannot see the whole
+  object". You would need to <b>quadruple</b> the depth to double the effective reach.</p>
+</div>
+
+<h3><span class="num">§11</span> An infinitely strong prior</h3>
+
+<p>The cleanest statement of what a convolutional layer is, and the one that connects this
+part to everything in Parts V, VI and VIII.</p>
+
+<p>Part V §18 established that a prior is a distribution over parameters expressed before
+seeing data, and that a penalty is a prior in disguise. A <b>weak</b> prior has high entropy
+and lets the data move the parameters freely; a <b>strong</b> prior has low entropy and
+insists. An <b>infinitely strong</b> prior places zero probability on some parameter settings: they are forbidden, whatever the data says.</p>
+
+<div class="box def">
+  <span class="label">Convolution as a prior over a dense layer</span>
+  <p>A convolutional layer is a fully connected layer with an infinitely strong prior on its
+  weights, saying two things:</p>
+  <ul class="tight">
+    <li>The weights of one hidden unit must be <b>identical to its neighbour's, shifted</b>.</li>
+    <li>The weights must be <b>zero</b> outside a small contiguous receptive field.</li>
+  </ul>
+  <p>Equivalently: the function this layer learns has only local interactions and is
+  equivariant to translation. Pooling (§12) adds a third: each unit must be invariant to small
+  translations.</p>
+</div>
+
+<p>Implementing it that way would be absurd, and the point is not implementation. It is that
+architecture and regularisation are <b>the same kind of thing</b>, differing in degree.
+Weight decay says small weights are preferred. Convolution says non-shared weights are
+impossible. Part VIII §21's table of techniques that turn out to be one technique has a row
+waiting for this.</p>
+
+<div class="box why">
+  <span class="label">Why this framing pays: three consequences</span>
+  <p><b>Convolution and pooling can cause underfitting.</b> A prior helps only when it is
+  true. If a task depends on precise spatial information, pooling everything raises the
+  <i>training</i> error, Part IX §29's rung 6 in a new setting, and one reason some
+  architectures deliberately pool some channels and not others.</p>
+  <p><b>The prior is why the data requirement drops.</b> Part VI §6's capacity argument says
+  you need data in proportion to what the model can express. Forbidding most functions outright
+  is the most direct way to need less data, and it is why convolutional networks worked in the
+  1990s on datasets that could not train anything else.</p>
+  <p><b>It changes what a benchmark measures.</b> A model without convolution would learn just
+  as well if you <b>permuted every pixel</b> of every image: it has no notion of which pixels
+  are adjacent. A convolutional model would be destroyed. So the two are not comparable on the
+  same benchmark: one has been told the topology of the input and the other has to discover it.
+  Some image datasets maintain separate leaderboards for permutation-invariant models for
+  exactly this reason, and a comparison that ignores the distinction is measuring the
+  designer's knowledge, not the model's.</p>
+</div>
+
+<div class="box try">
+  <span class="label">Try it</span>
+  <p>You are classifying images of galaxies, which appear at arbitrary orientations. Which of
+  §§7–11's properties still helps you, which is now wrong, and what would you do about it?</p>
+</div>
+
+<p><b>Answer.</b> <b>Sparse interaction still holds</b>: the physics of a galaxy image is
+still local, and neighbouring pixels are still more related than distant ones.</p>
+<p><b>Parameter sharing still holds</b>: a galaxy in the top-left is the same object as one
+in the bottom-right, so translation is a genuine symmetry of the task.</p>
+<p><b>The prior is incomplete rather than wrong.</b> Convolution encodes translation and
+nothing else, and this task has a rotational symmetry the architecture does not know about.
+So the model must learn separately to recognise each orientation, which is exactly the waste
+§1 objected to in the dense layer, one symmetry up.</p>
+<p>Three remedies, in ascending order of cost and ambition. <b>Augment</b> with rotated copies
+(Part VIII §10): cheap, and it teaches the invariance from data rather than encoding it.
+<b>Pool over rotated copies</b> of each filter (§14): build the invariance in, at a
+multiplicative cost in compute. Or use a <b>group-equivariant</b> architecture, which
+generalises §9's argument from translations to a larger symmetry group and is the principled
+answer.</p>
+<p>The useful habit is the question rather than the answer: <b>what are the symmetries of this
+task, and which of them does my architecture already know?</b> Every one it does not know is
+something the data has to pay for.</p>
+
+<div class="box history">
+  <span class="label">History: random filters, and why training them mattered</span>
+  <p>ch09 §9.9 covers a line of work, active roughly 2007–2013, that asked how much of a
+  convolutional network's power comes from the <i>structure</i> and how much from
+  <i>learning</i> the filters. The answer was surprising.</p>
+  <p><b>Random filters work remarkably well.</b> Replace the learned weights with random
+  Gaussian filters and freeze them; then train only the final classifier. Coates et al. (2011)
+  showed that such networks, with enough random filters and a good classifier on top, matched
+  carefully trained networks on several benchmarks of the time. The structure of the
+  architecture (the locality, the sharing, the pooling) was doing most of the work, not the
+  learned values.</p>
+  <p><b>Hand-designed and k-means filters work too.</b> Gabor filters, difference-of-Gaussians,
+  and filters found by k-means on small patches all give competitive representations. This is
+  consistent with §31's observation that Gabor-like filters emerge from almost any learning
+  algorithm applied to natural images: they are a property of the data, so a fixed filter
+  matching that property is a reasonable prior.</p>
+  <p><b>Greedy layer-wise pretraining.</b> Before end-to-end backpropagation became practical at
+  depth, networks were trained one layer at a time using unsupervised objectives (sparse coding
+  or restricted Boltzmann machines) and only the final layer was trained discriminatively.
+  Convolutional DBNs (Lee et al., 2009) applied this to images and showed that the unsupervised
+  features transferred across tasks.</p>
+  <p>This history matters for two reasons. First, it establishes that the inductive bias of the
+  convolutional architecture is a large fraction of its value, which is exactly what §11's
+  prior framing predicts, and which the ConvNeXt experiment (§26) rediscovered from a different
+  direction. Second, greedy pretraining was superseded not because it was wrong but because
+  better initialisation (Part IX §16), normalisation (§23–§24) and data augmentation (Part VIII
+  §10) made end-to-end training competitive, and then dominant. The ideas in §9.9 were not
+  refuted; they were outcompeted by tools that this book has already derived.</p>
+</div>

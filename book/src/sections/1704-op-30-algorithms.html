@@ -1,0 +1,414 @@
+<h2><span class="part-kicker">Part C</span>The algorithms, completed</h2>
+
+<p class="lede">Part III derived SGD, momentum, the adaptive methods and the schedules. This
+part supplies what was left out: the numbers you actually set them to, the physical argument
+that explains momentum's form, the variant that improves it, and the initialisation rules
+that decide whether any of it works.</p>
+
+<h3><span class="num">§13</span> SGD, with the schedule spelled out</h3>
+
+<div class="sixty">
+  <span class="label">In 60 seconds</span>
+  <p>Part III §14 gave the Robbins–Monro conditions and §17 gave the shapes of the common
+  schedules. Here are the actual settings, the reason the best initial rate is <b>higher</b>
+  than the one that looks best after a hundred steps, and an argument that a faster-converging
+  optimiser would not help you even if you had one.</p>
+</div>
+
+<div class="readnow"><span class="label">Go and read</span><p><span class="src">Bottou &amp; Bousquet (2008)</span>, <i>The tradeoffs of large scale learning</i>. The argument this section closes with, in full: once you account for the fact that generalisation error cannot improve faster than $O(1/k)$, an optimiser that converges faster than that is not buying you anything you wanted. Short, and it permanently changes how you read a convergence-rate claim.</p></div>
+
+<p>Recall why a schedule is needed at all. The minibatch gradient carries noise that does not
+vanish as you approach a minimum: even sitting exactly at the optimum, a random sample of
+examples has a nonzero average gradient. Batch gradient descent can therefore use a fixed step
+size and SGD cannot: a fixed step leaves you rattling in a neighbourhood whose radius is set
+by the noise and the step.</p>
+
+<p>The classical sufficient conditions for convergence, from Part III §14's history:</p>
+
+$$\sum_{k=1}^{\infty}\epsilon_k = \infty
+\qquad\text{and}\qquad
+\sum_{k=1}^{\infty}\epsilon_k^2 < \infty$$
+
+<p>The first says the steps must still be able to carry you any finite distance; the second
+says the accumulated noise must be finite. Together they force the rate to decay, but not too
+fast.</p>
+
+<div class="box def">
+  <span class="label">The linear schedule, with numbers</span>
+  <p>Decay linearly to iteration $\tau$, then hold constant:</p>
+  <p>$$\epsilon_k = (1-\alpha)\,\epsilon_0 + \alpha\,\epsilon_\tau,
+  \qquad \alpha = \frac{k}{\tau}$$</p>
+  <p>Three parameters, and two of them have conventional answers:</p>
+  <ul class="tight">
+    <li><b>$\tau$</b>: the number of iterations in a few hundred passes over the training
+    set.</li>
+    <li><b>$\epsilon_\tau$</b>: roughly <b>1%</b> of $\epsilon_0$.</li>
+    <li><b>$\epsilon_0$</b>: the one that matters, and the one you have to find.</li>
+  </ul>
+</div>
+
+<p>Setting $\epsilon_0$ is done by watching learning curves, and it is more art than science;
+be sceptical of anyone who tells you otherwise, including this book. What can be said
+usefully is what the two failure modes look like.</p>
+
+<p><b>Too large</b> and the curve shows violent oscillation, with the cost frequently
+increasing by a lot. Gentle oscillation is fine and expected, particularly with a stochastic
+cost such as one involving dropout; do not tune it away. <b>Too small</b> and learning is
+slow; worse, if $\epsilon_0$ is too small the run can become stuck at a high cost and stay
+there.</p>
+
+<div class="box pitfall">
+  <span class="label">Pitfall: the rate that looks best after 100 steps is not the best rate</span>
+  <p>This is the most useful counterintuitive fact about learning rate selection, and the
+  usual tuning procedure gets it backwards.</p>
+  <p>The standard sweep runs each candidate rate for a few hundred iterations and picks the
+  one with the lowest loss. But the rate that wins that comparison is reliably <b>lower</b>
+  than the rate that gives the best total training time and the best final cost.</p>
+  <p>The reason is §6. A large rate spends its early iterations moving fast and looking
+  ragged, while a smaller rate produces a tidier early curve and then runs out of headroom
+  later. What you want is the rate that is <b>higher than the early winner, but not so high
+  that it destabilises</b>, so use the first hundred iterations to find the instability
+  threshold, not the optimum, and set $\epsilon_0$ below the threshold rather than at the
+  early optimum.</p>
+  <p>This is also the argument for warmup. Starting small and increasing over the first few
+  hundred steps lets you run at a rate that would have been unstable from a cold start, once
+  the parameters have moved somewhere the curvature tolerates it.</p>
+</div>
+
+<h4>What the convergence rates are, and why they do not matter much</h4>
+
+<p>The standard measure is the <b>excess error</b> $J(\boldsymbol{\theta}) -
+\min_{\boldsymbol{\theta}} J(\boldsymbol{\theta})$. On a convex problem, SGD achieves
+$O(1/\sqrt{k})$ after $k$ iterations, and $O(1/k)$ if the problem is strongly convex. Neither
+can be improved without extra assumptions. Batch gradient descent does better in theory.</p>
+
+<p>And yet stochastic methods win overwhelmingly in practice, for a reason worth stating
+carefully, because it is not simply "the constants are better".</p>
+
+<div class="box why">
+  <span class="label">Why a faster optimiser would not help you</span>
+  <p>There is a bound on the other side. The <b>Cramér–Rao bound</b> (Part V §5's efficiency limit) says that generalisation error cannot decrease faster than $O(1/k)$ in the number
+  of examples processed.</p>
+  <p>Put those together. If your optimiser converges faster than $O(1/k)$ in optimisation
+  error, the extra speed cannot be buying generalisation, because generalisation is not
+  allowed to improve that fast. The extra speed is being spent on <b>fitting the training set
+  more precisely than the training set deserves</b>, which is a definition of overfitting.</p>
+  <p>So the case for pursuing faster-converging optimisers for machine learning is weak, and
+  this is an unusual situation: a place where the theory says the obvious improvement is not
+  worth having. It also explains why the asymptotic analysis is the wrong lens. Almost every
+  method in this part earns its keep in the <b>early</b> iterations, in constants that
+  asymptotic notation discards.</p>
+</div>
+
+<p>The property that actually matters is the one that has nothing to do with convergence
+rates: <b>the cost per update does not grow with the size of the training set.</b> That is
+what makes training on a hundred million examples possible at all, and on a large enough
+dataset SGD can reach a fixed tolerance on test error before it has finished one pass.</p>
+
+<h3><span class="num">§14</span> Momentum, and why the form is forced</h3>
+
+<p>Part III §15 derived momentum's terminal velocity $\|\mathbf{g}\|/(1-\beta)$ and its reading
+as an average over the last $1/(1-\beta)$ gradients. What it did not do is justify the form of
+the update, which looks like one arbitrary choice among many. It is not, and the argument is
+one of the more satisfying in the subject.</p>
+
+<p>Treat the parameters as the position of a particle. Newton's second law says force is
+proportional to acceleration, a second-order equation in position; introduce velocity and it
+becomes two first-order equations,</p>
+
+$$\mathbf{v}(t) = \frac{\partial}{\partial t}\boldsymbol{\theta}(t),
+\qquad
+\mathbf{f}(t) = \frac{\partial}{\partial t}\mathbf{v}(t)$$
+
+<p>and momentum is simply Euler's method applied to that pair: take small finite steps in the
+direction each derivative indicates. The first force is $-\nabla J$, pushing the particle
+downhill. A hockey puck on ice, gathering speed down a slope and coasting until it starts to
+climb.</p>
+
+<p>But a puck on frictionless ice never stops. It slides down one side of the valley, straight
+up the other, and oscillates forever. Something must remove energy.</p>
+
+<div class="box worked">
+  <span class="label">Worked: why viscous drag, and not the alternatives</span>
+  <p>The second force is $-\mathbf{v}(t)$: drag proportional to velocity, as though moving
+  through syrup. That is the $\beta\mathbf{v}$ term. Why that power of $\mathbf{v}$ and not
+  another? Physics offers exactly three candidates, and two of them fail for opposite
+  reasons.</p>
+  <p><b>Turbulent drag</b>, $\propto \|\mathbf{v}\|^2$, the drag on a body moving through
+  air. It is <b>too weak</b>. As velocity falls the force falls quadratically, so it becomes
+  negligible exactly when you need it. A particle with a nonzero initial velocity and only
+  turbulent drag never comes to rest at all: its distance from the start grows like
+  $O(\log t)$, forever.</p>
+  <p><b>Dry friction</b>, a constant magnitude (a block sliding on a surface). It is <b>too
+  strong</b>. A constant opposing force does not care how gently the objective slopes, so
+  wherever the gradient is small but nonzero, friction cancels it and the particle stops
+  short. You would converge to a point that is not a minimum, chosen by the friction
+  coefficient rather than by the objective.</p>
+  <p><b>Viscous drag</b>, $\propto \|\mathbf{v}\|$, is the only one between them. It is weak
+  enough that any nonzero gradient can still produce motion, and strong enough that motion
+  stops when the gradient no longer justifies it.</p>
+</div>
+
+<p>So the form of the momentum update is not a convenient choice among several. It is the
+<b>unique</b> integer power of velocity that both permits convergence and guarantees it, and
+the two neighbouring powers fail in the two available ways.</p>
+
+<h3><span class="num">§15</span> Nesterov momentum</h3>
+
+<p>One line changes, and it is worth understanding because the change is smaller than the
+usual descriptions suggest.</p>
+
+<div class="box def">
+  <span class="label">Nesterov momentum</span>
+  <p>$$\mathbf{v} \leftarrow \alpha\mathbf{v} - \epsilon\,\nabla_{\boldsymbol{\theta}}
+  \Big[\tfrac1m\textstyle\sum_i L\big(f(\mathbf{x}^{(i)};\,\boldsymbol{\theta} + \alpha\mathbf{v}),\,y^{(i)}\big)\Big],
+  \qquad \boldsymbol{\theta} \leftarrow \boldsymbol{\theta} + \mathbf{v}$$</p>
+  <p>The <b>only</b> difference from standard momentum is where the gradient is evaluated:
+  after the current velocity has been applied, rather than before.</p>
+</div>
+
+<p>The interpretation that makes it obvious: you already know you are about to move by
+$\alpha\mathbf{v}$, whatever the gradient says. So evaluate the gradient <b>where you are
+going</b> rather than where you are. If the surface has started to curve upward at the
+landing point, you find out before committing rather than after, and the correction is applied
+one step earlier.</p>
+
+<figure>
+  <img src="figures/op/06-nesterov.svg" alt="Momentum and Nesterov trajectories on an ill-conditioned quadratic, and distance to the optimum">
+  <figcaption><b>Figure 6.</b> Identical learning rate 0.03, identical $\alpha = 0.9$, on a
+  quadratic with curvature ratio 22:1, inside the stability limit, so neither method is being
+  flattered. Left: momentum overshoots the steep direction repeatedly and swings across the
+  valley; Nesterov damps the overshoot within a few steps and travels along the floor. Right:
+  Nesterov reaches within 0.01 of the optimum at iteration <b>49</b>, momentum at
+  <b>104</b>, and after 120 steps Nesterov is <b>3.6×</b> closer.</figcaption>
+</figure>
+
+<p>The theory is precise and its limits should be stated with it. In the <b>convex batch</b>
+case Nesterov improves the excess error from $O(1/k)$ to $O(1/k^2)$, which is a genuine
+acceleration and the reason the method is celebrated. In the <b>stochastic</b> case (the one
+you are in) <b>it does not improve the convergence rate at all</b>.</p>
+
+<p>That does not make it useless, and Figure 6 is not a trick: the damping is real and costs
+nothing, which is why it is a checkbox on most optimisers. But the honest summary is that
+Nesterov momentum is a modest practical improvement whose famous theoretical guarantee applies
+to a setting deep learning is not in.</p>
+
+<h3><span class="num">§16</span> Initialisation: what the scale has to achieve</h3>
+
+<p>Part VII §11 derived the $1/\sqrt{n_{\text{in}}}$ rule from the forward pass, and the factor
+of two that ReLU adds. That derivation looked at half the problem. Here is the other half, and
+it changes the answer.</p>
+
+<p>Consider a layer with $m$ inputs and $n$ outputs, weights of variance $s^2$.</p>
+
+<ul>
+  <li><b>Forward</b>: each output sums $m$ terms, so the activation variance is multiplied by
+  $m s^2$. Preserving it requires $s^2 = 1/m$.</li>
+  <li><b>Backward</b>: each input's gradient sums $n$ terms, so the gradient variance is
+  multiplied by $n s^2$. Preserving <i>that</i> requires $s^2 = 1/n$.</li>
+</ul>
+
+<p>Unless $m = n$, <b>you cannot have both.</b> This is not a subtlety to be resolved by a
+cleverer derivation; it is a genuine conflict between two things you want, and every
+initialisation scheme is a position on it.</p>
+
+<div class="box def">
+  <span class="label">Glorot's normalised initialisation</span>
+  <p>$$W_{i,j} \sim U\!\left(-\sqrt{\frac{6}{m+n}},\; \sqrt{\frac{6}{m+n}}\right)
+  \qquad\text{giving}\qquad s^2 = \frac{2}{m+n}$$</p>
+  <p>The harmonic-mean compromise: forward variance is multiplied by $2m/(m+n)$ and backward
+  by $2n/(m+n)$, so both are wrong, and both are wrong by less than either single-sided rule
+  is wrong in its bad direction.</p>
+  <p>The derivation assumes the network is a chain of matrix multiplications with <b>no
+  nonlinearities</b>, which real networks obviously violate. It works anyway, which is a
+  recurring pattern: strategies designed for the linear model transfer surprisingly well.</p>
+</div>
+
+<figure>
+  <img src="figures/op/07-init-scale.svg" alt="Forward activation variance and backward gradient variance against layer, for three initialisation scales">
+  <figcaption><b>Figure 7.</b> Eight layers, each halving the width from 2048 to 8, so
+  $m = 2n$ throughout and the conflict cannot cancel. Left: fan-in scaling holds the forward
+  variance flat (×1.1 overall) while fan-out inflates it <b>268×</b>. Right: exactly reversed,
+  fan-out is flat (×1.09); fan-in loses a factor of <b>230</b>. Glorot is off by 8.6×
+  forward and 29× backward: wrong in both directions, and its <b>worst</b> error is an order
+  of magnitude smaller than either specialist's. That is what "compromise" means, measured.
+  </figcaption>
+</figure>
+
+<h4>Beyond the variance rules</h4>
+
+<p>Three refinements are worth knowing, each addressing something the variance argument
+misses.</p>
+
+<p><b>Orthogonal initialisation.</b> Initialise each weight matrix to a random orthogonal
+matrix, scaled by a <b>gain</b> $g$ chosen for the nonlinearity in use. Under the linear model
+this guarantees that the number of iterations to convergence is <b>independent of depth</b>,
+a much stronger property than variance preservation, which only controls the scale on average.
+Setting the gain correctly turns out to be enough on its own: feedforward networks of a
+<b>thousand layers</b> have been trained with ordinary random weights and a correct gain, and
+no orthogonality at all.</p>
+
+<p><b>Sparse initialisation.</b> Every rule of the form $s = 1/\sqrt{m}$ has a side effect: as
+layers get wide, every individual weight becomes tiny. Sparse initialisation instead gives
+each unit exactly $k$ nonzero incoming weights, of ordinary size. The total input to a unit is
+then independent of $m$ without the individual magnitudes shrinking, and the units are far
+more diverse at the start.</p>
+
+<p>Its cost is a strong implicit prior: the weights chosen to be large are large by accident,
+and gradient descent takes a long time to shrink a weight that should not have been large.
+That makes it a poor fit for architectures whose filters must be coordinated with one another,
+maxout units being the standard example.</p>
+
+<div class="box why">
+  <span class="label">Why bigger is not simply better, in three tensions</span>
+  <p>Larger initial weights are good for several reasons at once. They break symmetry more
+  decisively, so fewer units end up redundant. They preserve signal through the linear part of
+  each layer in both directions. And they keep you away from the flat region near zero.</p>
+  <p>They are also bad for several reasons at once. They can explode in the forward or
+  backward pass. In recurrent networks they produce chaos, a sensitivity to input so extreme
+  that a deterministic forward pass looks random. And they push activation functions into
+  saturation, where the gradient is gone entirely, which is Part VII §19's failure.</p>
+  <p>There is a third consideration that is not about optimisation at all. Because SGD makes
+  small incremental changes and tends to halt near where it started, initialising at
+  $\boldsymbol{\theta}_0$ acts like a <b>Gaussian prior centred on $\boldsymbol{\theta}_0$</b>,
+  Part VIII §14's early-stopping-equals-weight-decay result, read as a statement about
+  initialisation. Choosing $\boldsymbol{\theta}_0$ near zero is then a substantive claim: that
+  units are more likely <i>not</i> to interact than to interact, and should interact only
+  where the data insists. Initialising large asserts the opposite, and specifies which
+  interactions you expect.</p>
+  <p>So the optimisation view wants larger weights and the regularisation view wants smaller
+  ones, and they are answering different questions. This is why the theoretically optimal
+  scale routinely fails to be the best scale in practice: the criterion may be wrong, the
+  property may not survive the first few updates, or it may speed optimisation while hurting
+  generalisation.</p>
+</div>
+
+<h3><span class="num">§17</span> Initialisation: biases, and a protocol that beats searching</h3>
+
+<p>Weights get all the attention. Biases are easier, and there are four cases where the
+default of zero is wrong in a way that costs you real performance.</p>
+
+<div class="box def">
+  <span class="label">When a bias should not start at zero</span>
+  <p><b>Output biases, to match the marginal.</b> If the initial weights are small, the output
+  is determined by the bias alone. So set the bias to the inverse of the output nonlinearity
+  applied to the training set's marginal statistics: for a classifier with class frequencies
+  $\mathbf{c}$, solve $\text{softmax}(\mathbf{b}) = \mathbf{c}$. The model then begins by
+  predicting the base rates rather than a uniform distribution, and does not waste its early
+  steps learning what a single pass over the labels would have told it.</p>
+  <p><b>ReLU biases, to avoid starting dead.</b> Setting a ReLU's bias to $0.1$ rather than
+  $0$ keeps the unit off the flat side at initialisation. Do not combine this with schemes
+  that assume the bias contributes nothing, such as random-walk initialisation.</p>
+  <p><b>Gate biases, so the gate starts open.</b> Where a unit $h \in [0,1]$ multiplies another
+  unit's output $u$, a gate that starts closed means $u$ receives no gradient and never gets a
+  chance to learn. Initialise $b_h$ so $h \approx 1$. This is why the standard advice is to
+  set an LSTM's forget-gate bias to $1$.</p>
+  <p><b>Variance and precision parameters</b> may safely start at $1$; or set the biases to
+  produce the correct marginal mean and the variance parameters to the training set's marginal
+  variance.</p>
+</div>
+
+<p>The output-bias rule is the one most often skipped and the easiest to justify. On a problem
+with 99% negatives, a zero bias starts the model predicting 50/50, and the first phase of
+training is spent undoing that. It is free information and it takes one line.</p>
+
+<div class="box why">
+  <span class="label">A protocol that is cheaper than hyperparameter search</span>
+  <p>When you can afford it, treating each layer's initial scale as a hyperparameter and
+  searching over it is the reliable answer. There is a much cheaper procedure that usually
+  gets close, and it needs no validation set and no trained model:</p>
+  <ol class="tight">
+    <li>Push <b>a single minibatch</b> through the freshly initialised network.</li>
+    <li>Look at the range or standard deviation of the activations at each layer.</li>
+    <li>Find the first layer where they have become unacceptably small, and increase that
+    layer's weights.</li>
+    <li>Repeat until the activations are reasonable all the way through.</li>
+    <li>If learning is still slow, do the same for the <b>gradients</b> in the backward
+    pass.</li>
+  </ol>
+  <p>The reason this is so much cheaper is structural. Hyperparameter search gets its feedback
+  from a <i>trained</i> model on a validation set, one full training run per candidate. This
+  gets its feedback from the <i>initial</i> model on one batch. It is seconds against hours,
+  and it can be automated.</p>
+  <p>It is also the diagnostic to run first when a deep network will not train at all, before
+  touching the optimiser. Part VII §11's figure is this measurement made once; the protocol is
+  that measurement turned into a loop.</p>
+</div>
+
+<div class="box fw">
+  <span class="label">In the framework: every rule above is a one-liner, and the defaults are not what you derived</span>
+  <p>Having derived the schemes, the mapping is direct. What matters is that PyTorch's
+  <i>default</i> for a linear layer is none of them.</p>
+<pre><code><span class="k">import</span> torch.nn <span class="k">as</span> nn
+
+lin = nn.Linear(<span class="n">512</span>, <span class="n">128</span>)
+
+nn.init.xavier_uniform_(lin.weight)                        <span class="c"># Glorot, section 16</span>
+nn.init.kaiming_normal_(lin.weight, nonlinearity=<span class="s">"relu"</span>)   <span class="c"># He, Part VII section 11</span>
+nn.init.orthogonal_(lin.weight, gain=nn.init.calculate_gain(<span class="s">"relu"</span>))
+nn.init.zeros_(lin.bias)
+</code></pre>
+  <p><b>What each piece corresponds to.</b> <code>xavier_uniform_</code> draws from
+  $U(-a, a)$ with $a = \text{gain}\sqrt{6/(m+n)}$, the bound in §16's box, with
+  <code>gain</code> the $g$ of the orthogonal discussion. <code>kaiming_normal_</code> uses
+  $\mathcal{N}(0, 2/m)$, the factor of two being ReLU's. <code>calculate_gain</code> returns
+  the $g$ derived for each nonlinearity: $\sqrt{2} \approx 1.414$ for ReLU, $5/3 \approx
+  1.667$ for tanh, and exactly $1$ for sigmoid and for no nonlinearity at all. That tanh wants
+  a gain <i>above</i> one is worth a moment's thought: tanh compresses its input toward zero,
+  so the weights must be enlarged to compensate, and the plain $1$ of the linear case is the
+  exception rather than the rule.</p>
+  <p><b>Why it is designed that way, and the trap.</b> A fresh <code>nn.Linear</code> is
+  <b>not</b> initialised by any of these. Its default is
+  $U(-1/\sqrt{m},\, 1/\sqrt{m})$, which has variance $1/(3m)$, a third of the fan-in rule and
+  a sixth of He. It is a historical default that predates both papers and it survives for
+  backward compatibility.</p>
+  <p>For a shallow network the difference is invisible. For a deep ReLU stack it is a factor
+  of six per layer in variance, compounding, and it is a routine cause of a deep network that
+  trains to chance and no further. <b>If you build a deep network from bare
+  <code>nn.Linear</code> layers and never touch the initialisation, you have chosen a scheme,
+  just not one anybody would recommend.</b></p>
+  <p><b>The output-bias rule, which no framework will do for you:</b></p>
+<pre><code>counts = torch.bincount(train_labels, minlength=n_classes).float()
+<span class="k">with</span> torch.no_grad():
+    head.bias.copy_(torch.log(counts / counts.sum()))   <span class="c"># softmax(b) = c</span>
+</code></pre>
+  <p>Since $\text{softmax}(\log \mathbf{c}) = \mathbf{c}$ for any $\mathbf{c}$ summing to one,
+  the log of the class frequencies is the exact solution to §17's equation. On an imbalanced
+  problem this alone removes the early phase where the loss falls quickly and the model has
+  learned nothing but the base rates.</p>
+  <p>Keras spells the same operations
+  <code>tf.keras.initializers.GlorotUniform()</code> and <code>HeNormal()</code>, and its
+  <code>Dense</code> layer defaults to Glorot, a better default than PyTorch's, and a
+  difference worth knowing when porting a model that trains in one and not the other.</p>
+</div>
+
+<h3><span class="num">§18</span> Adaptive methods: choosing, and the honest answer</h3>
+
+<p>Part III §16 derived AdaGrad, RMSProp and Adam as a line of descent, each fixing the
+previous one's flaw. Two things remain to be said: where the idea came from, and which one to
+use.</p>
+
+<p>The origin is older than it looks. <b>Delta-bar-delta</b>, from 1988, adapts a separate
+learning rate per parameter by a rule that needs no algebra to state: if a parameter's partial
+derivative <b>keeps the same sign</b>, that direction is consistent, so increase its rate; if
+the sign <b>flips</b>, you are oscillating across something, so decrease it. It only works
+full-batch; with minibatch noise the sign flips constantly for reasons that have nothing to
+do with the surface, and the modern methods can be read as the same intuition made robust to
+sampling noise by squaring instead of counting sign changes.</p>
+
+<div class="box why">
+  <span class="label">Which optimiser should you use? There is no consensus, and that is the answer</span>
+  <p>The most careful large comparison across many tasks found that the adaptive family
+  performs <b>robustly</b>, and that <b>no single algorithm is best</b>. The methods in
+  routine use (SGD, SGD with momentum, RMSProp, RMSProp with momentum, AdaDelta, Adam) are
+  all defensible, and the choice appears to depend mostly on <b>the user's familiarity with
+  the algorithm</b>, because familiarity is what makes its hyperparameters tunable.</p>
+  <p>That is an uncomfortable conclusion and it is the correct one. It also has a practical
+  reading that is more useful than a ranking: <b>the returns to knowing one optimiser well
+  exceed the returns to picking the right one.</b> Someone who understands what Adam's
+  $\beta_2$ does will beat someone who switched to the current favourite and left the defaults
+  alone.</p>
+  <p>Part III §16's caveat stands alongside this: well-tuned SGD with momentum still
+  generalises better than Adam on some problems, particularly in vision, even while Adam
+  reaches a lower training loss faster. Lower training loss is not the objective, per §1.</p>
+</div>

@@ -1,0 +1,362 @@
+<h2>The architecture</h2>
+
+<p class="lede">How the book is built, why it is ordered this way, and what each part is
+for. Read this once; return to it whenever you want to know where you are.</p>
+
+<h3><span class="num">§</span> The spine</h3>
+
+<p>Everything rests on a single claim: <b>an intelligent system is a function with
+adjustable parameters, and learning is adjusting them to reduce a measured error.</b> That
+sentence contains the whole book. Unpacking it honestly is what takes the pages.</p>
+
+<div class="roadmap-row"><span class="n">what</span><span class="d">A <b>function</b>, so we need functions, composition, and how to differentiate them. <b>Part 0.</b></span></div>
+<div class="roadmap-row"><span class="n">on what</span><span class="d">Acting on <b>vectors and matrices</b>, so we need linear algebra. <b>Part I.</b></span></div>
+<div class="roadmap-row"><span class="n">under what</span><span class="d">Under <b>uncertainty</b>, producing distributions rather than answers, so we need probability, and information theory to measure the gap between distributions. <b>Part II.</b></span></div>
+<div class="roadmap-row"><span class="n">how</span><span class="d">Computed in <b>finite precision</b> on real hardware, so we need numerical methods. <b>Part III.</b></span></div>
+<div class="roadmap-row"><span class="n">with what</span><span class="d">Expressed through a <b>framework</b> that records what your code did, so we need to read one. <b>Part IV.</b></span></div>
+<div class="roadmap-row"><span class="n">why it works</span><span class="d">Generalising to <b>data never seen</b>, so we need the theory of learning. <b>Part V.</b></span></div>
+<div class="roadmap-row"><span class="n">the systems</span><span class="d">And then the architectures themselves: networks, regularization, optimization, convolution, sequences, attention, representation, generation, scale. <b>Parts VI onward.</b></span></div>
+
+<h3><span class="num">§</span> Where each part goes</h3>
+
+<p>Each part is built toward one destination. Knowing the destination makes the route
+legible.</p>
+
+<table>
+  <thead><tr><th>Part</th><th>Ends at</th><th>Why that is the destination</th></tr></thead>
+  <tbody>
+    <tr>
+      <td><b>0</b><br><span class="small muted">Mathematics</span></td>
+      <td>One backpropagation step, by hand</td>
+      <td>Every symbol in a training loop, computed with real numbers on paper. Once you
+      have done it once, everything after is scale.</td>
+    </tr>
+    <tr>
+      <td><b>I</b><br><span class="small muted">Linear algebra</span></td>
+      <td>Principal components, derived from nothing</td>
+      <td>The first genuine learning algorithm, and it turns out to be an
+      eigendecomposition asked the right question.</td>
+    </tr>
+    <tr>
+      <td><b>II</b><br><span class="small muted">Probability</span></td>
+      <td>Cross-entropy, from maximum likelihood</td>
+      <td>The objective nearly every model is trained on, shown to be not a convention but
+      a consequence.</td>
+    </tr>
+    <tr>
+      <td><b>III</b><br><span class="small muted">Numerical computation</span></td>
+      <td>Least squares, three ways, one of which fails</td>
+      <td>Three algorithms, identical in exact arithmetic. In floating point one collapses
+      where the others are comfortable. Algebraic equivalence is not numerical
+      equivalence.</td>
+    </tr>
+    <tr>
+      <td><b>IV</b><br><span class="small muted">The framework</span></td>
+      <td>A training run you can debug rather than restart</td>
+      <td>Placed here because every line of a training loop has now been derived. Nothing in
+      it is a magic word.</td>
+    </tr>
+    <tr>
+      <td><b>V</b><br><span class="small muted">Statistics</span></td>
+      <td>The bias–variance decomposition, and where it breaks</td>
+      <td>The identity that organises every later technique, followed by the honest account
+      of why the classical U-curve does not describe modern networks.</td>
+    </tr>
+    <tr>
+      <td><b>VI</b><br><span class="small muted">Machine learning</span></td>
+      <td>The manifold hypothesis</td>
+      <td>Why the classical methods hit a wall, and why composition rather than smoothness is
+      the prior that gets past it. The argument for depth, made before any network.</td>
+    </tr>
+    <tr>
+      <td><b>VII</b><br><span class="small muted">Neural networks</span></td>
+      <td>An automatic differentiation engine, in twenty lines</td>
+      <td>The point at which a framework stops being a black box, because you have written
+      the part that seemed like magic.</td>
+    </tr>
+    <tr>
+      <td><b>VIII</b><br><span class="small muted">Regularization</span></td>
+      <td>Six techniques shown to be the same technique</td>
+      <td>Input noise <i>is</i> weight decay; early stopping traverses the same family.
+      The measurements are in the part, not the footnotes.</td>
+    </tr>
+    <tr>
+      <td><b>IX</b><br><span class="small muted">Optimization</span></td>
+      <td>A diagnostic ladder for a run that will not train</td>
+      <td>Six measurements that cost almost nothing and between them eliminate most of the
+      folklore, starting with the one that proves you are nowhere near a local minimum.</td>
+    </tr>
+    <tr>
+      <td><b>X</b><br><span class="small muted">Convolutional models</span></td>
+      <td>An assumption about space, priced exactly</td>
+      <td>One symmetry, encoded so firmly the model cannot consider anything else, and every
+      property of the architecture follows from it, including all four of its limits.</td>
+    </tr>
+    <tr>
+      <td><b>XI</b><br><span class="small muted">Sequence models</span></td>
+      <td>An unsolved problem, stated precisely</td>
+      <td>Sharing across time buys any length and costs a path between distant positions that
+      grows with the sequence. The part ends on the four things it could not do, because the
+      next one is organised around removing them.</td>
+    </tr>
+    <tr>
+      <td><b>XII</b><br><span class="small muted">Attention</span></td>
+      <td>A capability nobody designed</td>
+      <td>Removing the bottleneck bought a constant path length and cost an unbounded state,
+      and produced, unasked, a model that learns a task from examples in its prompt with no
+      weight changing.</td>
+    </tr>
+    <tr>
+      <td><b>XIII</b><br><span class="small muted">Data</span></td>
+      <td>What a dataset commits you to</td>
+      <td>Scale improves precision and does nothing for validity. Every other decision in this
+      book is revisable by spending compute; the frame you sampled from is not.</td>
+    </tr>
+    <tr>
+      <td><b>XIV</b><br><span class="small muted">Practice</span></td>
+      <td>Diagnose before treating</td>
+      <td>Every remedy in this book treats one condition and makes another worse. The
+      instruments that tell you which condition you have cost minutes; the habit of reaching
+      for them before reaching for a fix is the part.</td>
+    </tr>
+    <tr>
+      <td><b>XV</b><br><span class="small muted">Representation</span></td>
+      <td>The objective decides what is kept</td>
+      <td>A representation is the exact solution of the problem posed. Every surprise in the
+      part came from the problem being subtly different from the one intended, which is a
+      question you can answer on paper, before spending the compute.</td>
+    </tr>
+    <tr>
+      <td><b>XVI</b><br><span class="small muted">Generative</span></td>
+      <td>One question, five answers</td>
+      <td>Every generative model is a different thing to do about the normalising constant.
+      Score-based methods won because they did not relocate the difficulty; they
+      differentiated it away.</td>
+    </tr>
+    <tr>
+      <td><b>XVII</b><br><span class="small muted">Scale</span></td>
+      <td>Arithmetic before anything else</td>
+      <td>Memory, communication, the pipeline bubble and the compute-optimal split are all
+      counting, done before any hardware is requested. And an empirical law inherits every
+      choice made in the runs behind it.</td>
+    </tr>
+    <tr>
+      <td><b>XVIII</b><br><span class="small muted">Reinforcement</span></td>
+      <td>You caused your own data</td>
+      <td>The agent optimises the reward you wrote using data it chose to collect. Both halves
+      cause the difficulties, and every method in the part answers one of them.</td>
+    </tr>
+    <tr>
+      <td><b>XIX</b><br><span class="small muted">Efficiency</span></td>
+      <td>Bandwidth, not arithmetic</td>
+      <td>Generation is limited by memory bandwidth, so quantization works, unstructured
+      sparsity does not, and batching is the largest lever. Measure time, not FLOPs.</td>
+    </tr>
+    <tr>
+      <td><b>XX</b><br><span class="small muted">Language</span></td>
+      <td>One objective, everything else downstream</td>
+      <td>Next-token prediction on enough text produced instruction-following, in-context
+      learning and reasoning as side effects. The tokenizer is chosen first and constrains
+      everything after; evaluation is the part we are worst at.</td>
+    </tr>
+    <tr>
+      <td><b>XXI</b><br><span class="small muted">Alignment</span></td>
+      <td>Present is not used, and absent is not measured</td>
+      <td>A probe finds what a representation holds; only an intervention finds what the network
+      uses. A clean evaluation bounds a failure rate far more weakly than it feels like. Both
+      gaps are arithmetic, and both are where confident claims go wrong.</td>
+    </tr>
+    <tr>
+      <td><b>XXII</b><br><span class="small muted">Causality</span></td>
+      <td>Prediction is not intervention</td>
+      <td>What goes with what does not tell you what changes what, and the gap is bias rather than
+      variance; it does not shrink with data and no diagnostic in Part XIV can see it. Which
+      variables to control for is a claim you defend, not one you fit.</td>
+    </tr>
+    <tr>
+      <td><b>XXIII</b><br><span class="small muted">Theory</span></td>
+      <td>The guarantee ran out; the algorithm took over</td>
+      <td>Finite capacity is exactly what makes learning possible, and modern models have none;
+      they fit random labels, so no distribution-free bound over them says anything. What is left
+      is that the optimiser chooses among the perfect fits, and chooses well.</td>
+    </tr>
+    <tr>
+      <td><b>XXIV</b><br><span class="small muted">Uncertainty</span></td>
+      <td>An interval makes a promise you can check</td>
+      <td>Nominal coverage is a claim, and measuring it separates the methods that keep it from the
+      ones that do not. A guarantee is available for any model at the cost of a calibration set,
+      and it holds exactly until the data stops resembling that set, then fails silently.</td>
+    </tr>
+
+    <tr>
+      <td><b>XXV</b><br><span class="small muted">Tabular</span></td>
+      <td>The family is a prior about the function's shape</td>
+      <td>Trees represent thresholds exactly and hyperplanes as staircases; networks are the
+      reverse. Neither wins on "tabular data"; the generating process decides. And if the rows are
+      ordered, a random split reports a model that does not exist.</td>
+    </tr>
+
+    <tr>
+      <td><b>XXVI</b><br><span class="small muted">Graphs</span></td>
+      <td>An architecture is a declaration about symmetry</td>
+      <td>A graph has no node ordering and a molecule has no orientation, so a model reading either
+      should be built not to notice. Building the symmetry in is exact where learning it is
+      approximate, and the standard way of doing it has one limit that is provable and two that
+      are structural.</td>
+    </tr>
+
+    <tr>
+      <td><b>XXVII</b><br><span class="small muted">Signals</span></td>
+      <td>A symmetry picks a basis, and the basis decides what is easy</td>
+      <td>Convolution is multiplication in frequency, which is the theorem Part X rests on. Every
+      stride is a resampling, and resampling without filtering relabels information rather than
+      losing it. And gradient descent learns low frequencies first, which is most of what this book
+      has been calling implicit regularisation.</td>
+    </tr>
+
+    <tr>
+      <td><b>XXVIII</b><br><span class="small muted">Inference</span></td>
+      <td>Write the model as a distribution and fitting becomes inference</td>
+      <td>A graph is a factorisation, and its treewidth decides whether the posterior is computable
+      at all. When it is not, you choose between an approximation whose error does not shrink with
+      compute and a sampler that cannot tell you when it has arrived. That choice usually decides
+      whether the system works.</td>
+    </tr>
+
+    <tr>
+      <td><b>XXIX</b><br><span class="small muted">Vision</span></td>
+      <td>Some errors are the measurement, not the model</td>
+      <td>Every structured output needs a matching rule and a metric with a threshold in it, and the
+      threshold changes which system is better. But a single view has no scale, a local window has
+      no motion along an edge, and stereo depth error grows with the square of range, none of which
+      a larger network touches.</td>
+    </tr>
+
+    <tr>
+      <td><b>XXX</b><br><span class="small muted">Audio</span></td>
+      <td>Choose the representation with the care you give the model</td>
+      <td>A spectrogram is a guess about how fast the signal changes, a claim that resolution should
+      degrade like hearing's, and the deletion of the half that carries the structure. The cheapest
+      way to align audio to text assumes the output symbols are independent, which costs half the
+      probability mass whenever the audio is ambiguous.</td>
+    </tr>
+
+    <tr>
+      <td><b>XXXI</b><br><span class="small muted">Control</span></td>
+      <td>The policy determines the data, so building it is the smaller half</td>
+      <td>Feedback substitutes for knowledge, so the model matters less than the loop it sits in.
+      A learned model's usable horizon is set by the plant's stability, not the model's accuracy.
+      And a million failure-free miles bounds a failure rate only below one in three hundred
+      thousand.</td>
+    </tr>
+
+    <tr>
+      <td><b>XXXII</b><br><span class="small muted">Systems</span></td>
+      <td>The currency is bytes moved, and the adversary changes the question</td>
+      <td>A machine does a hundred arithmetic operations in the time of one fetch, so the two
+      transformations that make code fast change no arithmetic at all. And once someone is trying to
+      make your system fail, what protects it is the architecture around the model rather than any
+      property of the model.</td>
+    </tr>
+    <tr>
+      <td><b>XXXIII</b><br><span class="small muted">Search</span></td>
+      <td>Computation spent at the moment of use, and what decides whether it helps</td>
+      <td>A heuristic buys far less than advertised and buys it only when nearly exact; move
+      ordering is worth a doubling of search depth. And sampling more candidates raises the
+      accuracy a verifier must have to be worth consulting, because a maximum over more draws
+      finds the tail.</td>
+    </tr>
+  </tbody>
+</table>
+
+<h3><span class="num">§</span> The five load-bearing ideas</h3>
+
+<p>If you retain only five things from the foundations, these are the five. Everything
+else in the completed parts is support for them.</p>
+
+<table class="compact">
+  <thead><tr><th>Idea</th><th>Where</th><th>What it unlocks</th></tr></thead>
+  <tbody>
+    <tr><td><b>The chain rule</b></td><td>0 §17</td><td>Backpropagation. Not analogous to it. It <i>is</i> it.</td></tr>
+    <tr><td><b>A matrix mixes its columns</b></td><td>I §4</td><td>Span, rank, solvability, least squares, PCA</td></tr>
+    <tr><td><b>Eigenvectors are natural axes</b></td><td>I §17</td><td>PCA, curvature, conditioning, the SVD</td></tr>
+    <tr><td><b>Logs turn products into sums</b></td><td>0 §11</td><td>Every likelihood, every loss, every stable implementation</td></tr>
+    <tr><td><b>Training minimises a divergence</b></td><td>II §26</td><td>Why cross-entropy, why squared error, why regularization</td></tr>
+  </tbody>
+</table>
+
+<h3><span class="num">§</span> Dependencies</h3>
+
+<p>The order is close to strictly sequential, which is deliberate. A few specifics worth
+knowing:</p>
+
+<ul>
+  <li><b>Part 0 is required for everything.</b> Nothing later works without the chain rule
+  and logarithms.</li>
+  <li><b>Part II leans on Part I only lightly</b> (in one section, and that section says
+  so). If Part I bruises you, Part II is a genuine chance to rebuild momentum.</li>
+  <li><b>Parts I and II converge</b> in Part II §13, where the covariance matrix turns out
+  to be exactly the symmetric positive-semidefinite object the spectral theorem was built
+  for. That convergence is why PCA exists, and it is the first place the foundations
+  visibly combine.</li>
+</ul>
+
+<h3><span class="num">§</span> Three routes</h3>
+
+<dl>
+  <dt>Building from nothing</dt>
+  <dd>Everything in order, every <b>Try it</b>, Tier 1 and Tier 2 drills in each part.
+  Several weeks at a relaxed pace. This is the intended path and the one the book is
+  optimised for.</dd>
+
+  <dt>Refreshing</dt>
+  <dd>Skim Part 0 but take its checkpoint; slow down at logarithms and the chain rule; read
+  Parts I and II properly. About two weeks.</dd>
+
+  <dt>Reference</dt>
+  <dd>Use the glossary and this map. Every section is self-contained enough to read alone,
+  and cross-references are explicit rather than implied.</dd>
+</dl>
+
+<h3><span class="num">§</span> Code, and the two kinds of it</h3>
+
+<p>This book builds things from nothing. Every algorithm is implemented with NumPy and
+arithmetic, because a method you have written once is a method you can reason about, debug,
+and modify; one you have only called is not.</p>
+
+<p>But nobody works that way in practice, and a book that left you unable to read ordinary
+model code would have failed at its actual job. So there are two kinds of code here, and
+they are visually distinct:</p>
+
+<div class="roadmap-row"><span class="n">plain</span><span class="d"><b>NumPy, in the body text.</b> The idea implemented from scratch, so you can see there is nothing hidden.</span></div>
+<div class="roadmap-row"><span class="n">boxed</span><span class="d"><b>PyTorch, in an <span style="color:#0e7490">In the framework</span> box.</b> The same idea as practitioners actually write it: with what the library is doing, why it is designed that way, and what breaks.</span></div>
+
+<p>The framework boxes are not a reference card. Each one appears only after the thing it
+describes has been derived, and each explains the correspondence rather than assuming it:
+what the arguments mean in terms of the mathematics you just did, which numerical decision
+the function name is hiding, and what the characteristic failure looks like. Where a
+verified snippet reproduces a number computed earlier by hand, it says so: the first of
+them, in Part 0 §24, exists precisely to prove that the hand computation was the real
+thing.</p>
+
+<p>PyTorch is used throughout because it is dominant in research and its API sits closest to
+the notation. TensorFlow and Keras equivalents are given where they differ in a way that
+would actually catch you out (a transposed weight, an unsafe default) rather than
+routinely.</p>
+
+<div class="box why">
+  <span class="label">On the parts still being written</span>
+  <p><span class="partcount">Thirty-four</span> parts are written:
+  mathematical foundations, linear algebra, probability and information theory, numerical
+  computation, the framework, statistics and estimation, machine learning basics, neural
+  networks, regularization, optimization, convolutional models, sequence models, attention and
+  transformers, data, practice and diagnosis, representation learning, generative models, scale,
+  reinforcement learning, efficiency and deployment, language models, alignment,
+  interpretability and consequence, causal inference, learning theory, uncertainty quantification,
+  structured and tabular learning, graph and geometric learning, signals and spectra,
+  probabilistic models and inference, perception in two modalities, control, systems and
+  security, and search and planning.</p>
+  <p>The structure is designed so that arrival costs nothing. A new part is a set of
+  sections, its figures, its drills and its glossary entries. Nothing already written needs
+  to change, and no cross-reference breaks.</p>
+</div>

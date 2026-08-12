@@ -1,0 +1,220 @@
+<h2><span class="part-kicker">Build</span>The project</h2>
+
+<p class="lede">Twelve to sixteen hours. You build an inference toolkit from the joint distribution
+upward (exact, variational and sampled) and use it to measure each method's error against an
+answer you can compute, which is a luxury this subject offers and almost no other does.</p>
+
+<h3><span class="num">P.1</span> What you are building</h3>
+
+<p><b><code>joint</code></b>: graphical models with d-separation, variable elimination,
+forward–backward, a Kalman filter, EM, mean-field and full-covariance variational inference,
+Metropolis–Hastings, Gibbs and Hamiltonian Monte Carlo, and a diffusion sampler in both its forms.</p>
+
+<p>The rule: <b>numpy only, and every approximation compared against something exact</b>. This part
+is the one place where that is always possible, and a method you have not compared is a method you
+are trusting.</p>
+
+<h3><span class="num">P.2</span> Stage 1: structure</h3>
+
+<ol>
+  <li>Represent a directed model and build its full joint. Check it sums to one.</li>
+  <li>Implement d-separation.</li>
+  <li>Sample from a chain, a fork and a collider, and measure conditional correlations.</li>
+  <li>Confirm the graph algorithm and the samples agree on every pair.</li>
+</ol>
+
+<p><b>Deliverable:</b> the agreement table. Step four is the point: d-separation is easy to
+implement subtly wrong and it does not complain when you do.</p>
+
+<h3><span class="num">P.3</span> Stage 2: exact inference</h3>
+
+<ol>
+  <li>Implement variable elimination. Report the largest intermediate factor under three elimination
+  orders.</li>
+  <li>Implement forward–backward and check it against brute-force enumeration.</li>
+  <li>Run the forward recursion unscaled on a long sequence and watch it underflow. Then fix it.</li>
+  <li>Implement Viterbi and construct a case where the best path differs from the per-state
+  argmax.</li>
+  <li>Implement a Kalman filter and check it against the analytic posterior for the prior you gave
+  it.</li>
+</ol>
+
+<p><b>Deliverable:</b> the two exactness checks and the elimination-order table. Step three is worth
+doing before you need it.</p>
+
+<h3><span class="num">P.4</span> Stage 3: learning with latents</h3>
+
+<ol>
+  <li>Implement EM for a Gaussian mixture, asserting monotonicity every iteration.</li>
+  <li>Sweep the component separation and measure how often restarts miss the true components.</li>
+  <li>Choose your recovery criterion so that it discriminates at both ends of the sweep, and say why
+  a fixed likelihood threshold does not.</li>
+  <li>Check separately whether the best restart recovers them.</li>
+</ol>
+
+<p><b>Deliverable:</b> the sweep with error bars, and one paragraph distinguishing the separations
+where EM failed from the ones where the data could not answer.</p>
+
+<h3><span class="num">P.5</span> Stage 4: variational inference</h3>
+
+<ol>
+  <li>Derive and implement mean field for a correlated Gaussian.</li>
+  <li>Verify it independently by gradient ascent on the ELBO.</li>
+  <li>Sweep the correlation and compare against √(1−ρ²).</li>
+  <li>Fit a full-covariance family and confirm the error disappears.</li>
+  <li>Fit a bimodal target with each direction of the KL.</li>
+</ol>
+
+<p><b>Deliverable:</b> Figure 4 reproduced, plus the full-covariance result. Step two matters
+because it separates a claim about the objective from a claim about the optimiser.</p>
+
+<h3><span class="num">P.6</span> Stage 5: sampling</h3>
+
+<ol>
+  <li>Write down your predictions first, in a file, before running anything.</li>
+  <li>Implement Metropolis–Hastings and sweep the proposal scale, reporting acceptance rate and
+  effective sample size together.</li>
+  <li>Implement Gibbs and run it on a strongly correlated target.</li>
+  <li>Implement HMC with leapfrog, and verify energy conservation before trusting anything.</li>
+  <li>Measure effective samples per evaluation for all three, across condition numbers.</li>
+  <li>Reproduce Figure 6 both ways.</li>
+  <li>Score your predictions.</li>
+</ol>
+
+<p><b>Deliverable:</b> the efficiency curves, the two R̂ values, and the scored predictions. Step
+four's energy check is what distinguishes a working leapfrog from one with a sign error, and the
+sign error produces samples.</p>
+
+<h3><span class="num">P.7</span> Stage 6: continuous time</h3>
+
+<ol>
+  <li>Simulate the forward SDE and check its marginal against the closed form.</li>
+  <li>On a mixture whose exact score you can compute, implement the reverse SDE and the
+  probability-flow ODE.</li>
+  <li>Sweep step count and compare both against the target.</li>
+  <li>Run each twenty-four times from one starting point and measure the spread.</li>
+  <li>Replace Euler with a second-order solver and re-run step three.</li>
+</ol>
+
+<p><b>Deliverable:</b> the step-count curves for both integrators and both solvers. Step five is
+where the folk claim about the ODE becomes true, and knowing which step made it true is the
+lesson.</p>
+
+<h3><span class="num">P.8</span> Stage 7: transport</h3>
+
+<ol>
+  <li>Implement W₁ in one dimension by sorting.</li>
+  <li>Compare it with KL as two distributions separate, through and past the point where their
+  supports part.</li>
+  <li>Implement Sinkhorn and watch the coupling sharpen as the regularisation falls.</li>
+</ol>
+
+<p><b>Deliverable:</b> Figure 8 reproduced, and the regularisation at which Sinkhorn stops
+converging.</p>
+
+<h3><span class="num">P.9</span> Stretch</h3>
+
+<ul>
+  <li><b>A junction tree</b>, with the clique sizes reported.</li>
+  <li><b>Loopy belief propagation</b>, against exact answers, including a case where it
+  oscillates.</li>
+  <li><b>A structured variational family</b>, with the recovered variance measured.</li>
+  <li><b>The amortisation gap</b>, measured on a VAE you train.</li>
+  <li><b>A particle filter</b>, with its degeneracy tracked against state dimension.</li>
+  <li><b>A recovery check</b> on an inference method you actually rely on.</li>
+</ul>
+
+<h3><span class="num">P.10</span> Done when</h3>
+
+<ul class="checklist">
+  <li>Your d-separation implementation agrees with sampled correlations on every pair.</li>
+  <li>You have seen an unscaled forward recursion underflow.</li>
+  <li>Forward–backward matches enumeration to machine precision.</li>
+  <li>Your Kalman filter matches the analytic posterior for the prior you gave it.</li>
+  <li>EM's monotonicity assertion has never fired.</li>
+  <li>You can say which of your EM failures were optimisation and which were identifiability.</li>
+  <li>Mean field's variance error matches √(1−ρ²) by two independent routes.</li>
+  <li>You have a full-covariance fit that removes the error entirely.</li>
+  <li>Your HMC conserves energy.</li>
+  <li>You report effective sample size rather than draws.</li>
+  <li>You have produced R̂ = 1.00 on an answer you know is wrong.</li>
+  <li>Your two diffusion samplers agree on the marginals and differ on determinism.</li>
+  <li>You know which solver order makes the ODE cheaper than the SDE.</li>
+  <li>You wrote predictions down before Stage 5 and scored them afterwards.</li>
+  <li>Your README reports one method whose intervals failed a recovery check.</li>
+</ul>
+
+<div class="box why">
+  <span class="label">Why this project</span>
+  <p>Every other part of this book compares methods against each other. Here you can compare them
+  against the truth: the exact posterior, the analytic optimum, the closed-form variational
+  solution, the target's own moments. A method's error stops being a matter of opinion.</p>
+  <p>Stage 5 step six is the one to do even if you skip the rest. Producing a perfect convergence
+  diagnostic on an answer you know is wrong changes permanently how much weight you give one.</p>
+</div>
+
+<h2 class="nobreak"><span class="part-kicker">Assess</span>Checkpoint</h2>
+
+<ul class="checklist">
+  <li>Say how many parameters a joint over n binary variables has, and what factorisation buys.</li>
+  <li>Write the factorisation a directed graph encodes.</li>
+  <li>Say what an arrow does and does not assert, and what would make it causal.</li>
+  <li>Give the three path shapes and say which inverts under conditioning.</li>
+  <li>State d-separation.</li>
+  <li>Give Figure 1's numbers for the chain and the collider.</li>
+  <li>Explain why conditioning on a collider's descendant is also dangerous.</li>
+  <li>Write an undirected model's factorisation and name what it costs.</li>
+  <li>Say why neither graph formalism contains the other.</li>
+  <li>Name three models from earlier parts in plate notation.</li>
+  <li>Distinguish the three inference queries.</li>
+  <li>Explain variable elimination in one sentence.</li>
+  <li>Define treewidth and say what it decides.</li>
+  <li>Give forward–backward's cost against enumeration's.</li>
+  <li>Say why the forward recursion must be scaled.</li>
+  <li>Explain why the Kalman filter stays closed-form.</li>
+  <li>Say what the Kalman gain is, and what it is not.</li>
+  <li>Explain why latent variables break closed-form maximum likelihood.</li>
+  <li>State EM's guarantee and where it comes from.</li>
+  <li>Say whether EM fails more with overlapping or separated components, and why.</li>
+  <li>Distinguish an optimisation failure from an unidentifiable problem.</li>
+  <li>Write the ELBO and identify the gap to the evidence.</li>
+  <li>Say why the variational error does not vanish with compute.</li>
+  <li>Give mean field's assumption and its closed-form error on a Gaussian.</li>
+  <li>Give Figure 4's numbers at ρ = 0.9.</li>
+  <li>Explain why that is a property of the objective and not the optimiser.</li>
+  <li>Distinguish the two KL directions and say where the asymmetry actually appears.</li>
+  <li>Define the amortisation gap and say what it adds to.</li>
+  <li>Name three richer variational families and their costs.</li>
+  <li>Write the importance-sampling identity and its effective sample size.</li>
+  <li>Say why an unbiased estimator can be useless.</li>
+  <li>State detailed balance and say whether it is necessary.</li>
+  <li>Explain why Gibbs crawls on a correlated target, and what it shares with mean field.</li>
+  <li>Say what HMC uses that Metropolis does not, and what Figure 5 measures.</li>
+  <li>Write effective sample size and say what standard error to quote.</li>
+  <li>Say what R̂ tests, and give Figure 6's two values.</li>
+  <li>Explain why no diagnostic can prove convergence.</li>
+  <li>Say how Brownian motion scales with time and name three consequences.</li>
+  <li>Write an SDE and say what the extra term in Itô's lemma comes from.</li>
+  <li>Write the reverse-time SDE and name the one quantity that must be learned.</li>
+  <li>Write the probability-flow ODE and give three things it buys.</li>
+  <li>Say what Figure 7 measured about step counts, and how to reconcile it with the usual claim.</li>
+  <li>Name four things the SDE view reframes about Part XVI.</li>
+  <li>Give three families of distance between distributions and what each needs.</li>
+  <li>Say what happens to KL and to W₁ as supports separate.</li>
+  <li>Explain why transport appears inside flow matching.</li>
+  <li>Give the order of questions for choosing an inference method.</li>
+</ul>
+
+<div class="box fw">
+  <span class="label">The framework, and the posterior</span>
+  <p>Dataset, model family, loss, optimiser. Part XXV said the family is a prior about the shape of
+  the function; Part XXVI said the prior can be a symmetry; Part XXVII said a symmetry picks a
+  basis. This part says what happens when you write the model down as a <b>distribution</b> rather
+  than a function: the loss becomes a likelihood, fitting becomes inference, and the answer is a
+  posterior rather than a point.</p>
+  <p>What you get is uncertainty that comes from the model rather than being bolted on, which is
+  Part XXIV's subject arriving from underneath. What you pay is that the posterior is almost never
+  computable, so you choose between an approximation whose error does not shrink and a sampler that
+  cannot tell you when it has arrived. That choice, not the model, is usually what decides whether
+  a probabilistic system works.</p>
+</div>

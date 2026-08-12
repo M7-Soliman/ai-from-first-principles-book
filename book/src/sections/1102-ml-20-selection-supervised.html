@@ -1,0 +1,367 @@
+<h2><span class="part-kicker">Part C</span>Choosing a model</h2>
+
+<h3><span class="num">§9</span> Hyperparameters and the validation set</h3>
+
+<div class="sixty">
+  <span class="label">In 60 seconds</span>
+  <p>Parameters are fitted by the training procedure; <b>hyperparameters</b> are chosen by
+  you: capacity, learning rate, $\lambda$. They cannot be chosen on training data, because
+  the training set always prefers more capacity. They must not be chosen on test data,
+  because that spends the test set. Hence a third split: the <b>validation set</b>.</p>
+</div>
+
+<figure>
+  <img src="figures/ml/14-splits.svg" alt="Data split into training, validation and test portions">
+  <figcaption><b>Figure 5.</b> The discipline. Parameters are fitted on the first block.
+  Every decision you make (capacity, regularization strength, architecture, when to stop)
+  uses the second. The third is touched once, at the end, and reported.</figcaption>
+</figure>
+
+<div class="box pitfall">
+  <span class="label">Pitfall: the validation set overfits too</span>
+  <p>Choose among five models on a validation set and the winner's score is mildly
+  optimistic. Choose among five hundred and it is badly optimistic; this is Part V §14
+  exactly, with configurations in place of hypotheses.</p>
+  <p>So the validation set is <i>also</i> consumed by use, just more slowly than the test
+  set. Two consequences worth acting on: report the <b>test</b> score for the selected
+  model rather than its validation score, and if you have run an enormous search, treat even
+  the test score as an upper bound and say how large the search was.</p>
+</div>
+
+<h3><span class="num">§10</span> Cross-validation</h3>
+
+<p>Holding out a fixed validation set wastes data and makes your estimate depend on which
+points happened to land in it, which is painful when data is scarce.</p>
+
+<p><b>$k$-fold cross-validation</b> fixes both: split into $k$ blocks, train $k$ times, each
+time holding out a different block, and average the results. Every point is used for
+validation exactly once and for training $k-1$ times.</p>
+
+<figure>
+  <img src="figures/ml/15-cross-validation.svg" alt="Five-fold cross validation showing each fold held out in turn">
+  <figcaption><b>Figure 6.</b> Five-fold cross-validation. Orange is held out. Across the
+  five runs every example serves as validation exactly once, so the estimate uses all the
+  data without any point ever being trained and validated on
+  simultaneously.</figcaption>
+</figure>
+
+<p>The cost is $k$ times the training. The benefit is a lower-variance estimate and no data
+wasted, which is why it is standard when data is expensive and rare when training is.</p>
+
+<div class="box pitfall">
+  <span class="label">Pitfall: cross-validation is a selection tool, not an evaluation</span>
+  <p>Using CV to pick among 50 models and then reporting the winner's CV score as its
+  performance is the optimism of Part V §14 again. The score was the maximum over 50 noisy
+  estimates, and maxima are biased upward.</p>
+  <p>The correct structure is <b>nested</b>: an inner loop selects, an outer loop evaluates
+  the selection procedure. It costs $k^2$ training runs, which is why it is frequently
+  skipped and why so many reported numbers are optimistic.</p>
+</div>
+
+<h3><span class="num">§11</span> Reporting a result you can defend</h3>
+
+<p>Combining this part with Part V, the checklist:</p>
+
+<ul class="checklist">
+  <li>Decisions made on validation data only; test set touched once.</li>
+  <li>An interval on the reported metric (bootstrap it if no formula exists).</li>
+  <li>Comparisons <b>paired</b> on the same examples.</li>
+  <li>The number of configurations tried, stated.</li>
+  <li>Several random seeds, with the spread across them reported.</li>
+  <li>A baseline that is genuinely tuned, not a straw man.</li>
+</ul>
+
+<p>That last one deserves emphasis. A great deal of claimed progress evaporates when the
+baseline is given the same tuning budget as the proposed method, which is a fair-comparison
+failure, not a statistical one, and no amount of interval reporting catches it.</p>
+
+<h2><span class="part-kicker">Part D</span>Supervised algorithms</h2>
+
+<h3><span class="num">§12</span> Linear regression</h3>
+
+<div class="sixty">
+  <span class="label">In 60 seconds</span>
+  <p>Predict a number as a weighted sum of the inputs: $\hat{y} = \mathbf{w}^\top\mathbf{x}
+  + b$. Fit by minimising squared error, which Part II §26 showed is maximum likelihood under
+  Gaussian noise, and which Part III §20 showed how to solve <i>properly</i>. It is the
+  entire supervised learning problem with every difficulty removed.</p>
+</div>
+
+<figure>
+  <img src="figures/ml/04-linear-logistic.svg" alt="A fitted regression line with residuals, and a logistic decision boundary">
+  <figcaption><b>Figure 7.</b> Left: least squares minimises the sum of the squared pink
+  residuals (real fit, real residuals). Right: logistic regression, fitted by gradient
+  descent. The shading is the predicted probability and the dark line is where it crosses
+  a half.</figcaption>
+</figure>
+
+<p>Everything about it is already established. The solution is the pseudoinverse of Part I
+§20; the numerics are Part III §20's three algorithms, of which the textbook one is worst;
+adding $\lambda\|\mathbf{w}\|^2$ gives ridge regression, which is Part V §18's Gaussian
+prior.</p>
+
+<div class="box intuition">
+  <span class="label">Intuition: "linear" is less restrictive than it sounds</span>
+  <p>Linear in the <b>parameters</b>, not in the inputs. Nothing stops you feeding it
+  $x^2$, $\log x$, or products of features; the model is still linear in $\mathbf{w}$ and
+  still solvable in closed form, while the function of $x$ is now curved.</p>
+  <p>This is the whole idea of a <b>basis expansion</b>, and it is the bridge to §15's
+  kernels. The limitation is not curvature; it is that <i>you</i> must choose the features.
+  Deep learning's central claim is that the features can be learned instead.</p>
+</div>
+
+<h3><span class="num">§13</span> Logistic regression</h3>
+
+<p>For classification you want a probability, so pass the same linear score through the
+sigmoid of Part 0 §18:</p>
+
+$$p(y = 1 \mid \mathbf{x}) = \sigma\big(\mathbf{w}^\top\mathbf{x} + b\big)$$
+
+<p>and fit by maximum likelihood, which by Part II §26 means minimising cross-entropy.
+Unlike linear regression there is no closed form, so it is fitted by gradient descent,
+making it the simplest model in this book that requires Part III's machinery.</p>
+
+<div class="box why">
+  <span class="label">Why this matters: this is one layer of a neural network</span>
+  <p>Logistic regression is a linear map, a sigmoid, and a cross-entropy loss, fitted by
+  gradient descent. That is <b>exactly</b> a single-unit neural network with no hidden
+  layer, per Part 0 §24's worked example, at scale.</p>
+  <p>Everything later adds depth between the input and that final layer. The final layer
+  itself, in essentially every classifier you will ever build, is this.</p>
+</div>
+
+<h3><span class="num">§14</span> Support vector machines</h3>
+
+<div class="readnow"><span class="label">Go and read</span><p><span class="src">Boser, Guyon &amp; Vapnik (1992)</span>, <i>A training algorithm for optimal margin classifiers</i>. The kernel trick, arriving. Then <span class="src">Cortes &amp; Vapnik (1995)</span>, <i>Support-vector networks</i>, which adds the soft margin that makes the method usable on data that is not separable. Together they are §§14 and 15, and they are among the cleanest method papers in the field: a fully specified algorithm with its optimisation problem, its dual, and its generalisation argument.</p></div>
+
+<p>Many boundaries separate two clean classes. Which is best? The SVM's answer: the one
+furthest from the nearest points on either side: the <b>maximum margin</b>.</p>
+
+<figure>
+  <img src="figures/ml/05-svm-margin.svg" alt="A maximum margin boundary with support vectors circled">
+  <figcaption><b>Figure 8.</b> Fitted by subgradient descent on the hinge loss. The solid
+  line is the boundary, the dashed lines mark the margin, and the circled points are the
+  <b>support vectors</b>, the only points that matter. Move any other point and the
+  boundary does not change.</figcaption>
+</figure>
+
+<div class="box intuition">
+  <span class="label">Intuition: a wide margin is a bet on robustness</span>
+  <p>A boundary squeezed close to the data will misclassify a new point that lands slightly
+  differently. A boundary with room on both sides tolerates that wobble. Maximising the
+  margin is therefore a structural way of preferring simple, robust separations, a
+  regularizer expressed as geometry rather than as a penalty.</p>
+  <p>That the solution depends on only a handful of points is a real practical property: the
+  model is sparse in its training data.</p>
+</div>
+
+<h3><span class="num">§15</span> Kernels</h3>
+
+<div class="sixty">
+  <span class="label">In 60 seconds</span>
+  <p>If the classes are not linearly separable, map them into a higher-dimensional space
+  where they are. The <b>kernel trick</b> is that many algorithms only ever need <i>inner
+  products</i> between points, so you can compute the inner product in the high-dimensional
+  space directly, without ever constructing the coordinates. Infinite-dimensional feature
+  spaces become computable.</p>
+</div>
+
+<p>That summary is accurate and, on first reading, impossible to believe. Computing an
+inner product in a space whose coordinates you never build sounds like a claim about magic
+rather than arithmetic. It is worth doing the smallest concrete case, because once you have
+seen it work the trick stops being mysterious and becomes almost obvious.</p>
+
+<div class="worked long">
+  <span class="label">Worked: the trick, in two dimensions</span>
+  <p>Take two points in the plane, $\mathbf{x} = (x_1, x_2)$ and $\mathbf{z} = (z_1, z_2)$,
+  and consider the very ordinary-looking function</p>
+  <p>$$k(\mathbf{x}, \mathbf{z}) = (\mathbf{x}^\top\mathbf{z})^2$$</p>
+  <p>Nothing high-dimensional there: take the dot product, square it, done. Two
+  multiplications and a squaring. Now expand it:</p>
+  <p>$(x_1z_1 + x_2z_2)^2 = x_1^2z_1^2 \;+\; 2x_1x_2z_1z_2 \;+\; x_2^2z_2^2$</p>
+  <p>And regroup those three terms so that everything belonging to $\mathbf{x}$ sits on one
+  side and everything belonging to $\mathbf{z}$ on the other:</p>
+  <p>$$= \underbrace{\big(x_1^2,\; \sqrt{2}\,x_1x_2,\; x_2^2\big)}_{\varphi(\mathbf{x})}
+     \cdot \underbrace{\big(z_1^2,\; \sqrt{2}\,z_1z_2,\; z_2^2\big)}_{\varphi(\mathbf{z})}$$</p>
+  <p>Read what just happened. The left-hand side is a dot product in <b>two</b> dimensions,
+  squared. The right-hand side is a dot product in <b>three</b> dimensions, between vectors
+  of quadratic features. They are equal: not approximately, identically.</p>
+  <p>So you have computed an inner product in the lifted space without ever constructing
+  $\varphi(\mathbf{x})$. You did not lift the points. You lifted the <i>inner
+  product</i>.</p>
+</div>
+
+<p>Now scale it, because in two dimensions the saving is nothing: three features instead
+of two. The polynomial kernel $(\mathbf{x}^\top\mathbf{z})^p$ in $d$ dimensions corresponds
+to a feature map with one coordinate for every degree-$p$ monomial, and that count grows
+brutally while the kernel's cost does not move:</p>
+
+<table class="compact">
+  <thead><tr><th>Input dimension $d$</th><th>Degree $p$</th><th>Explicit features</th><th>Cost of $k$</th></tr></thead>
+  <tbody>
+    <tr><td>2</td><td>2</td><td>3</td><td>$O(2)$</td></tr>
+    <tr><td>100</td><td>2</td><td>5,050</td><td>$O(100)$</td></tr>
+    <tr><td>100</td><td>5</td><td>91,962,520</td><td>$O(100)$</td></tr>
+    <tr><td>784</td><td>3</td><td>80,622,640</td><td>$O(784)$</td></tr>
+  </tbody>
+</table>
+
+<p class="mnote">The feature counts are homogeneous-monomial counts $\binom{d+p-1}{p}$, matching
+the homogeneous kernel $(\mathbf{x}^\top\mathbf{z})^p$. The inhomogeneous variant
+$({\mathbf{x}^\top\mathbf{z}+c})^p$ gives the larger $\binom{d+p}{p}$; the kernel here is
+the homogeneous one.</p>
+
+<p>The third row is the argument. Ninety-two million features, and evaluating the kernel
+still costs a hundred multiplications and one exponentiation. The Gaussian kernel
+$\exp(-\|\mathbf{x}-\mathbf{z}\|^2/2\sigma^2)$ pushes this to the limit: its feature map is
+<b>infinite-dimensional</b>, and it costs the same.</p>
+
+<div class="box why">
+  <span class="label">Why it works at all, and what it costs</span>
+  <p>The trick is only available because of a structural fact about the algorithms it is
+  applied to. Write out an SVM, ridge regression, or PCA carefully and the training data
+  appears <b>only inside inner products</b>, never as bare coordinates. Nothing in those
+  procedures ever needs to know where a point <i>is</i>, only how it relates to other
+  points. Replace every $\mathbf{x}^\top\mathbf{z}$ with $k(\mathbf{x}, \mathbf{z})$ and the
+  algorithm runs unchanged in a space it cannot see.</p>
+  <p>The bill arrives elsewhere, and it is the reason for the history box below. Since
+  everything is expressed through pairwise relationships, you need the kernel between every
+  pair of training points: an $m \times m$ matrix. At $m = 10^5$ that is $10^{10}$ entries,
+  and it is quadratic in your dataset rather than in your dimension. Kernels traded a
+  dependence on dimension, which they abolished, for a dependence on data, which they could
+  not.</p>
+</div>
+
+<figure>
+  <img src="figures/ml/06-kernel.svg" alt="Concentric rings unseparable in 2D, separated by a plane after lifting to 3D">
+  <figcaption><b>Figure 9.</b> Two rings, which no line separates. Add a third coordinate
+  $x_1^2 + x_2^2$ and a flat plane separates them cleanly. <b>A linear method in the lifted
+  space is a nonlinear method in the original one.</b></figcaption>
+</figure>
+
+<div class="box history">
+  <span class="label">History: the method that owned the 1990s, and what displaced it</span>
+  <p>Support vector machines arrived from work by Vladimir Vapnik and colleagues, with the
+  kernel formulation appearing in the early <span class="year">1990</span>s. Their theory
+  was elegant, their optimisation was convex (so training was reliable, with none of the
+  local-minimum anxiety attached to neural networks) and they performed superbly.</p>
+  <p>Through the late <span class="year">1990</span>s and <span class="year">2000</span>s
+  they were the default serious classifier, and neural networks were widely regarded as
+  finicky and outmoded. Reviewers were sceptical of them; funding followed the kernels.</p>
+  <p>What changed was not a theoretical breakthrough. Kernel methods need a kernel matrix
+  over pairs of training points, which is quadratic in the dataset size and becomes
+  impossible past roughly a hundred thousand examples. As datasets grew, the method that
+  scaled linearly won, and neural networks scale linearly.</p>
+  <p>The general lesson is worth carrying: <b>the winning method is frequently the one that
+  scales, not the one with the better theory.</b> That pattern recurs.</p>
+</div>
+
+<h3><span class="num">§16</span> Nearest neighbours and decision trees</h3>
+
+<div class="readnow"><span class="label">Go and read</span><p><span class="src">Cover &amp; Hart (1967)</span>, <i>Nearest neighbor pattern classification</i>. The result that a rule with no training procedure at all (keep everything, ask the closest point) has an asymptotic error at most <b>twice the Bayes error</b> (the irreducible floor defined in §6). Then <span class="src">Breiman (2001)</span>, <i>Random forests</i>, for ensembling done properly, and <span class="src">Grinsztajn, Oyallon &amp; Varoquaux (2022)</span> for a careful, honest account of why trees still beat deep networks on tabular data, with the inductive biases identified rather than asserted.</p></div>
+
+<p>The classical divide in model design is between <b>parametric</b> models (which compress the
+training data into a fixed-size parameter vector and discard the data afterwards) and
+<b>non-parametric</b> models, which retain the training data and use it directly at
+prediction time. Nearest neighbours and decision trees are non-parametric: they store the
+data rather than summarising it into parameters, so their prediction cost and memory scale
+with the training set.</p>
+
+<h4>k-nearest neighbours</h4>
+
+<p>To classify a point, find the $k$ closest training points and take a vote. There is no
+training at all: the algorithm is the dataset.</p>
+
+<figure>
+  <img src="figures/ml/07-knn.svg" alt="Nearest-neighbour decision boundaries at k = 1, 5 and 35">
+  <figcaption><b>Figure 10.</b> Real boundaries at three values of $k$. At $k=1$ the
+  boundary is jagged and follows every point (maximum capacity, high variance). At $k=35$ it
+  is nearly a straight line (low capacity, high bias). <b>$k$ is the capacity dial</b>, and
+  it runs backwards: smaller $k$ means more capacity.</figcaption>
+</figure>
+
+<h4>Decision trees</h4>
+
+<p>Repeatedly split the data on one feature at a time, choosing each split to make the
+resulting groups as pure as possible. The result partitions the input space into
+axis-aligned boxes with a constant prediction in each.</p>
+
+<figure>
+  <img src="figures/ml/08-tree.svg" alt="A decision tree partitioning the plane into axis-aligned rectangles">
+  <figcaption><b>Figure 11.</b> A tree grown greedily to depth 4 on real data. Every
+  boundary is parallel to an axis, which is the model's built-in assumption, and it is why a
+  diagonal boundary must be approximated by a staircase.</figcaption>
+</figure>
+
+<div class="box why">
+  <span class="label">Why this matters: trees are still the right answer sometimes</span>
+  <p>On tabular data with mixed types and meaningful individual features, gradient-boosted
+  tree ensembles remain highly competitive with, and often better than, deep networks.
+  This is not nostalgia. Trees natively handle categorical variables, need no feature
+  scaling, are invariant to monotone transformations of any input, and their splits are
+  legible.</p>
+  <p>Section 7's theorem predicts exactly this. Trees assume axis-aligned structure and
+  tabular data frequently has it; convolutional networks assume spatial locality and tabular
+  data has none. <b>The right model is the one whose assumptions match your problem</b>, and
+  "use a neural network" is not a universal answer.</p>
+</div>
+
+<h2><span class="part-kicker">Part E</span>Unsupervised algorithms</h2>
+
+<h3><span class="num">§17</span> PCA, as learning</h3>
+
+<p>Part I §23 derived principal components as an eigendecomposition. Seen from here it is a
+<b>learning algorithm</b>: given unlabelled data, it learns a representation.</p>
+
+<p>The learned object is a linear map to a lower-dimensional code, chosen to lose as little
+variance as possible. It is unsupervised (no targets anywhere) and it is the honest
+baseline for every representation-learning method that follows, since anything more
+complicated should at least beat a rotation.</p>
+
+<div class="box intuition">
+  <span class="label">Intuition: PCA is a linear autoencoder</span>
+  <p>Encode by projecting down, decode by projecting back up, and measure squared
+  reconstruction error. Minimising that error over all linear maps recovers exactly the PCA
+  subspace.</p>
+  <p>That framing is what makes the later chapters legible. An autoencoder with nonlinear
+  layers is the same architecture with the linearity removed, and it can only beat PCA
+  because of that removal. Knowing what PCA achieves tells you precisely what the
+  nonlinearity is buying.</p>
+</div>
+
+<h3><span class="num">§18</span> k-means clustering</h3>
+
+<p>Partition the data into $k$ groups by alternating two steps: assign each point to its
+nearest centre, then move each centre to the mean of its assigned points. Repeat.</p>
+
+<figure>
+  <img src="figures/ml/09-kmeans.svg" alt="k-means iterations converging from random centres to the true clusters">
+  <figcaption><b>Figure 12.</b> Lloyd's algorithm from a random initialisation. Centres move
+  substantially in the first two iterations and are essentially converged by the sixth. Each
+  step provably decreases the objective, which is why it always terminates, and why it can
+  terminate somewhere bad.</figcaption>
+</figure>
+
+<div class="box pitfall">
+  <span class="label">Pitfall: three ways k-means misleads</span>
+  <p><b>It always returns $k$ clusters</b>, whether or not the data has any. Run it on
+  uniform noise and you get a tidy partition that means nothing.</p>
+  <p><b>It converges to a local optimum</b> that depends on initialisation. Standard practice
+  is several restarts, keeping the best objective.</p>
+  <p><b>It assumes round, similarly sized clusters</b>, because assignment is by Euclidean
+  distance. Elongated or nested structure defeats it entirely; Section 7 again, in
+  miniature.</p>
+</div>
+
+<div class="box history">
+  <span class="label">History: published a quarter-century after it was written</span>
+  <p>Stuart Lloyd developed the algorithm at Bell Labs around <span
+  class="year">1957</span>, working on pulse-code modulation: the problem of choosing
+  quantisation levels to represent a signal with as little distortion as possible. The
+  connection is direct: choosing $k$ representative values to minimise squared error is
+  clustering.</p>
+  <p>It circulated as an internal technical memorandum and was not formally published until
+  <span class="year">1982</span>. In the meantime it was rediscovered independently several
+  times, which is the pattern Part I §19 observed for the SVD and for the same reason: ideas
+  that are natural get found repeatedly.</p>
+</div>

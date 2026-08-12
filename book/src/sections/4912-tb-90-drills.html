@@ -1,0 +1,259 @@
+<h2><span class="part-kicker">Practice</span>Drills</h2>
+
+<p class="mvt">Forty-one drills. The harness in <code>parts/25-tabular/drills/</code> covers twenty of
+them with twenty-five tests. Numpy only: building the splitting rule is most of the point, and the
+book has been citing results about trees for nineteen parts without teaching one.</p>
+
+<h3><span class="num">Tier 0</span> Estimate first</h3>
+
+<div class="drill">
+  <div class="head"><span class="tier est">Estimate</span>E1 &middot; What binning saves</div>
+  <p>A million rows and a hundred features, split-searched exactly, against a histogram with 64 bins. Write down the ratio of candidate splits evaluated per node.</p>
+  <div class="ans"><b>Answer.</b> <b>6,400 against 10<sup>8</sup></b>, a factor of <b>15,625</b>. That single ratio is why gradient boosting is practical at scale, and Figure 5 of Part XXV measures the other half of the trade: accuracy improves up to a point, because fewer thresholds means fewer chances to fit noise. <i>Score yourself: within a factor of two is a pass, and an order of magnitude out is worth understanding before you go on.</i></div>
+</div>
+
+<h3><span class="num">Tier 1</span> Warm-up</h3>
+
+<div class="drill">
+  <div class="head"><span class="tier warm">Warm-up</span>W1 · Why not a convolution</div>
+  <p>A table's columns can be reordered without changing the problem. What does that rule out?</p>
+  <div class="ans"><b>Answer.</b> Every architectural prior of Parts X to XII. There is no locality and no translation to be equivariant to, which is why the family that works is the one whose prior is axis-aligned thresholds.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier warm">Warm-up</span>W2 · Read Figure 1</div>
+  <p>Where does the test error bottom, and what is the training error at depth 16?</p>
+  <div class="ans"><b>Answer.</b> Depth 3, and 0.071 with 1,572 leaves. The classical bias-variance curve, visible because a tree's capacity is a number you can count.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier warm">Warm-up</span>W3 · Deep or shallow</div>
+  <p>A bagged tree and a boosted tree. Which should be deep?</p>
+  <div class="ans"><b>Answer.</b> The bagged one. Averaging removes variance, so you want low bias going in. Boosting removes bias, so each term should be a small correction.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier warm">Warm-up</span>W4 · The floor</div>
+  <p>Sixty trees, then six hundred. What stops improving?</p>
+  <div class="ans"><b>Answer.</b> The correlated part. Averaging drives the second term of §9's identity to zero and leaves the first untouched, so the floor is set by how much the trees agree.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier warm">Warm-up</span>W5 · Two importances, two biases</div>
+  <p>Name the bias in impurity importance and in permutation importance.</p>
+  <div class="ans"><b>Answer.</b> Impurity favours features with many distinct values, because more thresholds means more chances at a lucky split. Permutation calls two correlated features unimportant, because permuting either leaves the signal in the other.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier warm">Warm-up</span>W6 · What boosting fits</div>
+  <p>Under squared loss, what is the negative gradient?</p>
+  <div class="ans"><b>Answer.</b> The residual. Which is why the intuitive account (each tree fits what is left over) is exactly the gradient account, for that one loss.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier warm">Warm-up</span>W7 · One hyperparameter or two</div>
+  <p>Learning rate and number of trees. How many decisions is that?</p>
+  <div class="ans"><b>Answer.</b> One. Halving the rate roughly doubles the trees needed, so fix the rate as low as the budget allows and early-stop the count on a validation set.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier warm">Warm-up</span>W8 · Does boosting overfit</div>
+  <p>Answer from Figure 4.</p>
+  <div class="ans"><b>Answer.</b> Yes. At a learning rate of 1 the test error bottoms after 46 trees and rises after. The folk claim comes from AdaBoost's margin behaviour on separable classification and does not transfer.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier warm">Warm-up</span>W9 · The encoder that leaks</div>
+  <p>Why is target encoding dangerous, and what is the repair?</p>
+  <div class="ans"><b>Answer.</b> The category's target mean is computed from rows including the row being encoded, so the feature carries the answer: exactly on a category with one row. Compute it out-of-fold or from preceding rows only.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier warm">Warm-up</span>W10 · Which is calibrated</div>
+  <p>Boosting with logistic loss, or a random forest's vote fraction?</p>
+  <div class="ans"><b>Answer.</b> The boosting. It is minimising a proper scoring rule, so calibration is what it was fitted for. The vote fraction was never fitted to anything.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier warm">Warm-up</span>W11 · Read Figure 7</div>
+  <p>Which family wins where, and what decides it?</p>
+  <div class="ans"><b>Answer.</b> Trees on thresholds and low-dimensional smooth terms; the network on linear targets and three-way products. The shape of the generating function decides it, not the data's format.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier warm">Warm-up</span>W12 · The 18.8</div>
+  <p>What does a random split on a time series buy you?</p>
+  <div class="ans"><b>Answer.</b> A reported error 18.8 times better than the honest one, with every conventional diagnostic passing. The estimand was wrong, not the estimator.</div>
+</div>
+
+<h3><span class="num">Tier 2</span> Core</h3>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C1 · Impurity, and the sum form</div>
+  <p>Implement <code>sse</code> and <code>split_gain</code>, and check they agree.</p>
+  <div class="ans"><b>Answer.</b> They must agree exactly. The sum form is what lets a single cumulative pass evaluate every threshold, and it is the reason a split search is not quadratic.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C2 · Exact split search</div>
+  <p>Implement <code>best_split</code>. Plant a threshold and recover it.</p>
+  <div class="ans"><b>Answer.</b> Within a couple of hundredths. The subtlety is refusing to split between equal values: a threshold there separates identical inputs and cannot generalise.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C3 · Grow a tree</div>
+  <p>Recurse on C2 with a depth limit. Reproduce Figure 1's two curves.</p>
+  <div class="ans"><b>Answer.</b> Training error to near zero, test error turning at a shallow depth. Count the leaves as you go: capacity here is not a proxy, it is the number itself.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C4 · XOR at the root</div>
+  <p>Build a target that is the XOR of two features and try a depth-1 search.</p>
+  <div class="ans"><b>Answer.</b> It finds nothing: neither feature reduces impurity alone. A depth-2 tree represents it exactly. This is what greedy growth costs, and why an ensemble of shallow trees still captures interactions.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C5 · Histogram splitting</div>
+  <p>Implement <code>quantile_bins</code> and <code>histogram_best_split</code>. Check it agrees with the exact search at fine binning.</p>
+  <div class="ans"><b>Answer.</b> It should land within a bin width. Then implement the sibling-subtraction trick (a child's histogram is its parent's minus its sibling's) and only build the smaller side.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C6 · Sweep the bins</div>
+  <p>Reproduce Figure 5, averaging over several seeds.</p>
+  <div class="ans"><b>Answer.</b> Accuracy improves steeply to about 32 bins and then worsens. More thresholds means more chances to fit noise, so the coarse grid is regularising the split choice as well as saving time.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C7 · The averaging identity</div>
+  <p>Implement <code>averaging_variance</code> and <code>variance_floor</code>. Confirm the limit.</p>
+  <div class="ans"><b>Answer.</b> The floor is rho times sigma squared and no number of trees reaches below it. Everything random forests do is an attempt on that first term.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C8 · Out-of-bag</div>
+  <p>Implement <code>oob_mask</code>. Confirm the fraction, then build an out-of-bag error estimate.</p>
+  <div class="ans"><b>Answer.</b> About 1/e, and the estimate is free. It inherits the optimism of a random split whenever the rows are not exchangeable, so it is invalid on a series, for the same reason a random split is.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C9 · Break permutation importance</div>
+  <p>Duplicate an informative column. Measure the importance of each copy.</p>
+  <div class="ans"><b>Answer.</b> Both come out near zero while the pair is essential. Then permute both together and watch the importance appear. Report groups, not columns, whenever columns are correlated.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C10 · Gradient boosting, from the gradient</div>
+  <p>Implement <code>negative_gradient</code>, <code>leaf_value</code> and a stagewise loop.</p>
+  <div class="ans"><b>Answer.</b> Under squared loss the leaf value is the mean of the residuals in it. Then swap in the logistic loss and change nothing else: that substitutability is the point of deriving it as a gradient method.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C11 · Second order</div>
+  <p>Implement <code>structured_gain</code> with the L2 and per-leaf penalties.</p>
+  <div class="ans"><b>Answer.</b> The same expression scores a split and sets the leaf, which is what makes the search and the fit one computation. Confirm a split of a homogeneous node scores negative once gamma is charged.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C12 · Reproduce Figure 4</div>
+  <p>Sweep the learning rate with a fixed tree budget and plot staged test error.</p>
+  <div class="ans"><b>Answer.</b> The largest rate turns around; the smallest is still improving when the budget runs out. Report which curves converged: a 'best error' from an unconverged curve is a statement about the budget.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C13 · Calibration, measured and repaired</div>
+  <p>Implement <code>expected_calibration_error</code>, <code>isotonic_fit</code> and <code>auc</code>. Reproduce Figure 6.</p>
+  <div class="ans"><b>Answer.</b> Boosting with logistic loss comes out best calibrated; the forest's vote fraction needs repair; isotonic moves the AUC by 0.0001. Then fit the calibrator on the training rows instead and watch the failure become invisible.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C14 · Run the comparison properly</div>
+  <p>Reproduce Figure 7: four generating processes, both families tuned on the same grid, eight paired repetitions.</p>
+  <div class="ans"><b>Answer.</b> All four separate, two each way. Then run it once with a single split and see whether you would have believed the ratios: that is the argument for repetitions, made on your own data.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C15 · Leak on purpose</div>
+  <p>Fit a scaler, an imputer and a target encoder on the full table before splitting. Measure the inflation.</p>
+  <div class="ans"><b>Answer.</b> Each one alone is worth something and together they are worth a great deal. Then move every one inside the fold and watch the honest number appear.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C16 · Lags without the future</div>
+  <p>Implement <code>lag_matrix</code> for horizon 1 and horizon 5. Assert no row uses information at or after its target.</p>
+  <div class="ans"><b>Answer.</b> The assertion is the deliverable. Off-by-one errors here are silent, produce excellent validation scores, and are among the most common defects in deployed forecasting code.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C17 · Reproduce Figure 8</div>
+  <p>Fit the same model on a series under a random split and a chronological one.</p>
+  <div class="ans"><b>Answer.</b> 18.8 times apart. Nothing is fitted incorrectly and no row appears twice. Then compare both against the last-value baseline, which is the number that says whether you have a model at all.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C18 · Rolling origin</div>
+  <p>Implement <code>rolling_origin_splits</code> and assert every training index precedes every test index.</p>
+  <div class="ans"><b>Answer.</b> Then run expanding and sliding windows and compare. A large gap between them is evidence the process is changing, which is a diagnostic you get for free from the validation you were doing anyway.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C19 · Beat seasonal naive</div>
+  <p>Implement <code>seasonal_naive</code> and try to beat it on a real seasonal series.</p>
+  <div class="ans"><b>Answer.</b> Harder than expected. Any forecasting result not reported against it should be read as unreported.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C20 · Score a distribution</div>
+  <p>Implement <code>pinball_loss</code> and verify it is minimised at the intended quantile.</p>
+  <div class="ans"><b>Answer.</b> It is, at every tau you test. Then forecast three quantiles rather than a mean, and price a decision with them using Part XXIV §33's threshold.</div>
+</div>
+
+<h3><span class="num">Tier 3</span> Stretch</h3>
+
+<div class="drill">
+  <div class="head"><span class="tier stretch">Stretch</span>S1 · A tree library, end to end</div>
+  <p>Assemble C2, C5 and C11 into a working gradient booster with early stopping and subsampling.</p>
+  <div class="ans"><b>Answer.</b> Roughly two hundred lines. Having written it, the hyperparameters stop being folklore and become things you can see acting.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier stretch">Stretch</span>S2 · Leaf-wise against level-wise</div>
+  <p>Grow trees by always splitting the highest-gain leaf, and compare with level-wise at matched leaf counts.</p>
+  <div class="ans"><b>Answer.</b> Leaf-wise reaches a given training loss with fewer leaves and overfits sooner, which is why it needs its leaf count capped rather than its depth.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier stretch">Stretch</span>S3 · Ordered target statistics</div>
+  <p>Implement the encoding of §20 with the out-of-fold repair, and measure the leak with and without.</p>
+  <div class="ans"><b>Answer.</b> The unrepaired version can look near-perfect in validation. The size of the gap depends on the cardinality of the column, which is worth measuring on your own worst offender.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier stretch">Stretch</span>S4 · Missingness that means something</div>
+  <p>Build data where a field is blank precisely when the target is unusual. Compare learned default directions with imputation.</p>
+  <div class="ans"><b>Answer.</b> The tree finds it and the imputer destroys it. Then ask whether the pattern will survive to production, because that is what decides which behaviour you want.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier stretch">Stretch</span>S5 · Ensemble the two families</div>
+  <p>Average a boosted model and a network on the same tabular problem, weighting on a validation split.</p>
+  <div class="ans"><b>Answer.</b> Usually better than either, and by more when their errors are less correlated: §9's identity, applied across families rather than within one.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier stretch">Stretch</span>S6 · Reconcile a hierarchy</div>
+  <p>Forecast a three-level hierarchy independently, measure the incoherence, then reconcile.</p>
+  <div class="ans"><b>Answer.</b> The independent forecasts do not add up, and reconciliation typically improves accuracy at every level rather than only fixing the arithmetic.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier stretch">Stretch</span>S7 · Coverage along the horizon</div>
+  <p>Reproduce Figure 9, then recalibrate on a rolling recent window and re-measure.</p>
+  <div class="ans"><b>Answer.</b> Recalibrating recovers some of the coverage and not all of it. Report the measured number rather than the nominal one, and if you widen the band to reach the promise, say that you did.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier stretch">Stretch</span>S8 · Audit a tabular model you run</div>
+  <p>Take a deployed model and check the split, the encoders, the calibration and the baseline.</p>
+  <div class="ans"><b>Answer.</b> Most audits turn up a leak or an uncalibrated score. The one to check first is whether anything fitted on the full table crossed the fold boundary.</div>
+</div>

@@ -1,0 +1,133 @@
+<h2><span class="part-kicker">Part C</span>Learning to act</h2>
+
+<p class="mvt">Movement B assumed you know the dynamics. When you do not, there are three things to
+learn instead (the expert's behaviour, the dynamics, or the value function), and each fails in a
+way the others do not.</p>
+
+<h3><span class="num">§17</span> Three things you could learn</h3>
+
+<div class="box shapes">
+  <span class="label">And what each needs</span>
+  <p><b>The policy, from demonstrations.</b> Needs an expert and no reward. Supervised learning,
+  which is why it is by far the easiest to make work and §19 is what goes wrong.</p>
+  <p><b>The dynamics, then plan.</b> Needs interaction and no expert. Sample-efficient, because a
+  model can be trained on every transition regardless of reward, and limited by §21.</p>
+  <p><b>The value or policy, from reward.</b> Part XVIII. Needs interaction and a reward function,
+  and is the least sample-efficient of the three by a wide margin.</p>
+  <p>Deployed systems use combinations, and the combination is usually chosen by what data exists
+  rather than by what would work best.</p>
+</div>
+
+<h3><span class="num">§18</span> Behavioural cloning</h3>
+
+<div class="box def">
+  <span class="label">The simplest thing, and it mostly works</span>
+  <p>Record an expert acting, fit a policy mapping observation to action by supervised learning.
+  No reward function, no exploration, no interaction: every technique in Parts VI to XIV applies
+  unchanged.</p>
+  <p>It is how most deployed driving policies are trained, because fleet data is exactly this and
+  nothing else is available at that scale. And it has one structural defect that no amount of data
+  of the same kind repairs.</p>
+</div>
+
+<h3><span class="num">§19</span> Why a cloned policy drifts</h3>
+
+<figure class="illus">
+  <img src="figures/ct/05-imitation.svg" alt="Schematic of two curves on log axes, one growing faster than the other, for cloned and self-trained policies">
+  <figcaption><span class="illus-tag">Illustrative</span><b>Figure 5.</b> The shape of the problem.
+  A policy trained only on states the expert visited is accurate there and less accurate elsewhere.
+  Its own small errors take it off that distribution, where it is worse, which takes it further off,
+  so the deviation grows faster with horizon than the per-step error suggests. Training on the
+  states the policy itself reaches removes the mechanism, because there is no off-distribution
+  region left. This diagram carries no measured quantities: the actual growth rate is set by how
+  fast the closed loop of policy-and-environment amplifies a small deviation, which is a property of
+  the specific environment and expert, not a constant the mechanism itself fixes.</figcaption>
+</figure>
+
+<div class="box why">
+  <span class="label">What follows, practically</span>
+  <p><b>More expert data does not fix it</b>, because more expert data is more of the same
+  distribution. What fixes it is data from the states the <i>learner</i> visits, labelled by the
+  expert, which requires the expert to be available during training rather than only in a log.</p>
+  <p><b>An intervention log is the cheap version.</b> Every time a safety driver takes over, that is
+  a state the policy reached and an expert action for it. Which is why disengagement data is worth
+  disproportionately more than ordinary driving data, and why a fleet is a data engine rather than a
+  dataset.</p>
+</div>
+
+<h3><span class="num">§20</span> Inverse reinforcement learning</h3>
+
+<div class="box def">
+  <span class="label">Learning the reward instead of the policy</span>
+  <p>Infer the reward function the expert appears to be optimising, then solve for a policy against
+  it. The appeal is generalisation: a reward transfers to a new vehicle or a new road where a cloned
+  policy does not.</p>
+  <p>The difficulty is that the problem is <b>badly ill-posed</b>: many rewards explain the same
+  behaviour, including the constant one, under which everything is optimal. Every method resolves
+  this with an extra assumption, usually that the expert is noisily optimal in a specific way, and
+  the recovered reward is only as meaningful as that assumption.</p>
+</div>
+
+<h3><span class="num">§21</span> How far a learned model can be trusted</h3>
+
+<figure>
+  <img src="figures/ct/06-rollout.svg" alt="Divergence from the true state against rollout length, for unstable, marginal and stable systems, log scale">
+  <figcaption><b>Figure 6.</b> The same one-step model error of 0.02, rolled forward on three
+  systems. On an unstable one the divergence grows at <b>1.0667&times; per step</b>, reaching
+  <b>2.2</b> (twice the initial state) after 60 steps. On a marginally stable one it grows slowly.
+  On a <b>stable</b> one it <b>shrinks</b>, at <b>0.9651&times; per step</b>: the system's own
+  contraction pulls the model's error back faster than the model creates it.</figcaption>
+</figure>
+
+<div class="box why">
+  <span class="label">The number that decides your architecture</span>
+  <p>How long you may roll out a learned model is set by the <b>system</b>, not by the model. The
+  same accuracy that supports a sixty-step plan on a stable plant supports about ten on an unstable
+  one, and no improvement in the model changes the exponent; it only shifts the curve down.</p>
+  <p>Which is the honest reason model-based methods are used for short-horizon control and long
+  horizons are handled some other way. It is also why a stable inner loop is worth building before
+  anything is learned on top: stabilising the plant does not merely make control easier, it extends
+  how far any learned model can see.</p>
+</div>
+
+<h3><span class="num">§22</span> Offline reinforcement learning</h3>
+
+<div class="box def">
+  <span class="label">Learning from a fixed log</span>
+  <p>Part XVIII §40's subject, and the setting that matters here because interaction with a real
+  vehicle is expensive and dangerous. The characteristic failure is <b>extrapolation</b>: the value
+  function is queried at actions the log never contains, over-estimates them because nothing
+  contradicts it, and the policy moves toward exactly those.</p>
+  <p>Every method is a way of not trusting the value function off the data: constrain the policy to
+  the log's support, penalise the value of unseen actions, or estimate uncertainty and be
+  pessimistic. Part XXIV's calibration question, load-bearing rather than decorative.</p>
+</div>
+
+<h3><span class="num">§23</span> Simulation, and the gap</h3>
+
+<div class="box shapes">
+  <span class="label">Four ways across, and what each assumes</span>
+  <p><b>Domain randomisation.</b> Vary the simulator's parameters so widely that reality is one
+  sample from the training distribution. Works, needs no real data, and produces a conservative
+  policy because it must handle every variation at once.</p>
+  <p><b>System identification.</b> Measure the real parameters and simulate those. Precise, and
+  fails when the missing physics is structural rather than parametric.</p>
+  <p><b>Learned residuals.</b> Simulate, then learn the correction from real data. Data-efficient
+  and inherits §21's rollout limit.</p>
+  <p><b>Close the loop fast.</b> A high-rate stabilising controller makes the gap matter less,
+  because errors are corrected before they compound. This is movement A being worth more than it
+  looks.</p>
+</div>
+
+<h3><span class="num">§24</span> What movement C establishes</h3>
+
+<div class="box intuition">
+  <span class="label">Three things</span>
+  <p><b>Cloning fails on its own distribution shift</b>, and more expert data does not repair it;
+  data from the states the learner reaches does.</p>
+  <p><b>A learned model's usable horizon is set by the plant.</b> Figure 6 measures error growing at
+  1.0667&times; per step on an unstable system and <i>shrinking</i> at 0.9651&times; on a stable
+  one.</p>
+  <p><b>So stabilise first.</b> A fast inner loop makes the simulation gap smaller, extends how far
+  a learned model can be trusted, and does both without any learning at all.</p>
+</div>

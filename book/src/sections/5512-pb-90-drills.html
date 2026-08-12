@@ -1,0 +1,271 @@
+<h2><span class="part-kicker">Practice</span>Drills</h2>
+
+<p class="mvt">Forty-three drills. The harness in <code>parts/28-probabilistic/drills/</code> covers
+twenty-two of them with thirty-five tests. Numpy only, and almost every test here compares an
+approximation against the exact answer it approximates, which is what this subject uniquely allows.</p>
+
+<h3><span class="num">Tier 0</span> Estimate first</h3>
+
+<div class="drill">
+  <div class="head"><span class="tier est">Estimate</span>E1 &middot; The size of a joint</div>
+  <p>Forty binary variables. Before computing anything, write down how many numbers the full joint distribution needs, and how many bytes that is at float64. Then write down the same two figures for a model where each variable has at most three parents.</p>
+  <div class="ans"><b>Answer.</b> 2<sup>40</sup> &minus; 1 &asymp; <b>1.1&times;10<sup>12</sup></b> parameters, about <b>8.8 TB</b>. With at most three parents it is 40 &times; 2<sup>3</sup> = <b>320</b> numbers, about <b>2.5 kB</b>. Nine orders of magnitude, from one modelling assumption, and that ratio is the whole reason this part exists. <i>Score yourself: within a factor of two is a pass, and an order of magnitude out is worth understanding before you go on.</i></div>
+</div>
+
+<h3><span class="num">Tier 1</span> Warm-up</h3>
+
+<div class="drill">
+  <div class="head"><span class="tier warm">Warm-up</span>W1 &middot; Three shapes</div>
+  <p>Chain, fork, collider. In which does conditioning on the middle node create dependence?</p>
+  <div class="ans"><b>Answer.</b> The collider. In the chain and the fork conditioning blocks the path; in the collider it opens one. Figure 1 measures +0.004 becoming &minus;0.758.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier warm">Warm-up</span>W2 &middot; Read Figure 1</div>
+  <p>What happens when you condition on a <i>descendant</i> of a collider rather than the collider?</p>
+  <div class="ans"><b>Answer.</b> The same thing, weaker: &minus;0.423 against &minus;0.758. Which is how it happens accidentally: selecting your sample on any consequence of two independent causes is enough.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier warm">Warm-up</span>W3 &middot; The one number</div>
+  <p>What decides whether exact inference is possible in a graphical model?</p>
+  <div class="ans"><b>Answer.</b> Treewidth. Cost is exponential in it, it is 1 for a tree and grows with the side of a grid, and it is a property of the graph you can compute before any data arrives.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier warm">Warm-up</span>W4 &middot; Not an approximation</div>
+  <p>Are forward&ndash;backward and the Kalman filter approximate?</p>
+  <div class="ans"><b>Answer.</b> No. Figure 2 checks both against the exact answer at 5&times;10<sup>&minus;15</sup> and 4&times;10<sup>&minus;11</sup>. They are cheap ways of computing the posterior, not cheap substitutes for it.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier warm">Warm-up</span>W5 &middot; What EM promises</div>
+  <p>State EM's guarantee exactly, and state what it does not promise.</p>
+  <div class="ans"><b>Answer.</b> The observed-data log-likelihood never decreases. It does not promise the global optimum, a good optimum, or convergence in any particular number of steps.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier warm">Warm-up</span>W6 &middot; Read Figure 3</div>
+  <p>Does EM get stuck more often when the mixture components overlap, or when they separate?</p>
+  <div class="ans"><b>Answer.</b> When they separate: 5.5% at 1.5&sigma; rising to 14% at 5&sigma;. Separated components make distinct basins a restart cannot escape; overlapping ones make the surface nearly unimodal. The opposite of the intuition, and it means restarts matter most on the problems that look easiest.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier warm">Warm-up</span>W7 &middot; What the ELBO bounds</div>
+  <p>What is the gap between the ELBO and the log evidence?</p>
+  <div class="ans"><b>Answer.</b> Exactly the KL from your approximation to the true posterior. So maximising the bound is minimising the error, and you cannot read the error off, because computing it needs the posterior.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier warm">Warm-up</span>W8 &middot; Read Figure 4</div>
+  <p>What does mean-field report for the marginal standard deviation at &rho; = 0.9, and what is the truth?</p>
+  <div class="ans"><b>Answer.</b> 0.436 against 1.000: exactly &radic;(1&minus;&rho;&sup2;). The mean is right and the uncertainty is 44% of the truth, and no amount of optimisation changes it.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier warm">Warm-up</span>W9 &middot; Bias that does not shrink</div>
+  <p>Variational inference and MCMC both approximate. What is the difference in how the error behaves with compute?</p>
+  <div class="ans"><b>Answer.</b> MCMC's vanishes in the limit; the variational error converges to the distance from the posterior to the nearest member of your family, which is a floor set by the family and not by the budget.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier warm">Warm-up</span>W10 &middot; Read Figure 6</div>
+  <p>What did R&#770; report on the run that missed half the distribution?</p>
+  <div class="ans"><b>Answer.</b> 1.0000, perfect. And 10.47 on the run that recovered the target correctly. The statistic tests whether chains agree, which is necessary and not sufficient, and chains that never left where they started agree perfectly.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier warm">Warm-up</span>W11 &middot; The square root</div>
+  <p>Over a time step &Delta;, how far does Brownian motion move?</p>
+  <div class="ans"><b>Answer.</b> As &radic;&Delta;, not &Delta;. Everything unfamiliar in stochastic calculus (the nowhere-differentiable path, Itô's extra term, the &radic;dt in the simulator) is that one fact.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier warm">Warm-up</span>W12 &middot; What the reverse needs</div>
+  <p>To run a diffusion backwards, what single quantity must be learned?</p>
+  <div class="ans"><b>Answer.</b> The score, &nabla; log p<sub>t</sub>(x), at every noise level. Everything else in the reverse drift is a process you designed and therefore already know.</div>
+</div>
+
+<h3><span class="num">Tier 2</span> Core</h3>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C1 &middot; Build a joint from a graph</div>
+  <p>Write code that takes a directed graph and conditional tables and returns the full joint. Verify it sums to one.</p>
+  <div class="ans"><b>Answer.</b> A product over nodes of p(x<sub>i</sub> | parents). It sums to one automatically, which is the directed model's advantage over the undirected one: no normalising constant to compute.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C2 &middot; Test independence numerically</div>
+  <p>Sample from a chain and a collider and measure the conditional correlations.</p>
+  <div class="ans"><b>Answer.</b> Figure 1's numbers. Condition by stratifying on the middle variable rather than regressing it out, so the measurement makes no linearity assumption of its own.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C3 &middot; Implement d-separation</div>
+  <p>Write the graph algorithm and check it against sampled correlations.</p>
+  <div class="ans"><b>Answer.</b> Walk every path, tracking whether each node is a collider and whether it or a descendant is conditioned on. The point of checking against samples is that the graph algorithm is easy to get subtly wrong and produces plausible answers when it is.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C4 &middot; Variable elimination, and the order</div>
+  <p>Implement elimination and measure the largest intermediate factor under several orders.</p>
+  <div class="ans"><b>Answer.</b> It varies enormously, and a greedy min-degree heuristic is close to optimal in practice. The largest factor under the best order has one more variable than the treewidth (§11), and its size is what sets the runtime.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C5 &middot; Forward&ndash;backward against enumeration</div>
+  <p>Implement both and compare on short sequences.</p>
+  <div class="ans"><b>Answer.</b> Agreement at about 10<sup>&minus;15</sup>. Comparing against enumeration is the only way to know your recursion's indices are right: a transposed transition matrix produces a plausible posterior.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C6 &middot; Scaling, and why you need it</div>
+  <p>Run the forward recursion without normalising, on a long sequence.</p>
+  <div class="ans"><b>Answer.</b> It underflows to zero: a product of hundreds of probabilities. Normalise each step and accumulate the logs of the scale factors, which also gives the log evidence for free.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C7 &middot; Viterbi is not the marginals</div>
+  <p>Find the most probable path and the sequence of most probable states, and construct a case where they differ.</p>
+  <div class="ans"><b>Answer.</b> Easy to construct, and the per-state answer can have probability zero as a path, if a transition it requires does not exist. Which of the two you want is a modelling question, not a preference.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C8 &middot; Kalman against the analytic posterior</div>
+  <p>Implement the filter for a static scalar state and compare with the closed form.</p>
+  <div class="ans"><b>Answer.</b> Agreement at 10<sup>&minus;11</sup>, provided you compare against the posterior for the prior you actually gave the filter. Comparing a finite-prior filter against the flat-prior formula leaves a residual that belongs to the prior, which is a mistake worth making once.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C9 &middot; Smoothing beats filtering</div>
+  <p>Add the backward pass and measure the error against the truth.</p>
+  <div class="ans"><b>Answer.</b> Strictly lower, most visibly in the middle of the sequence where both directions contribute. The filter conditions on the past; the smoother conditions on everything.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C10 &middot; EM for a mixture</div>
+  <p>Implement it and assert monotonicity on every iteration of every run.</p>
+  <div class="ans"><b>Answer.</b> It holds, and the assertion is worth keeping in the code: a decrease means the E and M steps disagree about the model, which is the standard symptom of an indexing error.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C11 &middot; Restarts, measured properly</div>
+  <p>Sweep component separation and measure how often EM misses the true components. Choose your criterion carefully.</p>
+  <div class="ans"><b>Answer.</b> Not a fixed likelihood threshold: the spread between restarts ranges over three orders of magnitude across such a sweep, so a fixed cutoff measures the cutoff. Use a parameter-space tolerance proportional to the separation, and check separately whether the <i>best</i> restart recovers them, which is what distinguishes an optimisation failure from an unidentifiable problem.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C12 &middot; Derive the ELBO</div>
+  <p>Get from log p(x) to the bound in three lines, and identify the gap.</p>
+  <div class="ans"><b>Answer.</b> Multiply and divide by q inside the integral, apply Jensen. The gap is KL(q &#8214; p(z|x)), which is why the bound is tight exactly when the approximation is exact.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C13 &middot; Mean field on a Gaussian</div>
+  <p>Derive the coordinate-ascent update, then check it against gradient ascent on the ELBO.</p>
+  <div class="ans"><b>Answer.</b> The fitted precision is the diagonal of the true precision matrix, giving a marginal standard deviation of &radic;(1&minus;&rho;&sup2;). Both routes land on the same number, which is what makes Figure 4 a statement about the objective rather than the optimiser.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C14 &middot; Both directions of the KL</div>
+  <p>Fit a single Gaussian to a bimodal target by minimising each direction.</p>
+  <div class="ans"><b>Answer.</b> The reverse KL picks one mode; the forward KL straddles both and puts most of its mass where the target has none. And on a <i>unimodal</i> Gaussian target the forward direction is exactly right, so the asymmetry needs a target the family cannot represent.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C15 &middot; Importance sampling, and its collapse</div>
+  <p>Estimate an expectation with a mismatched proposal and track the effective sample size against dimension.</p>
+  <div class="ans"><b>Answer.</b> It falls off a cliff. A proposal slightly wrong per dimension is catastrophically wrong in fifty, and the estimator stays unbiased the whole way down, which is why unbiasedness is not the property to check.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C16 &middot; Metropolis&ndash;Hastings</div>
+  <p>Implement it and sweep the proposal scale, measuring acceptance rate and effective sample size.</p>
+  <div class="ans"><b>Answer.</b> The optimum is at an acceptance rate well below one (near 0.23 in high dimension) because the quantity that matters is distance travelled, not proposals accepted. Tuning for high acceptance is a common and expensive mistake.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C17 &middot; Gibbs on a correlated target</div>
+  <p>Sample a strongly correlated Gaussian and watch the chain.</p>
+  <div class="ans"><b>Answer.</b> It crawls in tiny axis-aligned steps. Same cause as mean field's failure: an axis-aligned method on a target whose structure is not axis-aligned.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C18 &middot; Effective sample size</div>
+  <p>Implement it and compare against the nominal count on a real chain.</p>
+  <div class="ans"><b>Answer.</b> Frequently one to three orders of magnitude smaller. Report the Monte Carlo standard error from this number; from the nominal count it is fiction.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C19 &middot; Break R&#770; on purpose</div>
+  <p>Reproduce Figure 6 both ways.</p>
+  <div class="ans"><b>Answer.</b> 1.0000 on the wrong answer and 10.47 on the right one. Then vary the separation until the chains start crossing, and notice that the demonstration silently stops working, which is what makes the separation part of the experiment rather than a detail.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C20 &middot; Simulate a diffusion</div>
+  <p>Implement Euler&ndash;Maruyama for the forward process and check the marginal against its closed form.</p>
+  <div class="ans"><b>Answer.</b> They agree, and the &radic;&Delta;t on the noise term is the only difference from an ODE solver. Getting that exponent wrong gives a process that looks plausible and has the wrong variance.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C21 &middot; The two samplers</div>
+  <p>With an exactly known score, run the reverse SDE and the probability-flow ODE and compare.</p>
+  <div class="ans"><b>Answer.</b> Matching means, converging variances, and the ODE deterministic to exactly zero spread from a fixed start. Under Euler the SDE is closer to the target at every step count, which corrects the usual claim: the ODE's advantage comes from admitting higher-order solvers, not from having no noise.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C22 &middot; Wasserstein in one dimension</div>
+  <p>Implement W<sub>1</sub> by sorting, and compare with KL as two distributions separate.</p>
+  <div class="ans"><b>Answer.</b> W<sub>1</sub> grows linearly with slope exactly 1; KL becomes infinite the moment the supports part. That is the gradient a generative model needs early in training and cannot get from a likelihood ratio.</div>
+</div>
+
+<h3><span class="num">Tier 3</span> Stretch</h3>
+
+<div class="drill">
+  <div class="head"><span class="tier stretch">Stretch</span>S1 &middot; Junction tree</div>
+  <p>Implement exact inference on a general graph by triangulating and passing messages between cliques.</p>
+  <div class="ans"><b>Answer.</b> It works, and the clique sizes tell you immediately when it will not: the exponential in treewidth is visible in the memory before it is visible in the clock.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier stretch">Stretch</span>S2 &middot; Loopy belief propagation</div>
+  <p>Run tree message passing on a graph with cycles and compare against exact answers.</p>
+  <div class="ans"><b>Answer.</b> Often surprisingly good, sometimes oscillating and never converging, with no reliable way to tell in advance. Worth doing once to see an algorithm with no guarantee that works anyway, and to see it fail.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier stretch">Stretch</span>S3 &middot; A structured approximation</div>
+  <p>Keep a chain's dependence in the variational family rather than factorising fully, and measure the variance you recover.</p>
+  <div class="ans"><b>Answer.</b> The recovered uncertainty improves in proportion to the dependence you kept, which makes Figure 4's gap a design parameter rather than a fact.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier stretch">Stretch</span>S4 &middot; The amortisation gap, measured</div>
+  <p>Train an encoder, then optimise the variational parameters per data point and compare the ELBOs.</p>
+  <div class="ans"><b>Answer.</b> The per-point optimisation wins, and the difference is the amortisation gap. It adds to the family's own gap, so a VAE's posterior is narrow twice over. Rarely reported, and one line of extra work.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier stretch">Stretch</span>S5 &middot; Hamiltonian Monte Carlo from scratch</div>
+  <p>Implement leapfrog integration, verify energy conservation, and measure effective samples per gradient.</p>
+  <div class="ans"><b>Answer.</b> Energy conservation is the check that catches a wrong sign: a correct implementation drifts slowly and a wrong one diverges. Reproduce Figure 5's widening gap.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier stretch">Stretch</span>S6 &middot; A particle filter, and its degeneracy</div>
+  <p>Implement one for a nonlinear system and track the effective sample size against state dimension.</p>
+  <div class="ans"><b>Answer.</b> It collapses with dimension, for C15's reason. Resampling delays it and does not prevent it, which is why particle filters are used on small state spaces and not on large ones.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier stretch">Stretch</span>S7 &middot; Sinkhorn</div>
+  <p>Implement entropic optimal transport and watch the coupling as the regularisation falls.</p>
+  <div class="ans"><b>Answer.</b> It sharpens toward the exact plan and the iteration becomes unstable, which is the trade. The differentiability of the regularised version is why transport is usable inside a training loop at all.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier stretch">Stretch</span>S8 &middot; Recover parameters you set</div>
+  <p>Take any inference method you rely on. Simulate data from the model with parameters you chose, and check the posterior covers them at its nominal rate.</p>
+  <div class="ans"><b>Answer.</b> This is the only check in the movement that can fail informatively, and it is the one people skip. If your 90% intervals cover the truth 60% of the time, you have learned something no diagnostic would have told you.</div>
+</div>

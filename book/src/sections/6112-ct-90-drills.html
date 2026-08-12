@@ -1,0 +1,271 @@
+<h2><span class="part-kicker">Practice</span>Drills</h2>
+
+<p class="mvt">Forty-three drills. The harness in <code>parts/31-control/drills/</code> covers twenty
+of them with twenty-eight tests. Numpy only, and every plant written down, which is why several of
+these assert an exact optimum rather than a tolerance.</p>
+
+<h3><span class="num">Tier 0</span> Estimate first</h3>
+
+<div class="drill">
+  <div class="head"><span class="tier est">Estimate</span>E1 &middot; What a safety claim costs</div>
+  <p>You want to claim fewer than one serious failure per 10<sup>7</sup> miles, at 95% confidence, from a fleet seeing no failures at all. Before computing anything, write down the miles required. Then write down how many vehicles driving 30,000 miles a year for one year that is, and how much longer it takes to <i>estimate</i> the rate rather than bound it.</p>
+  <div class="ans"><b>Answer.</b> <b>3&times;10<sup>7</sup></b> miles from the rule of three, which is <b>1,000</b> vehicles for a year. Estimating the rate to within 20% needs about 96 events rather than zero, so roughly <b>10<sup>9</sup></b> miles, thirty times more, and about 32,000 vehicle-years. Almost everyone underestimates the second by an order of magnitude, and the gap between bounding and estimating is what makes a safety case hard. <i>Score yourself: within a factor of two is a pass, and an order of magnitude out is worth understanding before you go on.</i></div>
+</div>
+
+<h3><span class="num">Tier 1</span> Warm-up</h3>
+
+<div class="drill">
+  <div class="head"><span class="tier warm">Warm-up</span>W1 &middot; Three things that change</div>
+  <p>What is different about a model whose output acts on the world?</p>
+  <div class="ans"><b>Answer.</b> The data distribution is a consequence of the policy; errors accumulate rather than being independent; and being right too late is being wrong. The third is the one machine-learning training omits entirely.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier warm">Warm-up</span>W2 &middot; What feedback buys</div>
+  <p>Why does a thermostat need no thermodynamics?</p>
+  <div class="ans"><b>Answer.</b> The closed-loop response depends on the plant gain only through k<sub>p</sub>g/(1+k<sub>p</sub>g), which tends to one however large or small g is. High loop gain makes the system's own parameters nearly irrelevant.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier warm">Warm-up</span>W3 &middot; Read Figure 1</div>
+  <p>At what gain is feedback worse than no feedback, and why?</p>
+  <div class="ans"><b>Answer.</b> At k<sub>p</sub> = 1 the closed loop errs by 0.455 against open loop's 0.167. A proportional loop leaves an offset of 1/(1+k<sub>p</sub>g) even with a perfect model, and at low gain that offset exceeds the model error it was meant to suppress.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier warm">Warm-up</span>W4 &middot; What the integral term does</div>
+  <p>Why does integral action remove the offset exactly rather than reducing it?</p>
+  <div class="ans"><b>Answer.</b> At equilibrium the accumulated error must be constant, which requires the error itself to be zero. Any steady offset keeps driving the input until it disappears.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier warm">Warm-up</span>W5 &middot; Read Figure 2</div>
+  <p>What happens above k<sub>i</sub> = 110, and is that the plant's real margin?</p>
+  <div class="ans"><b>Answer.</b> The loop diverges, but 110 is where the figure's dt = 0.02 forward-Euler simulation diverges, not the continuous plant's own boundary. That boundary has a closed form: the characteristic polynomial 0.15s&sup3; + 1.15s&sup2; + 9s + k<sub>i</sub> gives a Routh&ndash;Hurwitz crossing at k<sub>i</sub> &asymp; 69. Exact tracking and stability margin are still traded by one number, and the margin exists only because the actuator cannot move instantly, but measure it against the closed form, not the discretisation.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier warm">Warm-up</span>W6 &middot; Latency is stability</div>
+  <p>Why is a 200&nbsp;ms perception stack a control problem and not only a performance one?</p>
+  <div class="ans"><b>Answer.</b> It is 200&nbsp;ms of dead time in the loop. A correction computed from an old measurement can be pushing the wrong way by the time it lands, and past a point the loop oscillates and then diverges. No amount of accuracy compensates.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier warm">Warm-up</span>W7 &middot; When not to learn</div>
+  <p>You know the dynamics exactly. What should you do?</p>
+  <div class="ans"><b>Answer.</b> Solve for the controller. Learning a policy for a system you have written down is spending samples to rediscover something six lines of linear algebra produce optimally.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier warm">Warm-up</span>W8 &middot; Read Figure 3</div>
+  <p>How far does hand tuning get you, as the state grows?</p>
+  <div class="ans"><b>Answer.</b> Within 0.1% on a double integrator, 78&times; worse on a triple, and on five integrators no PD gain stabilises it at all. The intuition that works on position and velocity gives nothing on five coupled states.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier warm">Warm-up</span>W9 &middot; A clip is not a constraint</div>
+  <p>Why is clipping an optimal controller's output different from constraining it?</p>
+  <div class="ans"><b>Answer.</b> The controller keeps planning as though the limit were absent, so it never chooses the differently shaped trajectory that stays inside. For a state limit clipping is not even available: by the time the state is out of bounds, the decision was several steps ago.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier warm">Warm-up</span>W10 &middot; Why cloning drifts</div>
+  <p>A cloned policy has a small per-step error. Why does its trajectory error grow faster than that suggests?</p>
+  <div class="ans"><b>Answer.</b> Its own errors take it to states the expert never visited, where it is worse, which takes it further off. More expert data does not fix it; data from the states the learner reaches does.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier warm">Warm-up</span>W11 &middot; Read Figure 6</div>
+  <p>The same model error on a stable and an unstable plant. What happens to the rollout?</p>
+  <div class="ans"><b>Answer.</b> It compounds at 1.0667&times; per step on the unstable one and <i>shrinks</i> at 0.9651&times; on the stable one. The usable horizon is set by the plant, not by the model, so stabilise before you learn.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier warm">Warm-up</span>W12 &middot; Read Figure 7</div>
+  <p>Where does exhaustive planning stop?</p>
+  <div class="ans"><b>Answer.</b> About six degrees of freedom: 12&times; more cells per joint, 4.3&times;10<sup>8</sup> at eight. A sampling planner needs 1.32&times; per joint and gives up optimality and any bound on time.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier warm">Warm-up</span>W13 &middot; Read Figure 8</div>
+  <p>A million miles with no failures. What does that establish?</p>
+  <div class="ans"><b>Answer.</b> That the rate is below one per 3&times;10<sup>5</sup> miles, at 95% confidence. Three hundred times weaker than a million miles sounds, and the rule of three is the whole calculation.</div>
+</div>
+
+<h3><span class="num">Tier 2</span> Core</h3>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C1 &middot; Open loop against closed</div>
+  <p>Simulate a first-order plant with a mis-estimated gain, both ways, and sweep the loop gain.</p>
+  <div class="ans"><b>Answer.</b> Figure 1's crossing. The residual offset is exactly 1/(1+k<sub>p</sub>g), which you should check against the simulation rather than assume.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C2 &middot; Add the integral term</div>
+  <p>Implement PI control and find the gain at which it diverges.</p>
+  <div class="ans"><b>Answer.</b> There is no such gain without lag: a PI loop on a pure first-order plant is unconditionally stable. Add an actuator lag and the threshold appears, which is why every real loop has one.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C3 &middot; Add dead time</div>
+  <p>Delay the measurement by k steps and find the gain at which the loop oscillates.</p>
+  <div class="ans"><b>Answer.</b> It falls fast with delay. Then convert your perception latency into steps and read off what loop gain you are allowed, a calculation almost nobody in a machine-learning team performs.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C4 &middot; Solve the Riccati recursion</div>
+  <p>Implement the LQR iteration and verify it converges.</p>
+  <div class="ans"><b>Answer.</b> Six lines. Check that the closed-loop eigenvalues of A &minus; BK are inside the unit circle: if they are not, your Q, R or sign convention is wrong, and the cost will still look finite over a short rollout.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C5 &middot; Nothing beats LQR</div>
+  <p>Search over gains of a restricted form and confirm none costs less.</p>
+  <div class="ans"><b>Answer.</b> None can, for that cost, by construction. If your search finds one, your rollout is too short, your cost is not the one LQR was given, or your recursion has not converged.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C6 &middot; The tuning cliff</div>
+  <p>Reproduce Figure 3 on integrator chains of increasing length.</p>
+  <div class="ans"><b>Answer.</b> Fine on two, 78&times; on three, nothing stabilises five. Note also what happens if you tune the LQR direction instead: it recovers LQR exactly and the comparison becomes vacuous, which is a trap worth falling into once.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C7 &middot; Duality</div>
+  <p>Write the Kalman filter's recursion and the LQR's next to each other.</p>
+  <div class="ans"><b>Answer.</b> The same equations with the roles transposed. Estimation and control are dual problems, which is why one implementation with a flag can serve both and why understanding either gives you the other.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C8 &middot; A receding-horizon loop</div>
+  <p>Implement MPC: optimise over a horizon, apply one step, re-solve.</p>
+  <div class="ans"><b>Answer.</b> Note where the feedback is: in the re-solving, not in the optimisation. Fix the plan and apply it open-loop and the model error is uncorrected, which is the experiment that makes the point.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C9 &middot; Horizon length</div>
+  <p>Shorten the MPC horizon until the controller cannot see a constraint coming.</p>
+  <div class="ans"><b>Answer.</b> It commits to a trajectory it cannot exit. The required horizon is set by how fast the system can stop, not by how far ahead you want to plan.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C10 &middot; Compose transforms</div>
+  <p>Implement rigid transforms and compose a chain of them, then invert one.</p>
+  <div class="ans"><b>Answer.</b> The inverse is not the transpose of the whole matrix: rotation transposes, translation becomes &minus;R<sup>T</sup>t. Getting that wrong produces poses that are plausible and wrong, which is the most common bug in robotics code.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C11 &middot; Rotations, three ways</div>
+  <p>Convert between Euler angles, rotation matrices and quaternions, and find gimbal lock.</p>
+  <div class="ans"><b>Answer.</b> At a pitch of 90&deg; two of the three Euler axes coincide and a degree of freedom disappears. Also check that q and &minus;q give the same rotation: interpolating between them without handling that produces a full extra revolution.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C12 &middot; The Jacobian near a singularity</div>
+  <p>Build a two-link arm, compute its Jacobian, and command a motion at full extension.</p>
+  <div class="ans"><b>Answer.</b> The joint velocity explodes as the determinant goes to zero. Damped least squares bounds it at the cost of tracking error, which is the trade every production inverse-kinematics routine makes.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C13 &middot; Gravity compensation</div>
+  <p>Simulate a two-link arm with and without cancelling the gravity term.</p>
+  <div class="ans"><b>Answer.</b> Without it the controller spends most of its effort holding the arm up and the tracking gains have to be large. With it the arm is nearly weightless and small gains suffice, the highest-value single term in the dynamics.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C14 &middot; Dead reckoning drifts</div>
+  <p>Integrate a noisy velocity measurement and plot position error against time.</p>
+  <div class="ans"><b>Answer.</b> Error grows without bound: as t for a bias and &radic;t for zero-mean noise. That difference is why a bias term must be estimated rather than assumed small.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C15 &middot; Fuse two sensors</div>
+  <p>Combine a drifting fast sensor with a noisy slow one in a filter.</p>
+  <div class="ans"><b>Answer.</b> Better than either, and the covariance tells you when it is not confident. Then drop one sensor mid-run and watch the covariance grow, which a point estimate cannot express.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C16 &middot; Count the cells</div>
+  <p>Compute the grid size for a planner at fixed resolution as degrees of freedom grow.</p>
+  <div class="ans"><b>Answer.</b> 12&times; per joint at the resolution in Figure 7. Arithmetic rather than measurement, and it settles the architecture before any code is written.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C17 &middot; Build an RRT</div>
+  <p>Implement one and measure samples to solution against dimension.</p>
+  <div class="ans"><b>Answer.</b> Nearly flat where the grid is exponential. Then look at the path: jerky and far from optimal, so the gain is feasibility rather than quality and a smoothing pass is a second algorithm.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C18 &middot; Rollout divergence</div>
+  <p>Reproduce Figure 6 on stable, marginal and unstable plants.</p>
+  <div class="ans"><b>Answer.</b> Measure <i>absolute</i> divergence. The relative version is scale-free (it depends only on the ratio of model error to system gain), so all three curves land on top of each other and the experiment cannot test what it is asking.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C19 &middot; The rule of three</div>
+  <p>Derive the 95% upper bound on a rate from zero events in n trials.</p>
+  <div class="ans"><b>Answer.</b> P(zero) = (1&minus;p)<sup>n</sup> &asymp; e<sup>&minus;pn</sup>, set to 0.05, giving p &lt; 3/n. Then compute the miles your fleet needs for the claim you want to make, and notice it is larger than the fleet.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C20 &middot; Bounding against estimating</div>
+  <p>Compute both requirements across target rates.</p>
+  <div class="ans"><b>Answer.</b> Bounding needs about 3/p; estimating to 20% needs about 96/p, thirty times more. Conflating the two is how a safety claim becomes an order of magnitude cheaper than it is.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C21 &middot; Correlated trials</div>
+  <p>Your fleet drives a million miles, all in one city over one month. How many independent trials is that?</p>
+  <div class="ans"><b>Answer.</b> Far fewer than the mileage suggests, because failures cluster by weather, location and time. The rule of three assumes independence, and a bound computed from correlated miles is optimistic by a factor nobody can state precisely, which is why the operational design domain has to be part of the claim.</div>
+</div>
+
+<h3><span class="num">Tier 3</span> Stretch</h3>
+
+<div class="drill">
+  <div class="head"><span class="tier stretch">Stretch</span>S1 &middot; Iterative LQR</div>
+  <p>Linearise about a trajectory, solve, roll out, repeat, on a pendulum swing-up.</p>
+  <div class="ans"><b>Answer.</b> It finds a locally optimal swing-up, and which local optimum depends on the initial trajectory, which is Part XXVIII's EM finding in a different subject.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier stretch">Stretch</span>S2 &middot; Sampling-based MPC</div>
+  <p>Perturb a nominal input sequence, roll out, take a weighted average.</p>
+  <div class="ans"><b>Answer.</b> No derivatives, embarrassingly parallel, and competitive. The weighting temperature is Part XXX §27's parameter doing the same job: deciding how many samples actually contribute.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier stretch">Stretch</span>S3 &middot; Clone, then correct</div>
+  <p>Train a policy on expert states, roll it out, label the states it reached, retrain.</p>
+  <div class="ans"><b>Answer.</b> The drift shrinks with each round, and the improvement comes entirely from the new states rather than the new data volume, which you can check by adding the same amount of extra expert data instead.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier stretch">Stretch</span>S4 &middot; Offline extrapolation</div>
+  <p>Fit a value function to a fixed log and query it off the log's support.</p>
+  <div class="ans"><b>Answer.</b> It over-estimates, confidently, and the policy moves toward exactly those actions. Then add a pessimism term and watch the failure disappear along with some of the performance.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier stretch">Stretch</span>S5 &middot; A shield</div>
+  <p>Build a verified fallback controller and a region it can recover from, and let a learned policy act only inside it.</p>
+  <div class="ans"><b>Answer.</b> The only construction in this part that yields a statement for a safety case. Establishing the region is the work, and it cannot itself be learned.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier stretch">Stretch</span>S6 &middot; Self-play, and its blind spot</div>
+  <p>Train two agents against each other and then against a frozen earlier version.</p>
+  <div class="ans"><b>Answer.</b> The current agent can lose to an ancestor. Beating your own lineage is not the same as being good, which is why populations and past-version pools exist.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier stretch">Stretch</span>S7 &middot; Decompose a safety case</div>
+  <p>Bound perception, planning and control separately, then compose.</p>
+  <div class="ans"><b>Answer.</b> The composition needs independence, which does not hold: fog degrades perception and prediction together. Stating that dependence explicitly is where the argument does its work, and it requires the intermediate representations to exist.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier stretch">Stretch</span>S8 &middot; Audit a system that acts</div>
+  <p>Take something you deploy that takes actions (a robot, a controller, a tool-using agent) and check its loop latency, its recovery behaviour and its stopping condition.</p>
+  <div class="ans"><b>Answer.</b> The most common findings are a loop whose latency nobody has measured and no defined behaviour for "this is not working". Both are control questions and neither shows up in an accuracy metric.</div>
+</div>

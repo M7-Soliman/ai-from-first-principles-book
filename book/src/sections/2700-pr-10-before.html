@@ -1,0 +1,206 @@
+<h2><span class="part-kicker">Part A</span>Before you train</h2>
+
+<h3><span class="num">§1</span> The loop</h3>
+
+<div class="sixty">
+  <span class="label">In 60 seconds</span>
+  <p>Four steps, in this order: decide what you are measuring and what value would be good
+  enough; get an end-to-end system running badly; <b>instrument it</b> until you know which
+  thing is wrong; change that thing. Most wasted effort in this field comes from skipping
+  step three.</p>
+</div>
+
+<div class="box def">
+  <span class="label">The process</span>
+  <ol class="tight">
+    <li><b>Determine your goal.</b> Which error metric, and what value of it would make the
+    system worth having. Both driven by the problem, not by what is easy to compute.</li>
+    <li><b>Establish an end-to-end pipeline as soon as possible</b>, including the measurement.
+    It will be bad. That is the point: a bad number you can improve beats no number.</li>
+    <li><b>Instrument it</b> well enough to identify the bottleneck: overfitting, underfitting,
+    a data defect, or a bug.</li>
+    <li><b>Make one change</b>, based on what the instruments said, and measure again.</li>
+  </ol>
+</div>
+
+<div class="box why">
+  <span class="label">Why the ordering is the whole content</span>
+  <p>Every step is obvious in isolation. The value is in the ordering, and specifically in step
+  three sitting between the problem and the fix.</p>
+  <p>The common failure is to skip it: performance is disappointing, so you try a different
+  architecture, then a different optimiser, then more layers, then a longer schedule. Each is a
+  plausible response to <i>some</i> problem. Without step three you do not know which problem
+  you have, so you are sampling from the space of fixes rather than choosing from it.</p>
+  <p>This part is mostly step three. §34 assembles the instruments into a ladder that runs in
+  the order of what is cheapest to rule out.</p>
+</div>
+
+<h3><span class="num">§2</span> The metric, and the number that would be good enough</h3>
+
+<p>Choosing the metric first is not bureaucracy. Without it you cannot tell whether a change
+helped, and every subsequent decision is guesswork dressed as judgement.</p>
+
+<div class="box def">
+  <span class="label">Two questions, both answered before training</span>
+  <p><b>Which metric?</b> It is usually <i>not</i> the training loss. Cross-entropy is what the
+  optimiser needs; what you care about is some property of the deployed system, and the gap
+  between them is where §33's trouble lives.</p>
+  <p><b>What value would be good enough?</b> Absolute zero error is not available: Part V §20's
+  irreducible error is a property of the problem. So the target comes from outside: what a human
+  achieves, what the previous system achieves, what makes the application safe or worth paying
+  for.</p>
+  <p>Without a target you cannot answer the only question that matters at the end, which is
+  whether to stop.</p>
+</div>
+
+<h3><span class="num">§3</span> Precision, recall, and where the threshold goes</h3>
+
+<p>Accuracy fails on imbalanced problems in a way that is easy to state and easy to forget.
+A test for a condition affecting one person in a million achieves 99.9999% accuracy by always
+saying no.</p>
+
+<div class="box def">
+  <span class="label">The two rates, and why you need both</span>
+  <p><b>Precision</b>: of the cases you flagged, how many were real.
+  <b>Recall</b>: of the real cases, how many you flagged.</p>
+  <p>A detector that flags nobody has perfect precision and zero recall. One that flags everybody
+  has perfect recall and precision equal to the base rate. Neither is a model; both score well on
+  one of the two numbers, which is why they are always reported together.</p>
+  <p>Summaries: the <b>$F_1$ score</b> $2pr/(p+r)$, their harmonic mean, which is near zero if
+  either is near zero, unlike an arithmetic mean. Or the area under the precision–recall curve,
+  which summarises every threshold at once.</p>
+</div>
+
+<figure>
+  <img src="figures/pd/01-metrics.svg" alt="A precision-recall curve, and accuracy, F1, precision and recall against the decision threshold">
+  <figcaption><b>Figure 1.</b> One model, 5% positives. Left: the precision–recall curve; the
+  dotted line is what a constant predictor achieves. Right: four metrics against the threshold.
+  <b>Accuracy peaks at a threshold where recall is 0.117</b>; $F_1$ peaks where recall is
+  <b>0.377</b>. Same model, same scores: the metric is choosing the operating point, and
+  accuracy chooses one that finds one positive in nine.</figcaption>
+</figure>
+
+<div class="box why">
+  <span class="label">Why the threshold is a separate decision from the model</span>
+  <p>A classifier produces a score. The <b>threshold</b> converts it into a decision, and the
+  two are independent: you can change the threshold after training, per deployment, without
+  retraining anything.</p>
+  <p>This is why Part XIII §10 said resampling is usually the wrong fix for imbalance. If the
+  model ranks well and predicts the majority everywhere, the ranking is fine and the threshold
+  is wrong, and the threshold is free to move.</p>
+  <p>It also means a single number hides a choice. Reporting "$F_1 = 0.54$" reports one point on
+  the right-hand panel. Report the curve, or state the operating point and why it was chosen,
+  usually from the relative cost of the two errors, which is a fact about the application and
+  not about the model.</p>
+</div>
+
+<h3><span class="num">§4</span> Coverage: the option to refuse</h3>
+
+<p>A metric the field uses less than it should, and which changes what a system can be used for.</p>
+
+<div class="box def">
+  <span class="label">Coverage</span>
+  <p>Let the model decline to answer when its confidence is below a threshold. <b>Coverage</b> is
+  the fraction of inputs it answers at all; accuracy is then measured on those it answered.</p>
+  <p>You can always reach 100% accuracy by answering nothing. The useful quantity is the pair,
+  and the useful design question is: at the accuracy this application requires, how much of the
+  work can be automated?</p>
+</div>
+
+<div class="box why">
+  <span class="label">Why this reframes an impossible target into an achievable one</span>
+  <p>Consider transcribing street addresses from photographs to place them on a map. A wrong
+  address is worse than no address, so accuracy must be near human level: 98%.</p>
+  <p>Stated as a classification problem that is a very hard target. Stated as coverage it becomes
+  tractable: hold accuracy fixed at 98% by refusing whenever the model is unsure, and optimise
+  <b>coverage</b> instead. The system is useful the moment it can handle a worthwhile share of
+  the volume, and it improves by handling more.</p>
+  <p>The Street View transcription system did exactly this, targeting 98% accuracy at 95%
+  coverage, and the project's main metric became coverage. That reframing is available far more
+  often than it is used, and it requires only that a human can take the remainder.</p>
+  <p>It has a prerequisite, which is §5: refusing sensibly requires the confidence to mean
+  something.</p>
+</div>
+
+<h3><span class="num">§5</span> Calibration</h3>
+
+<div class="readnow"><span class="label">Go and read</span><p><span class="src">Guo et al. (2017)</span>, <i>On calibration of modern neural networks</i>. Establishes that modern networks are <b>worse</b> calibrated than the smaller ones that preceded them, despite being more accurate, so this got harder as the field improved. Then finds that a single temperature, fitted on validation data, fixes most of it. Read §4 for the comparison against more elaborate methods that do not do better.</p></div>
+
+<p>A model that outputs probabilities is making a claim: among the cases where it says 90%, it
+should be right 90% of the time. Usually it is not.</p>
+
+<p>Check the claim directly: bin the predictions by the confidence reported, and within each bin
+compare the mean confidence to the fraction that were actually correct. The result is a
+<b>reliability diagram</b>: perfect calibration is the diagonal, and a model that is right less
+often than it claims falls below it. Collapsed to a single number, the gap becomes the
+<b>expected calibration error</b>: the average of $|\text{confidence} - \text{accuracy}|$ across
+the bins, each bin weighted by how many predictions land in it, so a bin with five points does
+not count as much as one with five thousand.</p>
+
+<figure>
+  <img src="figures/pd/02-calibration.svg" alt="Reliability diagram and confidence histogram, before and after temperature scaling">
+  <figcaption><b>Figure 2.</b> A network on a noisy three-class problem. It is right
+  <b>63.4%</b> of the time and reports a mean confidence of <b>95.3%</b>: overconfident by
+  <b>0.32</b>. Fitting a <i>single</i> temperature on held-out data takes the expected
+  calibration error from <b>0.320 to 0.058</b> and leaves accuracy <b>exactly unchanged</b> at
+  0.634, because dividing every logit by the same number cannot reorder them. <b>These are one
+  training run's digits.</b> A different machine, PyTorch build or BLAS library trains slightly
+  different weights and can shift them; expect drift on the order of a percentage point, not
+  tens of percent. The mechanism does not move: accuracy is exactly unchanged by temperature
+  scaling on every run, because dividing by a positive constant can never reorder logits.</figcaption>
+</figure>
+
+<div class="box def">
+  <span class="label">Temperature scaling</span>
+  <p>Divide the logits by a scalar $T$ before the softmax, and fit $T$ by minimising
+  cross-entropy <b>on validation data</b>:</p>
+  <p>$$p_i = \frac{\exp(z_i / T)}{\sum_j \exp(z_j / T)}$$</p>
+  <p>$T > 1$ softens the distribution, $T < 1$ sharpens it. One parameter, fitted after training,
+  costing nothing and changing no prediction.</p>
+</div>
+
+<div class="box why">
+  <span class="label">Why accuracy is untouched, and why that is the point</span>
+  <p>The prediction is $\arg\max_i z_i$, and dividing every $z_i$ by a positive constant leaves
+  the ordering identical. So temperature scaling <b>cannot</b> change any decision, measured
+  above as 0.634 before and after.</p>
+  <p>Which makes it a rare thing: an intervention with no downside on the metric people report,
+  fixing a property they do not report and which everything downstream depends on. §4's coverage
+  needs it. Any threshold on confidence needs it. Any decision weighing model output against
+  cost needs it.</p>
+  <p>Maximum-likelihood training on a model with enough capacity to fit its training set produces
+  overconfidence as a matter of course: it is pushed toward probability 1 on training examples
+  and there is nothing in the objective that pulls back. So assume overconfidence, measure it,
+  and correct it: the measurement is a reliability diagram and it takes an afternoon.</p>
+</div>
+
+<h3><span class="num">§6</span> The baseline</h3>
+
+<p>Get something working end to end before improving anything. Two rules about what that
+something should be.</p>
+
+<div class="box def">
+  <span class="label">Start simpler than you think, and copy what works</span>
+  <p><b>Do not start with deep learning if the problem might not need it.</b> If a few linear
+  weights might do, fit logistic regression first: Part VI's classical methods are a baseline,
+  not a history lesson, and a linear model that reaches 90% of your target in an hour changes
+  what the rest of the project is about.</p>
+  <p><b>If the task resembles a solved one, copy the solution.</b> Architecture, hyperparameters,
+  and often the trained weights. Part IX §26's transfer: starting from a model trained on a
+  large corpus is usually better than anything you will design, and it is a first line of code
+  rather than a research direction.</p>
+  <p>Sensible defaults when you must choose: fixed-size input, a feedforward network; grid
+  topology, convolution (Part X); sequence, attention (Part XII). AdamW with a cosine schedule
+  and warmup (Part IX §18, Part XII §23). Normalisation from the start. Early stopping always,
+  and mild regularization unless the corpus is enormous (Part VIII §22).</p>
+</div>
+
+<div class="box why">
+  <span class="label">Why the end-to-end pipeline comes before the good model</span>
+  <p>A working bad system tells you things no amount of design does. It tells you the data loads,
+  the shapes are right, the metric computes, the evaluation runs, and roughly where the problem
+  is hard. It gives you the number that every later decision is measured against.</p>
+  <p>And it front-loads the failures that are cheapest to fix early: a label column misaligned, a
+  split that leaks (Part XIII §11), an evaluation that silently measures the wrong thing. Those
+  cost a day at the start and a month after you have built on top of them.</p>
+</div>

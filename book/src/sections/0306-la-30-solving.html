@@ -1,0 +1,482 @@
+<h2><span class="part-kicker">Part C</span>Solving</h2>
+
+<h3><span class="num">§9</span> Systems of equations as $A\mathbf{x} = \mathbf{b}$</h3>
+
+<div class="box history">
+  <span class="label">History: Gaussian elimination is about two thousand years older than Gauss</span>
+  <p>The method of eliminating variables by adding multiples of one equation to another
+  appears in the <i>Nine Chapters on the Mathematical Art</i>, a Chinese text compiled by
+  roughly <span class="year">200 BCE</span>. Its eighth chapter, concerning rectangular
+  arrays, sets up systems of equations as grids of coefficients and solves them by column
+  operations. It is recognisably the algorithm taught today, including the arrangement of
+  numbers into a table.</p>
+  <p>Gauss described the procedure in <span class="year">1810</span> while computing
+  asteroid orbits, and his name attached to it during the twentieth century, largely
+  through textbooks.</p>
+  <p>This is a specimen of what the statistician Stephen Stigler called the <b>Law of
+  Eponymy</b>: no scientific discovery is named after its original discoverer. Part II §15
+  contains another, and Stigler (with visible enjoyment) attributed his law to Robert
+  Merton, thereby making it an instance of itself.</p>
+</div>
+
+<p>Here is a system of two equations in two unknowns, the kind you met in high school:</p>
+
+$$\begin{aligned} 2x_1 - x_2 &= 1 \\ x_1 + 1.5x_2 &= 4.5 \end{aligned}$$
+
+<p>Now notice that the coefficients form a grid, the unknowns form a vector, and the
+right-hand sides form another vector. Package them:</p>
+
+$$\underbrace{\begin{bmatrix} 2 & -1 \\ 1 & 1.5 \end{bmatrix}}_{A} \underbrace{\begin{bmatrix} x_1 \\ x_2 \end{bmatrix}}_{\mathbf{x}} = \underbrace{\begin{bmatrix} 1 \\ 4.5 \end{bmatrix}}_{\mathbf{b}}$$
+
+<p>That is the same system, written as $A\mathbf{x} = \mathbf{b}$. Check it against the
+row view of §4: row 1 of $A$ dotted with $\mathbf{x}$ gives $2x_1 - x_2$, which is the
+first equation. The compression is lossless.</p>
+
+<p>This is more than tidy notation. It is a change of subject. The scalar version
+invites you to think about <i>procedure</i>: eliminate a variable, substitute back.
+The matrix version invites you to think about <i>structure</i>: what kind of object is
+$A$, and what does it do? Structural questions have answers that hold for a million
+equations as readily as for two, and procedural ones do not.</p>
+
+<div class="box intuition">
+  <span class="label">Intuition: two readings of the same question</span>
+  <p><b>Row reading:</b> each equation describes a line (in 2-D) or a plane (in 3-D).
+  A solution is a point lying on all of them at once. Solving means intersecting.</p>
+  <p><b>Column reading:</b> using §4's ingredient metaphor, we are asking <i>what
+  recipe $\mathbf{x}$ mixes the columns of $A$ to produce $\mathbf{b}$?</i> Solving
+  means reverse-engineering a recipe from a finished dish.</p>
+  <p>The column reading is the more powerful one, and it is the one that makes the
+  existence question in §12 almost obvious. Our example was built from Figure 2
+  (where we mixed $1.5$ and $2$ parts of the columns to land on $(1, 4.5)$), so the
+  solution is $\mathbf{x} = (1.5, 2)$, and you can read it straight off the
+  picture.</p>
+</div>
+
+<h3><span class="num">§10</span> Identity and inverse</h3>
+
+<h4>The identity matrix</h4>
+
+<p>The matrix that does nothing. Ones down the diagonal, zeros elsewhere:</p>
+
+$$I_3 = \begin{bmatrix} 1 & 0 & 0 \\ 0 & 1 & 0 \\ 0 & 0 & 1 \end{bmatrix}, \qquad I\mathbf{x} = \mathbf{x} \;\text{ for every } \mathbf{x}$$
+
+<p>Under the column view, why this works is immediate: the columns of $I$ are exactly
+$\mathbf{e}_1, \mathbf{e}_2, \mathbf{e}_3$, so mixing them with recipe $\mathbf{x}$
+reassembles $\mathbf{x}$ itself. Under the function view, $I$ is the transformation
+that leaves space untouched. It plays the role that $1$ plays for numbers.</p>
+
+<h4>The inverse</h4>
+
+<p>The inverse of $A$, written $A^{-1}$, is the matrix that undoes it:</p>
+
+$$A^{-1}A = I$$
+
+<p>If it exists, solving becomes a one-liner. Start from $A\mathbf{x} = \mathbf{b}$,
+multiply both sides on the left by $A^{-1}$, and:</p>
+
+$$A^{-1}A\mathbf{x} = A^{-1}\mathbf{b} \;\Longrightarrow\; I\mathbf{x} = A^{-1}\mathbf{b} \;\Longrightarrow\; \mathbf{x} = A^{-1}\mathbf{b}$$
+
+<p>Clean, closed-form, and (as §13 explains at some length) usually the wrong way to
+actually compute anything. But as a piece of theory it is exactly right, and it tells
+us where to look next: <b>when does $A^{-1}$ exist?</b></p>
+
+<div class="box intuition">
+  <span class="label">Intuition: inverses undo, and some things cannot be undone</span>
+  <p>Under the function view, $A^{-1}$ reverses whatever $A$ did. Rotations are
+  reversible: rotate back. Stretches are reversible: stretch by the reciprocal. But
+  suppose $A$ <b>flattens</b>, suppose it squashes all of 3-D space onto a plane.
+  Then infinitely many input points landed on each output point, and no function can
+  possibly recover which one you started from. The information is destroyed, not
+  hidden.</p>
+  <p>That is the whole story of invertibility. <b>A matrix is invertible exactly when
+  it loses no information.</b> Everything in §11 and §12 is machinery for detecting
+  when information is lost.</p>
+</div>
+
+<div class="box pitfall">
+  <span class="label">Pitfall: $A^{-1}$ is not "one over $A$"</span>
+  <p>There is no division of matrices, and $A^{-1}$ has nothing to do with taking
+  reciprocals of entries. The inverse of $\left[\begin{smallmatrix} 2 & 0 \\ 0 & 4 \end{smallmatrix}\right]$
+  is $\left[\begin{smallmatrix} 0.5 & 0 \\ 0 & 0.25 \end{smallmatrix}\right]$, which
+  happens to look like entrywise reciprocals, but only because the matrix is diagonal.
+  For anything else the pattern breaks completely. Also note that only square matrices
+  can have inverses; a $3 \times 5$ matrix maps between spaces of different sizes and
+  cannot be undone in this sense.</p>
+</div>
+
+<h3><span class="num">§11</span> Span, linear independence, rank</h3>
+
+<div class="sixty">
+  <span class="label">In 60 seconds</span>
+  <p>Three names for one question: <b>how much of space can you actually reach?</b>
+  <b>Span</b> is everything you can build by scaling and adding. <b>Independence</b> means
+  no vector is redundant. <b>Rank</b> counts the genuinely distinct directions: useful
+  columns, not columns. A matrix that is rank-deficient has destroyed information, and
+  every difficulty in this part traces back to that.</p>
+</div>
+
+<div class="readnow"><span class="label">Go and read</span><p><span class="src">Hu et al. (2021)</span>, <i>LoRA: low-rank adaptation of large language models</i>. Rank, doing real work. A weight update is constrained to be low-rank, which cuts the trainable parameters of a fine-tune by orders of magnitude and costs almost nothing. It is the clearest modern demonstration that the ideas in this section are not bookkeeping.</p></div>
+
+<p>Three definitions, one idea. The idea is: <b>how much of space can you actually
+reach?</b></p>
+
+<h4>Span</h4>
+
+<div class="box def">
+  <span class="label">Definition: span</span>
+  <p>The <b>span</b> of a set of vectors is the set of all linear combinations of them:
+  every point you can reach by scaling them and adding the results.</p>
+</div>
+
+<p>Two examples in $\mathbb{R}^2$. The span of the single vector $(1,2)$ is the line
+through the origin in that direction: scaling is all you can do, so you slide along a
+line. The span of $(1,0)$ and $(0,1)$ is the entire plane, since $a(1,0) + b(0,1) =
+(a,b)$ reaches every point.</p>
+
+<p>But now the interesting case. What is the span of $(1,2)$ and $(2,4)$? The second
+is just twice the first, so mixing them gives $a(1,2) + b(2,4) = (a + 2b)(1,2)$,
+still a scalar multiple of $(1,2)$. Two vectors, but still only a line. The second
+vector added no new reach whatsoever.</p>
+
+<figure>
+  <img src="figures/la/03-span.svg" alt="Span of independent vectors versus dependent vectors">
+  <figcaption><b>Figure 4.</b> Left: two vectors pointing in genuinely different
+  directions. Mixing them reaches everywhere: the shaded cloud is a sample of
+  reachable points, and it fills the plane. Right: two parallel vectors. Every mixture
+  is stuck on a single line, no matter what coefficients you choose. Same count of
+  vectors, radically different reach.</figcaption>
+</figure>
+
+<h4>Linear independence</h4>
+
+<div class="box def">
+  <span class="label">Definition: linear independence</span>
+  <p>A set of vectors is <b>linearly independent</b> if no vector in it can be written
+  as a combination of the others. Equivalently: each one contributes reach that the
+  rest cannot supply. If some vector <i>is</i> expressible from the others, the set is
+  <b>linearly dependent</b> and that vector is redundant.</p>
+</div>
+
+<p>The formal test, which is worth understanding rather than just memorising: the
+vectors $\mathbf{v}_1, \dots, \mathbf{v}_k$ are independent if the only solution to</p>
+
+$$c_1\mathbf{v}_1 + c_2\mathbf{v}_2 + \cdots + c_k\mathbf{v}_k = \mathbf{0}$$
+
+<p>is the boring one, $c_1 = c_2 = \cdots = c_k = 0$. Why does that capture the idea?
+Because if some non-zero combination reaches the origin, you can rearrange it to
+express one vector in terms of the others. From $2\mathbf{v}_1 - \mathbf{v}_2 =
+\mathbf{0}$ you immediately get $\mathbf{v}_2 = 2\mathbf{v}_1$, and the redundancy is
+exposed. A non-trivial route back to zero <i>is</i> a redundancy.</p>
+
+<h4>Rank</h4>
+
+<div class="box def">
+  <span class="label">Definition: rank</span>
+  <p>The <b>rank</b> of a matrix is the number of linearly independent columns it has:
+  the size of its genuinely distinct ingredient set. Equivalently, the dimension of
+  its column space.</p>
+</div>
+
+<p>Rank counts <i>useful</i> columns, not columns. A $100 \times 50$ matrix has fifty
+columns but might have rank 3, meaning forty-seven of them are combinations of the
+other three and the entire output lives in a 3-dimensional slice of $\mathbb{R}^{100}$.</p>
+
+<p>The way to hold onto rank is that it is the <b>true number of dimensions</b>, as
+opposed to the number of columns you were handed. Those two counts are the same only when
+nobody is repeating themselves.</p>
+
+<p>Suppose you are given a spreadsheet of employees with columns for salary in pounds,
+salary in euros, and years of service. Three columns. But the first two carry one piece of
+information between them (knowing either determines the other), so the table describes
+each person with only <b>two</b> genuinely independent numbers. Rank 2, not 3. Adding a
+fourth column for monthly salary would not change that, and neither would adding forty
+more currencies. Columns are free; dimensions are not.</p>
+
+<p>That distinction is why rank is the right notion and column count is not. Every
+question you actually want to ask (can this system be solved, is this matrix invertible,
+how much information survives the transformation, how many numbers do I really need to
+store this) is a question about the honest count, and is answered wrongly by the
+superficial one. It also explains why the shape of a matrix tells you so little on its
+own: shape is a promise about how many ingredients are in the pantry, and rank is how many
+of them are actually different.</p>
+
+<p>A matrix is called <b>full rank</b> when its rank is as large as its shape permits,
+namely $\min(m, n)$, and <b>rank-deficient</b> otherwise. Rank deficiency is exactly
+information loss; it is the algebraic fingerprint of the flattening described in
+§10.</p>
+
+<div class="worked">
+  <span class="label">Reading rank off a small matrix</span>
+  <p>$A = \begin{bmatrix} 1 & 2 & 3 \\ 2 & 4 & 6 \end{bmatrix}$. Three columns:
+  $(1,2)$, $(2,4)$, $(3,6)$. But the second is twice the first, and the third is three
+  times the first. Only one independent direction, so $\rank(A) = 1$.</p>
+  <p>Notice how thoroughly the shape misleads here. A $2\times3$ matrix looks like it
+  should map $\mathbb{R}^3$ onto the whole plane; this one maps all of $\mathbb{R}^3$
+  onto a single line. You cannot read rank off the dimensions; you have to look at
+  the columns.</p>
+</div>
+
+<div class="box why">
+  <span class="label">Why deep learning cares</span>
+  <p>Rank is the honest measure of how much distinct information a matrix carries, and
+  that idea recurs everywhere downstream. <b>Redundant features</b> in a dataset make
+  the data matrix rank-deficient, which breaks naive least squares. <b>Low-rank
+  approximation</b> (deliberately throwing away all but the top few directions) is
+  the engine behind PCA in §23, behind modern model-compression methods, and behind
+  LoRA, the technique that makes fine-tuning large language models affordable by
+  restricting weight updates to a low-rank form. The whole family of ideas rests on
+  this one definition.</p>
+</div>
+
+<div class="box try">
+  <span class="label">Try it</span>
+  <p>What is the rank of $\begin{bmatrix} 1 & 0 & 1 \\ 0 & 1 & 1 \\ 0 & 0 & 0 \end{bmatrix}$?
+  And is it full rank?</p>
+</div>
+
+<p><b>Answer.</b> The columns are $(1,0,0)$, $(0,1,0)$ and $(1,1,0)$. The first two are
+clearly independent. The third is their sum, so it adds nothing. Rank 2. This is a
+$3\times3$ matrix, so full rank would be 3; it is rank-deficient, and consequently
+not invertible. Every output lies in the plane $z = 0$, so the third dimension is
+annihilated. Information destroyed; no way back.</p>
+
+<h3><span class="num">§12</span> When does a solution exist? The complete answer</h3>
+<aside class="mnote"><b>In practice</b> the overdetermined row is the normal case: 60,000 training images, 500 parameters. No exact solution exists, so we settle for the closest, which is §20.</aside>
+
+<p>Now we can answer the question §9 raised, completely and in one picture. Recall the
+column view: $A\mathbf{x}$ is a mixture of $A$'s columns, so the set of achievable
+outputs is precisely the span of those columns. That set has a name.</p>
+
+<div class="box def">
+  <span class="label">Definition: column space</span>
+  <p>The <b>column space</b> of $A$ (also called its range or image) is the span of its
+  columns: every vector $A\mathbf{x}$ can possibly equal, as $\mathbf{x}$ ranges over
+  everything.</p>
+</div>
+
+<p>From which the central theorem is nearly a restatement:</p>
+
+<div class="box def">
+  <span class="label">The existence condition</span>
+  <p>$A\mathbf{x} = \mathbf{b}$ has a solution <b>if and only if</b> $\mathbf{b}$ lies
+  in the column space of $A$.</p>
+</div>
+
+<p>That is the whole answer. If $\mathbf{b}$ is mixable from the pantry, a recipe
+exists; if it is not, no amount of cleverness will produce one. Everything else in
+this section is bookkeeping about <i>how many</i> solutions there are.</p>
+
+<h4>The three cases</h4>
+
+<p>Let $A \in \mathbb{R}^{m \times n}$, with $m$ equations and $n$ unknowns.</p>
+
+<p>One thing in the table below reliably surprises people, so it is worth flagging in
+advance: <b>more equations makes the problem harder, not easier.</b> Coming from machine
+learning, where more data is better, that reads backwards.</p>
+
+<p>It resolves once you see that an equation is a <i>constraint</i>, not a piece of
+evidence. Two unknowns and one equation leaves you a whole line of answers. Add a second
+equation and the line usually collapses to a point, which is the tidy case. Add a
+third and you are now demanding that a single point satisfy three separate conditions, and
+unless the third happens to agree with what the first two already decided, nothing
+satisfies all of them. Three lines drawn at random in a plane do not meet at a common
+point.</p>
+
+<p>So an overdetermined system normally has <i>no</i> exact solution, and that is the
+ordinary condition of machine learning rather than a pathology. Sixty thousand training
+images are sixty thousand demands placed on five hundred parameters, and no setting of
+those parameters satisfies all of them. The field's response is not to find a cleverer
+solver. It is to change the question: stop asking for a setting that satisfies every
+demand, and ask instead for the one that comes closest. That is §20.</p>
+
+<table>
+  <thead><tr><th>Situation</th><th>Name</th><th>Typically</th></tr></thead>
+  <tbody>
+    <tr>
+      <td>$m > n$<br><span class="small muted">more equations than unknowns</span></td>
+      <td><b>Overdetermined</b></td>
+      <td>No exact solution. The columns span at most an $n$-dimensional slice of
+      $\mathbb{R}^m$, and a general $\mathbf{b}$ misses it. Fix: least squares (§20).</td>
+    </tr>
+    <tr>
+      <td>$m = n$, full rank</td>
+      <td><b>Square, invertible</b></td>
+      <td>Exactly one solution, $\mathbf{x} = A^{-1}\mathbf{b}$. The tidy case, and the
+      rarest in practice.</td>
+    </tr>
+    <tr>
+      <td>$m \lt n$<br><span class="small muted">more unknowns than equations</span></td>
+      <td><b>Underdetermined</b></td>
+      <td>Infinitely many solutions, if any. Not enough constraints to pin things down.
+      Fix: pick the one you like best, usually the smallest, which §20's pseudoinverse
+      returns exactly (§15 defines what "smallest" means).</td>
+    </tr>
+  </tbody>
+</table>
+
+<div class="box intuition">
+  <span class="label">Intuition: why the count is 0, 1, or ∞ and nothing else</span>
+  <p>A linear system can never have exactly two solutions. Suppose $\mathbf{x}_1$ and
+  $\mathbf{x}_2$ both solve it. Then any blend $t\mathbf{x}_1 + (1-t)\mathbf{x}_2$ also
+  solves it, for every real $t$; you can verify this in one line by expanding
+  $A(t\mathbf{x}_1 + (1-t)\mathbf{x}_2)$ and using linearity. So two distinct solutions
+  instantly generate an entire line of them. Zero, one, or infinity: those are the only
+  possibilities, and this is a direct consequence of the same linearity that made
+  matrices tractable in the first place.</p>
+</div>
+
+<div class="box why">
+  <span class="label">Why deep learning cares</span>
+  <p>The overdetermined case is the ordinary condition of machine learning. You have
+  60,000 training images and 500 parameters: 60,000 equations, 500 unknowns. There is
+  no parameter setting that fits every example exactly, and $A\mathbf{x} = \mathbf{b}$
+  has no solution. So the field stops demanding exactness and instead asks for the
+  $\mathbf{x}$ that comes <i>closest</i>, which is least squares, which is a
+  projection, which is §20. Training a model is this question with extra steps.</p>
+  <p>Modern deep networks flip it: with more parameters than training examples, the
+  system is underdetermined and infinitely many settings fit the data perfectly. Which
+  one you land on is then decided by regularization and by the optimizer's own
+  preferences, a theme that runs through Part VI, Part VIII and Part III.</p>
+</div>
+
+<h3><span class="num">§13</span> Why nobody actually inverts matrices</h3>
+
+<div class="box history">
+  <span class="label">History: least squares was invented to find a lost planet</span>
+  <p>On <span class="year">1 January 1801</span> Giuseppe Piazzi discovered Ceres, then
+  taken to be a new planet. He tracked it for forty-one days across a few degrees of sky
+  before it disappeared into the sun's glare. When it re-emerged months later it would be
+  somewhere else, and nobody could compute where from so short an arc.</p>
+  <p>Gauss, then twenty-four, took the problem on. He had a method for fitting a curve to
+  noisy observations by minimising the sum of squared errors, and an insight about how
+  observational error is distributed that would later become the Gaussian of Part II §15.
+  He produced a prediction. In December <span class="year">1801</span>, astronomers
+  pointed their telescopes where he said and Ceres was there.</p>
+  <p>It made him famous across Europe at a stroke. It also means that <b>least squares
+  (the computation at the heart of linear regression, and therefore of Part III §20 and of
+  supervised learning generally) was invented to recover a lost asteroid from
+  insufficient data.</b></p>
+  <p>Legendre published the method first, in <span class="year">1805</span>. Gauss
+  claimed he had been using it since <span class="year">1795</span> and did not publish.
+  The resulting priority dispute was bitter and never really resolved.</p>
+</div>
+
+<p>Section 10 gave $\mathbf{x} = A^{-1}\mathbf{b}$. It is correct. It is also, in
+practice, close to malpractice, and the reasons are worth understanding because they
+generalise to a great deal of numerical work.</p>
+
+<h4>Reason one: cost</h4>
+
+<p>Explicitly forming $A^{-1}$ and then multiplying costs substantially more arithmetic
+than solving the system directly by elimination, and the gap widens with size. For
+large $n$ this is the difference between a computation you run and one you abandon.</p>
+
+<h4>Reason two: numerical stability</h4>
+
+<p>This is the serious one. Computers store real numbers approximately, and some
+matrices amplify those tiny approximation errors dramatically. The amplification factor
+has a name (the <b>condition number</b>), and inverting explicitly tends to make the
+damage worse than solving directly does. A matrix that is nearly rank-deficient is said
+to be <b>ill-conditioned</b>: it is technically invertible, but the inverse is enormous
+and numerically untrustworthy, so small errors in $\mathbf{b}$ produce large errors in
+$\mathbf{x}$.</p>
+
+<p>Here is that failure, made concrete:</p>
+
+<pre><code><span class="k">import</span> numpy <span class="k">as</span> np
+
+<span class="c"># nearly dependent columns: the second is the first, nudged</span>
+A = np.array([[<span class="n">1.0</span>, <span class="n">1.0</span>], [<span class="n">1.0</span>, <span class="n">1.0001</span>]])
+b = np.array([<span class="n">2.0</span>, <span class="n">2.0001</span>])
+
+print(np.linalg.solve(A, b))          <span class="o">### [1. 1.]  -- the true answer</span>
+print(np.linalg.cond(A))              <span class="o">### ~40002  -- badly ill-conditioned</span>
+
+<span class="c"># perturb b in the 5th decimal place and watch the answer detonate</span>
+b2 = np.array([<span class="n">2.0</span>, <span class="n">2.0002</span>])
+print(np.linalg.solve(A, b2))         <span class="o">### [0. 2.]  -- completely different</span>
+</code></pre>
+
+<p>A change of one part in ten thousand in the input moved the answer from $(1,1)$ to
+$(0,2)$. Nothing is wrong with the code, and nothing is wrong with NumPy: the
+<i>problem itself</i> is unstable. The condition number told us so in advance, which is
+precisely what it is for.</p>
+
+<div class="box pitfall">
+  <span class="label">Pitfall: <code>inv</code> is almost never the right call</span>
+  <p>If you catch yourself writing <code>np.linalg.inv(A) @ b</code>, replace it with
+  <code>np.linalg.solve(A, b)</code>. Same answer mathematically, faster and more
+  accurate in practice. The genuine uses for an explicit inverse are rare and mostly
+  theoretical; if you need it for a formula on paper, fine, but do not compute it.</p>
+</div>
+
+<div class="box fw">
+  <span class="label">In the framework: and a warning that costs nothing to demonstrate</span>
+  <p>The advice above transfers directly. Every library provides a solver, and calling it
+  rather than forming an inverse is the same discipline in every one of them:</p>
+<pre><code><span class="k">import</span> torch
+
+torch.linalg.solve(A, b)        <span class="c"># correct: solve the system</span>
+torch.linalg.inv(A) @ b         <span class="c"># slower and less accurate. avoid.</span>
+torch.linalg.cond(A)            <span class="c"># check this BEFORE trusting the answer</span>
+torch.linalg.matrix_rank(A)     <span class="c"># and this, if you suspect dependence</span>
+</code></pre>
+  <p>But there is a trap here that has nothing to do with which function you call, and it is
+  worth meeting now because it will recur for the rest of the book.</p>
+
+  <h4>The default type is 32-bit, and the ill-conditioned example does not survive it</h4>
+  <p>Run the same nearly-dependent system from the NumPy snippet above, in PyTorch, without
+  saying anything about precision:</p>
+<pre><code>A = torch.tensor([[<span class="n">1.</span>, <span class="n">1.</span>], [<span class="n">1.</span>, <span class="n">1.0001</span>]])       <span class="c"># float32 -- the default</span>
+b = torch.tensor([<span class="n">2.</span>, <span class="n">2.0001</span>])
+torch.linalg.solve(A, b)          <span class="o">### tensor([1.0012, 0.9988])</span>
+
+A = torch.tensor([[<span class="n">1.</span>, <span class="n">1.</span>], [<span class="n">1.</span>, <span class="n">1.0001</span>]], dtype=torch.float64)
+b = torch.tensor([<span class="n">2.</span>, <span class="n">2.0001</span>], dtype=torch.float64)
+torch.linalg.solve(A, b)          <span class="o">### tensor([1., 1.], dtype=float64)</span>
+</code></pre>
+  <p>The true answer is exactly $(1, 1)$. In float32 you get $(1.0012, 0.9988)$, wrong in
+  the third decimal place, from a two-by-two system, with no warning of any kind.</p>
+
+  <h4>Where the error came from, which is not where you would guess</h4>
+  <p>The natural assumption is that the solver lost precision while working. It did not. The
+  damage was done <b>before the solver ran</b>.</p>
+  <p>The number $1.0001$ is not representable in 32-bit floating point. The nearest value is
+  $1.000100016593933$, so writing that matrix in float32 silently perturbs your data by a
+  relative $1.66 \times 10^{-8}$. That is a tiny, entirely ordinary rounding error, and, as
+  shown above, a matrix with $\kappa \approx 40{,}000$ multiplies tiny input errors like
+  this one:</p>
+  <p>$$\underbrace{1.66\times10^{-8}}_{\text{input error}} \;\times\;
+     \underbrace{4.0\times10^{4}}_{\kappa} \;\approx\; 6.6\times10^{-4}$$</p>
+  <p>and the observed error is $1.2\times10^{-3}$, the same size. The solver did its job
+  perfectly; it returned an excellent answer to <b>a slightly different question</b>, because
+  a slightly different question is what it was handed.</p>
+
+  <h4>Why this is the lesson, not a footnote</h4>
+  <p>This is Part III's conditioning-versus-stability distinction arriving early, and the
+  reason to meet it here is that <b>no choice of algorithm would have helped.</b> Switching
+  from <code>solve</code> to a QR factorisation, or to the SVD, changes nothing: all of them
+  would faithfully answer the corrupted question. The only fix is to not corrupt the input,
+  which means choosing the precision deliberately.</p>
+  <p>And the default is a real trade rather than an oversight. float32 halves memory and
+  roughly doubles throughput on a GPU, and for a neural network (whose gradients are noisy
+  estimates anyway, per Part III §14) the lost digits are usually worth nothing. Modern
+  training goes further and uses 16-bit formats on purpose. But for a linear solve, a
+  covariance matrix, or anything where $\kappa$ might be large, 32 bits is not enough and
+  the failure is silent.</p>
+  <p>The habit to carry: <b>check $\kappa$, then choose your precision, then solve</b>, in
+  that order. The condition number is the only one of the three that tells you whether the
+  other two matter.</p>
+</div>
+
+<div class="box why">
+  <span class="label">Why deep learning cares</span>
+  <p>Conditioning is not a footnote you can skip; it is one of the load-bearing ideas
+  in optimization. In Part III you will meet the Hessian, whose condition number
+  controls how badly gradient descent zigzags; an ill-conditioned Hessian is the
+  precise reason plain gradient descent crawls through narrow valleys. Part III's
+  momentum, RMSProp and Adam are, from one angle, all machinery for coping with bad
+  conditioning. The intuition to carry forward: <b>nearly-dependent directions make
+  problems numerically fragile</b>, and much of practical machine learning is
+  engineering around that fragility.</p>
+</div>

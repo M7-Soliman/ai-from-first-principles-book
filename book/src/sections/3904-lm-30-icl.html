@@ -1,0 +1,203 @@
+<h2><span class="part-kicker">Part C</span>In-context learning</h2>
+
+<p class="lede">The capability nobody trained for. Show a model a few examples in its prompt and it
+performs the task, with no weight changing, and the mechanism is now partly understood, which is
+unusual for anything in this part.</p>
+
+<h3><span class="num">§17</span> The phenomenon</h3>
+
+<div class="box def">
+  <span class="label">What was observed</span>
+  <p>Put a handful of input–output pairs in the context, then a new input. The model produces the
+  matching output. Nothing was updated: the same weights, one forward pass, and the "learning"
+  happened entirely inside the activations.</p>
+  <p>This was not an objective anyone optimised. It appeared as a property of models trained to
+  predict the next token at sufficient scale, and it is the single clearest case in this book of a
+  capability arriving unrequested.</p>
+</div>
+
+<h3><span class="num">§18</span> Why it is not mysterious</h3>
+
+<div class="readnow"><span class="label">Go and read</span><p><span class="src">Olsson et al. (2022)</span>, <i>In-context learning and induction heads</i>. Ties the capability to a mechanism and to a moment in training: one of very few results here that explains rather than describes. Read it after Part XII §37, which measured the heads themselves.</p></div>
+
+<div class="box why">
+  <span class="label">The pretraining objective already required it</span>
+  <p>A large corpus contains a great many documents with internal structure: lists, tables,
+  translations, question-and-answer pairs, code with consistent conventions. To predict the later
+  parts of such a document you must infer the pattern from its earlier parts.</p>
+  <p>So the ability to read a rule off the context and apply it was <b>selected for</b> by
+  next-token prediction, on documents that happened to be structured. In-context learning is not a
+  separate capability that emerged alongside language modelling; it is a thing language modelling
+  requires, which becomes visible when the context is arranged to make it the only useful
+  strategy.</p>
+  <p>Part XII §37's induction heads are the mechanistic version: circuits that find an earlier
+  occurrence of the current token and copy what followed it. They form over a narrow band of
+  training and their appearance coincides with the ability appearing.</p>
+</div>
+
+<h3><span class="num">§19</span> What the demonstrations actually supply</h3>
+
+<div class="readnow"><span class="label">Go and read</span><p><span class="src">Min et al. (2022)</span>, <i>Rethinking the role of demonstrations</i>. The finding that randomising demonstration labels costs surprisingly little, which reads as a flat contradiction of this section's figure until you notice the difference: their tasks were ones the model could already do. Read both and keep the design lesson rather than either conclusion.</p></div>
+
+<figure>
+  <img src="figures/lm/03-in-context.svg" alt="Accuracy with correct, permuted and random demonstration labels, and accuracy against the number of demonstrations">
+  <figcaption><b>Figure 3.</b> A model trained on many small classification tasks, each with a
+  <b>fresh</b> symbol-to-class mapping, then tested on mappings it has never seen. Correct labels give
+  0.442 against a chance rate of 0.250; random labels give 0.246, which is chance exactly. Permuting
+  the labels gives <b>0.198</b> (<i>below</i> chance), because the model systematically returns the
+  permuted answer. Being reliably wrong in the direction the permutation predicts is the strongest
+  form the evidence can take: the mapping is read from the context, not recalled from the weights.
+  The right panel falls rather than rises because the query symbol here is always among the
+  demonstrations, so one demonstration is a trivial copy and eight make it a search; it measures how
+  hard the relevant demonstration is to find, not how much demonstrations help.</figcaption>
+</figure>
+
+<div class="box def">
+  <span class="label">The experiment, and why it is the one that settles it</span>
+  <p>The obvious worry about any in-context learning result is that the task was in the training
+  data: the model is not learning from the demonstrations, it is recognising the task and recalling
+  what it knows.</p>
+  <p>The construction here removes that possibility by force. Every task uses a mapping drawn at
+  random <b>at test time</b>, so there is nothing about it in the weights and no amount of
+  memorisation helps. Then the three conditions separate what the demonstrations contribute:</p>
+  <ul class="tight">
+    <li><b>Correct labels</b>: the model can do the task.</li>
+    <li><b>Permuted labels</b>: if it is reading the mapping, its answers should permute too.</li>
+    <li><b>Random labels</b>: if the demonstrations only supplied the format, performance should
+    survive.</li>
+  </ul>
+</div>
+
+<div class="box pitfall">
+  <span class="label">Pitfall: the literature disagrees, and the disagreement is about the setup</span>
+  <p>Published results on this are genuinely mixed. Some studies find that randomising the labels
+  costs surprisingly little, and conclude the demonstrations mainly convey the <b>format</b>: the
+  label space, the shape of an answer, the register. Others find it costs a great deal.</p>
+  <p>Both are right about their own setting, and the difference is whether the mapping was
+  <b>learnable from the weights</b>. With a familiar task, a large model can recover the intended
+  mapping from the inputs alone, so corrupting the labels costs little; with a genuinely novel
+  mapping, as here, it cannot, and the labels are all there is.</p>
+  <p>The transferable lesson is about experimental design rather than about models: a result that
+  demonstrations "only supply the format" is a statement about tasks the model already knows. The
+  clean question requires a task it cannot know, and constructing one is the work.</p>
+</div>
+
+<h3><span class="num">§20</span> Prompting</h3>
+
+<div class="box def">
+  <span class="label">Why an instruction works at all</span>
+  <p>Once the model reads rules from its context, an instruction is a rule stated directly rather
+  than demonstrated. Zero-shot prompting is in-context learning with the examples replaced by a
+  description, which only works because instruction tuning (§25) made descriptions a familiar way
+  for a task to be specified.</p>
+  <p>The techniques that reliably help are the ones that give the model more to condition on:
+  stating the role, specifying the output format, giving a few examples, and (§21) asking for the
+  intermediate steps.</p>
+</div>
+
+<h3><span class="num">§21</span> Chain of thought</h3>
+
+<figure>
+  <img src="figures/lm/04-chain-of-thought.svg" alt="Accuracy against the number of required steps for a model answering directly and one writing intermediate steps, and the gap between them">
+  <figcaption><b>Figure 4.</b> Two models trained on identical problems with identical answers,
+  differing only in whether the intermediate values were written down. Answering directly sits at
+  chance (0.10) at every depth: two steps or six, it never rises. Writing the work down gives 1.000
+  at two steps and stays far above chance out to six (0.923, 0.714, 0.880, 0.677), falling with depth
+  but never to chance. The gap is not smooth, and the decline is not monotone: what the figure
+  establishes is the presence of the gap, not its shape. Note the two models also differ in
+  supervision (the one writing the work is trained on every intermediate token, not only the answer),
+  so this measures the format and its supervision together. Drill&nbsp;C10 separates them.</figcaption>
+</figure>
+
+<div class="box why">
+  <span class="label">Why writing the steps is not a prompting trick</span>
+  <p>A transformer does a fixed amount of computation per token: a fixed number of layers, whatever
+  the question. A problem needing more sequential steps than the model has layers cannot be done in
+  one forward pass, however large the model is.</p>
+  <p>Producing intermediate tokens changes that. Each generated token is another forward pass, and
+  the earlier outputs are in the context for the later ones, so the sequence of tokens <b>is</b>
+  the sequence of computational steps, and depth in time substitutes for depth in layers.</p>
+  <p>That is why the effect appears at all, and why it is not really about prompting. The prompt is
+  the mechanism by which you ask for more compute; §37's test-time compute is the same observation
+  taken seriously.</p>
+  <p>Be careful with the obvious next prediction, that the gap should therefore widen with problem
+  length. It widens only while the direct model still has room to fall. Past the depth it can manage
+  in one pass it is at chance and can fall no further, while the model writing its work now has more
+  steps in which to make a mistake, so beyond that point the gap <b>narrows</b> with length, and
+  both facts have the same cause. Figure 4 is entirely in that second regime.</p>
+</div>
+
+<div class="box pitfall">
+  <span class="label">Pitfall: the stated reasoning is not necessarily the actual reasoning</span>
+  <p>A written chain of steps is a plausible-looking derivation, produced by the same next-token
+  prediction as everything else. It is not a transcript of the computation.</p>
+  <p>The measurement that shows this: corrupt an intermediate step and the model frequently reaches
+  the same final answer anyway; or prompt it toward a wrong answer and the chain will often
+  rationalise its way there. The chain helps (the figure measures that), <b>and</b> it is not
+  faithful, and both are true at once.</p>
+  <p>The consequence for anything that matters: a reasoning trace is not an explanation, and reading
+  one as evidence that the model reasoned correctly is a mistake. Part XXI returns to this, because
+  it is the main obstacle to using these traces for oversight.</p>
+</div>
+
+<h3><span class="num">§22</span> The sensitivity problem</h3>
+
+<div class="readnow"><span class="label">Go and read</span><p><span class="src">Zhao et al. (2021)</span>, <i>Calibrate before use: improving few-shot performance of language models</i>. How far performance moves with the order and formatting of demonstrations, and a cheap correction. The measurement is what makes single-prompt evaluation indefensible.</p></div>
+
+<div class="box pitfall">
+  <span class="label">Pitfall: prompt sensitivity is a measurement problem before it is a usability one</span>
+  <p>Performance varies substantially with things that should not matter: the order of the
+  demonstrations, the exact wording, the formatting, even whitespace. Reported swings on standard
+  benchmarks from reordering examples alone are large enough to change a paper's conclusion.</p>
+  <p>So a single-prompt evaluation measures a prompt as much as a model, and comparing two models
+  each with its own tuned prompt compares the prompt engineering. Part XIV §20's inflation, in a
+  setting where the search is usually undocumented.</p>
+  <p>What to do is Part XIV's answer: evaluate over a <b>distribution</b> of prompts and report the
+  spread, not the best. And note the diagnostic value: a task where performance swings with
+  formatting is one the model is doing fragilely, whatever its best number says.</p>
+</div>
+
+<h3><span class="num">§23</span> What prompting cannot fix</h3>
+
+<div class="box def">
+  <span class="label">Three limits</span>
+  <p><b>Absent knowledge.</b> If the fact is not in the weights, no phrasing retrieves it. That is
+  §34's job.</p>
+  <p><b>Absent capability.</b> Prompting selects among behaviours the model has; it does not create
+  one. A model that cannot do the task produces a confident, well-formatted failure.</p>
+  <p><b>The context window.</b> Everything prompting supplies must fit, is re-sent every request,
+  and is subject to §12's position effect.</p>
+  <p>The first two are why the ordering in §39 exists, and the third is why it is not simply
+  "prompt harder".</p>
+</div>
+
+<h3><span class="num">§24</span> What movement C establishes</h3>
+
+<div class="box intuition">
+  <span class="label">Three things</span>
+  <p><b>Reading a rule from the context is something next-token prediction required</b>, not a
+  separate gift. It has a mechanism, it has a moment in training when it appears, and it is
+  measurable with a task the model cannot have memorised. Figure 3 is that measurement: a mapping
+  invented at test time, read correctly 0.442 of the time against 0.250 chance, and (the part that
+  settles it) read <i>into the permutation</i> at 0.198 when the demonstrations are permuted.</p>
+  <p><b>Producing intermediate tokens is producing computation.</b> Figure 4 puts the direct answer
+  at chance at every depth and the written-out answer at 1.000 to 0.677. That reframes prompting as
+  compute allocation, and it is the observation that the reasoning-model line of work took
+  seriously.</p>
+  <p><b>Both results are about the mechanism, not about its size.</b> Neither figure supports a
+  clean scaling story: the demonstration curve falls rather than rises, for a reason that is a
+  property of how the task was built rather than of in-context learning; and the chain-of-thought
+  gap does not widen smoothly with depth. The existence of these effects replicates easily. Their
+  shape is where the careless claims live, and where §23 said prompting research mostly goes
+  wrong.</p>
+</div>
+
+<div class="sixty">
+  <span class="label">Sixty seconds</span>
+  <p>A model trained only to predict the next token can be handed a rule it has never seen, in the
+  prompt, and apply it, and you can prove it is the rule and not the format by permuting the
+  answers and watching the model follow them into being wrong. Separately, letting a model write
+  intermediate steps gives it more forward passes, which lets it solve problems that do not fit in
+  its layer budget at all. One is about reading; the other is about compute. Together they are why a
+  text-completion engine behaves like something you can instruct.</p>
+</div>

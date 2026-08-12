@@ -1,0 +1,281 @@
+<h2><span class="part-kicker">Part B</span>Compression</h2>
+
+<p class="lede">The oldest idea in the subject: train a network to copy its input, and constrain it
+so that copying perfectly is impossible. What it is forced to keep is the representation.</p>
+
+<h3><span class="num">§7</span> The encoder–decoder frame</h3>
+
+<div class="box def">
+  <span class="label">An autoencoder</span>
+  <p>An <b>encoder</b> $\mathbf{h} = f(\mathbf{x})$ and a <b>decoder</b>
+  $\mathbf{r} = g(\mathbf{h})$, trained to minimise a reconstruction loss</p>
+  <p>$$L\big(\mathbf{x},\, g(f(\mathbf{x}))\big)$$</p>
+  <p>and <b>designed to be unable to copy perfectly</b>. That last clause is the entire content.
+  An autoencoder that achieves $g(f(\mathbf{x})) = \mathbf{x}$ everywhere has learned the identity
+  function and told you nothing.</p>
+  <p>The loss is not arbitrary. As in Part VII §6, choose an output distribution and take the
+  negative log-likelihood: real-valued $\mathbf{x}$ with a Gaussian decoder gives squared error,
+  binary $\mathbf{x}$ with a Bernoulli decoder gives cross-entropy. The autoencoder is a
+  feedforward network whose target happens to be its input, and every technique from Parts VII–IX
+  applies unchanged.</p>
+</div>
+
+<div class="box history">
+  <span class="label">Where this came from</span>
+  <p>The idea dates to the late 1980s (LeCun, 1987; Bourlard and Kamp, 1988; Hinton and Zemel,
+  1994), as dimensionality reduction and feature learning. For two decades it was a preprocessing
+  step.</p>
+  <p>Two things changed its status. It became the basis of a family of generative models
+  (Part XVI), and the specific variant in §11 (corrupt the input, learn to undo it) turned out to
+  be the objective that scales. The 2016 chapter this part is built on presents denoising as one
+  regulariser among several. It is now the mechanism behind a large fraction of the field.</p>
+</div>
+
+<h3><span class="num">§8</span> Undercomplete, and its exact relationship to PCA</h3>
+
+<p>The simplest constraint is a narrow code: $\dim(\mathbf{h}) < \dim(\mathbf{x})$. An autoencoder
+constrained this way is <b>undercomplete</b>, and with a linear decoder and squared error it has a
+known answer.</p>
+
+<figure>
+  <img src="figures/rp/02-linear-ae.svg" alt="Reconstruction error of a linear autoencoder against PCA, principal angles between the two subspaces, and per-axis agreement">
+  <figcaption><b>Figure 2.</b> A linear autoencoder with a three-dimensional code, against rank-3
+  PCA on the same data. Left: it reaches PCA's reconstruction error, to within <b>0.2%</b>. Centre:
+  the principal angles between the two subspaces are <b>0.14°, 0.41° and 2.04°</b>, the same
+  subspace. Right: agreement between each code direction and the matching principal component is
+  <b>0.016, 0.249, 0.772</b>. It found the subspace and not the axes.</figcaption>
+</figure>
+
+<div class="box why">
+  <span class="label">Why it recovers the subspace and not the axes</span>
+  <p>The standard statement is that a linear undercomplete autoencoder "learns the same subspace as
+  PCA". The word <b>subspace</b> is doing precise work and is usually read past.</p>
+  <p>Let $W$ be the encoder and $V$ the decoder. For any invertible $k \times k$ matrix $R$, the
+  pair $(RW,\, VR^{-1})$ computes exactly the same reconstruction. The loss is <b>identical</b>,
+  so nothing in the objective prefers one to another, and gradient descent lands on whichever the
+  initialisation led to.</p>
+  <p>PCA's axes are picked out by an extra requirement the autoencoder never makes: that the
+  directions be orthogonal and ordered by variance. That requirement comes from the eigenvalue
+  problem, not from reconstruction. The figure's third panel is this degeneracy, measured.</p>
+  <p><b>The general lesson, and it recurs.</b> When a loss is invariant under a group of
+  transformations of the representation, the representation is determined only up to that group.
+  Nothing you do to the objective will fix the axes unless you add a term that mentions them.
+  §39 is what happens when a decade of research tries.</p>
+</div>
+
+<div class="box def">
+  <span class="label">Nonlinear encoders</span>
+  <p>Make $f$ and $g$ nonlinear and you have a nonlinear generalisation of PCA: a curved
+  low-dimensional surface fitted to the data instead of a flat one. This is the manifold reading of
+  §5, and it is what makes the autoencoder more than a slow eigendecomposition.</p>
+  <p>Depth helps both halves. A single-layer encoder can represent the identity along the data
+  arbitrarily well but cannot enforce structure on the code; a deep encoder can approximate any
+  input-to-code map. Deep autoencoders compress substantially better than shallow ones at equal
+  code size.</p>
+</div>
+
+<h3><span class="num">§9</span> Why capacity alone defeats the whole scheme</h3>
+
+<div class="box pitfall">
+  <span class="label">Pitfall: a one-dimensional code that memorises the dataset</span>
+  <p>Suppose the encoder is powerful enough to compute anything. Then a <b>one-dimensional</b> code
+  suffices: let $f(\mathbf{x}^{(i)}) = i$, the index of the training example, and let the decoder
+  be a lookup table from index to example. Reconstruction is perfect and the representation is
+  worthless: it encodes <i>which example this was</i>, which generalises to nothing.</p>
+  <p>This does not happen in practice in quite this form, and it establishes the point exactly: a
+  narrow bottleneck is <b>not</b> a guarantee of a useful code. It is a guarantee only when the
+  encoder is too weak to cheat, and the size of the bottleneck says nothing about that.</p>
+  <p>The same failure at the other extreme: if $\dim(\mathbf{h}) \geq \dim(\mathbf{x})$
+  (<b>overcomplete</b>) then even a linear encoder and decoder can copy perfectly and learn
+  nothing.</p>
+</div>
+
+<div class="box why">
+  <span class="label">Why this motivates regularized autoencoders</span>
+  <p>Both failures come from controlling capacity by <b>architecture</b>: fix the code size, keep
+  the networks small, hope. The dependence between "code size" and "learns something useful" is
+  indirect and unreliable in both directions.</p>
+  <p>The alternative is to leave the architecture as large as the problem needs and put the
+  requirement in the <b>loss</b>: ask for sparsity, or robustness to corruption, or insensitivity
+  to small input changes. Then the code can be overcomplete and nonlinear and still be forced to
+  say something about the data. The next four sections are the three classical ways of doing this,
+  and the observation that they are the same idea.</p>
+</div>
+
+<h3><span class="num">§10</span> Sparse autoencoders</h3>
+
+<div class="readnow"><span class="label">Go and read</span><p><span class="src">Olshausen &amp; Field (1996)</span>, <i>Emergence of simple-cell receptive field properties by learning a sparse code</i>. Sparse coding, proposed as a claim about the structure of natural signals rather than as a machine-learning trick. Worth reading now rather than as history, because §34 applies the same penalty to a language model's activations thirty years later and it works for the reason given here.</p></div>
+
+<div class="box def">
+  <span class="label">The objective</span>
+  <p>$$L\big(\mathbf{x},\, g(f(\mathbf{x}))\big) + \Omega(\mathbf{h}),
+  \qquad \Omega(\mathbf{h}) = \lambda \sum_i |h_i|$$</p>
+  <p>Most units must be off for most inputs. With a rectifier on the code layer the penalty
+  produces <b>actual zeros</b> rather than small values, which is what makes the representation
+  sparse in the useful sense.</p>
+</div>
+
+<div class="box why">
+  <span class="label">Why this is not a regularizer, quite</span>
+  <p>Part V §18 read weight decay as a Gaussian prior on the parameters, under the MAP
+  correspondence. That reading is unavailable here: $\Omega$ depends on $\mathbf{h}$, which depends
+  on the <b>data</b>, and a prior may not depend on the data.</p>
+  <p>The correspondence that does work runs through a latent-variable model. Take
+  $p(\mathbf{h},\mathbf{x}) = p(\mathbf{h})\,p(\mathbf{x} \mid \mathbf{h})$ and approximate the
+  marginal by its single most likely $\mathbf{h}$. Then</p>
+  <p>$$\log p(\mathbf{h}, \mathbf{x}) = \log p(\mathbf{h}) + \log p(\mathbf{x} \mid \mathbf{h})$$</p>
+  <p>and a <b>Laplace</b> prior $p(h_i) \propto e^{-\lambda|h_i|}$ makes $-\log p(\mathbf{h})$
+  equal to $\lambda\sum_i |h_i|$ up to a constant. The sparsity penalty is not a regularizer added
+  to a copying task; it <i>is</i> the log-prior of a generative model whose latent variables are
+  the features. Part II §17's Laplace distribution, arriving with a job.</p>
+  <p>This also answers why the features are useful: they are the latent variables that explain the
+  input. §34 is this same penalty applied to a trained network's activations, for a purpose nobody
+  in 2016 had in mind.</p>
+</div>
+
+<h3><span class="num">§11</span> Denoising autoencoders</h3>
+
+<div class="sixty">
+  <span class="label">In 60 seconds</span>
+  <p>Instead of adding a penalty, damage the input. Corrupt $\mathbf{x}$ to $\tilde{\mathbf{x}}$,
+  and require the network to output the <b>clean</b> $\mathbf{x}$. Copying is now useless, because
+  the thing to be copied is not the thing presented. The network must know what the data looks like
+  in order to repair it.</p>
+</div>
+
+<div class="box def">
+  <span class="label">The objective</span>
+  <p>Choose a corruption process $C(\tilde{\mathbf{x}} \mid \mathbf{x})$: additive Gaussian noise,
+  or masking a random subset of coordinates. Then minimise</p>
+  <p>$$-\,\mathbb{E}_{\mathbf{x} \sim \hat{p}_{\text{data}}}\;
+  \mathbb{E}_{\tilde{\mathbf{x}} \sim C(\tilde{\mathbf{x}} \mid \mathbf{x})}\;
+  \log p_{\text{decoder}}\big(\mathbf{x} \mid \mathbf{h} = f(\tilde{\mathbf{x}})\big)$$</p>
+  <p>With a deterministic encoder this is an ordinary feedforward network trained by ordinary
+  minibatch gradient descent. Nothing about the optimisation is special. Only the target is.</p>
+</div>
+
+<div class="box why">
+  <span class="label">Why this is the manifold statement of §5, made operational</span>
+  <p>Corruption pushes a point <b>off</b> the manifold. The training target is the point it came
+  from, which is <b>on</b> it. So the network is being taught, at every training step, the map from
+  the neighbourhood back to the data.</p>
+  <p>The reconstruction $g(f(\tilde{\mathbf{x}}))$ estimates the mean of the clean points that
+  could have produced $\tilde{\mathbf{x}}$, so the vector
+  $g(f(\tilde{\mathbf{x}})) - \tilde{\mathbf{x}}$ points toward the manifold, and its length grows
+  with how far off you were.</p>
+  <p>That is a vector field over the whole input space, learned from a reconstruction loss. §12 is
+  about what that vector field turns out to be, and it is more than an analogy.</p>
+</div>
+
+<h3><span class="num">§12</span> What denoising actually learns</h3>
+
+<div class="readnow"><span class="label">Go and read</span><p><span class="src">Vincent (2011)</span>, <i>A connection between score matching and denoising autoencoders</i>. Four pages, and the single most consequential result in this part. It establishes that the reconstruction-minus-input field of a denoising autoencoder is the score of the smoothed data density, which converts an unsupervised representation method into density estimation, with no normalising constant anywhere. Read it before Part XVI, not during.</p></div>
+
+<figure>
+  <img src="figures/rp/03-denoising-score.svg" alt="True score field of a Gaussian mixture, the field learned by a denoising autoencoder, and their magnitudes compared">
+  <figcaption><b>Figure 3.</b> A denoising autoencoder trained on a two-component Gaussian mixture
+  with $\sigma = 0.35$, against the mixture's <b>analytic</b> score. Mean cosine between the two
+  fields is <b>0.9931</b> and the magnitude ratio is <b>0.967</b>. The network was trained only to
+  remove noise; nothing in its loss mentions a density, a gradient or a logarithm.</figcaption>
+</figure>
+
+<div class="box def">
+  <span class="label">The score, and the identity</span>
+  <p>The <b>score</b> of a density is the gradient of its log with respect to the input:</p>
+  <p>$$\mathbf{s}(\mathbf{x}) = \nabla_{\mathbf{x}} \log p(\mathbf{x})$$</p>
+  <p>It is a vector field pointing uphill in probability. It does not involve the normalising
+  constant, because the gradient of a log kills any constant factor, which is why it can be
+  learned when the density itself cannot.</p>
+  <p>For a denoising autoencoder with Gaussian corruption of variance $\sigma^2$ and squared-error
+  reconstruction,</p>
+  <p>$$\frac{g(f(\mathbf{x})) - \mathbf{x}}{\sigma^2} \;\approx\;
+  \nabla_{\mathbf{x}} \log p_\sigma(\mathbf{x})$$</p>
+  <p>where $p_\sigma$ is the data density <b>convolved with the corruption noise</b>. Reconstruct
+  minus input, divided by the noise variance, is the score.</p>
+</div>
+
+<div class="box pitfall">
+  <span class="label">Pitfall: it is the smoothed density, and the difference is measurable</span>
+  <p>The identity is routinely quoted as "a denoising autoencoder learns the score of the data".
+  It learns the score of $p_\sigma$, the data blurred by the corruption, and that is not the same
+  distribution.</p>
+  <p>Measured on the figure's mixture: against the smoothed score, cosine <b>0.9931</b> and
+  magnitude ratio <b>0.967</b>. Against the unsmoothed score, the cosine is still <b>0.9862</b>
+  (the direction is barely affected) but the magnitude ratio falls to <b>0.609</b>. Blurring
+  flattens the density, so its gradient is smaller, and quoting the unsmoothed version overstates
+  the true field by two thirds.</p>
+  <p>At a fixed noise level this makes the estimator inconsistent: it recovers a blurred
+  distribution, not the real one. Consistency returns only if $\sigma \to 0$ as the number of
+  examples grows. Which raises the obvious question (why not use many noise levels at once) and
+  that question is Part XVI's opening move.</p>
+</div>
+
+<div class="box why">
+  <span class="label">Why this is the most consequential identity in the part</span>
+  <p>It converts an unsupervised representation-learning method into <b>density estimation</b>.
+  Learning to repair damage is learning the shape of the data distribution, and it needs no
+  normalising constant, no sampling during training, and no approximate inference.</p>
+  <p>Everything Part XVI builds (denoising score matching, diffusion, the sampler) is this
+  identity applied across a schedule of noise levels rather than one. When that part appears to
+  produce images from nothing, the mechanism is the field in this figure, learned at many scales
+  and followed uphill.</p>
+</div>
+
+<h3><span class="num">§13</span> Contractive autoencoders</h3>
+
+<div class="box def">
+  <span class="label">Penalising the derivative</span>
+  <p>$$\Omega(\mathbf{h}, \mathbf{x}) = \lambda \left\|
+  \frac{\partial f(\mathbf{x})}{\partial \mathbf{x}} \right\|_F^2$$</p>
+  <p>The squared Frobenius norm of the encoder's Jacobian: the code must not change much when the
+  input changes slightly. Applied at training points only, so it asks for insensitivity <b>where
+  the data is</b>.</p>
+</div>
+
+<div class="box why">
+  <span class="label">Why it is the infinitesimal version of denoising, and what it recovers</span>
+  <p>In the limit of small Gaussian noise, denoising error is equivalent to a contractive penalty
+  on the reconstruction. The two differ in where they act: denoising makes the <b>reconstruction</b>
+  resist finite perturbations, contraction makes the <b>encoder</b> resist infinitesimal ones.</p>
+  <p>The name is precise. A linear operator is contractive if it shrinks the unit sphere, and the
+  penalty asks the local linear approximation of $f$ to be a contraction at every training point.
+  It cannot be a contraction in <i>every</i> direction, because reconstruction still has to work:
+  the compromise leaves most singular values of the Jacobian below one and a few above it.</p>
+  <p><b>The directions that survive are the tangent directions of the manifold.</b> The singular
+  vectors with large singular values span the directions in which the data actually varies: pose,
+  position, the identity of the moving part. The encoder has estimated the tangent space of §5,
+  from a penalty that only said "do not be sensitive".</p>
+</div>
+
+<div class="box pitfall">
+  <span class="label">Pitfall: the penalty has a trivial exploit</span>
+  <p>Let the encoder multiply by $\epsilon$ and the decoder divide by $\epsilon$. Reconstruction is
+  unaffected and $\Omega$ goes to zero as $\epsilon \to 0$. The penalty is driven to nothing and
+  nothing has been learned.</p>
+  <p>The fix is to remove the degree of freedom: <b>tie the weights</b>, setting the decoder's
+  matrix to the transpose of the encoder's. This is the same class of failure as §8's rotation
+  invariance (a symmetry of the objective that has to be broken by construction because the loss
+  will not break it) and it is worth recognising the shape, because it recurs in §21 with much
+  higher stakes.</p>
+</div>
+
+<h3><span class="num">§14</span> The two forces</h3>
+
+<div class="box intuition">
+  <span class="label">What every method in this movement is doing</span>
+  <p>All autoencoder training is a compromise between two forces.</p>
+  <p><b>One: reconstruct the training data.</b> Not all inputs: only those drawn from the data
+  distribution. The autoencoder is under no obligation to reconstruct anything else, and this is
+  what makes the problem tractable.</p>
+  <p><b>Two: satisfy the constraint.</b> A narrow code, a sparsity penalty, robustness to
+  corruption, a small Jacobian. Every one of these prefers a representation that is <b>less
+  sensitive to the input</b>.</p>
+  <p>Neither force alone is any use. Copying is useless; ignoring the input is useless. Together
+  they force the representation to keep exactly the variations needed to reconstruct real data and
+  discard the rest, which, if the manifold assumption holds, is a local coordinate system on the
+  manifold.</p>
+  <p>The reason to state this as a principle rather than a list is that movement C changes the
+  first force (from "reconstruct the input" to "agree with another view of it") and keeps the
+  second unchanged. The compromise is the durable idea. The reconstruction was one way to state
+  it.</p>
+</div>

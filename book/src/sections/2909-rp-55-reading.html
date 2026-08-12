@@ -1,0 +1,223 @@
+<h2><span class="part-kicker">Part E</span>Reading a representation</h2>
+
+<p class="lede">A representation is a large array of numbers with no labels on the axes. This
+movement is about finding out what it holds, and about how much of the standard method
+establishes less than it appears to.</p>
+
+<h3><span class="num">§31</span> Probing</h3>
+
+<div class="box def">
+  <span class="label">The method</span>
+  <p>To ask whether a representation encodes some property, train a small classifier (a
+  <b>probe</b>) to predict that property from the frozen representation, and report its accuracy on
+  held-out data.</p>
+  <p>It is cheap, it applies to any representation, and it has been used to establish that language
+  models encode part of speech, syntactic structure, and factual attributes, and that vision models
+  encode object position and pose. The practice is standard and the interpretation of its output is
+  where the difficulty lives.</p>
+</div>
+
+<div class="box why">
+  <span class="label">Why "linear" is doing the real work</span>
+  <p>Restricting the probe to a linear model is not a convenience. It changes the claim.</p>
+  <p>A linear probe succeeding means the property is <b>linearly available</b>: readable by the
+  kind of model that sits on top of a representation in practice, at the cost of one matrix
+  multiply. That is a statement about usability, and it is the statement worth making.</p>
+  <p>A powerful probe succeeding means only that the property is recoverable <i>somehow</i>, which
+  is a much weaker claim and, as §32 measures, often not a claim about the representation at
+  all.</p>
+</div>
+
+<h3><span class="num">§32</span> What a probe establishes</h3>
+
+<div class="readnow"><span class="label">Go and read</span><p><span class="src">Hewitt &amp; Liang (2019)</span>, <i>Designing and interpreting probes with control tasks</i>. The paper behind this section's figure, and the one that should have changed probing practice more than it did. Control tasks, selectivity, and the demonstration that a sufficiently powerful probe learns whatever labels you hand it, which makes its accuracy a statement about the probe.</p></div>
+
+<figure>
+  <img src="figures/rp/09-probe.svg" alt="Real-task and control-task accuracy for linear and MLP probes on three representations">
+  <figcaption><b>Figure 9.</b> The same probes on three representations, against the real task and
+  against a <b>control task</b> where every example identity is given a fixed random label. An MLP
+  probe on the raw input scores <b>0.961</b> on the real task and <b>0.952</b> on the meaningless
+  one, a selectivity of <b>0.009</b>. On an untrained network it is <b>−0.003</b>. Only the linear
+  probe on the contrastive representation is selective, at <b>+0.605</b>.</figcaption>
+</figure>
+
+<div class="box def">
+  <span class="label">Control tasks and selectivity</span>
+  <p>A <b>control task</b> assigns each example identity a fixed random label, consistent between
+  train and test. The mapping is perfectly learnable (it is a deterministic function of the
+  input) and it means nothing whatever.</p>
+  <p><b>Selectivity</b> is accuracy on the real task minus accuracy on the control. A probe that
+  scores well on both was memorising identities, not reading a property. A probe that scores well on
+  the real task and badly on the control has demonstrated that the representation makes the property
+  <i>specifically</i> available.</p>
+</div>
+
+<div class="box pitfall">
+  <span class="label">Pitfall: probe accuracy is not evidence</span>
+  <p>The figure is the argument. An MLP probe reports 0.961 accuracy for a property, which under
+  the usual convention would be written up as "the representation encodes it strongly". The same
+  probe reports 0.952 for random noise, so the 0.961 tells you about the probe.</p>
+  <p>Notice which arrangement survives. The contrastive representation is selective under a linear
+  probe (<b>+0.605</b>) and much less so under an MLP (<b>+0.076</b>), because a strong enough probe
+  starts recovering identities again. So <b>selectivity is a property of the pair</b>, the
+  representation and the probe, and reporting it without saying which probe was used is
+  meaningless.</p>
+  <p>The minimum honest report for any probing result: the probe family, its capacity, its
+  regularization, the control-task accuracy, and the selectivity. Accuracy alone belongs in the same
+  category as Part XIV §19's single-seed comparison.</p>
+</div>
+
+<div class="box why">
+  <span class="label">Why the contrastive encoder is the selective one</span>
+  <p>Worth following, because it connects the two halves of this part. The control task requires
+  identifying <i>which example this is</i>. The raw input supports that completely, so the control is
+  as learnable as the real task and selectivity vanishes.</p>
+  <p>The contrastive encoder was trained to be invariant to the nuisance factor (§19), so it has
+  <b>discarded</b> the information the control task needed. That is precisely why a probe on it
+  means something.</p>
+  <p>The general form: a representation is interpretable to the extent that it has thrown things
+  away. A representation that retains everything supports every probe equally and licenses no
+  conclusion at all.</p>
+</div>
+
+<h3><span class="num">§33</span> Superposition</h3>
+
+<div class="readnow"><span class="label">Go and read</span><p><span class="src">Elhage et al. (2022)</span>, <i>Toy models of superposition</i>. The model this section's figure reproduces. Its contribution is explanatory: polysemantic neurons stop being an anomaly once you accept that a layer stores more features than it has dimensions. Unusually clear about what a toy setting does and does not establish. Then <span class="src">Bricken et al. (2023)</span> for the same idea on a real model, whose limitations section is the part most often dropped when it is cited.</p></div>
+
+<p>Probing asks whether a named property is present. The harder question is what a representation
+holds that you did not think to name, and the answer starts with a counting problem.</p>
+
+<figure>
+  <img src="figures/rp/10-superposition.svg" alt="Number of features a five-dimensional layer stores against feature sparsity, and stored magnitude by feature importance">
+  <figcaption><b>Figure 10.</b> Twenty features of decaying importance, and five dimensions to store
+  them in. With dense features exactly <b>5</b> are stored, orthogonally, and the rest are
+  dropped. At 99% sparsity <b>16</b> are stored, more than three times the available dimensions, at
+  a mean interference of 0.345.</figcaption>
+</figure>
+
+<div class="box def">
+  <span class="label">The phenomenon</span>
+  <p><b>Superposition</b> is a layer representing more features than it has dimensions, by assigning
+  them directions that are not orthogonal. The price is <b>interference</b>: reading one feature
+  picks up a contribution from the others.</p>
+  <p>The condition that makes the trade worthwhile is <b>sparsity</b>. If any given feature is
+  present in only 1% of inputs, then two features sharing a direction collide rarely, and the
+  occasional corrupted reading costs less than dropping a feature entirely.</p>
+</div>
+
+<div class="box why">
+  <span class="label">Why this explains something everyone has noticed</span>
+  <p>Individual neurons in trained networks are frequently <b>polysemantic</b>: one unit responds to
+  cat faces, car fronts and a particular texture, with no relationship among them. This has been
+  observed since people started looking and it has no good explanation under the assumption that
+  features are neurons.</p>
+  <p>Superposition explains it. If the network is storing more features than it has neurons, then
+  features must share, and a neuron is a <b>projection of several</b> rather than one thing. The
+  polysemanticity is not noise or a failure to converge; it is the encoding scheme.</p>
+  <p>Which means the basis you are handed, the neuron basis, is the wrong one, and the meaningful
+  directions are somewhere else in the space. That is a problem with a known shape: recovering an
+  overcomplete set of directions from their sparse mixtures. §10's sparse coding, arriving where
+  nobody expected it.</p>
+</div>
+
+<h3><span class="num">§34</span> Sparse autoencoders, for interpretability</h3>
+
+<div class="box def">
+  <span class="label">The construction</span>
+  <p>Take a trained network. Collect the activations of one layer over a large corpus. Train a
+  sparse autoencoder on <b>those activations</b>, with a code much <i>wider</i> than the layer,
+  often by a factor of 8 to 64, and an L1 penalty on the code.</p>
+  <p>$$\min \;\; \|\mathbf{a} - W_{\text{dec}} \mathbf{h}\|_2^2 + \lambda \|\mathbf{h}\|_1,
+  \qquad \mathbf{h} = \text{ReLU}(W_{\text{enc}}\mathbf{a} + \mathbf{b})$$</p>
+  <p>Wider, because §33 says there are more features than dimensions. Sparse, because §33 says
+  sparsity is the condition that made the packing possible. The autoencoder is being asked to invert
+  the superposition.</p>
+</div>
+
+<div class="box why">
+  <span class="label">Why this is the same object as §10 and why that is reassuring</span>
+  <p>This is a sparse autoencoder in the exact sense of §10 (the same objective, the same Laplace
+  prior reading) with one change: it is trained on a network's activations rather than on data.</p>
+  <p>The reason to find that reassuring is that the method was not invented for this purpose. The
+  penalty was proposed to learn features from images in the 1990s, justified by a claim about how
+  natural signals are structured. It turns out to recover interpretable directions from a
+  transformer's residual stream, and it does so because the same claim (most features are absent
+  from most inputs) is true in both places.</p>
+  <p>Where the learned features are inspected, many are strikingly specific and the top-activating
+  examples for a single feature are recognisably one thing where the underlying neurons were
+  several.</p>
+</div>
+
+<h3><span class="num">§35</span> What a learned feature is, and is not</h3>
+
+<div class="box pitfall">
+  <span class="label">Pitfall: four things that get skipped</span>
+  <p><b>The features are not unique.</b> Different dictionary widths, sparsity coefficients and
+  seeds give different feature sets, and there is no criterion within the method that selects among
+  them. The unidentifiability of §39, in a practical form.</p>
+  <p><b>Interpretation is not measurement.</b> "The top twenty activating examples all look like
+  X" is a hypothesis. It becomes a finding when you <b>intervene</b>: clamp the feature and check
+  the output changes in the predicted way. Reading the top activations is Part XIV §11's
+  looking-at-mistakes, and it has the same status: it generates the hypothesis.</p>
+  <p><b>Dead features and reconstruction error.</b> A substantial fraction of features often never
+  activate, and the autoencoder does not reconstruct the activations perfectly. Both numbers should
+  be reported and frequently are not; a dictionary that explains 70% of the variance leaves 30%
+  unaccounted for and no claim about completeness is available.</p>
+  <p><b>Selection.</b> Papers show the interpretable features. The denominator, how many were
+  examined, is what determines whether that means anything. Part XIV §20, in a setting where the
+  search size is almost never stated.</p>
+</div>
+
+<div class="box why">
+  <span class="label">Why it is nonetheless the most promising thing here</span>
+  <p>It is unsupervised, so it can find features nobody thought to look for, unlike probing, which
+  can only confirm or deny a property you named in advance. It is scalable, having been run on
+  production-scale models. And it makes predictions that can be checked by intervention rather than
+  by inspection.</p>
+  <p>The honest position: a real advance on reading representations, with an unsolved
+  identifiability problem underneath it, and a literature whose evaluation standards are still
+  forming.</p>
+</div>
+
+<h3><span class="num">§36</span> Multimodal alignment</h3>
+
+<div class="box def">
+  <span class="label">Two towers, one space</span>
+  <p>Encode images with one network and text with another, and train contrastively on paired data:
+  matched image–caption pairs are positives, all other pairs in the batch are negatives. This is
+  §17's objective with the two views drawn from <b>different modalities</b>.</p>
+  <p>What it buys is §38's zero-shot classification, and retrieval in either direction. The
+  supervision is the pairing, which exists in quantity on the web without anyone labelling
+  anything, the same move as §19, with the alignment supplied by the world rather than by an
+  augmentation.</p>
+</div>
+
+<div class="box pitfall">
+  <span class="label">Pitfall: the modality gap</span>
+  <p>The two modalities do not end up in the same region of the space. They occupy separate cones
+  with a measurable gap between their centroids, present from initialisation and preserved by
+  training.</p>
+  <p>The reason is that the objective only constrains <b>relative</b> similarities within a row: a
+  matched pair must score higher than the mismatched pairs it is compared against in that batch, and
+  the loss is indifferent to how those comparisons are achieved. Nothing in it ever compares an
+  image embedding to another image embedding, so nothing in it rewards moving the image cloud and
+  the text cloud closer together: only rewards separating matches from mismatches within each row.
+  A gap that starts at initialisation is therefore never optimised against; it is inherited, not
+  produced, and training has no term that would close it.</p>
+  <p>The consequence is practical: <b>cross-modal similarities are not comparable to within-modal
+  ones</b>. A threshold tuned on image–image similarity is meaningless applied to image–text, and
+  systems that mix the two silently favour one. Measure the two distributions separately before
+  choosing any threshold.</p>
+</div>
+
+<div class="box intuition">
+  <span class="label">What movement E establishes</span>
+  <p><b>Probing tells you what is linearly available, and only if you ran the control.</b> Accuracy
+  without selectivity is not evidence, and selectivity is a property of the probe as much as of the
+  representation.</p>
+  <p><b>The neuron basis is the wrong basis.</b> Networks store more features than they have
+  dimensions, so individual units are mixtures, and looking at them one at a time was always going
+  to be confusing.</p>
+  <p><b>Sparsity is the tool for both problems</b>: it is what makes superposition possible and
+  what makes recovering the features from it possible.</p>
+</div>

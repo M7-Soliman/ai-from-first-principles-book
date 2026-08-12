@@ -1,0 +1,329 @@
+<h2><span class="part-kicker">Practice</span>Drills</h2>
+
+<p class="lede">Thirty-seven problems. Small MDPs can be solved exactly, so most of these have a
+right answer to check against rather than a plausible one.</p>
+
+<h3><span class="num">Tier 0</span> Estimate first</h3>
+
+<div class="drill">
+  <div class="head"><span class="tier est">Estimate</span>E1 &middot; What more episodes buy</div>
+  <p>You estimate a policy gradient from 100 episodes and the estimate is too noisy. Write down how much the standard error falls if you go to 400.</p>
+  <div class="ans"><b>Answer.</b> By a factor of <b>two</b>, not four: the error goes as 1/&radic;n. Each halving of noise costs four times the data, which is the arithmetic behind Part XVIII §27's baselines: reducing variance at the source beats buying it with samples, and it is the only thing that scales. <i>Score yourself: within a factor of two is a pass, and an order of magnitude out is worth understanding before you go on.</i></div>
+</div>
+
+<h3><span class="num">Tier 1</span> Warm-up</h3>
+
+<div class="drill">
+  <div class="head"><span class="tier warm">Warm</span>W1 · What changes</div>
+  <p>Name the four difficulties that follow from the learner choosing its own data.</p>
+  <div class="ans"><b>Answer.</b> Credit assignment, exploration, non-stationarity of the state
+  distribution, and delayed sparse reward. Every method in the part is a response to one.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier warm">Warm</span>W2 · Three reasons for $\gamma$</div>
+  <p>Give them, and say which is the load-bearing one.</p>
+  <div class="ans"><b>Answer.</b> It makes the return finite, it expresses a preference for sooner,
+  and it makes the Bellman operator a contraction. The third is load-bearing: every convergence
+  result in the part rests on it.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier warm">Warm</span>W3 · Why $Q$ rather than $V$</div>
+  <p>Why does value-based control learn $Q$?</p>
+  <div class="ans"><b>Answer.</b> Given $Q$ you can act greedily by comparing actions with no model.
+  Given only $V$ you need $p(s'\mid s,a)$ to know where each action leads.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier warm">Warm</span>W4 · One symbol</div>
+  <p>Write the SARSA and Q-learning targets and say what the difference means.</p>
+  <div class="ans"><b>Answer.</b> $Q(s',a')$ for the action actually taken, against
+  $\max_{a'}Q(s',a')$. On-policy against off-policy: SARSA learns the value of the policy it is
+  running, exploration included; Q-learning learns the optimal policy's values whatever it
+  does.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier warm">Warm</span>W5 · The triad</div>
+  <p>Name the three ingredients and say what happens when all three are present.</p>
+  <div class="ans"><b>Answer.</b> Function approximation, bootstrapping, off-policy sampling. The
+  iteration can have no fixed point, so the weights diverge, and removing any one of the three
+  restores convergence.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier warm">Warm</span>W6 · Why a baseline is free</div>
+  <p>Give the three-line identity.</p>
+  <div class="ans"><b>Answer.</b> $\mathbb{E}_{a\sim\pi}[\nabla\log\pi(a\mid s)]
+  = \sum_a \nabla\pi(a\mid s) = \nabla\sum_a \pi(a\mid s) = \nabla 1 = 0$. The expected score
+  function is zero, so subtracting anything independent of the action leaves the expectation
+  unchanged.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier warm">Warm</span>W7 · Why the step size matters more here</div>
+  <p>Why is a too-large step worse in RL than in supervised learning?</p>
+  <div class="ans"><b>Answer.</b> A worse policy collects worse data, from which you learn a worse
+  policy. There is no fixed dataset to recover against, so a collapse can be permanent.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier warm">Warm</span>W8 · Linear regret</div>
+  <p>Why does $\epsilon$-greedy's regret grow linearly, and what do UCB and Thompson do
+  differently?</p>
+  <div class="ans"><b>Answer.</b> It explores at a fixed rate forever and uniformly at random, so it
+  keeps paying $\epsilon$ times the average gap. UCB and Thompson explore in proportion to
+  <b>uncertainty</b>, so exploration is spent where information is and the per-step regret falls to
+  zero.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier warm">Warm</span>W9 · Reward hacking</div>
+  <p>A policy earns a high reward and does the wrong thing. What went wrong?</p>
+  <div class="ans"><b>Answer.</b> Nothing, in the agent. The reward was a specification and the
+  agent found what it literally said. The gap between the specification and the intention is what
+  the optimiser is being paid to exploit.</div>
+</div>
+
+<h3><span class="num">Tier 2</span> Core</h3>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C1 · Value iteration, and its uniqueness</div>
+  <p>Implement it on a random MDP. Then run it from three very different starting points (all
+  zeros, all $+500$, all $-500$) and confirm they reach the same fixed point.</p>
+  <div class="ans"><b>Answer.</b> They do, to machine precision. That is the contraction's
+  uniqueness claim, and it is the property that makes the initialisation irrelevant.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C2 · The rate is exactly $\gamma$</div>
+  <p>Measure the per-sweep ratio of the max-norm error against the converged answer, for several
+  $\gamma$. Compare to theory.</p>
+  <div class="ans"><b>Answer.</b> They agree to several decimal places. Then compute how many
+  sweeps six decimal places needs at $\gamma = 0.9$ and at $0.99$ (132 against 1,375), and note
+  that long horizons are expensive in a way you can predict.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C3 · Policy iteration terminates exactly</div>
+  <p>Implement it with exact evaluation. Count iterations and compare to value iteration's sweep
+  count for the same accuracy.</p>
+  <div class="ans"><b>Answer.</b> A handful of iterations against hundreds of sweeps, because each
+  one is a full solve. The termination is exact rather than asymptotic: finitely many deterministic
+  policies, each strictly better than the last.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C4 · Evaluation is a linear solve</div>
+  <p>Compute $V^\pi$ by solving $(I-\gamma P_\pi)V = r_\pi$ and by iterating. Confirm they agree,
+  and compare the cost as the state space grows.</p>
+  <div class="ans"><b>Answer.</b> The solve is $O(S^3)$ and exact; the iteration is $O(S^2)$ per
+  sweep and converges geometrically. The iteration wins as soon as $S$ is at all large.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C5 · TD against Monte Carlo</div>
+  <p>On a chain whose true values you can solve for, run both across a range of episode budgets.
+  Report error against the exact values <b>and</b> the spread across seeds.</p>
+  <div class="ans"><b>Answer.</b> Monte Carlo's spread is several times TD's. Note also that both
+  plateau with a constant step size: that floor is the step size, not the method, and decaying it
+  removes it.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C6 · $n$-step, swept</div>
+  <p>Implement the $n$-step return and sweep $n$ from 1 to the episode length. Plot error against
+  $n$.</p>
+  <div class="ans"><b>Answer.</b> A U-shape: the best $n$ is neither extreme. TD and Monte Carlo
+  are the two ends of one family and the interior is usually better than both.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C7 · The cliff</div>
+  <p>Build a gridworld with a shortest path running alongside a catastrophic drop. Train SARSA and
+  Q-learning with $\epsilon$-greedy. Compare the paths learned and the rewards actually
+  collected.</p>
+  <div class="ans"><b>Answer.</b> Q-learning learns the optimal path along the edge and falls off
+  regularly; SARSA learns a safer path and collects more. Q-learning's policy is better and SARSA's
+  behaviour is better, which is a real distinction rather than a curiosity.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C8 · The maximisation bias, isolated</div>
+  <p>Every action has true value zero. Estimate each from a few samples, take the max, and average
+  over trials. Sweep the number of actions.</p>
+  <div class="ans"><b>Answer.</b> Positive and growing. This is Jensen's inequality, and it is
+  Part V §14's multiple comparisons arriving inside a training loop where it feeds back into
+  itself.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C9 · Double estimation</div>
+  <p>Repeat C8 selecting with one estimator and evaluating with another. Then build the two-state
+  MDP where the bias makes Q-learning prefer a genuinely worse action, and run both.</p>
+  <div class="ans"><b>Answer.</b> The bias vanishes, and in the MDP the difference is large and
+  persistent. The selection is still noisy; the evaluation is independent of the noise that drove
+  it.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C10 · Baird's counterexample</div>
+  <p>Implement it. Run four conditions: all three ingredients, no bootstrapping, on-policy, and
+  tabular. Plot $\|\mathbf{w}\|$.</p>
+  <div class="ans"><b>Answer.</b> Only the first diverges. Be careful with the on-policy condition:
+  it means the <b>state distribution</b> is the target policy's too, not merely that the importance
+  ratio is one. Then halve the step size and confirm it delays divergence rather than preventing
+  it.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C11 · What a target network does</div>
+  <p>Add one to a diverging configuration and vary the update interval from 1 to 10,000.</p>
+  <div class="ans"><b>Answer.</b> Long intervals stabilise it by making each phase closer to
+  ordinary regression against a fixed target. Note what this is: damping the feedback loop, not
+  removing the reason it exists.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C12 · The score function is mean-zero</div>
+  <p>For a softmax policy, verify $\sum_a \pi(a)\nabla\log\pi(a) = 0$ numerically, then confirm
+  that a baseline leaves the sampled gradient's expectation unchanged.</p>
+  <div class="ans"><b>Answer.</b> Zero to machine precision. That identity is the entire
+  justification for baselines, advantages and every variance reduction in the movement.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C13 · What a baseline buys</div>
+  <p>On a problem where the exact gradient is computable, measure the sampled estimator's bias and
+  variance with and without the mean baseline, across sample counts.</p>
+  <div class="ans"><b>Answer.</b> Variance falls by an order of magnitude or more; bias stays at
+  zero. Then shift all rewards by $+100$ and repeat: the no-baseline variance explodes and the
+  baselined version is unchanged, which is the mechanism.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C14 · GAE, both ends</div>
+  <p>Implement it in one backward pass. Confirm $\lambda = 0$ gives the one-step advantage and
+  $\lambda = 1$ the Monte Carlo one, then sweep $\lambda$ and measure bias and variance.</p>
+  <div class="ans"><b>Answer.</b> The same trade as C6, in the actor's target. Around 0.95 is the
+  usual choice and it is worth confirming rather than inheriting.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C15 · Why the min in PPO</div>
+  <p>Plot the clipped objective against the ratio for a positive and a negative advantage. Find
+  where the gradient is zero.</p>
+  <div class="ans"><b>Answer.</b> Outside the trust region in the improving direction. The $\min$
+  means a large step buys <b>nothing</b> rather than being priced: you cannot pay a penalty to take
+  it.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C16 · REINFORCE end to end</div>
+  <p>Train a softmax policy on a small MDP with REINFORCE, then add a baseline, then a learned
+  critic. Plot learning curves over ten seeds each.</p>
+  <div class="ans"><b>Answer.</b> Each step reduces the variance and the spread across seeds. Report
+  the spread, not just the mean: §43 says it is the number that gets omitted.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C17 · Four bandit strategies</div>
+  <p>Implement greedy, $\epsilon$-greedy, UCB and Thompson sampling. Run to a long horizon and plot
+  cumulative regret and regret per step.</p>
+  <div class="ans"><b>Answer.</b> Run long enough: at short horizons UCB has not yet repaid its
+  exploration and can look worse than $\epsilon$-greedy. The distinguishing property is the
+  <b>slope</b> at the end, not the total.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C18 · Where random exploration fails</div>
+  <p>Build a chain of $n$ states where reward sits at one end and only a specific $n$-step sequence
+  reaches it. Run $\epsilon$-greedy for increasing $n$ and record when it stops finding the
+  reward.</p>
+  <div class="ans"><b>Answer.</b> Very quickly. The probability of a specific length-$n$ sequence
+  falls exponentially, which is why the bandit apparatus applied per step does not solve
+  exploration in sequential problems.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C19 · Potential-based shaping</div>
+  <p>Add $\gamma\Phi(s') - \Phi(s)$ for a large random $\Phi$ and confirm the optimal policy is
+  unchanged. Then add an arbitrary action-dependent bonus and confirm it is not.</p>
+  <div class="ans"><b>Answer.</b> Compare the <b>values</b> the two policies achieve, not their
+  action indices: ties are broken arbitrarily. Note also that the values shift by exactly $-\Phi$,
+  which is the telescoping made visible.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C20 · Build a reward hack</div>
+  <p>Write a gridworld with a goal and a repeatable small bonus. Solve exactly for the proxy and for
+  the true objective. Report both returns under both policies.</p>
+  <div class="ans"><b>Answer.</b> With discounting, a repeatable small reward can beat a single
+  terminal one. The proxy policy scores far higher on the proxy and may never reach the goal, and
+  the reward curve rises throughout, which is why looking at the behaviour is not optional.</div>
+</div>
+
+<h3><span class="num">Tier 3</span> Stretch</h3>
+
+<div class="drill">
+  <div class="head"><span class="tier stretch">Stretch</span>S1 · DQN, ablated</div>
+  <p>Implement it on a small task, then remove each component in turn (replay, target network,
+  double estimation) and measure the cost of each.</p>
+  <div class="ans"><b>Answer.</b> Both leave-one-out and add-one-in, per Part XIV §21, since the
+  components interact. Removing replay usually hurts most.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier stretch">Stretch</span>S2 · PPO's implementation details</div>
+  <p>Implement PPO, then ablate advantage normalisation, observation normalisation, value clipping,
+  learning-rate annealing, orthogonal initialisation and the entropy bonus; and separately ablate
+  the clipping itself.</p>
+  <div class="ans"><b>Answer.</b> The details often cost more than the clipping does. That is
+  §32's uncomfortable finding, and reproducing it once changes how you read a method paper.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier stretch">Stretch</span>S3 · Offline RL and extrapolation</div>
+  <p>Collect a dataset from a mediocre policy, then run Q-learning on it with no further
+  interaction. Track the learned $Q$ values against the true returns.</p>
+  <div class="ans"><b>Answer.</b> They grow without bound. The max ranges over actions the data does
+  not cover, the network extrapolates optimistically, and nothing corrects it. Then add a penalty
+  for straying from the behaviour policy and watch it stop.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier stretch">Stretch</span>S4 · A reward model, over-optimised</div>
+  <p>Generate preference pairs from a known ground-truth utility, fit a reward model, and optimise a
+  policy against it. Plot reward-model score and true utility on the same axes.</p>
+  <div class="ans"><b>Answer.</b> They separate: the model's score keeps rising while the true
+  utility peaks and falls. Then add a KL penalty to the initial policy and find the coefficient that
+  keeps them together: that is the knob, and this is how it is tuned.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier stretch">Stretch</span>S5 · Seeds, honestly</div>
+  <p>Take any algorithm here and run it with thirty seeds. Plot the full distribution of final
+  performance, then report what three seeds would have told you.</p>
+  <div class="ans"><b>Answer.</b> Often a different answer, and sometimes the opposite one. §43 is
+  why this literature has a reproducibility problem, and this drill is the cheapest way to believe
+  it.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier stretch">Stretch</span>S6 · Imitation first</div>
+  <p>On a task you can demonstrate, compare behaviour cloning against RL from scratch at matched
+  compute.</p>
+  <div class="ans"><b>Answer.</b> Cloning usually wins by a wide margin, because it is supervised
+  learning. §44's first case, measured, and worth doing before any RL project rather than
+  after.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier stretch">Stretch</span>S7 · The noisy TV</div>
+  <p>Add a curiosity bonus based on prediction error, then put an unpredictable stimulus in the
+  environment. Watch what the agent does.</p>
+  <div class="ans"><b>Answer.</b> It stares at it. Infinite prediction error is infinite bonus, and
+  the agent is correct: the bonus said so. §39's failure, arriving in the exploration bonus rather
+  than the task reward.</div>
+</div>

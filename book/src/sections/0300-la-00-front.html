@@ -1,0 +1,167 @@
+<h2 class="nobreak">Before you start</h2>
+
+<p class="lede">Part 0 gave you the mathematics of change. This part gives you the objects
+that change is computed on, and they are the objects an intelligent system is literally
+made of.</p>
+
+<h3><span class="num">§0.1</span> Why this part is long</h3>
+
+<p>Linear algebra is where most people quietly fall behind, and the reason is a mismatch
+of pace. The subject is usually compressed into a few dozen pages on the assumption that
+the reader has met it before; one major concept per paragraph, definitions arriving
+without motivation, almost no worked examples with actual numbers in them.</p>
+
+<p>That compression is efficient for revision and disastrous for learning. Students read
+it, understand perhaps sixty percent, and tell themselves the rest will come later. It
+does not come later; it compounds. By the time neural networks arrive they are translating
+symbols rather than reading mathematics, and the wall they hit there was built here.</p>
+
+<p>So this part moves slowly and deliberately. Every operation is given more than one
+reading, every claim is worked with numbers, and the two genuinely hard ideas
+(eigendecomposition and the singular value decomposition) are given the room they
+need.</p>
+
+<h3><span class="num">§0.2</span> How to use it</h3>
+
+<p>Read one section in a sitting, and do not skip the "Try it" boxes; work them before
+reading on. Each section gives you the precise statement, the reason it is true, the
+picture, and a worked example with numbers you can check by hand, in that order and in
+one place.</p>
+
+<p>Do not read this passively. Roughly every third page asks you to compute something.
+The asking is the point: linear algebra is a motor skill before it is a body of
+knowledge, and the gap between "I followed that" and "I can do that" is where the
+Part VI wall comes from.</p>
+
+<p>You will meet these markers throughout:</p>
+
+<div class="box intuition">
+  <span class="label">Intuition</span>
+  <p>The picture in your head. If the formalism ever stops making sense, this is what
+  you fall back to. Nothing here is a proof; it is the thing a proof is trying to
+  make precise.</p>
+</div>
+
+<div class="box shapes">
+  <span class="label">Watch the shapes</span>
+  <p>Dimension bookkeeping. Perhaps half of all real errors in machine learning code
+  are shape errors, and essentially all of them are preventable by writing dimensions
+  down. We write them down constantly.</p>
+</div>
+
+<div class="box pitfall">
+  <span class="label">Pitfall</span>
+  <p>A specific mistake that is easy to make and hard to spot. Usually a place where
+  intuition from ordinary arithmetic is actively misleading.</p>
+</div>
+
+<div class="box why">
+  <span class="label">Why deep learning cares</span>
+  <p>Where this concept shows up later in this book, and what breaks without it. If you
+  are ever wondering why you are being made to learn something, look for one of
+  these.</p>
+</div>
+
+<div class="box try">
+  <span class="label">Try it</span>
+  <p>Stop reading. Compute. Answers are always given immediately after, so there is no
+  risk of getting stranded, but look at yours first.</p>
+</div>
+
+<h3><span class="num">§0.3</span> What you need before page one</h3>
+
+<p>Genuinely not much. Be honest with yourself on these five, because everything after
+Section 1 assumes all of them.</p>
+
+<ul class="checklist">
+  <li><b>Arithmetic with symbols.</b> If $a(b+c) = ab + ac$ looks obvious, you are set.</li>
+  <li><b>Functions.</b> $f(x) = 3x + 1$ takes an input and returns an output. We will
+  be doing exactly this, with inputs that happen to be lists of numbers.</li>
+  <li><b>Derivatives, informally.</b> You should know that a derivative measures how
+  fast something changes. You will not need to compute any until Part III.</li>
+  <li><b>Summation notation.</b> $\sum_{i=1}^{3} i^2 = 1 + 4 + 9 = 14$. If that reads
+  cleanly, you are fine. If not, read it as a <code>for</code> loop that accumulates,
+  because that is precisely what it is.</li>
+  <li><b>Python.</b> Loops, functions, lists. NumPy is taught here from scratch; you do
+  not need it in advance.</li>
+</ul>
+
+<p>Note what is <i>not</i> on that list: no prior linear algebra, no statistics, no
+proof-writing experience, no multivariable calculus. If you have had a linear algebra
+course, you will move quickly through Sections 1–8 and should slow down at Section 17.</p>
+
+<h3><span class="num">§0.4</span> The one habit that matters</h3>
+
+<p>Before you compute anything with a matrix, write down its shape.</p>
+
+<p>That is the entire habit. It sounds too small to bother with. It is the single
+highest-return thing in this part, and the thing that most separates people who
+find deep learning tractable from people who find it a fog. Shapes are the type
+system of machine learning: they catch a large fraction of your errors before you run
+anything, and they turn "I have no idea why this crashed" into a five-second fix.</p>
+
+<p>We will write shapes in the form $A \in \mathbb{R}^{m \times n}$, meaning "$A$ is a
+grid of real numbers with $m$ rows and $n$ columns." Every single time.</p>
+
+<h3><span class="num">§0.5</span> Map of the chapter</h3>
+
+<p>Seven parts, twenty-three sections, one payoff. The dependency structure is almost
+perfectly linear, which is unusual and convenient: Section $k$ needs Sections $1$
+through $k-1$ and nothing else.</p>
+
+<div class="toc">
+  <div class="part">Part A: The objects</div>
+  <div class="row"><span class="t">1 · Why linear algebra, in one honest paragraph</span></div>
+  <div class="row"><span class="t">2 · Scalars, vectors, matrices, tensors</span></div>
+  <div class="row"><span class="t">3 · Two ways to see a vector</span></div>
+
+  <div class="part">Part B: The operations</div>
+  <div class="row"><span class="t">4 · Matrix times vector: three views of one idea</span></div>
+  <div class="row"><span class="t">5 · Matrix times matrix</span></div>
+  <div class="row"><span class="t">6 · Transpose, elementwise products, broadcasting</span></div>
+  <div class="row"><span class="t">7 · The rules of the algebra (and the one that fails)</span></div>
+  <div class="row"><span class="t">8 · Worked example: a neural network layer, by hand</span></div>
+
+  <div class="part">Part C: Solving</div>
+  <div class="row"><span class="t">9 · Systems of equations as $A\mathbf{x} = \mathbf{b}$</span></div>
+  <div class="row"><span class="t">10 · Identity and inverse</span></div>
+  <div class="row"><span class="t">11 · Span, linear independence, rank</span></div>
+  <div class="row"><span class="t">12 · When does a solution exist? The complete answer</span></div>
+  <div class="row"><span class="t">13 · Why nobody actually inverts matrices</span></div>
+
+  <div class="part">Part D: Measuring</div>
+  <div class="row"><span class="t">14 · Norms</span></div>
+  <div class="row"><span class="t">15 · Norms in practice: regularization and clipping</span></div>
+
+  <div class="part">Part E: Special matrices</div>
+  <div class="row"><span class="t">16 · Diagonal, symmetric, orthogonal</span></div>
+
+  <div class="part">Part F: Decompositions</div>
+  <div class="row"><span class="t">17 · Eigendecomposition</span></div>
+  <div class="row"><span class="t">18 · Quadratic forms and positive definiteness</span></div>
+  <div class="row"><span class="t">19 · Singular value decomposition</span></div>
+  <div class="row"><span class="t">20 · The Moore–Penrose pseudoinverse</span></div>
+  <div class="row"><span class="t">21 · Trace</span></div>
+  <div class="row"><span class="t">22 · Determinant</span></div>
+
+  <div class="part">Part G: The payoff</div>
+  <div class="row"><span class="t">23 · Principal components analysis, derived from nothing</span></div>
+
+  <div class="part">Back matter</div>
+  <div class="row"><span class="t">Drills: 36 problems in four tiers</span></div>
+  <div class="row"><span class="t">Project: build a linear algebra library, then use it</span></div>
+  <div class="row"><span class="t">Checkpoint: can you climb to Part II?</span></div>
+  <div class="row"><span class="t">Appendix A: notation card</span></div>
+  <div class="row"><span class="t">Appendix B: NumPy translation table</span></div>
+  <div class="row"><span class="t">Appendix C: error messages, decoded</span></div>
+  <div class="row"><span class="t">Appendix D: where each idea reappears</span></div>
+  <div class="row"><span class="t">Appendix E: if you want more</span></div>
+</div>
+
+<div class="box why">
+  <span class="label">A note on honesty</span>
+  <p>Some of this material is genuinely hard. Section 17 (eigendecomposition) and
+  Section 19 (SVD) are the two places where careful readers slow down, and slowing
+  down there is correct rather than a sign of trouble. Where something is difficult,
+  this part says so instead of pretending otherwise.</p>
+</div>

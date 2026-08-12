@@ -1,0 +1,266 @@
+<h2><span class="part-kicker">Part F</span>Making it work at scale</h2>
+
+<h3><span class="num">§19</span> Stochastic gradient descent, applied</h3>
+
+<div class="sixty">
+  <span class="label">In 60 seconds</span>
+  <p>Part III §14 introduced minibatch gradients as a numerical technique. Here is what they
+  buy for learning: <b>the cost of a training step becomes independent of dataset size.</b>
+  That single property is what made learning from enormous datasets possible, and it is a
+  larger factor in the last two decades of progress than any individual model
+  architecture.</p>
+</div>
+
+<p>The empirical risk of §3 is an average over $m$ examples, so its exact gradient costs a
+full pass for one step. A minibatch estimate costs $b$ examples regardless of $m$.</p>
+
+<p>The consequence is worth stating carefully. With a fixed compute budget you may either
+take a few exact steps or a great many approximate ones, and the approximate route almost
+always wins, because the extra precision would have been discarded at the next step anyway.
+<b>Convergence per unit of computation, not per iteration, is the quantity that
+matters.</b></p>
+
+<div class="box why">
+  <span class="label">Why this matters: capacity became affordable</span>
+  <p>Before minibatch methods, training cost scaled with dataset size, so large datasets
+  were prohibitive and models stayed small to compensate. Once step cost decoupled from
+  dataset size, both could grow, and Part V §20 says growing data is exactly what makes
+  large capacity safe, because variance falls with data while bias does not.</p>
+  <p>Large models plus large datasets is the entire practical formula of modern machine
+  learning, and it is only available because of this section.</p>
+</div>
+
+<h3><span class="num">§20</span> Building a learning algorithm</h3>
+
+<div class="readnow"><span class="label">Go and read</span><p><span class="src">Breiman (2001)</span>, <i>Statistical modeling: the two cultures</i>. An essay rather than a method, and the best single argument for why this field looks the way it does. Breiman describes a split between modelling the process that generated the data and predicting well without one, and argues (in 2001, against the consensus of his own discipline) that the second had been badly neglected. He was right, and the two decades since are the demonstration. Then <span class="src">Sculley et al. (2015)</span>, <i>Hidden technical debt in machine learning systems</i>, for what happens to all of this after the paper is written.</p></div>
+
+<p>Nearly every algorithm in this part, and every one in the parts to come, is the same four
+choices assembled differently.</p>
+
+<div class="box def">
+  <span class="label">The recipe</span>
+  <ol class="tight">
+    <li>A <b>dataset</b>: the experience.</li>
+    <li>A <b>model family</b>: what functions are available, and therefore what is assumed.</li>
+    <li>A <b>loss function</b>: usually a negative log-likelihood, per Part II §26.</li>
+    <li>An <b>optimisation procedure</b>: usually a variant of stochastic gradient descent.</li>
+  </ol>
+</div>
+
+<table class="compact">
+  <thead><tr><th></th><th>Model</th><th>Loss</th><th>Optimiser</th></tr></thead>
+  <tbody>
+    <tr><td>Linear regression</td><td>linear</td><td>squared error</td><td>closed form, or SGD</td></tr>
+    <tr><td>Logistic regression</td><td>linear + sigmoid</td><td>cross-entropy</td><td>SGD</td></tr>
+    <tr><td>SVM</td><td>linear (or kernel)</td><td>hinge + $L^2$</td><td>convex solver</td></tr>
+    <tr><td>k-means</td><td>$k$ centroids</td><td>within-cluster distance</td><td>alternating updates</td></tr>
+    <tr><td>Neural network</td><td>composed layers</td><td>cross-entropy</td><td>SGD variants</td></tr>
+  </tbody>
+</table>
+
+<p>Read the last row against the others. <b>The only thing that changes for a neural network
+is the model family.</b> The loss is the same cross-entropy, the optimiser is the same
+stochastic descent, and the framework is the one in this table. Everything in the parts that
+follow is an elaboration of column two.</p>
+
+<div class="box fw">
+  <span class="label">In the framework: the recipe, executable</span>
+  <p>The four choices above are not an abstraction over what practitioners write. They are
+  <i>literally</i> the four objects a training script constructs, and the correspondence is
+  close enough to be worth seeing side by side:</p>
+<pre><code><span class="k">import</span> torch, torch.nn <span class="k">as</span> nn, torch.nn.functional <span class="k">as</span> F
+<span class="k">from</span> torch.utils.data <span class="k">import</span> TensorDataset, DataLoader
+
+<span class="c"># 1. DATASET -- the experience</span>
+train = DataLoader(TensorDataset(X_train, y_train), batch_size=<span class="n">32</span>, shuffle=<span class="k">True</span>)
+
+<span class="c"># 2. MODEL FAMILY -- what functions are available, i.e. what is assumed</span>
+model = nn.Sequential(nn.Linear(<span class="n">20</span>, <span class="n">64</span>), nn.ReLU(), nn.Linear(<span class="n">64</span>, <span class="n">2</span>))
+
+<span class="c"># 3. LOSS -- a negative log-likelihood, per Part II section 26</span>
+<span class="c">#    (F.cross_entropy, used below)</span>
+
+<span class="c"># 4. OPTIMISER -- a variant of stochastic gradient descent</span>
+opt = torch.optim.AdamW(model.parameters(), lr=<span class="n">1e-3</span>)
+
+<span class="k">for</span> epoch <span class="k">in</span> range(n_epochs):
+    model.train()
+    <span class="k">for</span> xb, yb <span class="k">in</span> train:
+        opt.zero_grad()
+        loss = F.cross_entropy(model(xb), yb)
+        loss.backward()
+        opt.step()
+
+    model.eval()
+    <span class="k">with</span> torch.no_grad():
+        acc = (model(X_val).argmax(<span class="n">1</span>) == y_val).float().mean()
+</code></pre>
+  <p>That is a complete, working training script, and every line of it has been derived
+  somewhere in this book. <code>DataLoader</code> with <code>shuffle=True</code> is sampling
+  from the empirical distribution of Part II §17. <code>cross_entropy</code> is Part II §26's
+  maximum likelihood. <code>backward()</code> is the chain rule of Part 0 §17.
+  <code>opt.step()</code> is Part III §16. <code>zero_grad()</code> is there because
+  gradients accumulate, which Part VII §21 explains. Nothing in it is a convention you have to
+  accept on authority.</p>
+
+  <h4>The two lines that are not about learning at all</h4>
+  <p><code>model.train()</code> and <code>model.eval()</code> look like decoration and are
+  not. They flip a flag that changes what certain layers <i>do</i>. Dropout is active during
+  training and disabled at evaluation; batch normalisation uses the current batch's
+  statistics while training and stored running averages afterwards.</p>
+  <p>Forgetting <code>model.eval()</code> is one of the most common causes of a validation
+  score that is mysteriously worse than it should be and mysteriously different on every run,
+  because dropout is still randomly deleting units while you measure. Forgetting
+  <code>model.train()</code> again afterwards silently disables your regularization for the
+  rest of the run. Neither raises an error.</p>
+  <p><code>torch.no_grad()</code> is a separate concern: evaluation does not need gradients,
+  so telling the library to stop recording the graph saves the memory it would have spent
+  storing activations for a backward pass that will never happen. On a large model this is
+  the difference between fitting your evaluation batch in memory and not.</p>
+
+  <h4>What the framework does not give you</h4>
+  <p>Notice what is absent from that script and belongs to §§9–11: there is no test set in
+  it, no interval on the reported accuracy, no record of how many configurations were tried,
+  no seeds. A framework will happily let you tune on the test set for a week. <b>The
+  discipline of this part is entirely yours to supply</b>, and the ease of the code above is
+  precisely why it so often is not.</p>
+</div>
+
+<h2><span class="part-kicker">Part G</span>Why any of this needed deep learning</h2>
+
+<p class="lede">The classical methods are elegant, well understood, and hit a wall on the
+problems this field cares about. These three sections are about that wall, measured, not
+asserted.</p>
+
+<h3><span class="num">§21</span> The curse of dimensionality</h3>
+
+<div class="sixty">
+  <span class="label">In 60 seconds</span>
+  <p>High-dimensional space is mostly empty, and the intuitions built in two or three
+  dimensions fail there. The number of examples needed to cover a space grows
+  <b>exponentially</b> with its dimension, and distances between points lose their meaning.
+  Every method that relies on finding nearby examples degrades.</p>
+</div>
+
+<figure>
+  <img src="figures/ml/10-curse.svg" alt="Ratio of farthest to nearest distance approaching 1, and volume concentrating at the surface">
+  <figcaption><b>Figure 13.</b> Measured by sampling. Left: the ratio of the farthest to the
+  nearest point from a query, against dimension. It collapses toward 1; <b>in high
+  dimensions everything is roughly the same distance away</b>, so "nearest neighbour" stops
+  meaning anything. Right: the fraction of a ball's volume within the outer 10% of its
+  radius. It approaches 1, so almost all points lie near the surface.</figcaption>
+</figure>
+
+<div class="box intuition">
+  <span class="label">Intuition: counting cells</span>
+  <p>Divide each axis into 10 bins. In one dimension that is 10 cells; in two, 100; in
+  three, 1,000. To have even one example per cell in 784 dimensions (a small image) you
+  need $10^{784}$ examples, which exceeds the number of atoms in the observable universe by
+  hundreds of orders of magnitude.</p>
+  <p>So any real dataset in high dimensions is unfathomably sparse. Almost every cell is
+  empty, and any method that answers a query by looking for examples nearby will find
+  nothing nearby.</p>
+</div>
+
+<h3><span class="num">§22</span> Local constancy</h3>
+
+<p>Most classical methods share one assumption, usually unstated: <b>the function is smooth;
+nearby inputs have nearby outputs.</b> Nearest neighbours relies on it completely. Kernels
+with local kernels rely on it. Decision trees rely on a piecewise version.</p>
+
+<p>It is a reasonable prior and it is also a fundamental limitation, because a smoothness
+prior alone can only interpolate between examples it has seen.</p>
+
+<figure>
+  <img src="figures/ml/11-local-constancy.svg" alt="Examples required to cover a space growing exponentially with dimension">
+  <figcaption><b>Figure 14.</b> How many examples are needed so that a random query has a
+  neighbour within a quarter of the space's width. The count is $(1/r)^d$, exponential in
+  dimension. <b>A method that only interpolates needs a number of examples that grows
+  exponentially with input dimension</b>, which is not a constant-factor problem you can
+  engineer around.</figcaption>
+</figure>
+
+<div class="box why">
+  <span class="label">Why this matters: it is the argument for depth</span>
+  <p>To do better than exponential you need a stronger assumption than smoothness, one that
+  lets a model generalise to regions where it has seen <i>no</i> examples.</p>
+  <p>Deep learning's assumption is <b>compositional structure</b>: that the data is generated
+  by combining a moderate number of underlying factors, and that a function built by
+  composing simple pieces can capture that. A network that has learned edges, then textures,
+  then parts, can recognise an object arrangement it has never encountered, because it has
+  decomposed the problem rather than memorised the space.</p>
+  <p>The gain is quantifiable: a $k$-layer network with $O(k)$ neurons can carve input space
+  into $O(2^k)$ distinct regions, whereas a shallow method needs $O(2^k)$ examples to cover
+  those same regions by local interpolation, an exponential saving in labelled data, and the
+  precise reason depth exists. Part VII works this out fully.</p>
+  <p>That is a strictly stronger prior than smoothness, it is false for arbitrary functions
+  (Section 7 guarantees as much), and it appears to be true of images, audio and language.
+  <b>That empirical fact is the entire justification for the rest of this book.</b></p>
+</div>
+
+<h3><span class="num">§23</span> The manifold hypothesis</h3>
+
+<p>Section 21 is alarming, and it overstates the difficulty, because real data does not
+fill its space.</p>
+
+<div class="box def">
+  <span class="label">The manifold hypothesis</span>
+  <p>Real high-dimensional data concentrates near a <b>low-dimensional manifold</b>: a
+  curved surface of far fewer dimensions embedded in the high-dimensional space.</p>
+</div>
+
+<figure>
+  <img src="figures/ml/12-manifold.svg" alt="A curved sheet of points in 3D that is really parameterised by 2 numbers">
+  <figcaption><b>Figure 15.</b> Points that live in three dimensions but lie on a curved
+  two-dimensional sheet. Right: the same points described by their two intrinsic
+  coordinates (position along the sheet and height). The data was never really
+  three-dimensional; it was two numbers in a confusing coordinate system.</figcaption>
+</figure>
+
+<p>The evidence for it is easy to appreciate. Generate an image by choosing each of 784
+pixels uniformly at random and you get static, essentially never anything resembling a
+digit. Real images occupy a vanishingly small, highly structured region of pixel space. The
+same holds for audio that sounds like speech and character strings that read as English.</p>
+
+<div class="box intuition">
+  <span class="label">Intuition: why this rescues the situation</span>
+  <p>If data fills 784 dimensions, learning is hopeless by §21. If it lies on a manifold of
+  perhaps 10 or 50 intrinsic dimensions, the problem is merely hard.</p>
+  <p>And it reframes what a model should do. <b>Representation learning is the search for
+  coordinates on that manifold</b>, turning 784 confusing numbers into 50 meaningful ones.
+  PCA does this when the manifold is flat. Autoencoders do it when it curves. Every embedding
+  in modern machine learning is an attempt at the same thing.</p>
+</div>
+
+<div class="box why">
+  <span class="label">Why this matters: the three claims that follow</span>
+  <p>Taken together, Sections 21 to 23 make the case that carries the rest of the book:</p>
+  <ol class="tight">
+    <li><b>High-dimensional space is too large to cover</b>: so methods that interpolate
+    between nearby examples cannot scale.</li>
+    <li><b>Real data lies on a low-dimensional manifold</b>: so the problem is smaller than
+    it appears, if you can find the manifold.</li>
+    <li><b>Composition is the prior that finds it</b>: build functions from layers of
+    simpler functions, and learn the features rather than choosing them.</li>
+  </ol>
+  <p>That third claim is what "deep" means, and it is the hypothesis the following parts
+  test.</p>
+</div>
+
+<div class="box try">
+  <span class="label">Try it: the last one</span>
+  <p>A dataset has 1,000 features and 10,000 examples. A colleague proposes k-nearest
+  neighbours. What is your objection, and what would change your mind?</p>
+</div>
+
+<p><b>Answer.</b> With 1,000 dimensions and 10,000 points the space is unfathomably sparse,
+and by Figure 13 the nearest and farthest training points will be at nearly the same
+distance. "Nearest" carries almost no information, so the votes it collects are close to
+arbitrary.</p>
+<p><b>What would change my mind:</b> evidence that the <i>intrinsic</i> dimension is far
+lower than 1,000, which is entirely possible, since §23 says raw dimension routinely
+overstates it. Check it: run PCA and look at how many components carry most of the variance.
+If 15 components explain 95%, the data is effectively 15-dimensional, neighbours are
+meaningful again, and kNN on those 15 coordinates may work well.</p>
+<p>That diagnostic (measure the intrinsic dimension before assuming the ambient one) takes
+five lines and is the practical residue of this entire part.</p>

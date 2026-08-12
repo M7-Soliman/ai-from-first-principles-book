@@ -1,0 +1,323 @@
+<h2><span class="part-kicker">Practice</span>Drills</h2>
+
+<p class="lede">Thirty-four problems. More of these are code than in earlier parts, because
+numerical behaviour is something you have to <i>watch</i>; the failures are invisible on
+paper and obvious in an experiment.</p>
+
+<h3><span class="num">Tier 0</span> Estimate first</h3>
+
+<div class="drill">
+  <div class="head"><span class="tier est">Estimate</span>E1 &middot; What float32 can hold</div>
+  <p>float32 has a 24-bit significand. Write down the largest integer it represents exactly, and the spacing between representable numbers near 1.0.</p>
+  <div class="ans"><b>Answer.</b> <b>2<sup>24</sup> = 16,777,216</b> and <b>1.19&times;10<sup>&minus;7</sup></b>. Past 16.8 million, consecutive integers stop being distinguishable, which is why a step counter, a running sum over a large dataset, or an ID stored as a float will silently stop incrementing. <i>Score yourself: within a factor of two is a pass, and an order of magnitude out is worth understanding before you go on.</i></div>
+</div>
+
+<h3><span class="num">Tier 1</span> Warm-up</h3>
+
+<div class="drill">
+  <div class="head"><span class="tier warm">Warm</span>W1 · Machine epsilon</div>
+  <p>Without looking it up: roughly how small must $x$ be for $1 + x$ to equal $1$ in
+  float64?</p>
+  <div class="ans"><b>Answer.</b> About $10^{-16}$, since $\epsilon_{\text{mach}} = 2^{-52}
+  \approx 2.22\times10^{-16}$. Anything smaller rounds away entirely.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier warm">Warm</span>W2 · Where does 1 stop mattering</div>
+  <p>For roughly what $x$ does $(x+1) - x$ return $0$?</p>
+  <div class="ans"><b>Answer.</b> Around $10^{16}$. Past that the gap between neighbouring
+  floats exceeds 1, so adding 1 cannot change the value. Figure 1, right panel.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier warm">Warm</span>W3 · Digits lost</div>
+  <p>A problem has $\kappa = 10^{5}$. Roughly how many digits of accuracy do you expect to
+  lose?</p>
+  <div class="ans"><b>Answer.</b> About five, leaving eleven of the original sixteen. The
+  rule is one digit per order of magnitude of $\kappa$.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier warm">Warm</span>W4 · Squaring the conditioning</div>
+  <p>$\kappa(A) = 10^{7}$. What is $\kappa(A^\top A)$, and what does that leave you?</p>
+  <div class="ans"><b>Answer.</b> $10^{14}$. From 16 digits, that leaves about two, and
+  those two are not trustworthy. This is why the normal equations are a poor
+  algorithm.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier warm">Warm</span>W5 · Stability limit</div>
+  <p>A quadratic has Hessian eigenvalues $\{1, 50\}$. Largest stable learning rate?</p>
+  <div class="ans"><b>Answer.</b> $\alpha < 2/\lambda_{\max} = 2/50 = 0.04$. The largest
+  curvature sets the cap, regardless of how flat the other direction is.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier warm">Warm</span>W6 · Momentum amplification</div>
+  <p>What is the effective step multiplier along a consistent direction at
+  $\beta = 0.95$?</p>
+  <div class="ans"><b>Answer.</b> $1/(1-\beta) = 20$.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier warm">Warm</span>W7 · Saddle counting</div>
+  <p>Under the naive independence assumption, what is the chance a random critical point in
+  50 dimensions is a minimum?</p>
+  <div class="ans"><b>Answer.</b> $2^{-50} \approx 10^{-15}$. Effectively zero. Critical
+  points in high dimensions are saddles.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier warm">Warm</span>W8 · Complementary slackness</div>
+  <p>A KKT solution has $g(\mathbf{x}) = -3$. What must $\mu$ be, and why?</p>
+  <div class="ans"><b>Answer.</b> $\mu = 0$. The constraint is strictly satisfied, so it is
+  inactive and exerts no force; $\mu g = 0$ forces the multiplier to vanish.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier warm">Warm</span>W9 · Which is the problem</div>
+  <p>Your solve is inaccurate. $\kappa = 10^{14}$. Is this a conditioning problem or a
+  stability problem?</p>
+  <div class="ans"><b>Answer.</b> Conditioning, a property of the problem. No algorithm
+  can fix it. Reformulate, regularize, or accept the loss; do not go hunting for a better
+  solver.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier warm">Warm</span>W10 · Detecting nan</div>
+  <p>Without calling any library function, how do you test whether <code>x</code> is
+  <code>nan</code>?</p>
+  <div class="ans"><b>Answer.</b> <code>x != x</code>. <code>nan</code> is the only value
+  not equal to itself, by definition.</div>
+</div>
+
+<h3><span class="num">Tier 2</span> Core</h3>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C1 · Measure machine epsilon</div>
+  <p>Find $\epsilon_{\text{mach}}$ by search: the smallest $x$ with $1 + x \neq 1$. Repeat
+  in float32.</p>
+  <div class="ans"><b>Answer.</b> Halve until $1+x$ equals 1, then back off one step.
+  float64 gives $2.22\times10^{-16}$; float32 gives $1.19\times10^{-7}$, which is only
+  seven digits, worth remembering when using half or single precision in
+  training.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C2 · Stable quadratic roots</div>
+  <p>Implement both the textbook and the rearranged quadratic formula. Compare on
+  $a=1$, $b=10^{8}$, $c=1$.</p>
+  <div class="ans"><b>Answer.</b> The true small root is about $-10^{-8}$. The textbook
+  formula returns something with almost no correct digits, or exactly zero; the rearranged
+  one is accurate. Figure 2, right panel.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C3 · Two variance algorithms</div>
+  <p>Implement variance by $\mathbb{E}[X^2] - (\mathbb{E}[X])^2$ and by the two-pass
+  method. Test on <code>[1e8, 1e8+1, 1e8+2]</code>.</p>
+  <div class="ans"><b>Answer.</b> The identity returns 0 or a negative number, which is impossible
+  for a variance. The two-pass method returns $2/3$. Catastrophic cancellation between two
+  large nearly equal quantities.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C4 · Compensated summation</div>
+  <p>Sum $10^{6}$ copies of $0.1$ naively, then with a compensation term tracking the lost
+  low-order bits. Compare to the exact answer.</p>
+  <div class="ans"><b>Answer.</b> The naive sum drifts measurably; compensated summation
+  recovers most of the lost accuracy for one extra variable and one extra subtraction per
+  term. <code>np.sum</code> uses pairwise summation, which is why it beats a Python
+  loop.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C5 · Stable log-sum-exp</div>
+  <p>Implement it and verify on $[1000, 1001, 1002]$ and $[-1000, -1001]$.</p>
+  <div class="ans"><b>Answer.</b> $\text{LSE}(z) = \max(z) + \log\sum e^{z-\max(z)}$. The
+  first input overflows naively; the second underflows to $\log 0 = -\infty$. Both work
+  after the shift.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C6 · Measure the amplification</div>
+  <p>Generate matrices of known condition number via the SVD. Perturb $\mathbf{b}$ by a
+  fixed relative amount, solve, and plot the resulting error against $\kappa$.</p>
+  <div class="ans"><b>Answer.</b> Build $A = U\Sigma V^\top$ with chosen singular values.
+  The error tracks $\kappa \times$ the input perturbation; see Figure 3. This is the most
+  convincing way to internalise what the condition number is.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C7 · Least squares, three ways</div>
+  <p>Solve one problem by normal equations, QR, and SVD, sweeping $\kappa$ from $10$ to
+  $10^{12}$. Plot the errors.</p>
+  <div class="ans"><b>Answer.</b> The normal equations degrade at twice the rate on log
+  axes and fail by $\kappa \approx 10^{8}$. Figure 13. This is the single most useful
+  experiment in the part.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C8 · Find the stability limit</div>
+  <p>For $f = \frac12\mathbf{x}^\top A\mathbf{x}$ with $A = \diag(1, 30)$, run descent at
+  many learning rates and find empirically where it diverges. Compare to
+  $2/\lambda_{\max}$.</p>
+  <div class="ans"><b>Answer.</b> Divergence begins just above $2/30 \approx 0.0667$,
+  matching the theory closely. Worth doing because it converts a formula into an observed
+  cliff.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C9 · Convergence versus conditioning</div>
+  <p>Count iterations to reach a fixed accuracy, for $\kappa \in \{1, 10, 100, 1000\}$ at
+  the best step size. Plot iterations against $\kappa$.</p>
+  <div class="ans"><b>Answer.</b> Roughly linear in $\kappa$, as $(\kappa-1)/(\kappa+1)$
+  predicts. At $\kappa = 1$ you converge in one step.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C10 · Newton's method</div>
+  <p>Implement it for a quadratic and confirm one-step convergence. Then run it on a
+  saddle and describe what happens.</p>
+  <div class="ans"><b>Answer.</b> One step on any quadratic, from any start. On a saddle it
+  converges <i>to the saddle</i>; the gradient is zero there and Newton seeks zero
+  gradients, not minima. That is §12's third objection, observed.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C11 · Backtracking line search</div>
+  <p>Implement it with the Armijo condition. Compare total function evaluations against a
+  well-tuned fixed step.</p>
+  <div class="ans"><b>Answer.</b> Line search costs extra evaluations per iteration and
+  removes the need to tune. On deterministic problems it usually wins overall; on noisy
+  ones it chases noise, which is §13's pitfall.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C12 · Momentum, measured</div>
+  <p>Implement momentum and compare against plain descent on a valley with $\kappa = 20$.
+  Sweep $\beta$ over $\{0, 0.5, 0.9, 0.99\}$.</p>
+  <div class="ans"><b>Answer.</b> Improvement grows with $\beta$ up to a point, then
+  overshooting appears: the effective step along the valley floor is $1/(1-\beta)$ times a
+  single gradient, a hundredfold at $\beta=0.99$, and a velocity that large overshoots the
+  minimum before it can damp out. That overshoot is real. What does not follow is that the
+  deterministic divergence threshold has tightened: for this heavy-ball update it is
+  $\alpha < 2(1+\beta)/\lambda_{\max}$ (§18), which is <i>higher</i> at $\beta=0.99$ than at
+  $\beta=0.9$. Any divergence you measure at $\beta=0.99$ on a noisy problem is coming from
+  amplified gradient noise and transient overshoot, not from a tighter stability
+  limit.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C13 · Implement Adam</div>
+  <p>Write Adam from the definition, including bias correction. Then delete the bias
+  correction and compare the first fifty steps.</p>
+  <div class="ans"><b>Answer.</b> Without correction the early steps are far too small,
+  because both accumulators start at zero and badly underestimate their targets. The
+  correction factor $1/(1-\beta^t)$ is large early and approaches 1 later, which is exactly
+  the compensation required.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C14 · Batch size and noise</div>
+  <p>Measure the variance of the minibatch gradient estimate as a function of batch size.
+  Confirm the $1/\sqrt{b}$ law.</p>
+  <div class="ans"><b>Answer.</b> Sample many minibatch gradients at a fixed parameter
+  value and take the standard deviation across them. It falls as $1/\sqrt{b}$, so a
+  hundredfold increase in cost buys a tenfold reduction in noise, which is §14's
+  argument.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C15 · Schedules against a noise floor</div>
+  <p>Run SGD with constant, step and cosine schedules on a noisy objective. Plot loss
+  against iteration.</p>
+  <div class="ans"><b>Answer.</b> The constant rate plateaus at a floor set by noise times
+  step size; decaying schedules keep descending. Figure 10. This is Robbins and Monro's
+  condition, observed empirically.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C16 · Find the bug</div>
+  <p>This is meant to compute a softmax cross-entropy. It sometimes returns
+  <code>nan</code> and sometimes returns $0$ when the model is confidently wrong. Find both
+  faults.</p>
+  <pre><code>p = np.exp(logits) / np.exp(logits).sum()
+loss = -np.log(p[label])</code></pre>
+  <div class="ans"><b>Answer.</b> (1) No max subtraction, so <code>exp</code> overflows for
+  large logits and gives <code>inf/inf = nan</code>. (2) When $p$ underflows to exactly 0,
+  <code>log(0)</code> is $-\infty$; combined with a zero weight elsewhere this can surface
+  as $0$ or <code>nan</code> depending on the arithmetic. Compute the log-softmax directly:
+  <code>z - z.max()</code> then <code>z - logsumexp(z)</code>.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C17 · Lagrange by hand</div>
+  <p>Minimise $x^2 + y^2$ subject to $x + y = 4$, using multipliers.</p>
+  <div class="ans"><b>Answer.</b> $\mathcal{L} = x^2+y^2+\lambda(x+y-4)$. The partials give
+  $2x + \lambda = 0$ and $2y + \lambda = 0$, so $x = y$; the constraint gives $x = y = 2$,
+  and $\lambda = -4$. The closest point on the line to the origin, which is what the
+  geometry predicts.</div>
+</div>
+
+<h3><span class="num">Tier 3</span> Stretch</h3>
+
+<div class="drill">
+  <div class="head"><span class="tier stretch">Stretch</span>S1 · Regularization as conditioning</div>
+  <p>Add $\lambda I$ to an ill-conditioned $A^\top A$ and plot $\kappa$ against $\lambda$.
+  Relate to ridge regression.</p>
+  <div class="ans"><b>Answer.</b> Adding $\lambda$ lifts every eigenvalue, so
+  $\kappa \to (\sigma_{\max}^2+\lambda)/(\sigma_{\min}^2+\lambda)$, which falls sharply as
+  $\lambda$ grows. Ridge regression is simultaneously a statistical device against
+  overfitting and a numerical device against ill-conditioning. Same knob.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier stretch">Stretch</span>S2 · Escaping a saddle</div>
+  <p>Start exact gradient descent precisely on a saddle. Then add small gradient noise.
+  Compare.</p>
+  <div class="ans"><b>Answer.</b> Exact descent stops permanently; the gradient is zero.
+  Noise knocks the iterate off and it escapes along the negative-curvature direction. This
+  is the mechanism by which SGD's noise is an asset rather than a
+  tolerated cost.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier stretch">Stretch</span>S3 · Adam's counterexample</div>
+  <p>Construct a simple convex problem where Adam fails to converge but SGD succeeds.</p>
+  <div class="ans"><b>Answer.</b> The standard construction uses a sequence in which a
+  large informative gradient appears rarely among many small opposing ones. Adam's
+  exponential averaging forgets the rare large gradient faster than it arrives, so its
+  influence is permanently discounted. This is the failure the 2018 paper exhibited, and
+  that is also why it did not change practice much, since the construction is adversarial
+  rather than typical.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier stretch">Stretch</span>S4 · Quasi-Newton</div>
+  <p>Implement BFGS for a small problem. Compare its iteration count against gradient
+  descent and true Newton.</p>
+  <div class="ans"><b>Answer.</b> Typically far closer to Newton than to gradient descent,
+  at gradient-only cost, by accumulating curvature information from successive gradient
+  differences. It assumes those gradients are exact, which is why it is rare in deep
+  learning.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier stretch">Stretch</span>S5 · Gradient checking at scale</div>
+  <p>Extend Part 0's gradient check to a small multi-layer network. Then deliberately break
+  one layer's backward pass and confirm the check localises it.</p>
+  <div class="ans"><b>Answer.</b> Check layer by layer rather than globally; a single
+  aggregate number tells you something is wrong but not where. This is the practical form
+  of the technique and the one you will actually use.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier stretch">Stretch</span>S6 · Float32 versus float64</div>
+  <p>Rerun several of these experiments in float32. Where does the behaviour change?</p>
+  <div class="ans"><b>Answer.</b> With about seven digits instead of sixteen, everything
+  degrades roughly nine orders of magnitude earlier. A condition number of $10^{4}$ is now
+  serious. Since most training runs in float32 or lower, this is the regime that actually
+  applies, and it is why mixed-precision training keeps a float32 copy of the weights
+  while computing in half precision.</div>
+</div>

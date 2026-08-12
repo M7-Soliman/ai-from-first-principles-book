@@ -1,0 +1,107 @@
+<h2><span class="part-kicker">Part E</span>Agents</h2>
+
+<p class="mvt">The word arrived twice in this book from opposite directions: an agent in Part XVIII
+is something that maximises reward in an environment, and an agent in Part XX §36 is a language
+model calling tools. They are the same object, and the second inherits every difficulty the first
+has spent forty years on.</p>
+
+<h3><span class="num">§33</span> Long horizons, and structure</h3>
+
+<div class="box why">
+  <span class="label">Why a flat policy fails at length</span>
+  <p>A task taking a thousand steps with reward only at the end gives a learner one bit of
+  information per thousand decisions. Nothing recovers from that by sampling harder.</p>
+  <p>Every response imposes structure. <b>Hierarchy</b> gives a high-level policy that selects
+  sub-policies running for many steps, so the outer problem is short. <b>Goal conditioning</b>
+  trains one policy on many goals, so every trajectory is a success for the goal it happened to
+  reach, which turns failures into data. <b>Reward shaping</b> supplies intermediate signal and
+  risks Part XXI §18's problem: the shaped reward is what gets optimised.</p>
+</div>
+
+<h3><span class="num">§34</span> Other agents</h3>
+
+<div class="box def">
+  <span class="label">Why this is not a harder environment</span>
+  <p>When other agents adapt, the environment is <b>non-stationary from your side</b>, so the
+  convergence arguments of Part XVIII do not apply. Two agents each improving against the other can
+  cycle forever without either being wrong.</p>
+  <p>The equilibrium concepts of game theory replace optimality, and self-play is the practical
+  method: an opponent that improves as you do supplies a curriculum for free. Its characteristic
+  failure is a strategy that beats its own lineage and loses to anything outside it, which is why
+  populations and past-version pools exist.</p>
+  <p>For driving the interaction is the whole problem. A merge is a negotiation, and a planner that
+  models other vehicles as obstacles on fixed trajectories is solving a different task from the one
+  it faces.</p>
+</div>
+
+<h3><span class="num">§35</span> Acting under a safety requirement</h3>
+
+<div class="box shapes">
+  <span class="label">Three approaches, and only one of them is a guarantee</span>
+  <p><b>Penalise.</b> Add a cost for unsafe states. Simple, and it trades safety against reward at
+  an exchange rate you set, so it will accept a violation if the reward is high enough.</p>
+  <p><b>Constrain.</b> Optimise reward subject to a bound on expected cost. Better, and expectations
+  say nothing about the tail.</p>
+  <p><b>Shield.</b> Keep a verified fallback controller and a condition under which it takes over,
+  so the learned policy acts only inside a region the fallback can recover from. This is the only
+  one of the three that yields a statement you can put in a safety case, and it requires the
+  fallback and the region to be established without learning.</p>
+</div>
+
+<h3><span class="num">§36</span> Tool use is control</h3>
+
+<div class="box why">
+  <span class="label">The same loop, wearing different clothes</span>
+  <p>A language model that calls a tool, reads the result and calls another is running a control
+  loop: observe, decide, act, observe. Part XX §36 introduced it as a capability; every difficulty
+  in this part applies to it unchanged.</p>
+  <p><b>Errors compound</b>: §19, exactly, and a policy trained on successful traces has never seen
+  the states its own mistakes produce. <b>Horizons are long</b> and reward is terminal, so §33's
+  structure problem is live. <b>The environment is non-stationary</b> when the tools are other
+  agents. And <b>latency is a stability question</b>, which is §7 arriving somewhere nobody expects
+  it.</p>
+  <p>The one honest difference is that the action space is discrete and enormous rather than
+  continuous and small, which changes the algorithms and none of the difficulties.</p>
+</div>
+
+<h3><span class="num">§37</span> What an agent needs that a model does not</h3>
+
+<div class="box shapes">
+  <span class="label">Four things, all of them state</span>
+  <p><b>Memory</b> across steps, because the observation is not the state: §28's point in a
+  different medium.</p>
+  <p><b>A way to stop.</b> A policy with no terminal condition loops, and detecting "this is not
+  working" is a separate competence from acting well.</p>
+  <p><b>Recovery.</b> Undoing a bad action is a skill, and it is absent from any dataset of
+  successful trajectories.</p>
+  <p><b>Calibrated uncertainty</b>, because the decision to ask for help rather than act is a
+  threshold on it: Part XXIV §33's cost ratio, in the loop.</p>
+</div>
+
+<h3><span class="num">§38</span> Modular or end-to-end</h3>
+
+<div class="box why">
+  <span class="label">The argument, and what neither side disputes</span>
+  <p><b>For end-to-end:</b> the interfaces of §31 are where information is lost and objectives
+  diverge. A detector tuned for average precision is not tuned for what the planner needs, and no
+  amount of improving it in isolation fixes that.</p>
+  <p><b>For modular:</b> the intermediate representations are what make a system testable against
+  ground truth, debuggable when it fails, and arguable about in the safety case of §43. Remove them
+  and a failure has no locus.</p>
+  <p><b>Not in dispute:</b> the geometry. Projection, calibration and rigid-body kinematics are
+  correct by construction, and a learned system must approximate them from data. The productive
+  middle keeps the parts that are derivable as structure and learns the rest, which is what every
+  system that works currently does.</p>
+</div>
+
+<h3><span class="num">§39</span> What movement E establishes</h3>
+
+<div class="box intuition">
+  <span class="label">Three things</span>
+  <p><b>Long horizons need structure</b>, and every source of structure (hierarchy, goals,
+  shaping) trades a difficulty for a different one.</p>
+  <p><b>A tool-using language model is a control loop</b>, and inherits compounding error, terminal
+  reward, non-stationarity and the latency-stability link, all of them unchanged.</p>
+  <p><b>Only a shield yields a guarantee.</b> Penalties trade safety for reward, constraints bound
+  an expectation, and neither is a statement about the tail.</p>
+</div>

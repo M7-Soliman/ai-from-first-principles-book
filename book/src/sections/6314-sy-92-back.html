@@ -1,0 +1,201 @@
+<h2><span class="part-kicker">Build</span>The project</h2>
+
+<p class="lede">Twelve to sixteen hours. You measure your own machine, use the numbers to redirect an
+optimisation you were about to get wrong, and then attack a model you trained yourself.</p>
+
+<h3><span class="num">P.1</span> What you are building</h3>
+
+<p><b><code>metal</code></b>: a roofline for your hardware, a fused kernel, a blocked
+multiplication, a collective simulator, a private training loop, and three attacks with ground
+truth.</p>
+
+<p>The rule: <b>measure before changing anything, and report every number against a ceiling</b>.
+A throughput figure without the peak beside it is not a measurement.</p>
+
+<h3><span class="num">P.2</span> Stage 1: your machine</h3>
+
+<ol>
+  <li>Measure achievable bandwidth with a large copy. Compare with the specification.</li>
+  <li>Measure peak arithmetic with a large matrix multiplication.</li>
+  <li>Compute your ridge point.</li>
+  <li>Place five operations you actually run on the plot, including a transcendental.</li>
+</ol>
+
+<p><b>Deliverable:</b> your roofline with your kernels on it. Step four is where the rule of thumb
+breaks: check whether the transcendental lands where "elementwise means memory-bound" predicts.</p>
+
+<h3><span class="num">P.3</span> Stage 2: fusion and blocking</h3>
+
+<ol>
+  <li>Time an elementwise chain separately and fused, preallocating in both arms.</li>
+  <li>Confirm the speedup tracks the chain length and stays near its bound.</li>
+  <li>Implement blocked multiplication and sweep the block size.</li>
+  <li>Predict the best block from your cache size <i>before</i> running the sweep, then check.</li>
+  <li>Break a compiled function with a data-dependent branch and time it again.</li>
+</ol>
+
+<p><b>Deliverable:</b> the two speedup curves and your predicted-versus-measured block size. Step
+four is the point of knowing the hierarchy: if you can only find the answer by searching, you have
+not used it.</p>
+
+<h3><span class="num">P.4</span> Stage 3: many machines</h3>
+
+<ol>
+  <li>Compute volume per worker for naive, ring and tree all-reduce.</li>
+  <li>Add per-hop latency and find the message size at which the ranking changes.</li>
+  <li>Simulate a synchronous step with one slow worker in a hundred.</li>
+  <li>For a model you train, compute parameters, gradients, optimiser state and activations
+  separately.</li>
+  <li>Assign parallelism axes to a topology by traffic.</li>
+</ol>
+
+<p><b>Deliverable:</b> the crossover message size and the axis assignment. Step five is arithmetic
+done before any code is written, and it decides more than tuning does.</p>
+
+<h3><span class="num">P.5</span> Stage 4: privacy</h3>
+
+<ol>
+  <li>Implement per-example clipping and the noised gradient step.</li>
+  <li>Confirm both parts are necessary by removing each in turn.</li>
+  <li>Account the total budget across a training run, not one step.</li>
+  <li>Compute the guarantee for a person contributing a thousand records.</li>
+  <li>Sweep the noise and measure utility, on a task hard enough that the noise costs something.</li>
+</ol>
+
+<p><b>Deliverable:</b> the utility curve and your total budget. Step five needs care: on an easy,
+well-separated problem the cost is invisible, which tells you about your task rather than about
+privacy.</p>
+
+<h3><span class="num">P.6</span> Stage 5: attacks with ground truth</h3>
+
+<ol>
+  <li>Write down your predictions first, in a file, before running anything.</li>
+  <li>Train a model, score members and non-members by loss, and compute the attack's AUC.</li>
+  <li>Vary regularisation and plot the attack against the generalisation gap.</li>
+  <li>Extract a model through its own API and sweep the query count.</li>
+  <li>Restrict the output to a label and measure the factor.</li>
+  <li>Plant a backdoor in a small fraction of the training data and measure clean and triggered
+  accuracy.</li>
+  <li>Score your predictions.</li>
+</ol>
+
+<p><b>Deliverable:</b> the three attack results and the scored predictions. Step six is the one to
+sit with: clean accuracy is unchanged, so no ordinary evaluation would have found it.</p>
+
+<h3><span class="num">P.7</span> Stage 6: a threat model</h3>
+
+<ol>
+  <li>For a system you actually run, write down the adversary's capability, goal and knowledge.</li>
+  <li>List what a compromised component could reach.</li>
+  <li>Identify one architectural control that would bound it, and one that already exists.</li>
+</ol>
+
+<p><b>Deliverable:</b> three paragraphs. This and Part XXXI's safety claim are the only deliverables
+in this book that are writing rather than measurement, and both are the artefact a deployment
+actually turns on.</p>
+
+<h3><span class="num">P.8</span> Stretch</h3>
+
+<ul>
+  <li><b>A hand-written fused kernel</b> for a chain from a model you run.</li>
+  <li><b>A roofline for a real training step</b>, with every significant kernel placed.</li>
+  <li><b>A ring implementation</b> over simulated workers, with bytes counted exactly.</li>
+  <li><b>Verbatim extraction</b> from a model you trained, before and after deduplication.</li>
+  <li><b>Breaking a gradient-obscuring defence</b> with an estimated gradient.</li>
+  <li><b>An audit</b> of a system you run, on all four axes of §40.</li>
+</ul>
+
+<h3><span class="num">P.9</span> Done when</h3>
+
+<ul class="checklist">
+  <li>You know your machine's bandwidth, peak arithmetic and ridge point.</li>
+  <li>You have placed your own kernels on your own roofline.</li>
+  <li>You have found a kernel where the elementwise rule of thumb fails.</li>
+  <li>Your fusion speedup tracks the chain length and stays near its bound.</li>
+  <li>You predicted your best block size before sweeping, and were right.</li>
+  <li>You have seen a compiled function get slow from a data-dependent branch.</li>
+  <li>You know the message size at which your collective should switch algorithm.</li>
+  <li>You have your model's memory broken into four parts.</li>
+  <li>You have assigned parallelism axes to a topology by traffic.</li>
+  <li>You have removed each half of the private step and seen what breaks.</li>
+  <li>You have a total privacy budget, not a per-step one.</li>
+  <li>You have a membership attack scored against ground truth.</li>
+  <li>You have cloned a model through its API and measured the label-only factor.</li>
+  <li>You have planted a backdoor and confirmed clean accuracy is unchanged.</li>
+  <li>You wrote predictions down before Stage 5 and scored them afterwards.</li>
+  <li>You have a written threat model for something you run.</li>
+</ul>
+
+<div class="box why">
+  <span class="label">Why this project</span>
+  <p>Stage 1 redirects more work than anything else in this book. Most performance effort goes into
+  the wrong half of the roofline, and the measurement that would have prevented it takes twenty
+  minutes and is almost never done.</p>
+  <p>Stage 5 step six is the security counterpart. A backdoor that leaves clean accuracy untouched
+  is the clearest possible demonstration that an accuracy metric is not a safety property, and
+  having planted one yourself changes how much weight you give a benchmark number for the rest of
+  your career.</p>
+</div>
+
+<h2 class="nobreak"><span class="part-kicker">Assess</span>Checkpoint</h2>
+
+<ul class="checklist">
+  <li>Give the ratio between arithmetic and memory speed, and what follows from it.</li>
+  <li>Name the levels of the memory hierarchy and their rough spacing.</li>
+  <li>Define arithmetic intensity and say why it rather than flops predicts time.</li>
+  <li>Give the intensity of a vector add and of an n×n matrix multiplication.</li>
+  <li>Write the roofline bound and say what the ridge point decides.</li>
+  <li>Give Figure 1's ridge and say what its constants do and do not transfer.</li>
+  <li>Give the exception to "elementwise means memory-bound", with the numbers.</li>
+  <li>Say what occupancy is a means to, and why raising it can hurt.</li>
+  <li>Give the two independent gains from lower precision.</li>
+  <li>Distinguish overflow from underflow by how they fail.</li>
+  <li>Explain fusion and say what bounds its speedup.</li>
+  <li>Give Figure 2's speedup at a chain of eight.</li>
+  <li>Explain blocking and say how the block size is chosen.</li>
+  <li>Give Figure 3's speedup and the working set it corresponds to.</li>
+  <li>Name four compiler transformations and say why a graph must be captured.</li>
+  <li>Say when it is worth writing a kernel by hand, and when it is not.</li>
+  <li>Give the order in which a profile is read.</li>
+  <li>Name the four collective operations and say which dominates training traffic.</li>
+  <li>Give the volume per worker for naive and ring all-reduce.</li>
+  <li>Say what the ring gives up, and what a library does about it.</li>
+  <li>Explain why topology decides where a parallelism axis goes.</li>
+  <li>Say what overlap hides and what its absence looks like in a profile.</li>
+  <li>Name four failures that are expected at scale rather than exceptional.</li>
+  <li>Give the four consumers of memory in a training job.</li>
+  <li>Say why serving is a different problem from training.</li>
+  <li>Name four things a model can leak, in increasing severity.</li>
+  <li>State the differential privacy definition and say what it is a property of.</li>
+  <li>Give the two properties that make it usable and the one that limits it.</li>
+  <li>Describe the private training step and say why both halves are needed.</li>
+  <li>Explain why privacy and scale are complements.</li>
+  <li>Say what federated learning does and does not solve.</li>
+  <li>Explain what makes membership inference the attack to reason about.</li>
+  <li>Say why deduplication is a privacy control.</li>
+  <li>Give the three questions a threat model answers.</li>
+  <li>Say which assumption in a defence is the one that fails.</li>
+  <li>Distinguish an empirical robustness number from a certified one.</li>
+  <li>Explain what a backdoor is and why accuracy cannot detect it.</li>
+  <li>Give Figure 8's query counts, with and without probabilities.</li>
+  <li>Say what extraction's cost scales with, and what follows.</li>
+  <li>Explain the confused deputy, and why SQL's fix is unavailable here.</li>
+  <li>Name three defences that hold up and the pattern in those that do not.</li>
+  <li>Give the four measurements to make before optimising.</li>
+  <li>Name six things to report about performance.</li>
+  <li>Name five things to state before claiming security.</li>
+</ul>
+
+<div class="box fw">
+  <span class="label">The framework, and what is underneath it</span>
+  <p>Dataset, model family, loss, optimiser. Every part of this book has chosen among those on the
+  assumption that the machine underneath is neutral and that nobody is trying to break the result.
+  Both assumptions are wrong, and this part is what they were hiding.</p>
+  <p>Underneath, the machine has a shape: arithmetic is nearly free and moving data is not, so a
+  hundred-fold difference in speed can separate two implementations of identical mathematics, and
+  the number that predicts which is not one the framework mentions. In front, an adversary changes
+  the question from the average case to the worst one, and against that, what protects a system is
+  not a property of the model at all but the architecture around it. <b>The model is the part of the
+  system you chose; the other two are the parts you inherited</b>, and they set what your choices
+  can be worth.</p>
+</div>

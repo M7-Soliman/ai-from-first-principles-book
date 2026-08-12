@@ -1,0 +1,133 @@
+<h2><span class="part-kicker">Part C</span>Generation</h2>
+
+<p class="mvt">Producing audio is the reverse pipeline with one extra difficulty: the model must
+supply the phase that movement A deleted. The architecture that solved it is a compression method,
+which is why speech generation and audio codecs turned out to be the same subject.</p>
+
+<h3><span class="num">§17</span> Text to speech, in two stages</h3>
+
+<div class="box shapes">
+  <span class="label">The standard split, and why it is a split</span>
+  <p><b>Acoustic model:</b> text to mel spectrogram. <b>Vocoder:</b> mel spectrogram to waveform.</p>
+  <p>The split exists because the two halves have completely different difficulties. The first is a
+  sequence problem with an alignment (how long is each phoneme, where does the pitch go) and the
+  second is Figure 2's problem: inventing a phase consistent with a magnitude.</p>
+  <p>It also means the interface is a mel spectrogram, so the vocoder can be trained separately, on
+  more data, and reused. That modularity is the reason the split survived even as end-to-end models
+  became feasible.</p>
+</div>
+
+<h3><span class="num">§18</span> Duration, and what autoregression costs</h3>
+
+<div class="box why">
+  <span class="label">The failure mode that motivated a whole architecture family</span>
+  <p>An autoregressive acoustic model decides implicitly how long each phoneme lasts, by choosing
+  when to move on. When it goes wrong it does not go slightly wrong: it repeats a syllable
+  indefinitely or skips a word, because nothing constrains the alignment to advance.</p>
+  <p>The repair is to predict duration <b>explicitly</b> (one number per input token) and expand
+  the sequence deterministically. That makes generation parallel, makes speaking rate a control
+  rather than an emergent property, and removes the failure entirely. The cost is that duration must
+  now be supervised, usually from a forced alignment produced by a recogniser.</p>
+</div>
+
+<h3><span class="num">§19</span> Vocoders</h3>
+
+<div class="box shapes">
+  <span class="label">Four generations, and what each traded</span>
+  <p><b>Classical.</b> Iterative phase estimation, or a source-filter synthesiser. Cheap, and
+  Figure 2's residual is what it sounds like.</p>
+  <p><b>Autoregressive.</b> One sample at a time, conditioned on the spectrogram. The first to sound
+  genuinely natural, and at 24,000 sequential steps per second it is unusable in real time.</p>
+  <p><b>Flow and distillation.</b> Parallel generation trained to match an autoregressive teacher.
+  Fast, and complicated to train.</p>
+  <p><b>Adversarial.</b> A convolutional generator with discriminators at several scales and on
+  several periodicities. Fast, simple, and what most systems now use, a rare case where the
+  adversarial formulation won on a task after losing on images, because the conditioning is strong
+  enough that mode collapse has nowhere to go.</p>
+</div>
+
+<h3><span class="num">§20</span> Quantisation, and audio as tokens</h3>
+
+<div class="readnow"><span class="label">Go and read</span><p><span class="src">van den Oord, Vinyals &amp; Kavukcuoglu (2017)</span>, <i>Neural discrete representation learning</i>. The paper that turned vector quantisation from a compression trick into a learned representation: an encoder's continuous output is snapped to the nearest of <span class="m">$K$</span> codebook vectors, and a straight-through estimator carries the decoder's gradient back across that non-differentiable snap unchanged. Read for the commitment loss: the extra term, separate from reconstruction, that keeps the encoder's output from drifting away from whatever codebook entry it currently maps to, without which the codebook and the encoder can wander apart during training.</p></div>
+
+<div class="box def">
+  <span class="label">The move that connected audio to language models</span>
+  <p>If audio can be turned into a short sequence of discrete tokens, every technique from Part XX
+  applies to it. That requires compressing several hundred kbit/s of waveform into a few kbit/s of
+  symbols, which is a codec.</p>
+  <p><b>Scalar quantisation</b> rounds each dimension independently. <b>Vector quantisation</b>
+  replaces a whole vector with the nearest of <span class="m">$K$</span> codebook entries, which
+  costs a codebook exponential in the bitrate. <b>Residual quantisation</b> applies several small
+  codebooks in sequence, each encoding what the previous ones left, which is how the exponential is
+  avoided.</p>
+</div>
+
+<h3><span class="num">§21</span> What a vector quantiser buys</h3>
+
+<figure>
+  <img src="figures/au/05-quantisation.svg" alt="Mean squared error against bits per dimension for scalar and vector quantisation, at three levels of correlation between dimensions">
+  <figcaption><b>Figure 5.</b> Four-dimensional Gaussian data at three correlations, quantised at
+  matched bitrate. The vector quantiser wins everywhere, by <b>2.40&times;</b> at
+  <span class="m">$\rho = 0.6$</span> and <b>6.19&times;</b> at
+  <span class="m">$\rho = 0.9$</span>, and by <b>1.51&times;</b> at
+  <span class="m">$\rho = 0$</span>, where the dimensions are independent and there is no correlation
+  left to exploit. Residual quantisation lands within <b>1.4 to 1.5&times;</b> of full vector
+  quantisation using a codebook of 16 rather than 256.</figcaption>
+</figure>
+
+<div class="box why">
+  <span class="label">The part at zero correlation, which is the interesting part</span>
+  <p>The obvious reason a vector quantiser wins is that it can exploit dependence between
+  dimensions. Figure 5 shows that is not the only reason: at zero correlation it is still
+  1.51&times; better.</p>
+  <p>The remaining gain is geometric. A scalar quantiser tiles the space with hypercubes, and a
+  hypercube is a poor cell: its corners are far from its centre. A vector quantiser can use cells
+  closer to spherical, and no amount of decorrelating the data removes that advantage. Which is
+  worth knowing before someone proposes to replace a vector quantiser with a decorrelating transform
+  and scalar quantisation, on the grounds that the correlation was the point.</p>
+</div>
+
+<h3><span class="num">§22</span> Neural codecs</h3>
+
+<div class="readnow"><span class="label">Go and read</span><p><span class="src">Défossez, Copet, Synnaeve &amp; Adi (2022)</span>, <i>High fidelity neural audio compression</i> (EnCodec). The architecture below, from the group that shipped it: an encoder–decoder with a residual vector quantiser in between, the 75-tokens-per-second frame rate quoted here, and a multi-scale discriminator doing the work a reconstruction loss alone cannot. Read the codebook-usage section for the entry-collapse problem drill C14 asks you to reproduce, and their fix for it: re-seeding a dead entry from the data it is currently failing to represent.</p></div>
+
+<div class="box def">
+  <span class="label">An autoencoder with a quantiser in the middle</span>
+  <p>Encoder, residual vector quantiser, decoder, trained with a reconstruction loss, a
+  discriminator, and a commitment term keeping the encoder near its codebook. The output is a
+  sequence of codebook indices at perhaps 75 per second across several quantiser stages.</p>
+  <p>Those indices are tokens. So a language model can be trained on them, and the resulting system
+  generates speech, music or sound effects by the machinery of Part XX with no audio-specific
+  architecture at all. The <b>coarse-to-fine structure</b> matters: the first quantiser stage carries
+  the content and the later ones carry detail, so a model can spend its capacity on the first and
+  predict the rest more cheaply.</p>
+</div>
+
+<h3><span class="num">§23</span> Learned front ends</h3>
+
+<div class="box why">
+  <span class="label">Does the mel scale survive contact with a model that could replace it</span>
+  <p>Nothing stops a model reading raw samples and learning its own filterbank. Several do, and the
+  honest summary is that they are competitive rather than clearly better, at more compute.</p>
+  <p>What they converge to is worth the experiment on its own: the learned filters typically look
+  like a bandpass filterbank with roughly logarithmic spacing, which is the mel scale, rediscovered.
+  Part XXVII §37's argument applies unchanged: a filterbank is what the input statistics call for,
+  so a model finding one is not a coincidence and neither is a human having designed one.</p>
+  <p>Where learned front ends do win is where the mel assumption is wrong: non-speech audio, or
+  tasks where the fine structure at high frequency is the signal. Which is exactly what §4
+  predicts.</p>
+</div>
+
+<h3><span class="num">§24</span> What movement C establishes</h3>
+
+<div class="box intuition">
+  <span class="label">Three things</span>
+  <p><b>Generation is the reverse pipeline plus the phase problem</b>, and a vocoder is a model that
+  invents a consistent phase rather than recovering the original one.</p>
+  <p><b>Explicit duration removes a failure mode that autoregression cannot.</b> Repeating a
+  syllable forever is not a tuning problem; it is what happens when nothing forces the alignment to
+  advance.</p>
+  <p><b>Audio becomes tokens through a quantiser, and the quantiser's gain is not only about
+  correlation.</b> Figure 5 measures 1.51&times; at zero correlation, from the geometry of how cells
+  fill space.</p>
+</div>

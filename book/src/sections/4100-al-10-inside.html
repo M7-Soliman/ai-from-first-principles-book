@@ -1,0 +1,225 @@
+<h2><span class="part-kicker">Part A</span>Looking inside</h2>
+
+<p class="mvt">A trained network is a few hundred billion numbers that produce good outputs for
+reasons nobody wrote down. This movement asks what it would even mean to understand them, finds
+that the obvious unit of analysis is the wrong one, and measures both the technique that
+addresses this and the amount it leaves undone.</p>
+
+<h3><span class="num">§1</span> What a question about internals means</h3>
+
+<p>Every part before this one treated the network as a function to be trained, measured and
+deployed. This part opens it. The first difficulty is that "understand the model" is not yet a
+question, and different people asking it want incompatible things.</p>
+
+<div class="box shapes">
+  <span class="label">Four questions that get called the same thing</span>
+  <p><b>What is this component computing?</b> A claim about a part in isolation: this head
+  attends to the previous occurrence of the current token, this direction encodes sentiment.
+  Verifiable, and the subject of movements A and B.</p>
+  <p><b>Why did the model produce this output?</b> A claim about one forward pass. Attribution
+  methods answer it, badly, for reasons §14 gives.</p>
+  <p><b>What will the model do on inputs I have not tried?</b> The question everyone actually
+  wants answered, and the one furthest from current reach. §41 is honest about the distance.</p>
+  <p><b>Is the model doing what I intended?</b> Not an interpretability question at all: it
+  presupposes a specification, which is movement C's subject and is usually the missing piece.</p>
+</div>
+
+<div class="box why">
+  <span class="label">Why this is not idle</span>
+  <p>Three concrete reasons, none of them philosophical. <b>Auditing:</b> a behaviour you cannot
+  find by testing might be findable by looking, and §27 shows testing alone is weak for anything
+  rare. <b>Debugging:</b> a model that fails for a known internal reason can be fixed; one that
+  fails opaquely can only be retrained and hoped over. <b>Trust that generalises:</b> a
+  measurement of behaviour is a claim about the distribution you measured on, whereas a
+  measurement of mechanism is, in principle, a claim that transfers.</p>
+  <p>The word <i>in principle</i> is doing real work in that last sentence, and this movement is
+  about how much.</p>
+</div>
+
+<h3><span class="num">§2</span> Neurons are not features</h3>
+
+<p>The natural first move is to treat one unit as one concept: find the inputs that make neuron
+1,483 fire hardest and name it. This was tried extensively, it produced some famous successes,
+and it fails as a general method for a reason that turns out to be structural rather than
+accidental.</p>
+
+<div class="box def">
+  <span class="label">Polysemanticity</span>
+  <p>A <b>polysemantic</b> neuron responds strongly to several unrelated inputs: a unit that
+  fires for legal language, for images of hands, and for the token <i>the</i> in French. Not a
+  rare curiosity: in a large network it is the common case.</p>
+  <p>The tempting reading is that the network is disorganised. The better reading is that the
+  network has more things to represent than it has neurons, and polysemanticity is what that
+  shortage looks like from the outside.</p>
+</div>
+
+<div class="box pitfall">
+  <span class="label">Pitfall: the highest-activating inputs are a biased sample</span>
+  <p>The standard way to name a neuron is to collect the inputs that activate it most. That
+  procedure is Part XIV §20's biased maximum, wearing a different hat: you are reporting the
+  extreme of a search, so a coherent-looking story will appear even when the underlying selectivity
+  is weak.</p>
+  <p>The correction is the one Part XIV gives: check the full distribution of activations, not
+  its top tail, and check whether inputs that <i>should</i> activate the neuron under your proposed
+  interpretation actually do.</p>
+</div>
+
+<h3><span class="num">§3</span> Superposition, recalled</h3>
+
+<p>Part XV §33 established the phenomenon and measured it, and this part depends on that result
+rather than repeating it. The short form, because everything in this movement rests on it:</p>
+
+<div class="box def">
+  <span class="label">Superposition</span>
+  <p>A network is in <b>superposition</b> when it represents more features than it has dimensions,
+  by assigning them non-orthogonal directions and tolerating the interference that causes.</p>
+  <p>Part XV's measurement: twenty features of decaying importance and five dimensions to hold
+  them. With dense inputs exactly five are stored, orthogonally, and the rest are discarded. At 99%
+  sparsity <b>sixteen</b> are stored (more than three times the available dimensions) at a mean
+  interference of 0.345.</p>
+</div>
+
+<div class="box intuition">
+  <span class="label">Why sparsity is what makes it work</span>
+  <p>Twenty directions cannot be orthogonal in five dimensions, so storing all twenty guarantees
+  interference: reading feature 3 picks up some of features 7 and 12.</p>
+  <p>The saving grace is that if features are rarely active, they are rarely active
+  <i>together</i>. Interference costs you only when two overlapping features fire at once, and at
+  1% density that is rare enough to be worth the extra capacity. The model is making a trade, and
+  the sparsity of the data sets the exchange rate.</p>
+  <p>This is why the phenomenon is universal in practice. Natural data <i>is</i> sparse in its
+  features: of everything a sentence could be about, a given sentence is about very few.</p>
+</div>
+
+<h3><span class="num">§4</span> What superposition costs the analyst</h3>
+
+<p>Part XV presented superposition as a fact about representations. Here it is an obstacle, and
+naming the three specific ways it obstructs is what sets this movement's agenda.</p>
+
+<div class="box why">
+  <span class="label">Three consequences, all of them practical</span>
+  <p><b>Reading one neuron tells you little.</b> It is a projection of many features, so its
+  activation is a sum you cannot decompose by looking at it.</p>
+  <p><b>Ablating one neuron tells you little either.</b> You have removed a mixture, so the damage
+  is spread across everything that mixture participated in. §12 returns to this.</p>
+  <p><b>The number of features is not bounded by the number of neurons</b>, so "the model has
+  <span class="m">$d$</span> dimensions, therefore at most <span class="m">$d$</span> concepts" is
+  simply false: Part XV's model holds sixteen in five.</p>
+  <p>Together these say the natural basis is the wrong basis. The task becomes finding the right
+  one, which is §5, and then measuring how much of it you found, which is §6 and is the part that
+  has not previously been done in this book.</p>
+</div>
+
+<h3><span class="num">§5</span> Dictionary learning</h3>
+
+<p>If the features are directions that are not the coordinate axes, finding them is a decomposition
+problem: given the activations, recover the set of directions whose sparse combinations produce
+them. Part XV §34 built the instrument (a sparse autoencoder, wider than the layer, with an
+<span class="m">$\ell_1$</span> penalty on the code) and derived why it must be both wide and
+sparse. In brief:</p>
+
+<div class="box def">
+  <span class="label">The sparse autoencoder, in one line</span>
+  <p class="m">$$\min \;\; \lVert \mathbf{h} - W_{\text{dec}}\mathbf{a} \rVert^2 + \lambda \lVert \mathbf{a} \rVert_1, \qquad \mathbf{a} = \mathrm{ReLU}(W_{\text{enc}}\mathbf{h} + \mathbf{b})$$</p>
+  <p>Wider than the layer, because §3 says there are more features than dimensions. Sparse, because
+  §3 says sparsity is the condition that made the packing possible. Part VIII §6's sparse
+  representations, put to a use they were not invented for.</p>
+</div>
+
+<p>What Part XV did not do, and what the rest of this movement needs, is <b>score</b> it. The
+construction is one thing; how much of the truth it recovers is another, and it is answerable only
+where the truth is known.</p>
+
+<h3><span class="num">§6</span> What a dictionary actually recovers</h3>
+
+<figure>
+  <img src="figures/al/01-dictionary.svg" alt="Features recovered against dictionary size for a sparse autoencoder, compared with PCA, and per-feature recovery quality">
+  <figcaption><b>Figure 1.</b> Recovering 20 known feature directions from the 5-dimensional
+  activations of a model in superposition. A sparse autoencoder with 80 dictionary entries, four
+  times overcomplete, recovers <b>12 of 20</b> to a cosine above 0.9, improving monotonically with
+  dictionary size. PCA, the obvious alternative, recovers <b>1</b>, and cannot in principle exceed
+  5, because a 5-dimensional space has 5 principal components while the features number 20. The
+  method works, it beats every linear alternative, and it does not finish the job.</figcaption>
+</figure>
+
+<p>Twelve of twenty is the number to carry out of this movement. It was obtained on a problem where
+the ground truth was known exactly, with a generously overcomplete dictionary, on a model small
+enough to have no complications. In every real application the ground truth is <i>not</i> known,
+and there is no corresponding way to notice the other eight.</p>
+
+<div class="box pitfall">
+  <span class="label">Pitfall: an interpretable dictionary entry is not a verified one</span>
+  <p>A sparse autoencoder trained on a real model produces directions that, when you look at what
+  activates them, often have clean human-readable descriptions. This is genuinely striking and it
+  is the source of the method's reputation.</p>
+  <p>It is also not evidence that those directions are the model's features. Sparse decompositions
+  of high-dimensional data tend to produce human-legible components: the same phenomenon that
+  makes ICA on natural images produce edge detectors whether or not the generating process had
+  any. The interpretation is a hypothesis. §10's intervention is what tests it.</p>
+</div>
+
+<div class="box shapes">
+  <span class="label">The open problems, stated as they stand</span>
+  <p><b>Completeness.</b> What fraction of the model's behaviour do the recovered features account
+  for? Reconstruction error is the usual proxy and is not the same question.</p>
+  <p><b>Feature splitting.</b> Widen the dictionary and a single entry often resolves into several
+  finer ones. There is no principled place to stop, so "the model's features" may not be a
+  well-defined set at all.</p>
+  <p><b>Verification.</b> Nothing in the procedure checks that an entry is causally used. That is a
+  separate measurement, and it is movement B's.</p>
+</div>
+
+<h3><span class="num">§7</span> Probing, revisited</h3>
+
+<p>Part XV §32 used probes as a diagnostic for representation quality and was careful about what
+they establish. That care was warranted, and this section is the measurement that shows why.</p>
+
+<figure>
+  <img src="figures/al/02-probe-causal.svg" alt="Probe accuracy for a used and an unused property, and task accuracy after ablating each direction">
+  <figcaption><b>Figure 2.</b> A network trained on a task that depends only on the first block of
+  its input. A property computed from a <i>different</i> block, one the objective never consults,
+  is read out of the hidden layer by a linear probe at <b>0.775</b>, which is higher than the
+  network's own task accuracy of 0.753. Removing that probed direction from the activations changes
+  the task by a negligible <b>+0.001</b>; removing a random direction costs about as much,
+  <b>−0.003</b>. Removing the direction the network's own output layer actually reads for its
+  decision (not a second probe's approximation of that direction, but the head's literal weights)
+  costs <b>−0.249</b>, collapsing the task to chance. The information is present and readable either
+  way; whether it is used is a different question, and only one of these two directions answers it
+  yes.</figcaption>
+</figure>
+
+<div class="box why">
+  <span class="label">Why this had to come out this way</span>
+  <p>The hidden layer is a function of the input. The input contains the unused property. A
+  sufficiently flexible layer therefore retains enough information to reconstruct it, whether or
+  not anything downstream ever asks. Probing succeeds because <i>information is present</i>, and
+  presence is nearly free.</p>
+  <p>So a probe measures the information content of a representation. It does not measure what the
+  network does with it. Those are different claims, and only the second is what people usually
+  mean when they say a model "represents" something.</p>
+</div>
+
+<div class="box try">
+  <span class="label">The habit this should install</span>
+  <p>Whenever you read (or write) "the model encodes <span class="m">$X$</span>", ask which
+  measurement was made. If it was a probe, the claim is that <span class="m">$X$</span> is
+  recoverable. If you want the claim that the model <i>uses</i> <span class="m">$X$</span>, an
+  intervention is required, and Figure 2's right panel is what one looks like.</p>
+  <p>This is not pedantry. Whole literatures have been built on probe results read as mechanism,
+  and the correction has typically arrived only when somebody ran the ablation.</p>
+</div>
+
+<h3><span class="num">§8</span> What movement A establishes</h3>
+
+<div class="box intuition">
+  <span class="label">Three things</span>
+  <p><b>The unit of analysis is a direction, not a neuron.</b> Part XV measured why: networks store
+  more features than they have dimensions whenever the data is sparse, which it is.</p>
+  <p><b>The directions can be partly recovered, and "partly" is load-bearing.</b> Figure 1 scores
+  the instrument for the first time in this book: 12 of 20 against PCA's 1, on a problem where the
+  answer was known. The real cases are the ones where it is not, and there the eight are
+  invisible.</p>
+  <p><b>Finding a feature is not finding a mechanism.</b> Figure 2 reads a property out at 0.775
+  that the network demonstrably does not use. Every claim in this movement is correlational, and
+  the repair is the subject of the next one.</p>
+</div>

@@ -1,0 +1,248 @@
+<h2><span class="part-kicker">Part D</span>Measuring harm</h2>
+
+<p class="mvt">Part XIV built the discipline of measuring whether a model works. This movement is
+what changes when the question is whether it is safe, and almost everything changes: the quantity
+of interest is a tail rather than an average, the distribution is chosen by an adversary rather
+than by you, and a clean result carries far less information than it appears to.</p>
+
+<h3><span class="num">§25</span> Why this is not ordinary evaluation</h3>
+
+<div class="box shapes">
+  <span class="label">Four structural differences</span>
+  <p><b>The statistic is a tail, not a mean.</b> Accuracy averages over the distribution. Harm is
+  about the worst outputs, whose frequency is low and whose cost is high, and averages are the
+  wrong summary for both reasons.</p>
+  <p><b>The distribution is adversarial.</b> Part XIV's held-out set is drawn from the same
+  process as training. A red-teamer draws from wherever the model is weakest, which is a
+  distribution defined by your failures.</p>
+  <p><b>The result is asymmetric.</b> Finding a failure proves the failure exists. Not finding one
+  proves very little, and §27 quantifies exactly how little.</p>
+  <p><b>The measurement is a lower bound on capability, not an estimate.</b> Your elicitation may
+  simply have been poor. §31 is this point, and it inverts the usual reading of a negative
+  result.</p>
+</div>
+
+<h3><span class="num">§26</span> Red-teaming</h3>
+
+<div class="box def">
+  <span class="label">What it is, and what it produces</span>
+  <p><b>Red-teaming</b> is adversarial search for inputs that produce unacceptable outputs. It
+  produces existence proofs (this input, this output, this is bad) and existence proofs are the
+  only strong result available in this movement.</p>
+  <p>What it does not produce is a rate. The inputs were chosen adversarially, so the fraction of
+  successful attacks in a red-teaming exercise measures the team's effort and skill, not the
+  system's failure probability under any real distribution.</p>
+</div>
+
+<div class="box shapes">
+  <span class="label">The three modes, and what each is good for</span>
+  <p><b>Human.</b> Expensive, slow, and the only mode that finds failure categories nobody
+  anticipated. Irreplaceable for exactly that reason.</p>
+  <p><b>Automated.</b> A model generates candidate attacks against a target. Cheap and enormously
+  scalable, and bounded by the attacker model's own imagination: it finds many instances of the
+  kinds of attack it knows.</p>
+  <p><b>Optimisation-based.</b> Gradient or search directly against a differentiable objective,
+  as in Part VIII §20's adversarial examples. Produces the strongest attacks and the least natural
+  ones, which is the right trade when you want an upper bound on robustness.</p>
+  <p>They find different things and the coverage argument requires all three. Reporting one and
+  concluding the system is robust is the standard error.</p>
+</div>
+
+<div class="box pitfall">
+  <span class="label">Pitfall: patching the instances found</span>
+  <p>Red-teaming yields specific attacks. The tempting response is to train against exactly those,
+  which reliably fixes them and reliably fails to generalise: you have removed the samples, not the
+  vulnerability, and the next search finds neighbours.</p>
+  <p>The measurement that tells you which happened is a <i>fresh</i> red-team after the fix, run by
+  people who did not see the first one. If the new attack rate is unchanged, you patched instances.
+  This is Part XIV's train/test discipline, in the one place where violating it is easiest to
+  rationalise.</p>
+</div>
+
+<h3><span class="num">§27</span> The statistics of rare failures</h3>
+
+<figure>
+  <img src="figures/al/05-rare-events.svg" alt="Upper confidence bound on the failure rate after zero observed failures, and attempts needed to observe a failure of a given rate">
+  <figcaption><b>Figure 5.</b> Exact arithmetic, from both ends. Left: after
+  <span class="m">$n$</span> evaluations with zero failures, the 95% upper bound on the true failure
+  rate is <span class="m">$1 - 0.05^{1/n}$</span>, so <b>1,021 clean tests still permit a rate of
+  0.293%</b>, and 98,954 permit 0.003%. The rule of three, <span class="m">$3/n$</span>, is the
+  approximation worth memorising. Right: to observe a failure at least once with probability 0.95
+  costs about <b>3/p</b> attempts: <b>2,995</b> for a one-in-a-thousand failure and <b>299,572</b>
+  for one in a hundred thousand.</figcaption>
+</figure>
+
+<div class="box why">
+  <span class="label">What this does to the sentence "we evaluated it and it was fine"</span>
+  <p>A thorough evaluation might run a thousand adversarial prompts and find nothing. Figure 5 says
+  the failure rate could still be 0.3%. At a million uses that is three thousand failures, and at
+  a hundred million it is three hundred thousand.</p>
+  <p>The gap between "we found nothing" and "it does not happen" is therefore not rhetorical
+  caution. It is a specific number, it is computable before you run anything, and it is usually
+  several orders of magnitude.</p>
+</div>
+
+<div class="box worked">
+  <span class="label">Worked: sizing an evaluation before running it</span>
+  <p>You need confidence that a harmful-output rate is below 1 in 10,000, at 95%.</p>
+  <p>By the rule of three, zero failures in <span class="m">$n$</span> trials bounds the rate at
+  about <span class="m">$3/n$</span>. Setting <span class="m">$3/n = 10^{-4}$</span> gives
+  <span class="m">$n = 30{,}000$</span>. Exactly: <span class="m">$1 - 0.05^{1/n} \le 10^{-4}$</span>
+  needs <span class="m">$n \ge 29{,}956$</span>.</p>
+  <p>So: thirty thousand evaluations, all clean, to support a claim about one in ten thousand. If
+  each needs human review at one minute, that is five hundred hours. This calculation is the one
+  that should happen before the evaluation is designed, because it frequently shows the intended
+  claim is unaffordable, at which point the honest move is to weaken the claim, not to run a
+  smaller study and state it anyway.</p>
+</div>
+
+<div class="box pitfall">
+  <span class="label">Pitfall: the trials are not independent</span>
+  <p>The arithmetic above assumes independent draws. Evaluation suites are correlated: prompts
+  share templates, topics, and sources. Correlated trials carry less information than independent
+  ones, so the true bound is <i>weaker</i> than Figure 5's, which is already weak.</p>
+  <p>Treat the figure as the optimistic case. That is an unusual direction for a pitfall box and it
+  is the right one here.</p>
+</div>
+
+<h3><span class="num">§28</span> Dangerous capability evaluations</h3>
+
+<div class="box def">
+  <span class="label">A different question from alignment</span>
+  <p>These ask what a system <i>can</i> do if someone tries to make it, not what it does by
+  default. Uplift for weapons development, autonomous replication, cyber-offence, large-scale
+  persuasion, and evading oversight are the standard categories.</p>
+  <p>They are the technical input to §36's release decision and to most regulatory thresholds,
+  which makes their methodology unusually consequential relative to how new it is.</p>
+</div>
+
+<div class="box why">
+  <span class="label">Why the marginal question is the only one that matters</span>
+  <p>"Can the model produce information about <span class="m">$X$</span>" is nearly always yes for
+  anything in the literature, and nearly always uninformative. The decision-relevant quantity is
+  the <b>uplift</b>: how much does access change what a specific actor could accomplish, compared
+  with a library, a search engine, and the open models that already exist?</p>
+  <p>That is a difference between two capabilities, so it requires a control group, which makes it
+  a controlled experiment on human performance, not a benchmark. The good studies do this. The
+  headline numbers usually quoted do not, and the two are routinely conflated.</p>
+</div>
+
+<h3><span class="num">§29</span> Bias and fairness, as measurement</h3>
+
+<p>Part XIII covered where dataset bias comes from. The question here is narrower and more
+technical: given a trained system, what can be measured, and what do the measurements mean when
+they conflict?</p>
+
+<div class="box shapes">
+  <span class="label">Three criteria that cannot all hold</span>
+  <p><b>Demographic parity.</b> The positive rate is equal across groups.</p>
+  <p><b>Equalised odds.</b> True positive and false positive rates are equal across groups.</p>
+  <p><b>Calibration within groups.</b> A predicted probability of 0.7 means 0.7 in every group.</p>
+  <p>These are mutually incompatible whenever base rates differ, and the incompatibility is a
+  theorem, not a limitation of current methods. So "make the model fair" has no technical referent
+  until somebody chooses which criterion, and that choice is about what the decision is for.</p>
+</div>
+
+<div class="box why">
+  <span class="label">The consequence, stated plainly</span>
+  <p>Because the criteria conflict, a fairness result is only interpretable alongside the criterion
+  it used, and a system can be reported as fair and unfair from the same data without anybody
+  lying. Read every such claim by looking first at which measurement was chosen and why.</p>
+  <p>Part XIV §5's calibration is one of the three, which means the calibration you were told to
+  want has a cost measured in one of the others. That is uncomfortable and it is the actual
+  situation.</p>
+</div>
+
+<p>All three criteria above are statistical, functions of the joint distribution of prediction,
+label and group. A fourth kind, <b>counterfactual fairness</b>, instead asks whether the decision
+would change in a world where only the protected attribute differed, which needs the intervention
+machinery developed in Part XXII §37.</p>
+
+<h3><span class="num">§30</span> Evaluation validity</h3>
+
+<div class="box def">
+  <span class="label">The question behind every number in this movement</span>
+  <p><b>Validity</b> is whether the instrument measures the construct it claims to. Part XX §41
+  showed benchmarks decaying through contamination and overfitting; this is the prior question,
+  and it does not require any decay to bite.</p>
+  <p>A refusal-rate benchmark measures refusals. Whether that is safety depends on whether the
+  refused set resembles what users actually attempt, whether refusing is the desired behaviour, and
+  whether the model refuses for the reason you think. Each of those is a separate empirical claim,
+  and none is established by the benchmark score.</p>
+</div>
+
+<div class="box pitfall">
+  <span class="label">Pitfall: the construct drifts to fit the instrument</span>
+  <p>Once a benchmark exists, "safe" quietly becomes "scores well on the benchmark", because that
+  is what can be optimised and reported. This is §18 operating on the research community rather
+  than on a model, and it has the same signature: the measured quantity improves steadily while
+  the thing it stood for does not.</p>
+  <p>The defence is the one from §19: at least one measurement that does not route through the
+  optimised proxy. Fresh human evaluation on inputs collected after the benchmark was built is the
+  usual form.</p>
+</div>
+
+<h3><span class="num">§31</span> Elicitation, and the lower bound problem</h3>
+
+<div class="box intuition">
+  <span class="label">Why a negative capability result is weak</span>
+  <p>If a model fails a task, there are two explanations: it cannot do the task, or you did not ask
+  well. Part XX §22 measured how much prompt phrasing alone moves results, and the answer was
+  large. Add fine-tuning, scaffolding, tools and retries and the gap between a naive attempt and a
+  serious one is larger still.</p>
+  <p>So every capability evaluation reports a <b>lower bound</b>. "The model cannot do
+  <span class="m">$X$</span>" is never established; only "we did not get it to do
+  <span class="m">$X$</span> with the effort we spent" is.</p>
+</div>
+
+<div class="box why">
+  <span class="label">Which makes the asymmetry complete</span>
+  <p>Put §27 and this section together. A <i>positive</i> safety-relevant capability result is
+  strong: it happened, so it is possible. A <i>negative</i> one is weak twice over: your
+  elicitation was a lower bound, and your sample size bounds the rate only loosely.</p>
+  <p>This is why serious evaluation reports state the elicitation effort explicitly (how many
+  prompts, what scaffolding, whether fine-tuning was attempted) and why a report that omits it
+  cannot be interpreted, whatever its numbers say.</p>
+</div>
+
+<h3><span class="num">§32</span> Safety cases</h3>
+
+<div class="box def">
+  <span class="label">Borrowing from engineering disciplines that had to solve this</span>
+  <p>A <b>safety case</b> is a structured argument that a system is acceptably safe in a stated
+  context, with the evidence for each step and the assumptions made explicit. Aviation, nuclear
+  power and medical devices all use them, for the same reason that applies here: no single test
+  establishes safety, so the object of review has to be the argument.</p>
+  <p>Its virtue is that it forces the weak step into the open. A safety case whose argument runs
+  "we red-teamed and found nothing" now has to state the sample size, at which point §27 applies
+  visibly rather than silently.</p>
+</div>
+
+<div class="box shapes">
+  <span class="label">The shape of one, for a deployed model</span>
+  <p><b>Claim.</b> Harm of type <span class="m">$H$</span> occurs at a rate below
+  <span class="m">$r$</span> in deployment context <span class="m">$C$</span>.</p>
+  <p><b>Evidence.</b> Evaluation with stated sample size and confidence (§27), red-teaming across
+  all three modes with stated effort (§26, §31), the monitoring that will run in deployment
+  (§35).</p>
+  <p><b>Assumptions.</b> That the evaluation distribution resembles <span class="m">$C$</span>;
+  that elicitation was adequate; that the monitoring catches what the evaluation missed; that
+  <span class="m">$C$</span> does not drift.</p>
+  <p><b>Defeaters.</b> What observation would falsify the claim, and what happens when one arrives.
+  A case without this section is a summary rather than an argument.</p>
+</div>
+
+<h3><span class="num">§33</span> What movement D establishes</h3>
+
+<div class="box intuition">
+  <span class="label">Three things</span>
+  <p><b>Evidence about harm is fundamentally asymmetric.</b> Finding a failure settles the
+  question; not finding one leaves the rate bounded only by Figure 5's arithmetic, and 1,021 clean
+  tests permit 0.293%.</p>
+  <p><b>Negative results are lower bounds twice over</b>: once from sample size, once from
+  elicitation. Both bounds are usually left unstated, and a report that omits either cannot be
+  interpreted.</p>
+  <p><b>The unit of review is the argument, not the number.</b> Which is why §32 exists, why it
+  comes from disciplines that had to get this right, and why the assumptions section is the part
+  that does the work.</p>
+</div>

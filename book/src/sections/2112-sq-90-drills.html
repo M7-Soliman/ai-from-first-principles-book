@@ -1,0 +1,378 @@
+<h2><span class="part-kicker">Practice</span>Drills</h2>
+
+<p class="lede">Forty-five problems. Several ask you to reproduce a claim this part shows does
+<i>not</i> reproduce as usually stated: those are the valuable ones, because finding out which
+variable a famous comparison was actually varying is a skill that transfers.</p>
+
+<h3><span class="num">Tier 0</span> Estimate first</h3>
+
+<div class="drill">
+  <div class="head"><span class="tier est">Estimate</span>E1 &middot; Parameters in an LSTM</div>
+  <p>An LSTM with input size 512 and hidden size 512. Write down its parameter count before deriving it.</p>
+  <div class="ans"><b>Answer.</b> <b>2,099,200</b>: four gates, each with an input matrix, a recurrent matrix and a bias. The factor of four is the thing to remember: an LSTM cell is four times a plain recurrent cell, which is most of why the comparisons against it in Part XI §21 have to be made at matched parameters rather than matched hidden size. <i>Score yourself: within a factor of two is a pass, and an order of magnitude out is worth understanding before you go on.</i></div>
+</div>
+
+<h3><span class="num">Tier 1</span> Warm-up</h3>
+
+<div class="drill">
+  <div class="head"><span class="tier warm">Warm</span>W1 · Why not pad</div>
+  <p>Give two objections to padding every sequence to a maximum length and using a dense layer.</p>
+  <div class="ans"><b>Answer.</b> You cap the model at that length and pay for the maximum on
+  every example. And each position gets its own parameters, so nothing learned about position 3
+  transfers to position 40, Part X §1's objection, one axis over.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier warm">Warm</span>W2 · Unfolding</div>
+  <p>What two things does unfolding buy?</p>
+  <div class="ans"><b>Answer.</b> A fixed input size regardless of sequence length, because the
+  model is a transition rather than a function of history. And one transition function shared
+  across steps, so it can be estimated from far less data and generalises to lengths never
+  seen in training.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier warm">Warm</span>W3 · Three matrices</div>
+  <p>Name $U$, $V$ and $W$ by what they connect, and say which one causes all the trouble.</p>
+  <div class="ans"><b>Answer.</b> $U$ input-to-hidden, $W$ hidden-to-hidden, $V$
+  hidden-to-output. $W$: it is the one applied repeatedly, so it is the one raised to a power.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier warm">Warm</span>W4 · Two costs of BPTT</div>
+  <p>State them, and say which one more hardware fixes.</p>
+  <div class="ans"><b>Answer.</b> $O(\tau)$ time, inherently sequential; $O(\tau)$ memory for
+  stored states. Hardware fixes neither: the memory can be traded against recomputation, but
+  the sequential dependency is what recurrence <i>means</i>.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier warm">Warm</span>W5 · Bias, not noise</div>
+  <p>Why is a truncated gradient categorically different from a minibatch gradient?</p>
+  <div class="ans"><b>Answer.</b> A minibatch gradient is unbiased: noise around the truth, so
+  averaging recovers it. Truncation <i>deletes</i> every path longer than $k$. Averaging does
+  not bring them back, so the model cannot learn a dependency longer than its window at all.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier warm">Warm</span>W6 · The counting</div>
+  <p>A joint table over a length-$\tau$ sequence with vocabulary $k$ needs how many numbers, and
+  an RNN how many?</p>
+  <div class="ans"><b>Answer.</b> $O(k^\tau)$ against $O(1)$ in $\tau$. At $k=10$, $\tau=20$
+  that is $10^{20}$ against about four thousand. The table passes the atom count of the
+  observable universe at a sequence of 80 tokens.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier warm">Warm</span>W7 · Stationarity</div>
+  <p>State the assumption parameter sharing across time makes, and give a case where it is
+  false.</p>
+  <div class="ans"><b>Answer.</b> The conditional distribution of step $t+1$ given step $t$ does
+  not depend on $t$. False for a regime change in a financial series, a scene cut, or any
+  diurnal cycle, and the model has no way to say so, because it has one $f$.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier warm">Warm</span>W8 · Leaky memory</div>
+  <p>A leaky unit uses $\alpha = 0.98$. Roughly how far back does it remember?</p>
+  <div class="ans"><b>Answer.</b> $1/(1-\alpha) = 50$ steps. Same formula as momentum's window
+  (Part III §15), RMSProp's gradient accumulator (Part III §16), batch normalisation's running
+  statistics (Part IX §23), Polyak averaging (Part IX §25), and now leaky units (one geometric
+  series, five uses).</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier warm">Warm</span>W9 · One line</div>
+  <p>Write the leaky-unit update and the LSTM cell update side by side. What changed?</p>
+  <div class="ans"><b>Answer.</b> $\mu \leftarrow \alpha\mu + (1-\alpha)v$ against
+  $s \leftarrow f s + g v$. The fixed $\alpha$ became a quantity the network computes at every
+  step, and the two coefficients became independent. That is the entire idea.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier warm">Warm</span>W10 · The bottleneck</div>
+  <p>Why can widening the context vector not fix the encoder–decoder problem?</p>
+  <div class="ans"><b>Answer.</b> Because the encoder must decide what to keep <i>before</i>
+  knowing which output it will be asked for first. No fixed summary computed in ignorance of
+  the question is right for every question, and Figure 9 measures the sixteen-fold widening
+  recovering 0.328 to 0.444.</div>
+</div>
+
+<h3><span class="num">Tier 2</span> Core</h3>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C1 · Write the forward pass</div>
+  <p>Implement §4's RNN by hand ($\tanh$ state, softmax output, loss summed over steps) and
+  check it against a library implementation.</p>
+  <div class="ans"><b>Answer.</b> Agreement to float32 rounding. Watch the shapes: the library
+  wants $(T, N, C)$ unless you ask otherwise, and the state has a leading layer axis.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C2 · BPTT by hand</div>
+  <p>Write the backward pass yourself, unrolled, and gradient-check every one of $U$, $V$, $W$
+  and the biases.</p>
+  <div class="ans"><b>Answer.</b> The gradient with respect to $W$ is a <b>sum over all time
+  steps</b>, because $W$ is used at every one: that is where the errors live. Forgetting the
+  accumulation gives a gradient that looks plausible and trains to something worse.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C3 · Measure the truncation bias</div>
+  <p>Compute the exact gradient and the gradient truncated at $k$, for a range of $k$. Report
+  the relative error and the cosine.</p>
+  <div class="ans"><b>Answer.</b> The direction recovers far faster than the magnitude: cosine
+  0.85 at $k=1$, 0.995 at $k=5$, 1.0000 by $k=20$, while the relative error is still 0.11 at
+  $k=5$. That gap is why truncation works at all.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C4 · The Jacobian product</div>
+  <p>Build a linear recurrence with spectral radius 0.9, 1.0 and 1.1 and plot
+  $\|\partial\mathbf{h}^{(t)}/\partial\mathbf{h}^{(0)}\|$. Then repeat with $\tanh$ and measure
+  by autograd.</p>
+  <div class="ans"><b>Answer.</b> The linear case is exactly $\rho^t$. The $\tanh$ case still
+  vanishes and can still <b>overflow float32</b> at gain 2, because $\tanh$ bounds the forward
+  state and nothing bounds the product of Jacobians. Confusing those two is the standard
+  misreading.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C5 · The cliff grows with the data</div>
+  <p>For a scalar recurrence, plot the loss against $w$ for several $T$, and $|dL/dw|$ at a
+  fixed $w$ against $T$.</p>
+  <div class="ans"><b>Answer.</b> $2.7\times10^{2}$ at $T=10$ and $7.2\times10^{7}$ at $T=40$.
+  Note what this means: the model did not change, the <b>input length</b> did. A learning rate
+  tuned on short sequences is not safe on long ones.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C6 · Clip two ways</div>
+  <p>Implement norm clipping and element-wise clipping and measure the angle each introduces
+  between the clipped and unclipped gradient.</p>
+  <div class="ans"><b>Answer.</b> Norm clipping: exactly zero; it rescales. Element-wise: a
+  real rotation, growing with how uneven the gradient is. And note both address explosion only;
+  neither touches vanishing.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C7 · Reproduce the failure, and fail to</div>
+  <p>Train a vanilla RNN on a task where the answer is the first input and the rest is noise,
+  for $T$ from 5 to 80. Do it with plain SGD and no clipping, then with Adam and clipping.</p>
+  <div class="ans"><b>Answer.</b> The failure appears under plain SGD and largely disappears
+  under Adam with clipping. The textbook claim is partly a statement about the optimiser of
+  1994. Report both arms; reporting one is how the confusion started.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C8 · The forget-gate bias</div>
+  <p>Train the same LSTM at forget-gate bias 0, 1 and 2, and at the library default. Sweep $T$.</p>
+  <div class="ans"><b>Answer.</b> At $T=40$ the default reaches 0.769 and a bias of 1 reaches
+  0.997. A bias of 0 puts the gate at $\sigma(0)=0.5$, so an untrained LSTM halves its cell
+  every step, the exact decay the cell exists to prevent, and it must learn to open the gate
+  through a gradient the closed gate is destroying.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C9 · Read the gates</div>
+  <p>Train an LSTM to solve a long-lag task, then run it and record the mean input, forget and
+  output gate activations, and the cell magnitude, over time.</p>
+  <div class="ans"><b>Answer.</b> The forget gate settles near 0.9: the network discovers the
+  time constant the task needs. The cell magnitude <b>grows</b> rather than holding, because the
+  input gate keeps admitting noise; what makes the task solvable is that the signal survives
+  alongside, not that the noise is excluded.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C10 · Gate order</div>
+  <p>Determine empirically which quarter of a library LSTM's bias vector is the forget gate,
+  without reading the documentation.</p>
+  <div class="ans"><b>Answer.</b> Zero all biases, set one quarter to 1, and see which gate moves
+  to $\sigma(1) = 0.731$. The order is input, forget, cell, output, and there are <b>two</b>
+  bias vectors that are summed, so setting both gives $\sigma(2) = 0.881$.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C11 · Teacher forcing is maximum likelihood</div>
+  <p>Factorise $\log p(y^{(1)}, y^{(2)} \mid \mathbf{x})$ and read off what the model should be
+  conditioned on at $t=2$.</p>
+  <div class="ans"><b>Answer.</b> The chain rule gives $\log p(y^{(2)} \mid y^{(1)}, \mathbf{x})
+  + \log p(y^{(1)} \mid \mathbf{x})$. The conditioning variable is the <b>observed</b> $y^{(1)}$,
+  not the predicted one, so teacher forcing is what the likelihood asks for, and feeding back
+  the model's own output optimises something else.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C12 · Exposure bias, measured</div>
+  <p>Train with teacher forcing, then generate free-running, and measure how far the generated
+  distribution drifts from the training distribution as a function of steps generated.</p>
+  <div class="ans"><b>Answer.</b> It compounds: one slightly wrong token yields a prefix off the
+  training manifold, which yields a worse next token. The model has an opinion about correct
+  prefixes and no opinion about its own mistakes, because it never saw one during training.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C13 · The bottleneck</div>
+  <p>Build a seq2seq model with an explicit context width and sweep both the input length and
+  the width.</p>
+  <div class="ans"><b>Answer.</b> Accuracy falls steeply with length and rises only gently with
+  width: 0.328 to 0.444 for a sixteen-fold widening at length 24. Use a task where the output
+  depends on <i>every</i> input token, or the encoder can discard most of it legitimately and
+  you will measure nothing.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C14 · A reservoir</div>
+  <p>Fix the recurrent weights at random with spectral radius near 1, train only a linear
+  readout, and compare against a fully trained RNN of the same size.</p>
+  <div class="ans"><b>Answer.</b> Closer than expected, and the readout is a <b>convex</b>
+  problem solved in one shot. Sweep the spectral radius: too small and the reservoir forgets
+  before the readout can use anything, too large and it is chaotic. Any claim about learned
+  temporal representations should be compared against this baseline and usually is not.</div>
+</div>
+
+<h3><span class="num">Tier 3</span> Stretch</h3>
+
+<div class="drill">
+  <div class="head"><span class="tier stretch">Stretch</span>S1 · Which variable was the famous comparison varying</div>
+  <p>Run the full grid: {vanilla, LSTM, GRU} × {SGD, Adam} × {clip, no clip} × {default bias,
+  bias 1} on the same task and lengths. Attribute the variance.</p>
+  <div class="ans"><b>Answer.</b> The architecture is not the largest term. That is the point,
+  and it is Part X §26's ConvNeXt lesson arriving in a different literature. Report the full
+  grid; a single number comparing two architectures across four changed variables is not
+  evidence about architectures.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier stretch">Stretch</span>S2 · Where gating genuinely wins</div>
+  <p>Design a task that requires <b>selective</b> memory (remember this, ignore that, now
+  overwrite) rather than mere survival. Compare vanilla against gated.</p>
+  <div class="ans"><b>Answer.</b> Here the gap is real and large, which is the honest complement
+  to §14. A vanilla RNN can be coaxed into holding a signal; it cannot easily learn to clear its
+  state on a cue, because it has no mechanism whose job that is.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier stretch">Stretch</span>S3 · Truncation you can see</div>
+  <p>Construct a task with a dependency at exactly 200 steps. Train with truncation at 50, 100
+  and 400. Plot the learning curves.</p>
+  <div class="ans"><b>Answer.</b> Truncation at 50 and 100 never learn it: not slowly,
+  <b>never</b>, because the gradient for that dependency is identically absent. The loss curve
+  looks like a model that has converged, which is why this failure is so hard to diagnose from
+  the curve alone.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier stretch">Stretch</span>S4 · Skip connections through time</div>
+  <p>Add connections spanning $d$ steps and measure the gradient norm reaching step 0 for
+  $d \in \{1, 2, 5, 10\}$.</p>
+  <div class="ans"><b>Answer.</b> Decay becomes exponential in $\tau/d$ rather than $\tau$, a
+  genuine improvement to vanishing that does <b>nothing</b> for explosion, since the short
+  connections are still present. And $d$ fixes the reachable time scale in advance, which is
+  what leaky units improve on.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier stretch">Stretch</span>S5 · Packing</div>
+  <p>Train on variable-length sequences with and without packing, at several length variances.
+  Measure the damage.</p>
+  <div class="ans"><b>Answer.</b> Without packing the recurrence consumes the padding and the
+  final state is the state after reading zeros, so the damage grows with how variable your
+  lengths are. It never raises, it never warns, and the model is merely worse.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier stretch">Stretch</span>S6 · Bidirectional, and what it costs</div>
+  <p>Compare unidirectional and bidirectional models on a labelling task. Then measure the
+  latency of each in a streaming setting.</p>
+  <div class="ans"><b>Answer.</b> Bidirectional wins the benchmark and is <b>unusable</b> for
+  streaming, because it must see the whole sequence before emitting anything. The benchmark does
+  not measure the constraint that decides the application, a category of error Part XIV
+  returns to.</div>
+</div>
+
+<h3><span class="num">Movement G</span> What came after</h3>
+
+<div class="drill">
+  <div class="head"><span class="tier est">Estimate</span>E2 &middot; When is quadratic actually expensive</div>
+  <p>A model with <span class="m">$d=4096$</span>. Before computing: at what sequence length does attention's arithmetic per layer exceed a linear-state layer's? Then say what that means for a 8,192-token context.</p>
+  <div class="ans"><b>Answer.</b> Attention is <span class="m">$4L^2d+6Ld^2$</span>, linear is <span class="m">$10Ld^2$</span>. The projection terms cancel (<span class="m">$4L^2d = 4Ld^2$</span>), so the crossover is <span class="m">$L=d$</span> = <b>4,096</b>. At 8,192 tokens attention costs about twice as much; at 2,048 it is cheaper. Comparing the quadratic term alone against the full linear cost gives 2.5d, which is the mistake that is easy to make in your head. <i>Score yourself: within a factor of two is a pass.</i></div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier warm">Warm-up</span>W12 &middot; Where the quadratic cost actually hurts</div>
+  <p>If attention is often cheaper in training arithmetic, why does anyone want a recurrent layer?</p>
+  <div class="ans"><b>Answer.</b> Generation. Attention's cost for the next token grows with the context already produced, and so does the KV cache; a fixed state makes both constant. The case for recurrence is an inference case, and quoting "linear versus quadratic" without saying which workload hides that.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier warm">Warm-up</span>W13 &middot; Why the softmax blocks factorisation</div>
+  <p>What exactly stops attention being computed as a running sum?</p>
+  <div class="ans"><b>Answer.</b> <span class="m">$\exp(q\cdot k)$</span> does not factor into a function of <span class="m">$q$</span> times a function of <span class="m">$k$</span>, so every pair must be formed. Replace it with <span class="m">$\phi(q)\cdot\phi(k)$</span> and the sum over keys can be accumulated once, which is the same thing as a matrix-valued recurrence.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier warm">Warm-up</span>W14 &middot; Why linearity is the price</div>
+  <p>Why did the recurrence have to become linear to be parallelised?</p>
+  <div class="ans"><b>Answer.</b> Only an associative composition can be evaluated by a scan, and <span class="m">$h_t=a_th_{t-1}+b_t$</span> composes associatively while a gated nonlinear recurrence does not. §16's gates bought gradient behaviour with nonlinearity; giving that up is what buys the log-depth evaluation, and gating then has to be recovered as an input-dependent decay instead.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C21 &middot; Count the crossover yourself</div>
+  <p>Write out the FLOP counts for attention and a linear-state layer and solve for the crossover length. Check it against Figure 10 at two model dimensions.</p>
+  <div class="ans"><b>Answer.</b> <span class="m">$4L^2d+6Ld^2 = 10Ld^2$</span> reduces to <span class="m">$4L^2d = 4Ld^2$</span>, so <span class="m">$L=d$</span>: the projections cancel entirely. Drop them from only one side and you get 2.5d. Counting arithmetic rather than timing it is deliberate: a FLOP count is a property of the algorithm and transfers, and a wall-clock number would belong to one machine, the argument Part XXXII makes at length.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C22 &middot; Linear attention as a recurrence</div>
+  <p>Implement linear attention twice (once as a quadratic-form attention matrix, once as a running matrix state) and assert the outputs agree to floating-point tolerance.</p>
+  <div class="ans"><b>Answer.</b> They must agree exactly, because reassociating a sum is an identity rather than an approximation. If they differ, the usual cause is the normaliser: it is a separate running sum <span class="m">$\sum_j\phi(k_j)$</span> and must be accumulated alongside the state. Writing both forms is what makes "linear attention is an RNN" stop being a slogan.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C23 &middot; Measure how sharply a layer can point</div>
+  <p>Reproduce Figure 11: set the query equal to a target key and measure the largest achievable weight, for softmax and for a positive feature map, across lengths. Then sweep the dimension.</p>
+  <div class="ans"><b>Answer.</b> Softmax stays near one; linear attention stays near <span class="m">$1/L$</span>, and the gap widens with length. The dimension sweep is the surprise: it does nothing for linear attention, because a positive feature map makes every score a sum of positive terms with a large common component. Use <span class="m">$O(1)$</span> entries for keys and queries: scaling them down drives <span class="m">$\phi(k)$</span> toward a constant and every key scores the same, which produces the right-looking flat line for the wrong reason.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C24 &middot; Write an associative scan</div>
+  <p>Implement <span class="m">$h_t=a_th_{t-1}+b_t$</span> sequentially and by a scan. Assert they agree, then count depth and work for each.</p>
+  <div class="ans"><b>Answer.</b> The composition is <span class="m">$(a_1,b_1)\circ(a_2,b_2)=(a_1a_2,\;a_2b_1+b_2)$</span>. Depth falls from <span class="m">$L$</span> to <span class="m">$\log_2 L$</span>; work rises. Note which scan you wrote: Hillis&ndash;Steele is <span class="m">$O(L\log L)$</span> work and Blelloch is <span class="m">$O(L)$</span>, both are called "parallel scan", and the difference is a factor of <span class="m">$\log L$</span> in arithmetic.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C25 &middot; Discretise a state space model</div>
+  <p>Take <span class="m">$h'=Ah+Bx$</span> and discretise it with step <span class="m">$\Delta$</span>. Show the unrolled system is a convolution and write down its kernel.</p>
+  <div class="ans"><b>Answer.</b> <span class="m">$\bar{A}=\exp(\Delta A)$</span>, and the kernel is <span class="m">$(C\bar{B},\,C\bar{A}\bar{B},\,C\bar{A}^2\bar{B},\dots)$</span>, so training can use an FFT. The eigenvalues of <span class="m">$A$</span> are the timescales: §12's vanishing gradient restated as a choice about where to put them.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C26 &middot; Measure a state's capacity</div>
+  <p>Store <span class="m">$L$</span> key&ndash;value pairs in an outer-product memory and measure recall as <span class="m">$L$</span> grows, for several state sizes. Find the length at which recall halves.</p>
+  <div class="ans"><b>Answer.</b> It is proportional to the state size: doubling the state doubles the usable length, with no fitted constant. No training is involved, which is the point: the limit is a property of the representation, not of an optimiser. Bracket the transition with your length grid, or the width you report is a property of the grid.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C27 &middot; A fixed decay's half-life</div>
+  <p>Derive the half-life of <span class="m">$h_t=\lambda h_{t-1}$</span> and check it numerically for several <span class="m">$\lambda$</span>.</p>
+  <div class="ans"><b>Answer.</b> Exactly, the <span class="m">$h$</span> solving <span class="m">$\lambda^h=1/2$</span>, which is <span class="m">$-\ln 2/\ln\lambda$</span>. The familiar <span class="m">$\ln 2/(1-\lambda)$</span> is its limit as <span class="m">$\lambda\to1$</span> and is 5% high already at <span class="m">$\lambda=0.9$</span>. Either way the effective memory scales as <span class="m">$1/(1-\lambda)$</span> and the half-life is <span class="m">$\ln 2$</span> of it: about seven steps at 0.9, thirty-five at 0.98.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier stretch">Stretch</span>S7 &middot; Selective copying</div>
+  <p>Build a sequence of noise containing a few marked tokens, and recover the last marked value. Sweep the fixed decay, then implement an input-dependent gate, then degrade the gate and find where it stops winning.</p>
+  <div class="ans"><b>Answer.</b> No fixed decay does well: it must average in everything it sees. A perfect gate is exact. Degraded, it still wins until it is wrong on a substantial fraction of tokens. The state is one number in both arms, so this measures the mechanism rather than the capacity. Beware of designing a task no scalar state can solve at all: asking one number to hold a distant landmark <i>and</i> the most recent token measures an impossibility, not a mechanism.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier stretch">Stretch</span>S8 &middot; Price a hybrid</div>
+  <p>For a stack of <span class="m">$N$</span> layers of which <span class="m">$k$</span> are full attention, write the KV cache size and the per-token generation cost. Find the <span class="m">$k$</span> that keeps the cache under a budget, then test what it costs on a retrieval task.</p>
+  <div class="ans"><b>Answer.</b> Cache and per-token cost both scale with <span class="m">$k$</span> rather than <span class="m">$N$</span>, so a few attention layers in a deep stack are cheap. The point of the second half is that the accounting is easy and the capability question is not: measure retrieval directly, because an averaged loss will not show you what Figure 13 shows.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier stretch">Stretch</span>S9 &middot; Make the comparison honest</div>
+  <p>Compare a recurrent-state layer against attention on a long-context task, holding parameters, training tokens and wall-clock equal in turn. Report how the ranking changes.</p>
+  <div class="ans"><b>Answer.</b> It changes, which is the exercise. Equal parameters favours the mechanism with more state per parameter; equal wall-clock favours the cheaper one at your length; and a retrieval metric and an average loss can rank the two differently on the same run. Say which you held fixed: most published comparisons of these families differ mainly in that choice.</div>
+</div>

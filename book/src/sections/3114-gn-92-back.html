@@ -1,0 +1,208 @@
+<h2><span class="part-kicker">Build</span>The project</h2>
+
+<p class="lede">Ten to fourteen hours. You implement four generative models on one distribution you
+constructed, and then build the evaluation suite that can tell them apart, including the
+measurements that would have told you the wrong thing.</p>
+
+<h3><span class="num">P.1</span> What you are building</h3>
+
+<p><b><code>gen</code></b>: four models of one known distribution, and an evaluation suite with
+enough instruments to catch each family's characteristic failure.</p>
+
+<p>The rule: <b>choose the distribution before you choose the models</b>, and choose one whose
+weights, modes and density you can write down. Every claim in this project is then checkable
+arithmetic rather than a judgement about pictures.</p>
+
+<h3><span class="num">P.2</span> Stage 1: the distribution</h3>
+
+<ol>
+  <li>A mixture with <b>unequal</b> weights and at least six well-separated modes. Unequal, because
+  equal weights make mode-dropping invisible in the aggregate; separated, because §7's mixing
+  problem and §36's collapse both need room to appear.</li>
+  <li>Write closed-form functions for the density, the score and the smoothed versions of both.</li>
+  <li>Verify the density integrates to 1 and the score matches a finite difference.</li>
+</ol>
+
+<p><b>Deliverable:</b> the two verification numbers. Everything downstream compares against these,
+so an error here is an error everywhere.</p>
+
+<h3><span class="num">P.3</span> Stage 2: the evaluation suite, first</h3>
+
+<p>Build this <b>before</b> any model, so you cannot tune the measurements to flatter the results.</p>
+
+<ol>
+  <li><b>Recovered mixing weights</b> and total variation from the truth.</li>
+  <li><b>Modes covered</b>, at a stated threshold.</li>
+  <li><b>Precision and recall</b> for distributions.</li>
+  <li><b>MMD</b> against a held-out real sample.</li>
+  <li><b>Mean log-density</b> of samples under the true density.</li>
+  <li><b>Nearest-training-distance</b>, for memorisation.</li>
+</ol>
+
+<p><b>Deliverable:</b> six functions, plus the value each returns for a <b>fresh real sample</b>.
+That row is your noise floor: Part XIV §19's discipline, and without it none of the model numbers
+can be read.</p>
+
+<h3><span class="num">P.4</span> Stage 3: four models</h3>
+
+<ol>
+  <li><b>Autoregressive</b> over discretised coordinates. Exact likelihood.</li>
+  <li><b>VAE</b>, reporting both the ELBO and an importance-weighted estimate.</li>
+  <li><b>Diffusion</b>, $\boldsymbol{\epsilon}$-prediction across a cosine schedule.</li>
+  <li><b>GAN</b>, non-saturating, 1:1 updates.</li>
+</ol>
+
+<p><b>Deliverable:</b> one table: six metrics by four models, plus the real-sample row. Predict the
+table before you fill it in, and keep the prediction.</p>
+
+<h3><span class="num">P.5</span> Stage 4: the measurements that mislead</h3>
+
+<ol>
+  <li>Construct a model that <b>drops a mode</b> and one that is <b>correct plus broad noise</b>.
+  Run the full suite on both. Find the metrics that rank them in opposite orders.</li>
+  <li>Sweep $\beta$ on the VAE and find a pair of models the ELBO ranks differently from the
+  importance-weighted estimate.</li>
+  <li>Build the model that samples uniformly from the training set, and find which of your six
+  instruments catches it.</li>
+</ol>
+
+<p><b>Deliverable:</b> three concrete cases where a standard measurement says something untrue,
+from your own runs, with the number that would have misled you written down.</p>
+
+<h3><span class="num">P.6</span> Stage 5: where collapse comes from</h3>
+
+<ol>
+  <li>Train the GAN under four conditions: standard, saturating loss, discriminator over-trained
+  5:1, and a high Adam $\beta_1$. Three seeds each.</li>
+  <li>Report modes covered and total variation for all twelve runs.</li>
+  <li>Then run diffusion on the identical data, and put it in the same table.</li>
+</ol>
+
+<p><b>Deliverable:</b> the twelve-run table, and a sentence on whether the loss form or the
+optimisation balance determined the outcome. If your result disagrees with §36's, say so and give
+your numbers; that is a finding, not a failure.</p>
+
+<h3><span class="num">P.7</span> Stage 6: the score, verified</h3>
+
+<ol>
+  <li>Extract the implied score from your diffusion model at four noise levels.</li>
+  <li>Compare it to the exact analytic score of the correspondingly smoothed density: cosine and
+  magnitude ratio, separately.</li>
+  <li>Then compare against the <b>unsmoothed</b> score and observe which of the two numbers
+  breaks.</li>
+</ol>
+
+<p><b>Deliverable:</b> eight numbers, and the sentence explaining why the magnitude is the one that
+goes wrong.</p>
+
+<h3><span class="num">P.8</span> Stretch</h3>
+
+<ul>
+  <li><b>Guidance.</b> Condition on the mixture component, sweep the weight and find the point
+  past which mean log-density falls.</li>
+  <li><b>Flow matching</b> on the same data, compared to diffusion at matched steps.</li>
+  <li><b>Langevin on the exact score</b>, and the weights it fails to recover.</li>
+  <li><b>An energy-based model</b> with contrastive divergence at $k \in \{1, 5, 100\}$.</li>
+  <li><b>Latent diffusion</b>: autoencode first, then diffuse in the latent space.</li>
+</ul>
+
+<h3><span class="num">P.9</span> Done when</h3>
+
+<ul class="checklist">
+  <li>Your density integrates to 1 and your score matches a finite difference.</li>
+  <li>The evaluation suite existed before the models did.</li>
+  <li>Every metric has a real-sample row, so you know its noise floor.</li>
+  <li>Four models are in one table, and you predicted it first.</li>
+  <li>You have one pair of models that two metrics rank in opposite orders.</li>
+  <li>You have one pair the ELBO ranks differently from the true likelihood.</li>
+  <li>You know which of your instruments catches a model that memorises.</li>
+  <li>You can say whether collapse in your runs came from the loss or the balance.</li>
+  <li>Your README names one metric whose value you predicted wrongly.</li>
+</ul>
+
+<div class="box why">
+  <span class="label">Why this project</span>
+  <p>Stage 2 is the reason it is ordered this way. Almost every published generative-model result
+  chooses its metrics after seeing its samples, and the metrics in this area are loose enough that
+  the choice matters. Building the suite first is the only version of this exercise that can
+  surprise you.</p>
+  <p>Stage 4 is the second reason. This part's own figures produced three results that contradicted
+  the standard account: the saturating loss was the <i>best</i> GAN condition, the ELBO ranked two
+  models backwards, and guidance past its peak pushed samples off the distribution rather than
+  concentrating them. All three were found by measuring something that is usually asserted. Expect
+  at least one of yours to go the same way.</p>
+</div>
+
+<h2 class="nobreak"><span class="part-kicker">Assess</span>Checkpoint</h2>
+
+<ul class="checklist">
+  <li>Name the three things a generative model might provide, and which each family gives.</li>
+  <li>Write down $Z$ and say why it must be recomputed every step.</li>
+  <li>Give the five families and each one's answer to the normalising constant.</li>
+  <li>State the energy-based form and both phases of its gradient.</li>
+  <li>Say why the negative phase is the expensive one.</li>
+  <li>Distinguish the two KL directions and the failure each produces.</li>
+  <li>Explain why mixing is worst exactly when the model is best.</li>
+  <li>Say what ancestral sampling needs, and why undirected models cannot do it.</li>
+  <li>Write the chain-rule factorisation and say what makes it tractable.</li>
+  <li>Explain why the ordering does not matter mathematically and does matter in practice.</li>
+  <li>Say how training computes $n$ conditionals in one pass.</li>
+  <li>State the sampling asymmetry and why hardware does not remove it.</li>
+  <li>Define exposure bias and say why the standard remedies are decoding strategies.</li>
+  <li>Say what top-$p$ sampling does to the distribution being sampled.</li>
+  <li>Give the latent variable model and say why its integral is intractable.</li>
+  <li>Derive the ELBO and name its two terms.</li>
+  <li>Say exactly what the ELBO's gap is and why it cannot be measured.</li>
+  <li>Explain the reparameterisation trick and what it requires of $q$.</li>
+  <li>Say why comparing two models by their ELBOs is unsafe, and what to report instead.</li>
+  <li>Describe posterior collapse and the one number that detects it.</li>
+  <li>Give three separate reasons VAE samples are blurry.</li>
+  <li>Say why normalising flows must keep $\mathbf{z}$ the same size as $\mathbf{x}$, and what that
+  costs.</li>
+  <li>Explain why the score does not contain $Z$.</li>
+  <li>State score matching's objective after integration by parts, and its fatal cost.</li>
+  <li>Give the two reasons plain score matching cannot generate.</li>
+  <li>State the denoising score matching identity and which density it applies to.</li>
+  <li>Say why a single noise level cannot work, at both extremes.</li>
+  <li>Write the forward process and say why the closed form matters.</li>
+  <li>Give the three parameterisations and say why $\boldsymbol{\epsilon}$ is usual.</li>
+  <li>Describe three samplers and what each trades.</li>
+  <li>Say why diffusion's sampling cost does not scale with output size.</li>
+  <li>Write down classifier-free guidance and say what distribution it actually samples.</li>
+  <li>Say what happens past the guidance peak, and why "reduce $w$ for diversity" is wrong.</li>
+  <li>Explain why the noise schedule matters more than it looks like it should.</li>
+  <li>State the GAN objective and what the optimal discriminator makes it equal to.</li>
+  <li>Give three reasons GAN training is hard, and say which one causes mode collapse.</li>
+  <li>Say why the collapsed generator's samples all look perfect.</li>
+  <li>Give four reasons GANs lost, and the one advantage they kept.</li>
+  <li>Say what survived from Boltzmann machines and what did not.</li>
+  <li>Give four ways a reported likelihood misleads.</li>
+  <li>Explain why visual inspection cannot detect mode dropping.</li>
+  <li>State FID's assumptions and three of its defects.</li>
+  <li>Define precision and recall for distributions and say what each failure does to them.</li>
+  <li>List what a minimum honest evaluation report contains.</li>
+  <li>Say why diffusion took over images and autoregressive models kept text.</li>
+</ul>
+
+<table class="compact">
+  <thead><tr><th>Score</th><th>Verdict</th></tr></thead>
+  <tbody>
+    <tr><td><b>36–45</b></td><td>Go on. You will ask what a generative number is measuring before quoting it.</td></tr>
+    <tr><td><b>27–35</b></td><td>Reread what you missed, then continue.</td></tr>
+    <tr><td><b>18–26</b></td><td>Do the project's Stage 4. Three metrics that mislead fixes most of this.</td></tr>
+    <tr><td><b>Under 18</b></td><td>Reread §§2, 25 and 41. The constant, the identity and what likelihood fails to measure carry the part.</td></tr>
+  </tbody>
+</table>
+
+<div class="box intuition">
+  <span class="label">The one thing to carry forward</span>
+  <p><b>Every generative model is a different answer to the same question: what do we do about the
+  normalising constant.</b></p>
+  <p>Autoregressive models make it a product of small ones and pay at sampling time. Latent variable
+  models bound it and pay in a gap they cannot see. Implicit models refuse to represent it and lose
+  the ability to score anything. Score-based models differentiate it away (which is why they won,
+  because the difficulty was not relocated, it was removed).</p>
+  <p>And the second thing, because you will need it sooner: <b>the two ways of being wrong are not
+  symmetric, and no single number reports both.</b> Report precision and recall, and say which
+  failure you were looking for.</p>
+</div>

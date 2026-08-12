@@ -1,0 +1,320 @@
+<h2><span class="part-kicker">Practice</span>Drills</h2>
+
+<p class="lede">Thirty-three problems. Answers follow each immediately; cover them, try
+first, then look. Probability rewards computing far more than reading, because the
+intuition is genuinely unreliable until it has been calibrated against arithmetic.</p>
+
+<p>Machine-checkable versions of the implementation problems live in
+<code>drills/problems/</code> with a test file.</p>
+
+<h3><span class="num">Tier 0</span> Estimate first</h3>
+
+<div class="drill">
+  <div class="head"><span class="tier est">Estimate</span>E1 &middot; Entropy of a die</div>
+  <p>A fair six-sided die. Write down its entropy in bits before computing it, then compute it. Then say what that number means operationally.</p>
+  <div class="ans"><b>Answer.</b> <b>log&#8322;6 = 2.585 bits</b>. Operationally: the average number of yes/no questions an optimal strategy needs to identify the outcome. Being within 0.2 of this by inspection is the reflex: entropy of a uniform distribution over n outcomes is log&#8322;n, and everything else is less. <i>Score yourself: within a factor of two is a pass, and an order of magnitude out is worth understanding before you go on.</i></div>
+</div>
+
+<h3><span class="num">Tier 1</span> Warm-up</h3>
+
+<div class="drill">
+  <div class="head"><span class="tier warm">Warm</span>W1 · Valid distributions</div>
+  <p>Which are valid PMFs? (a) $(0.2, 0.3, 0.5)$ &nbsp; (b) $(0.5, 0.6)$ &nbsp;
+  (c) $(0.1, -0.1, 1.0)$ &nbsp; (d) $(1.0, 0.0)$</p>
+  <div class="ans"><b>Answer.</b> (a) valid. (b) sums to 1.1, invalid. (c) has a
+  negative entry, invalid. (d) valid: a deterministic outcome is a perfectly legal
+  distribution, and it is the one with zero entropy.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier warm">Warm</span>W2 · Density above one</div>
+  <p>A uniform distribution on $[0, 0.5]$ has density 2 everywhere in that interval. Is
+  this legal? What is $P(X = 0.3)$?</p>
+  <div class="ans"><b>Answer.</b> Legal: the area is $2 \times 0.5 = 1$. And
+  $P(X = 0.3) = 0$ exactly, as for any single point of a continuous variable. Density 2
+  means "probability accumulating at 2 per unit of $x$", not "probability 2".</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier warm">Warm</span>W3 · Marginalising</div>
+  <p>Joint over $(X,Y)$: $P(0,0)=0.1$, $P(0,1)=0.2$, $P(1,0)=0.3$, $P(1,1)=0.4$. Find
+  $P(X=1)$ and $P(Y=0)$.</p>
+  <div class="ans"><b>Answer.</b> $P(X=1) = 0.3 + 0.4 = 0.7$. $P(Y=0) = 0.1 + 0.3 = 0.4$.
+  Sum over everything the other variable could be.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier warm">Warm</span>W4 · Conditioning</div>
+  <p>Same table. Find $P(Y=1 \mid X=0)$.</p>
+  <div class="ans"><b>Answer.</b> $P(X=0) = 0.1 + 0.2 = 0.3$, so
+  $P(Y=1 \mid X=0) = 0.2/0.3 \approx 0.667$.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier warm">Warm</span>W5 · Independence check</div>
+  <p>Same table. Are $X$ and $Y$ independent?</p>
+  <div class="ans"><b>Answer.</b> No. $P(X=0)P(Y=0) = 0.3 \times 0.4 = 0.12$, but the
+  joint $P(0,0) = 0.1$. They disagree, so dependence. Independence must hold for
+  <i>every</i> cell; one mismatch settles it.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier warm">Warm</span>W6 · Expectation</div>
+  <p>$X$ takes values $1, 2, 3$ with probabilities $0.5, 0.3, 0.2$. Find
+  $\mathbb{E}[X]$.</p>
+  <div class="ans"><b>Answer.</b> $1(0.5) + 2(0.3) + 3(0.2) = 0.5 + 0.6 + 0.6 = 1.7$.
+  Note $1.7$ is not a value $X$ can take; expectations need not be attainable.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier warm">Warm</span>W7 · Variance</div>
+  <p>Same $X$. Find $\text{Var}(X)$ using $\mathbb{E}[X^2] - (\mathbb{E}[X])^2$.</p>
+  <div class="ans"><b>Answer.</b> $\mathbb{E}[X^2] = 1(0.5) + 4(0.3) + 9(0.2) = 3.5$.
+  So $\text{Var} = 3.5 - 1.7^2 = 3.5 - 2.89 = 0.61$.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier warm">Warm</span>W8 · Softmax by hand</div>
+  <p>Compute $\text{softmax}((0, \ln 2, \ln 3))$.</p>
+  <div class="ans"><b>Answer.</b> The exponentials are $1, 2, 3$, summing to 6. So
+  $(1/6, 2/6, 3/6) = (0.167, 0.333, 0.5)$. Choosing logs as logits makes the arithmetic
+  clean, a useful trick for constructing test cases.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier warm">Warm</span>W9 · Entropy of a fair die</div>
+  <p>What is the entropy of a fair six-sided die, in bits?</p>
+  <div class="ans"><b>Answer.</b> $H = -\sum_{i=1}^{6} \frac16 \log_2 \frac16 =
+  \log_2 6 \approx 2.585$ bits. For a uniform distribution over $n$ outcomes the entropy
+  is always $\log_2 n$, the maximum possible for that many outcomes.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier warm">Warm</span>W10 · Cross-entropy for one example</div>
+  <p>A model assigns $0.7$ to the correct class. What is the loss?</p>
+  <div class="ans"><b>Answer.</b> $-\log(0.7) \approx 0.357$ nats. Only the probability
+  on the <i>true</i> class matters; all other terms are multiplied by zero.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier warm">Warm</span>W11 · Sigmoid values</div>
+  <p>Compute $\sigma(0)$, and use the identity $\sigma(-x) = 1 - \sigma(x)$ to get
+  $\sigma(-2)$ from $\sigma(2) \approx 0.881$.</p>
+  <div class="ans"><b>Answer.</b> $\sigma(0) = 1/(1+1) = 0.5$ exactly. And
+  $\sigma(-2) = 1 - 0.881 = 0.119$.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier warm">Warm</span>W12 · Bernoulli variance</div>
+  <p>For which $\phi$ is a Bernoulli's variance largest? Smallest?</p>
+  <div class="ans"><b>Answer.</b> $\text{Var} = \phi(1-\phi)$ is maximised at
+  $\phi = 0.5$, giving $0.25$, and is zero at $\phi \in \{0, 1\}$. Maximum uncertainty
+  in the middle, none at the extremes, the same shape as the entropy curve in
+  Figure 14.</div>
+</div>
+
+<h3><span class="num">Tier 2</span> Core</h3>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C1 · Stable softmax</div>
+  <p>Implement softmax that survives inputs like $(1000, 1001, 1002)$ and
+  $(-1000, -1001)$. Verify it matches the naive version on safe inputs.</p>
+  <div class="ans"><b>Answer.</b> Subtract the max before exponentiating. Shift
+  invariance (§20) guarantees identical output. Both extreme cases work, because after
+  the shift the largest exponent is always $e^0 = 1$.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C2 · Log-sum-exp</div>
+  <p>Implement $\log \sum_i e^{z_i}$ stably. Why is it needed?</p>
+  <div class="ans"><b>Answer.</b> $\text{LSE}(z) = \max(z) + \log\sum_i e^{z_i - \max(z)}$.
+  Needed because the naive version overflows for large $z$ and underflows to $\log 0 =
+  -\infty$ for very negative $z$. It is the denominator of every softmax and appears
+  throughout probabilistic modelling.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C3 · Cross-entropy from logits</div>
+  <p>Implement cross-entropy taking <b>logits</b> (not probabilities) and an integer
+  label. Never call <code>exp</code> then <code>log</code> in sequence.</p>
+  <div class="ans"><b>Answer.</b> Compute log-softmax directly:
+  <code>z - z.max()</code>, then <code>z - log(sum(exp(z)))</code>, then index the true
+  class and negate. This never evaluates $\log 0$, which the two-step version can.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C4 · Empirical Bayes</div>
+  <p>Verify the §22 medical example by simulation: generate 1,000,000 people, apply the
+  test, and count the fraction of positives who are actually sick.</p>
+  <div class="ans"><b>Answer.</b> You should get about 1.9%, matching the analytic
+  result. Simulation is the fastest way to check a Bayes calculation you do not trust,
+  and it is worth building this habit; a disagreement between simulation and formula
+  always means one of them has a bug.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C5 · KL divergence</div>
+  <p>Implement $D_{KL}(P \parallel Q)$ for discrete distributions. Handle $P(x) = 0$
+  correctly, and explain what should happen when $Q(x) = 0$ but $P(x) > 0$.</p>
+  <div class="ans"><b>Answer.</b> Terms with $P(x) = 0$ contribute 0, since
+  $0 \log 0 = 0$ by the limiting convention; mask them out rather than computing them.
+  When $Q(x) = 0$ but $P(x) > 0$, the divergence is genuinely $+\infty$: your model
+  declared impossible something that actually happens. This is not a numerical edge case
+  to paper over; it is a real and severe modelling failure.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C6 · KL asymmetry, numerically</div>
+  <p>Take $P = (0.9, 0.1)$ and $Q = (0.5, 0.5)$. Compute both directions. Which is
+  larger, and why?</p>
+  <div class="ans"><b>Answer.</b> $D_{KL}(P\|Q) = 0.9\log(1.8) + 0.1\log(0.2) \approx
+  0.368$ nats. $D_{KL}(Q\|P) = 0.5\log(0.556) + 0.5\log(5) \approx 0.511$ nats. Not
+  equal; the asymmetry is real and easy to demonstrate. Reverse KL is larger here
+  because $Q$ places substantial mass where $P$ is small.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C7 · Entropy of a mixture</div>
+  <p>Is the entropy of a mixture always at least the weighted average of the components'
+  entropies? Test it numerically.</p>
+  <div class="ans"><b>Answer.</b> Yes, entropy is concave, so mixing increases (or at
+  worst preserves) uncertainty. Intuitively, mixing adds the extra uncertainty of not
+  knowing which component you drew from. The gap is exactly the mutual information
+  between the sample and the component index.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C8 · Covariance from scratch</div>
+  <p>Implement the covariance matrix without <code>np.cov</code>. Confirm it is
+  symmetric and positive semidefinite by checking its eigenvalues.</p>
+  <div class="ans"><b>Answer.</b> Centre the data, then $\Sigma = \tilde{X}^\top
+  \tilde{X} / (n-1)$. All eigenvalues from <code>np.linalg.eigvalsh</code> should be
+  $\geq 0$ up to floating point; tiny negative values like $-10^{-17}$ are rounding
+  error, not a bug.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C9 · Zero covariance, full dependence</div>
+  <p>Construct data with covariance essentially zero where the variables are completely
+  dependent. Verify both claims numerically.</p>
+  <div class="ans"><b>Answer.</b> Sample $t$ uniformly on $[0, 2\pi]$ and set
+  $X = \cos t$, $Y = \sin t$. Covariance is ~0 by symmetry, yet $X^2 + Y^2 = 1$ exactly,
+total dependence. This is Figure 6's fourth panel, and it is the cleanest refutation
+  of "uncorrelated means independent".</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C10 · Simulate the CLT</div>
+  <p>Average $n$ samples from a strongly skewed distribution (try exponential) for
+  $n = 1, 2, 10, 100$. Plot histograms against the matching Gaussian.</p>
+  <div class="ans"><b>Answer.</b> Convergence is visible but slower than for the uniform
+  in Figure 8, because the exponential is skewed. That is the real lesson: the CLT
+  always arrives eventually, but "eventually" depends on how far the starting
+  distribution is from symmetric.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C11 · Sampling from a mixture</div>
+  <p>Write a sampler for a Gaussian mixture: pick a component by its weight, then sample
+  from it. Verify the empirical mean matches the analytic one.</p>
+  <div class="ans"><b>Answer.</b> Use <code>rng.choice</code> with <code>p=weights</code>
+  for the component, then <code>rng.normal</code>. The analytic mean is $\sum_i w_i
+  \mu_i$ by linearity. Sampling in two stages like this <i>is</i> the latent variable
+  from §18 made concrete; you generate $c$, then $x \mid c$.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C12 · Find the bug</div>
+  <p>This is meant to compute cross-entropy loss. It runs and sometimes produces
+  <code>nan</code>. Find both problems.</p>
+  <pre><code>probs = np.exp(logits) / np.exp(logits).sum()
+loss = -np.log(probs[label])</code></pre>
+  <div class="ans"><b>Answer.</b> (1) No max subtraction, so <code>np.exp</code>
+  overflows to <code>inf</code> for large logits, giving <code>inf/inf = nan</code>.
+  (2) Even without overflow, a small probability can underflow to exactly 0, and
+  <code>np.log(0)</code> is <code>-inf</code>. Fix both by computing log-softmax
+  directly, as in C3.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C13 · MLE for a Bernoulli</div>
+  <p>Derive the maximum likelihood estimate of $\phi$ from $n$ flips with $k$ heads.</p>
+  <div class="ans"><b>Answer.</b> Log-likelihood $k\log\phi + (n-k)\log(1-\phi)$;
+  differentiate and set to zero to get $\hat{\phi} = k/n$. The observed frequency,
+  which is reassuring, and worth seeing derived rather than assumed. Note it gives
+  $\hat\phi = 0$ after zero heads, assigning probability 0 to an outcome that is merely
+  unobserved. That failure mode motivates priors and smoothing.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C14 · MSE is Gaussian MLE</div>
+  <p>Show that maximising the likelihood under $y \sim \mathcal{N}(f(x), \sigma^2)$ is
+  equivalent to minimising squared error.</p>
+  <div class="ans"><b>Answer.</b> The log of the Gaussian density is
+  $-\frac{(y - f(x))^2}{2\sigma^2} + \text{const}$. Summing and negating leaves
+  $\sum (y_i - f(x_i))^2$ times a positive constant. So MSE is not an arbitrary choice
+  either; it is maximum likelihood under an assumption of Gaussian noise.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C15 · Calibration</div>
+  <p>Take a trained model's predicted probabilities, bin them, and plot predicted
+  confidence against observed accuracy. What would perfect calibration look like?</p>
+  <div class="ans"><b>Answer.</b> A diagonal line: among examples given 70% confidence,
+  exactly 70% should be correct. Modern deep networks are usually <b>overconfident</b>,
+  bowing below the diagonal. Cross-entropy encourages confidence, and with enough
+  capacity a model can drive training loss toward zero while its confidence stops
+  reflecting reality.</div>
+</div>
+
+<h3><span class="num">Tier 3</span> Stretch</h3>
+
+<div class="drill">
+  <div class="head"><span class="tier stretch">Stretch</span>S1 · Mutual information</div>
+  <p>Implement $I(X;Y) = D_{KL}(P(x,y) \parallel P(x)P(y))$. Verify it is zero for
+  independent variables and positive otherwise.</p>
+  <div class="ans"><b>Answer.</b> It measures how far the joint is from the product of
+  marginals, that is, how much dependence there is. Zero exactly under independence.
+  Unlike covariance it detects <i>any</i> dependence, including the ring from C9, which
+  makes it strictly more informative and considerably more expensive to estimate.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier stretch">Stretch</span>S2 · Reproduce Figure 15</div>
+  <p>Fit a single Gaussian to a bimodal target by minimising forward KL, then reverse
+  KL. Confirm the mean-seeking and mode-seeking behaviours.</p>
+  <div class="ans"><b>Answer.</b> Grid search over $(\mu, \sigma)$ is enough. Forward KL
+  gives a wide Gaussian straddling both modes; reverse KL gives a narrow one on a single
+  mode. This is the clearest possible demonstration that the choice of direction is a
+  modelling decision with visible consequences.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier stretch">Stretch</span>S3 · Maximum entropy</div>
+  <p>Numerically confirm that among distributions on a fixed interval with a fixed
+  variance, the Gaussian maximises entropy.</p>
+  <div class="ans"><b>Answer.</b> Discretise the interval, then maximise
+  $-\sum p_i \log p_i$ subject to fixed mean and variance. The optimum is a discretised
+  Gaussian. This is §15's second justification, verified rather than asserted.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier stretch">Stretch</span>S4 · Label smoothing</div>
+  <p>Replace one-hot targets with $(1-\epsilon)$ on the true class and $\epsilon/(k-1)$
+  elsewhere. Derive the new loss and explain why it helps.</p>
+  <div class="ans"><b>Answer.</b> The loss becomes a weighted combination of the true
+  class term and a uniform term. Because the target is never exactly 1, the optimal
+  logit gap is finite rather than infinite; so the model cannot push confidence toward
+  certainty without limit. This directly attacks the overconfidence seen in C15.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier stretch">Stretch</span>S5 · Monte Carlo estimation</div>
+  <p>Estimate $\mathbb{E}[f(X)]$ by sampling. Plot error against sample count on log
+  axes and identify the slope.</p>
+  <div class="ans"><b>Answer.</b> The slope is $-1/2$: error falls like
+  $1/\sqrt{n}$. Crucially this rate is <b>independent of dimension</b>, which is why
+  Monte Carlo methods dominate high-dimensional integration and underpin much of
+  Part XXVIII §25&ndash;32. The flip side: a hundredfold error reduction costs ten
+  thousand times the samples.</div>
+</div>

@@ -1,0 +1,123 @@
+<h2><span class="part-kicker">Part D</span>Robots</h2>
+
+<p class="mvt">A body imposes constraints a simulator does not: coordinates that must agree, a state
+nobody measures directly, and a configuration space whose volume defeats exhaustive search at about
+six joints. None of these is a learning problem, and all of them are load-bearing.</p>
+
+<h3><span class="num">§25</span> Frames, and the bugs they cause</h3>
+
+<div class="box def">
+  <span class="label">Everything is somewhere, relative to something</span>
+  <p>A pose is a rotation and a translation, and a system has many frames: world, vehicle, each
+  sensor, each joint, each object. A transform composes:
+  <span class="m">$T^{A}_{C} = T^{A}_{B} T^{B}_{C}$</span>, and the notation exists because getting
+  the order or the direction wrong is the most common bug in robotics code.</p>
+  <p>Rotations have several representations and each has a defect. Euler angles gimbal-lock;
+  rotation matrices carry nine numbers for three degrees of freedom and drift from orthogonality;
+  quaternions are compact and stable and have a sign ambiguity that produces a discontinuity if
+  ignored. The practical rule is to store quaternions, compose with matrices, and never
+  interpolate Euler angles.</p>
+</div>
+
+<h3><span class="num">§26</span> Kinematics</h3>
+
+<div class="box shapes">
+  <span class="label">Forward is easy, inverse is not</span>
+  <p><b>Forward:</b> joint angles to end-effector pose. A chain of transforms, always solvable,
+  unique.</p>
+  <p><b>Inverse:</b> desired pose to joint angles. May have no solution, one, several, or infinitely
+  many, and the boundary between those cases is where a controller behaves strangely.</p>
+  <p>The <b>Jacobian</b> relates joint velocities to end-effector velocity and is the workhorse:
+  invert it to convert a desired motion into joint commands. Near a <b>singularity</b> it loses
+  rank, the inverse blows up, and a small commanded motion demands an enormous joint velocity,
+  which is why damped least squares rather than a true inverse is what production code uses.</p>
+</div>
+
+<h3><span class="num">§27</span> Dynamics, and why torque control is different</h3>
+
+<div class="box def">
+  <span class="label">Forces, not positions</span>
+  <p class="m">$$M(q)\ddot{q} + C(q,\dot{q})\dot{q} + g(q) = \tau$$</p>
+  <p>Inertia, Coriolis, gravity, torque. Position control tracks a trajectory and resists anything
+  that pushes; torque control commands forces and yields. For a robot working near people or
+  handling objects, the second is what makes contact safe, and it needs the dynamics that the first
+  can ignore.</p>
+  <p><b>Gravity compensation</b> alone (computing <span class="m">$g(q)$</span> and cancelling it)
+  transforms how a manipulator behaves, and it is the single highest-value term in that equation.</p>
+</div>
+
+<h3><span class="num">§28</span> Where the state comes from</h3>
+
+<div class="box why">
+  <span class="label">Nobody measures the state</span>
+  <p>Wheel encoders drift, an inertial unit integrates its bias into a growing position error, GPS
+  is metres-accurate and unavailable indoors, and a camera gives you geometry only after Part
+  XXIX's whole movement D. The state is inferred from all of them, which is Part XXVIII §13's
+  filter doing the work it was invented for.</p>
+  <p>The two properties that matter in practice are that the filter's covariance <b>tells you when
+  it does not know</b> (which a point estimate cannot) and that it degrades gracefully when a
+  sensor drops out, provided the sensor was modelled rather than assumed.</p>
+</div>
+
+<h3><span class="num">§29</span> Planning, and dimension</h3>
+
+<figure>
+  <img src="figures/ct/07-planning.svg" alt="Work required against degrees of freedom, for grid search and sampling-based planning, log scale">
+  <figcaption><b>Figure 7.</b> Searching a configuration space. A grid at fixed resolution costs
+  <b>12&times; more per joint</b>: 4.3&times;10<sup>8</sup> cells at eight degrees of freedom,
+  which is past what a second of compute reaches. A sampling-based planner needs
+  <b>1.32&times; more per joint</b> and finds a path in tens of samples throughout. The gap is not
+  an implementation detail; it is the reason exhaustive planning is not used on anything with an
+  arm.</figcaption>
+</figure>
+
+<div class="box shapes">
+  <span class="label">What sampling gives up</span>
+  <p><b>Optimality.</b> A random tree finds <i>a</i> path, not a good one, and the paths are
+  characteristically jerky. The standard remedy is to smooth afterwards, which is a second
+  algorithm with its own failure modes.</p>
+  <p><b>Completeness, in the useful sense.</b> These planners are guaranteed to find a solution
+  eventually if one exists, and give no bound on when, so a planner that has not returned tells you
+  nothing about whether a path exists.</p>
+  <p><b>Determinism.</b> The same query returns different paths, which matters more for testing than
+  it sounds: a regression test on a randomised planner needs a fixed seed and a tolerance rather
+  than an expected output.</p>
+</div>
+
+<h3><span class="num">§30</span> Estimation and mapping together</h3>
+
+<div class="box def">
+  <span class="label">SLAM, in one paragraph</span>
+  <p>Localising in a map you are simultaneously building. The formulation that won is a <b>pose
+  graph</b>: nodes are poses, edges are measured relative transforms, and the solution minimises
+  total disagreement, which is Part XXIX §30's bundle adjustment with poses instead of points, and
+  a graphical model's sparsity pattern.</p>
+  <p>The hard part is not the optimisation, it is <b>loop closure</b>: recognising a place seen
+  before. A false positive corrupts the whole map irrecoverably, so the recognition threshold is set
+  conservatively and a missed closure merely leaves drift.</p>
+</div>
+
+<h3><span class="num">§31</span> The stack, and its interfaces</h3>
+
+<div class="box shapes">
+  <span class="label">Four layers, running at four rates</span>
+  <p><b>Perception</b> at tens of hertz, producing objects and free space. <b>Prediction</b> of what
+  the other agents will do. <b>Planning</b> at a few hertz, producing a trajectory.
+  <b>Control</b> at hundreds of hertz, tracking it.</p>
+  <p>The rates matter as much as the contents. The control loop must be fast because §7 says so; the
+  planner may be slow because the controller is tracking a trajectory rather than reacting. And each
+  interface is a place where a representation is committed to, which is the argument both for
+  modularity and, in §38, against it.</p>
+</div>
+
+<h3><span class="num">§32</span> What movement D establishes</h3>
+
+<div class="box intuition">
+  <span class="label">Three things</span>
+  <p><b>A body brings bookkeeping that is not optional.</b> Frames, rotation representations and
+  singularities cause more real failures than any learned component.</p>
+  <p><b>Nobody measures the state</b>, so a filter is not an enhancement, and its covariance is what
+  tells you when it does not know.</p>
+  <p><b>Exhaustive planning stops at about six joints.</b> Figure 7 measures 12&times; per joint
+  against 1.32&times;, and what sampling gives up is optimality and any bound on time.</p>
+</div>

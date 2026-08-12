@@ -1,0 +1,209 @@
+<h2><span class="part-kicker">Part G</span>Keeping and changing what a model knows</h2>
+
+<p class="mvt">Movements D and E treated post-training as an event: take a pretrained model, tune it,
+ship it. It is not an event. It is instruction tuning, then preference tuning, then a safety pass,
+then a domain adaptation, then a fix for something that shipped wrong: each one a training run on a
+model that already knows things. This movement is what a <i>sequence</i> of those does, and what the
+four available remedies actually buy.</p>
+
+<h3><span class="num">§46</span> The shape of the problem</h3>
+
+<div class="box why">
+  <span class="label">Nobody trains a model once</span>
+  <p>A deployed model's weights are the result of a chain of training runs, most of which were not
+  planned when the previous one happened. The chain has a property nobody designs for: each link
+  optimises one objective on one dataset, and the model that comes out is judged on everything it
+  was ever supposed to do.</p>
+  <p>Four things can be done about it, and they are the four sections that follow. <b>Rehearse</b>:
+  keep some of the old data in the mix. <b>Constrain</b>: do not let the weights move far, which is
+  what a small learning rate, a KL penalty and a low-rank adapter all are. <b>Average</b>: train
+  separately and combine the weights afterwards. <b>Edit</b>: change one specific thing and leave
+  the rest alone. Each has a measurable cost and one of them has a much worse one than its
+  literature suggests.</p>
+</div>
+
+<div class="box why">
+  <span class="label">A note on scale, because it decides what these figures are worth</span>
+  <p>Everything measured here is a small network on a synthetic task, plus a linear associative
+  memory standing in for a fact store. These figures measure <b>mechanisms</b> (interference
+  between weight updates, the geometry of averaging, the ripple from a rank-one edit), not the
+  behaviour of a model a million times larger.</p>
+  <p>What transfers is the shape of each relationship and the reason for it. What does not transfer
+  is any particular number. Where a section makes a claim that rests on scale rather than mechanism,
+  it says so.</p>
+</div>
+
+<h3><span class="num">§47</span> Forgetting</h3>
+
+<figure>
+  <img src="figures/lm/05-forgetting.svg" alt="Task A accuracy collapsing to chance within the first few percent of training on task B while task B rises, beside task A accuracy against distance moved in parameter space showing a tight relationship">
+  <figcaption><b>Figure 5.</b> A network trained on task A, then trained on task B, with a task
+  indicator in the input so both are simultaneously satisfiable. Task A falls from <b>0.985 to
+  0.520</b>, chance, and <b>half that loss arrives in the first 3%</b> of B's training. The right
+  panel plots the same accuracy against distance travelled in parameter space: correlation
+  <b>0.968</b>.</figcaption>
+</figure>
+
+<div class="box why">
+  <span class="label">Two things the measurement changes</span>
+  <p><b>Forgetting is a distance, not a schedule.</b> What predicts how much of A survives is how far
+  the weights moved, not how long training ran or how many examples it saw. That single fact explains
+  why a lower learning rate, fewer steps, a KL penalty toward the old model, and a low-rank adapter
+  all mitigate forgetting: they are four ways of writing down the same constraint.</p>
+  <p><b>The information is not gone.</b> Re-exposure brings task A back to within 2% of its original
+  accuracy in <b>50 steps</b>, against the 3,000 it took to learn, <b>60× faster</b>. What was lost
+  is access rather than content, which is why a model that appears to have lost a capability after
+  fine-tuning often has not, and why measuring "capability lost" without measuring recovery cost
+  overstates the damage.</p>
+</div>
+
+<h3><span class="num">§48</span> Rehearsal</h3>
+
+<figure>
+  <img src="figures/lm/06-replay.svg" alt="Task A retention rising steeply with a small replay fraction and then flattening, with task B accuracy essentially unchanged across the sweep">
+  <figcaption><b>Figure 6.</b> Mixing a fraction of task A's data into task B's training.
+  <b>1% replay</b> takes retention from 0.528 to <b>0.882</b>; 5% reaches 0.972, within 1.3 points of
+  never having trained on B. Task B loses <b>0.002</b> across the entire sweep.</figcaption>
+</figure>
+
+<div class="box why">
+  <span class="label">The cheapest thing in this movement, by a wide margin</span>
+  <p>A few per cent of old data recovers most of what would otherwise be lost, and at these rates it
+  costs the new task nothing measurable. If you take one operational thing from this movement, it is
+  that any fine-tuning run should carry a small replay fraction by default, and that the fraction
+  should be chosen from the flat part of this curve rather than from an argument.</p>
+  <p><b>What it requires is the data</b>, and that is the real constraint. Replay presumes you still
+  have the earlier training set, in a form you can sample. Organisations routinely lose that: the
+  instruction-tuning mixture from two quarters ago, the safety data owned by another team, the
+  licensed corpus whose contract expired. When people say continual learning is hard in practice,
+  the binding difficulty is usually data availability rather than the algorithm, and the algorithm is
+  one line.</p>
+</div>
+
+<h3><span class="num">§49</span> Averaging weights</h3>
+
+<figure>
+  <img src="figures/lm/07-averaging.svg" alt="Interpolation between two runs on the same task, flat for a shared initialisation and dipping sharply for distinct ones, beside barrier height falling with width, beside a merging curve for two different fine-tunes">
+  <figcaption><b>Figure 7.</b> Left: two runs on the <i>same</i> task, interpolated. From a shared
+  initialisation the path is flat (barrier <b>−0.001</b>); from distinct initialisations it collapses
+  to 0.601 at the midpoint (barrier <b>+0.336</b>). Middle: the barrier shrinks with width, from
+  <b>0.344 at width 8 to 0.026 at width 128</b>. Right: merging two <i>different</i> fine-tunes of
+  one base model: the midpoint is a genuine compromise at 0.757/0.748.</figcaption>
+</figure>
+
+<div class="box why">
+  <span class="label">Averaging is an operation on relatives</span>
+  <p>The left panel is the precondition for everything else in this section. Two models can be
+  averaged when they are connected by a path along which the loss does not rise, and sharing an
+  ancestor is what puts them there. Independently initialised models are not, and averaging them
+  produces something worse than either, by a lot.</p>
+  <p>This is why <b>model soups</b> work and why they work only in the situation they are described
+  in: several fine-tunes of the <i>same</i> pretrained model, differing in hyperparameters or data
+  order, averaged. It is why <b>EMA</b> works: the average is over points along one trajectory,
+  which are as related as models get. And it is why merging two models from different pretraining
+  runs is not a thing you can do, however similar they look.</p>
+  <p>The middle panel is a bonus and connects to Part XXIII §46: <b>width flattens the barrier</b>.
+  At width 8 the barrier is 0.344 and at 128 it is 0.026, which is one reason merging is more
+  forgiving at frontier scale than a small-scale experiment suggests, and a reason to be careful
+  generalising a negative result about merging from a small model.</p>
+</div>
+
+<h3><span class="num">§50</span> Task arithmetic</h3>
+
+<div class="box def">
+  <span class="label">Behaviour as a direction</span>
+  <p>Let <span class="m">$\tau = \theta_{\text{finetuned}} - \theta_{\text{pretrained}}$</span>: the
+  displacement a fine-tune produced. The claim is that <span class="m">$\tau$</span> behaves like a
+  vector: that <span class="m">$\theta_0 + \tau_A + \tau_B$</span> is competent at both tasks, and
+  that <span class="m">$\theta - \tau_A$</span> has had A removed.</p>
+</div>
+
+<figure>
+  <img src="figures/lm/08-task-arithmetic.svg" alt="Mean accuracy of the summed model against the cosine between task vectors with a cross-task baseline below it, beside bars comparing each specialist, the sum, and the negated model">
+  <figcaption><b>Figure 8.</b> Each fine-tune scores 0.980 on its own task and <b>0.510</b> on the
+  other, the baseline addition has to beat. The sum <span class="m">$\theta_0+\tau_A+\tau_B$</span>
+  reaches <b>0.710/0.761</b>, a lift of <b>+0.226</b>. Subtracting
+  <span class="m">$\tau_A$</span> from a model holding B drops A to <b>0.606</b> and costs B
+  <b>16 points</b>.</figcaption>
+</figure>
+
+<div class="box why">
+  <span class="label">The baseline is the whole measurement</span>
+  <p>Task arithmetic is a genuine effect: the sum beats the cross-task baseline by 22 points, and
+  that is capability composed rather than inherited. It is also lossy: about a quarter of each
+  specialist's advantage does not survive the addition, and negation is not surgical, costing 16
+  points of an unrelated capability to remove one.</p>
+  <p><b>And the interference is predictable.</b> The correlation between how aligned the two task
+  vectors are and how much the addition gains is <span class="m">$-0.729$</span>: near-orthogonal
+  vectors compose cleanly, aligned ones fight. This is the same accounting as Part XVII's
+  superposition: capacity is directions, and two behaviours that want the same directions cannot
+  both have them.</p>
+  <p>That correlation is <span class="m">$+0.895$</span> (the opposite sign, and larger) if you
+  plot raw accuracy instead of lift over the baseline, because when the task vectors align, either
+  model alone is already good at both. A convincing plot supporting the reverse conclusion was one
+  missing control away, which is worth remembering whenever a merging result is reported without
+  one.</p>
+</div>
+
+<h3><span class="num">§51</span> Editing</h3>
+
+<figure>
+  <img src="figures/lm/09-editing.svg" alt="Error on edited and unedited facts against the number of sequential edits on log axes, with the unedited error rising steadily toward the level of predicting zero">
+  <figcaption><b>Figure 9.</b> Ninety facts stored exactly in a 128-dimensional linear associative
+  memory, then edited by rank-one updates: the construction the published editing methods use. One
+  edit is <b>exact</b> and costs the rest 1.3%. The damage grows <b>linearly</b> (log-log slope
+  0.97), reaching <b>98% of the signal by 85 edits</b>.</figcaption>
+</figure>
+
+<div class="box why">
+  <span class="label">An exchange rate, not a budget</span>
+  <p>The rate is 1.3% per edit and 1/90 is 1.1%, so <b>each edit destroys roughly one fact's worth of
+  the store</b>. Editing does not have a budget you discover by experiment; it has an exchange rate
+  you can compute in advance, and the store is ruined after about as many edits as it holds facts,
+  far below its 128-dimensional nominal capacity.</p>
+  <p>That reframes what direct weight editing is for. As a way to fix <i>one</i> thing before a
+  deadline it is exact and cheap. As a maintenance strategy (the natural thought, since facts change
+  constantly), it is a slow deletion of the model, and the arithmetic says so before you try it. This
+  is the argument for putting changeable knowledge in retrieval (§34–§39) rather than in weights: not
+  that editing does not work, but that it works at a price per edit that does not amortise.</p>
+</div>
+
+<h3><span class="num">§52</span> What to do about it</h3>
+
+<div class="box try">
+  <span class="label">In the order you should reach for them</span>
+  <p><b>Replay a few per cent.</b> Figure 6: 1% recovers most of what is lost and costs the new task
+  nothing measurable. Free, if you still have the data, and keeping the data is the part to plan
+  for, since it is what actually goes missing.</p>
+  <p><b>Do not move far.</b> Figure 5 says forgetting is a distance. Lower learning rate, fewer
+  steps, a KL term toward the previous model, a low-rank adapter: four spellings of one constraint.
+  Measure the distance travelled, not the epochs.</p>
+  <p><b>Train separately and average, if and only if the models share an ancestor.</b> Figure 7:
+  barrier −0.001 with a shared initialisation, +0.336 without. Averaging fine-tunes of one base
+  model is sound; averaging across pretraining runs is not.</p>
+  <p><b>Edit only what you will not have to edit again.</b> Figure 9: about one fact of damage per
+  edit. Fine for a hotfix, wrong as a process.</p>
+  <p><b>And measure the sequence, not the step.</b> The failure mode of a post-training pipeline is
+  that each stage is evaluated on its own objective and passes, while the composition regresses on
+  something no stage owns. Keep a fixed evaluation set from every earlier stage and run all of them
+  after every stage: the cost is a few minutes and it is the only thing that catches this.</p>
+</div>
+
+<h3><span class="num">§53</span> What to carry forward</h3>
+
+<div class="box intuition">
+  <span class="label">Five things</span>
+  <p><b>Forgetting is fast, and it is a distance.</b> Figure 5 measures a fall to chance with half
+  the loss in the first 3% of the new task's training, and a 0.968 correlation with distance moved in
+  parameter space.</p>
+  <p><b>What is lost is access, not content.</b> Recovery took 50 steps against 3,000 to learn, 60×
+  faster. Report recovery cost alongside any claim that fine-tuning destroyed a capability.</p>
+  <p><b>A few per cent of replay is the best value in the movement.</b> Figure 6 measures 1% buying
+  most of the retention at a cost of 0.002 to the new task. The hard part is having kept the data.</p>
+  <p><b>Averaging weights works between relatives and not otherwise.</b> Figure 7 measures a barrier
+  of −0.001 from a shared initialisation and +0.336 from distinct ones, and width flattens it, so a
+  negative merging result from a small model does not transfer upward.</p>
+  <p><b>Editing has an exchange rate.</b> Figure 9 measures about one fact of collateral damage per
+  edit, linear in the edit count. A hotfix is fine; a maintenance strategy is a slow deletion, and
+  that is the case for retrieval over weights.</p>
+</div>

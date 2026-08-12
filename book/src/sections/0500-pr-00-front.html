@@ -1,0 +1,143 @@
+<h2 class="nobreak">Before you start</h2>
+
+<p class="lede">Part I gave you the objects. This chapter gives you the reason
+machine learning works at all: a language for reasoning when you do not, and cannot,
+know the answer for certain.</p>
+
+<h3><span class="num">§0.1</span> The good news, and the catch</h3>
+
+<p>Part II is friendlier than Part I. It leans on linear algebra only lightly, so
+if Part I bruised you, this is a genuine chance to rebuild momentum. Most of the
+material is concrete: coins, dice, medical tests, counting.</p>
+
+<p>The catch is that the chapter is doing two jobs at once, and the seam between them
+is where people get lost. The first two thirds are <b>probability</b>, a fairly
+standard tour that any statistics course would recognise. The last third is
+<b>information theory</b>, which arrives abruptly, uses unfamiliar words like entropy
+and divergence, and looks like a detour into a different subject.</p>
+
+<p>It is not a detour. It is the destination. Information theory is where
+<b>cross-entropy loss</b> comes from: the function that essentially every
+classification model in existence is trained to minimise. If you have ever typed
+<code>loss='categorical_crossentropy'</code> without knowing what it meant, §25 is the
+section that fixes that, and §26 derives it from first principles.</p>
+
+<div class="box why">
+  <span class="label">Why deep learning cares: the one-paragraph version</span>
+  <p>A neural network classifier does not output an answer. It outputs a
+  <b>probability distribution</b> over answers. Training it means making that predicted
+  distribution close to the true one, which requires a way to measure the distance
+  between two distributions, and that measure is <b>KL divergence</b>, which reduces
+  to <b>cross-entropy</b>, which is your loss function. Every idea in that chain is
+  defined in this chapter. Part II is not background for deep learning; it is the
+  definition of what training <i>is</i>.</p>
+</div>
+
+<h3><span class="num">§0.2</span> What you need before page one</h3>
+
+<ul class="checklist">
+  <li><b>Summation.</b> $\sum_i$ is a <code>for</code> loop that accumulates. Used constantly.</li>
+  <li><b>Integration, informally.</b> $\int$ is the continuous version of $\sum$: "area under a curve". You will not compute a single integral by hand in this chapter; you only need to read them.</li>
+  <li><b>Logarithms.</b> $\log(ab) = \log a + \log b$, and $\log$ of a small number is a large negative number. Section 21 depends on this entirely.</li>
+  <li><b>Exponentials.</b> $e^x$ is always positive. That single fact is why the softmax function works.</li>
+  <li><b>From Part I:</b> vectors, matrices, and (for §17 only) eigenvectors. If you skipped Part I, you can still read all of this except §17.</li>
+</ul>
+
+<p>Notably absent: any prior statistics course. If you have taken one, you will move
+fast until §21 and should slow down there.</p>
+
+<h3><span class="num">§0.3</span> The markers</h3>
+
+<p>Same system as Part I:</p>
+
+<div class="box intuition">
+  <span class="label">Intuition</span>
+  <p>The picture in your head: what a definition is really trying to say.</p>
+</div>
+
+<div class="box pitfall">
+  <span class="label">Pitfall</span>
+  <p>A specific, common mistake. Probability has more of these than linear algebra
+  does, because everyday intuition about chance is genuinely unreliable; this is a
+  documented feature of human cognition, not a personal failing.</p>
+</div>
+
+<div class="box why">
+  <span class="label">Why deep learning cares</span>
+  <p>Where this shows up later, and what breaks without it.</p>
+</div>
+
+<div class="box try">
+  <span class="label">Try it</span>
+  <p>Stop and compute. Answers follow immediately.</p>
+</div>
+
+<h3><span class="num">§0.4</span> The habit for this chapter</h3>
+
+<p>Part I's habit was <i>write down the shape</i>. This chapter's is:</p>
+
+<p><b>Say out loud what is random and what is fixed.</b></p>
+
+<p>Nearly all confusion in probability traces back to losing track of which symbol is a
+random quantity and which is a number you have already pinned down. In $p(y \mid x)$,
+is $x$ random? It is conditioned on, so within that expression it is treated as fixed,
+but it may well be random elsewhere in the same paragraph. Distributions are functions,
+and the question "a function of <i>what</i>?" is the one that keeps you oriented.</p>
+
+<h3><span class="num">§0.5</span> Map of the chapter</h3>
+
+<div class="toc">
+  <div class="part">Part A: Why probability</div>
+  <div class="row"><span class="t">1 · Three kinds of uncertainty</span></div>
+  <div class="row"><span class="t">2 · Two schools, and why the argument matters</span></div>
+  <div class="row"><span class="t">3 · Random variables</span></div>
+
+  <div class="part">Part B: Distributions</div>
+  <div class="row"><span class="t">4 · Discrete distributions and the PMF</span></div>
+  <div class="row"><span class="t">5 · Continuous distributions and the PDF</span></div>
+  <div class="row"><span class="t">6 · Joint and marginal</span></div>
+  <div class="row"><span class="t">7 · Conditional probability</span></div>
+  <div class="row"><span class="t">8 · The chain rule</span></div>
+  <div class="row"><span class="t">9 · Independence and conditional independence</span></div>
+
+  <div class="part">Part C: Summarising</div>
+  <div class="row"><span class="t">10 · Expectation</span></div>
+  <div class="row"><span class="t">11 · Variance and standard deviation</span></div>
+  <div class="row"><span class="t">12 · Covariance, correlation, and a myth</span></div>
+  <div class="row"><span class="t">13 · The covariance matrix</span></div>
+
+  <div class="part">Part D: The distribution zoo</div>
+  <div class="row"><span class="t">14 · Bernoulli and categorical</span></div>
+  <div class="row"><span class="t">15 · The Gaussian, and why it is everywhere</span></div>
+  <div class="row"><span class="t">16 · The multivariate Gaussian</span></div>
+  <div class="row"><span class="t">17 · Exponential, Laplace, Dirac, empirical</span></div>
+  <div class="row"><span class="t">18 · Mixtures and latent variables</span></div>
+
+  <div class="part">Part E: Functions that keep appearing</div>
+  <div class="row"><span class="t">19 · Sigmoid and softplus</span></div>
+  <div class="row"><span class="t">20 · Softmax</span></div>
+
+  <div class="part">Part F: Bayes</div>
+  <div class="row"><span class="t">21 · Bayes' rule</span></div>
+  <div class="row"><span class="t">22 · The base rate trap</span></div>
+
+  <div class="part">Part G: Information theory</div>
+  <div class="row"><span class="t">23 · Self-information and entropy</span></div>
+  <div class="row"><span class="t">24 · KL divergence</span></div>
+  <div class="row"><span class="t">25 · Cross-entropy: your loss function</span></div>
+
+  <div class="part">Part H: The payoff</div>
+  <div class="row"><span class="t">26 · Maximum likelihood, and where the loss came from</span></div>
+
+  <div class="part">Back matter</div>
+  <div class="row"><span class="t">Drills · Project · Checkpoint · Appendices</span></div>
+</div>
+
+<div class="box intuition">
+  <span class="label">A route through, if you are short on time</span>
+  <p>If you must triage: §4–7 (distributions and conditioning), §10–11 (expectation and
+  variance), §15 (Gaussian), §20 (softmax), §21 (Bayes), and §23–26 (the whole of
+  information theory) are the load-bearing sections. Sections 17 and 18 can wait until
+  a later chapter needs them. Section 26 is the one that makes the chapter worth
+  it.</p>
+</div>

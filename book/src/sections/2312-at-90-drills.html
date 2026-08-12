@@ -1,0 +1,303 @@
+<h2><span class="part-kicker">Practice</span>Drills</h2>
+
+<p class="lede">Thirty-three problems. The mechanism is short enough that you can implement all of
+it, and several of these ask you to verify a claim that is exact: the $\sqrt{d}$, RoPE's
+relative property, permutation equivariance, the identity FlashAttention preserves.</p>
+
+<h3><span class="num">Tier 0</span> Estimate first</h3>
+
+<div class="drill">
+  <div class="head"><span class="tier est">Estimate</span>E1 &middot; What attention costs in memory</div>
+  <p>Attention over a 4,096-token sequence. Write down how many entries the attention matrix has for one head, and how many megabytes that is at float32.</p>
+  <div class="ans"><b>Answer.</b> <b>16.8 million</b> entries and <b>67&nbsp;MB</b>, per head, per layer. Multiply by 32 heads and 32 layers and the attention matrices alone exceed any single accelerator's memory, which is the entire reason the fused and flash formulations exist. <i>Score yourself: within a factor of two is a pass, and an order of magnitude out is worth understanding before you go on.</i></div>
+</div>
+
+<h3><span class="num">Tier 1</span> Warm-up</h3>
+
+<div class="drill">
+  <div class="head"><span class="tier warm">Warm</span>W1 · Three roles</div>
+  <p>Why does each position need both a key and a value?</p>
+  <div class="ans"><b>Answer.</b> The key answers "am I relevant to this query?" and the value
+  answers "what should I hand over?". No reason one vector is good at both. Separating the
+  address from the contents is what makes a lookup a lookup.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier warm">Warm</span>W2 · The scale</div>
+  <p>Why $\sqrt{d_k}$ and not $d_k$, or $\log d_k$?</p>
+  <div class="ans"><b>Answer.</b> $\text{Var}[\mathbf{q}^\top\mathbf{k}] = d$ for unit-variance
+  components, so the standard deviation is $\sqrt{d}$. Dividing by it returns the logits to unit
+  variance at every width. It is the only scaling that does.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier warm">Warm</span>W3 · Saturation</div>
+  <p>What goes wrong if the logits are large, and why is it fatal rather than merely untidy?</p>
+  <div class="ans"><b>Answer.</b> The softmax becomes an argmax. Its Jacobian
+  $a_i(\delta_{ij} - a_j)$ is then near zero everywhere, so the layer stops learning, at
+  initialisation, before it knows where to attend. It is frozen into a random choice.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier warm">Warm</span>W4 · The symmetry</div>
+  <p>What symmetry does self-attention have, and why is it bad here when the analogous one was
+  the point of Part X?</p>
+  <div class="ans"><b>Answer.</b> Permutation equivariance: exact, measured at $10^{-7}$. Bad
+  because it is <b>false of the task</b>: <i>dog bites man</i> and <i>man bites dog</i> are the
+  same multiset. Part X's translation symmetry was true of images.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier warm">Warm</span>W5 · Path length</div>
+  <p>How many transformations separate the ends of a 16,384-token sequence, for attention, a
+  recurrence, and a stack of $3\times3$ convolutions?</p>
+  <div class="ans"><b>Answer.</b> 1, 16,383, and 8,192. Constant against linear is what makes
+  Part XI's Part C stop applying rather than merely improve.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier warm">Warm</span>W6 · Where the parameters are</div>
+  <p>Split a block's parameters between attention and feedforward.</p>
+  <div class="ans"><b>Answer.</b> $4d^2$ against $8d^2$: <b>33% and 67%</b>, exactly, at every
+  width. Two thirds of the model is the part the architecture is not named after.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier warm">Warm</span>W7 · The crossover</div>
+  <p>At what sequence length does attention overtake the feedforward layer in compute?</p>
+  <div class="ans"><b>Answer.</b> $n \approx 4d$. Below it, "attention is quadratic" is true and
+  irrelevant: the feedforward layer dominates, and optimising attention buys little.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier warm">Warm</span>W8 · Pre-norm</div>
+  <p>Write both placements, and say which one warmup was compensating for.</p>
+  <div class="ans"><b>Answer.</b> Post-norm: $\text{LN}(\mathbf{x} + f(\mathbf{x}))$. Pre-norm:
+  $\mathbf{x} + f(\text{LN}(\mathbf{x}))$. Warmup was compensating for post-norm: the
+  normalisation sits on the residual path and rescales the gradient at every block.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier warm">Warm</span>W9 · The cache</div>
+  <p>Why does caching keys and values work, and what does it cost?</p>
+  <div class="ans"><b>Answer.</b> Earlier positions' keys and values do not change when a token
+  is appended. Cost: memory linear in context and in concurrent requests, 68.7 GB at 131k
+  tokens for a 32-layer, $d{=}4096$ model, several times the weights.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier warm">Warm</span>W10 · Two layers</div>
+  <p>Why does an induction head need exactly two?</p>
+  <div class="ans"><b>Answer.</b> Layer 1 writes "what preceded me" into each position; layer 2
+  queries on that. The information layer 2 needs does not exist until layer 1 puts it there. A
+  genuine composition.</div>
+</div>
+
+<h3><span class="num">Tier 2</span> Core</h3>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C1 · Attention, from the formula</div>
+  <p>Implement scaled dot-product attention and check it against the library version, with and
+  without a mask.</p>
+  <div class="ans"><b>Answer.</b> Agreement to float32 rounding. The mask must be applied
+  <b>before</b> the softmax, as $-\infty$: masking after and renormalising is a different and
+  wrong operation.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C2 · Derive the scale</div>
+  <p>Measure $\text{Var}[\mathbf{q}^\top\mathbf{k}]$ against $d$, then measure the entropy of the
+  resulting attention with and without the $\sqrt{d}$.</p>
+  <div class="ans"><b>Answer.</b> The variance ratio sits within about 10% of 1 across three
+  decades of $d$. Unscaled entropy collapses from 2.70 to 0.10 against $\ln 64 = 4.16$; scaled,
+  it holds near 3.7. Predicted, then measured, not fitted.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C3 · Permutation equivariance</div>
+  <p>Verify $\text{SelfAttn}(PX) = P\,\text{SelfAttn}(X)$ numerically, then break it with a
+  positional encoding and measure how much.</p>
+  <div class="ans"><b>Answer.</b> About $10^{-7}$ relative without positions, exact. With them,
+  0.5 to 1.1, which is the same order as the activations. The symmetry is destroyed, which is
+  the intent.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C4 · RoPE</div>
+  <p>Implement rotary embeddings and verify that $\mathbf{q}_m \cdot \mathbf{k}_n$ depends only
+  on $m - n$. Test at absolute positions differing by thousands.</p>
+  <div class="ans"><b>Answer.</b> Agreement to about $10^{-12}$ in float64. Do it at positions 30
+  and 10,030; if you only test nearby positions you are not testing the property. The
+  cancellation is $R_m^\top R_n = R_{n-m}$.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C5 · Multi-head, and the parameter count</div>
+  <p>Implement multi-head attention. Confirm the parameter count does not depend on the number
+  of heads.</p>
+  <div class="ans"><b>Answer.</b> Identical: $h$ projections of $d \times d/h$ is one of
+  $d \times d$. Heads cost only reshaping. The usual bug is transposing before splitting rather
+  than after, which silently mixes head and feature axes.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C6 · The mask, verified properly</div>
+  <p>Do not inspect the mask; test its consequence. Change the token at position $j$ and confirm
+  outputs at every position $< j$ are unchanged.</p>
+  <div class="ans"><b>Answer.</b> They must be <b>bit-identical</b>, not close. This is the one
+  test that catches an off-by-one, and an off-by-one produces a beautiful training curve and a
+  useless model.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C7 · Time both halves</div>
+  <p>Time attention and the feedforward layer separately as $n$ grows, at fixed $d$. Find the
+  crossover.</p>
+  <div class="ans"><b>Answer.</b> Near $n = 4d$. Below it attention is the <i>cheaper</i> half,
+  which reframes the whole efficiency literature, and explains why methods with better
+  asymptotics were often not adopted.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C8 · The KV cache</div>
+  <p>Generate with and without a cache. Verify the outputs are identical, then measure the
+  speedup and the memory.</p>
+  <div class="ans"><b>Answer.</b> Identical: it is an exact optimisation, not an approximation.
+  Verify that first; a cache bug shows up as a small drift that is easy to mistake for sampling
+  noise.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C9 · Online softmax</div>
+  <p>Implement a streaming softmax that processes its input in tiles and matches the one-shot
+  version exactly.</p>
+  <div class="ans"><b>Answer.</b> Keep a running maximum $m$ and sum $\ell$; on each tile rescale
+  by $e^{m_{\rm old} - m_{\rm new}}$. Agreement to rounding. This is the entire mathematical
+  content of FlashAttention: the rest is memory management.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C10 · Rank collapse</div>
+  <p>Apply random attention layers repeatedly, with and without skip connections, and measure the
+  effective rank of the representation.</p>
+  <div class="ans"><b>Answer.</b> Without skips it falls to <b>1.00</b>: every position holds
+  the same vector. With them it stays around 21. Attention outputs are convex combinations, and
+  repeated averaging converges to a constant; $\mathbf{x} + f(\mathbf{x})$ is not a convex
+  combination.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C11 · Pre-norm against post-norm</div>
+  <p>Measure the gradient reaching the first block at initialisation, against depth, for both
+  placements. Then train both at a high learning rate, with and without warmup.</p>
+  <div class="ans"><b>Answer.</b> Report all four runs. The claim to test is not "pre-norm is
+  better" but "post-norm needs warmup and pre-norm does not", and the honest finding may be
+  that at small depth neither fails, which is itself worth reporting.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C12 · Linear attention</div>
+  <p>Implement $\phi(Q)(\phi(K)^\top V)$ and confirm the cost is linear in $n$. Then explain what
+  you gave up.</p>
+  <div class="ans"><b>Answer.</b> $\phi(K)^\top V$ is $d \times d$: a <b>fixed-size state</b>,
+  updated additively. You have rebuilt a recurrent network, and Part XI §28's bottleneck comes
+  back with it. The quadratic cost and the unbounded state are the same fact.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C13 · Grouped-query</div>
+  <p>Implement multi-query and grouped-query attention. Measure the cache size and the quality
+  against full multi-head.</p>
+  <div class="ans"><b>Answer.</b> Cache divides by $h$ or $h/g$. Quality falls a little for
+  multi-query and barely for grouped-query at $g \approx 8$, which is why the latter is the
+  default. An architectural decision made by a deployment constraint.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C14 · Attention is not explanation</div>
+  <p>Construct two attention distributions that differ substantially and produce near-identical
+  outputs.</p>
+  <div class="ans"><b>Answer.</b> Easiest with values that nearly coincide, or by moving weight
+  onto positions whose values are small. If several maps produce the same behaviour, no one of
+  them is the explanation, which is why §36 calls them hypothesis-generating rather than
+  evidence.</div>
+</div>
+
+<h3><span class="num">Tier 3</span> Stretch</h3>
+
+<div class="drill">
+  <div class="head"><span class="tier stretch">Stretch</span>S1 · Find an induction head</div>
+  <p>Train a two-layer model on a repeated block at a <b>random</b> offset. Then locate the
+  mechanism: which head in layer 1 is the previous-token head, and which in layer 2 does the
+  matching?</p>
+  <div class="ans"><b>Answer.</b> The layer-1 head has attention concentrated on the sub-diagonal.
+  The layer-2 head attends to "the token after the previous occurrence of the current token":
+  measure it at about 3.6× uniform. Run the fixed-offset control too, or you have not shown the
+  mechanism is needed.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier stretch">Stretch</span>S2 · Ablate the circuit</div>
+  <p>Having found it, break it. Zero the layer-1 previous-token head and measure what happens to
+  the layer-2 head's pattern and to the loss.</p>
+  <div class="ans"><b>Answer.</b> The layer-2 pattern should collapse: it was querying on
+  information the first head supplied. This is the difference between correlational
+  interpretability and a causal claim, and it is the standard by which Part XXI's work should be
+  judged.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier stretch">Stretch</span>S3 · In-context learning, measured properly</div>
+  <p>Train on many sequences each using a fresh random rule. At test time use rules never seen.
+  Bucket accuracy by how many demonstrations of that specific query appeared earlier.</p>
+  <div class="ans"><b>Answer.</b> The conditioning is the point. Averaged over all positions the
+  effect is diluted by queries the model cannot know: chance is correct there. Bucketed, the
+  curve rises from chance with evidence, and no weight changed.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier stretch">Stretch</span>S4 · Lost in the middle</div>
+  <p>Place a specific fact at a controlled depth in a long context and sweep the depth. Plot
+  retrieval accuracy against position.</p>
+  <div class="ans"><b>Answer.</b> Expect better performance at the beginning and end than in the
+  middle. The advertised context window is what the model will <i>accept</i>; this is what it
+  <i>uses</i>, and the two differ.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier stretch">Stretch</span>S5 · Extrapolate</div>
+  <p>Train with RoPE at a short context, then evaluate at four times the length. Then try
+  interpolating the frequencies and re-evaluate.</p>
+  <div class="ans"><b>Answer.</b> Sharp degradation past the trained length: the model has never
+  seen those rotation angles. Interpolation compresses the angles back into the trained range and
+  recovers much of it, usually with a short fine-tune. This is where practical long-context work
+  actually happens.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier stretch">Stretch</span>S6 · Quantize, and find the outliers</div>
+  <p>Quantise a trained model's weights to 8 and 4 bits. Then look at the <b>activations</b> and
+  find the outlier dimensions.</p>
+  <div class="ans"><b>Answer.</b> A few dimensions carry values orders of magnitude larger than
+  the rest, reliably in the same places. Naive quantisation sets its range by them and collapses
+  everything else. Keep those dimensions in higher precision and most of the loss goes away.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier stretch">Stretch</span>S7 · A router</div>
+  <p>Implement a mixture-of-experts feedforward layer with top-$k$ routing. Measure the load
+  balance across experts with and without an auxiliary balancing loss.</p>
+  <div class="ans"><b>Answer.</b> Without balancing, a few experts receive most tokens and the
+  rest are dead: the router found a shortcut. Note also that top-$k$ is discrete and has no
+  gradient; the standard fix weights outputs by the router's probabilities, which is a soft
+  relaxation of the same kind attention itself is.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier stretch">Stretch</span>S8 · Watch it break</div>
+  <p>Train a deep transformer at a learning rate high enough to produce loss spikes. Log the
+  maximum attention logit and the per-head attention entropy alongside the loss.</p>
+  <div class="ans"><b>Answer.</b> The logit maximum grows <b>before</b> the loss spikes, and
+  entropy collapses with it, so you have a leading indicator rather than a post-mortem. Then
+  test the remedies: QK normalisation, a lower $\beta_2$, tighter clipping.</div>
+</div>

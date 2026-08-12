@@ -1,0 +1,293 @@
+<h2><span class="part-kicker">Part G</span>The deep learning function zoo</h2>
+
+<h3><span class="num">§18</span> Differentiating the functions you will meet</h3>
+
+<p>A short list covers nearly everything. Learn these six derivatives and you can
+differentiate most of what appears in this book.</p>
+
+<p>Two of the six will be unfamiliar, so it is worth saying what they are before
+differentiating them. The sigmoid $\sigma$ and the hyperbolic tangent $\tanh$ are
+<b>squashing functions</b>: each takes any real number, however large, and returns one
+confined to a fixed range: $(0,1)$ for the sigmoid, $(-1,1)$ for tanh. They are steep
+near zero and flatten out at both ends, so extreme inputs are compressed toward the
+boundaries and never escape them.</p>
+
+<p>That behaviour is wanted for two different reasons, and the difference matters later.
+When a model must output a probability, squashing is <i>necessary</i>: a probability
+above 1 is not a number the rest of the mathematics can accept, so something has to
+enforce the range, and the sigmoid does. When a squashing function is used inside a network
+instead, the purpose is different: it is there to break linearity, because without some
+nonlinear step between layers the whole stack collapses into a single linear map and depth
+buys nothing at all. Part VII proves that collapse; for now, note only that the same
+function is doing two unrelated jobs, and that it turns out to be excellent at the first
+and quietly disastrous at the second.</p>
+
+<p>Why disastrous is the point of everything below. Look at the third column of the table
+and then at the bottom row of Figure 7: what makes these functions useful (that they
+flatten out) is the same property that makes their <i>derivatives</i> collapse to nearly
+zero at both ends. A flat function has no slope, a stage with no slope has no gain, and
+§17's chain of amplifiers is only as strong as what survives it.</p>
+
+<table>
+  <thead><tr><th>Function</th><th>Derivative</th><th>Note</th></tr></thead>
+  <tbody>
+    <tr><td>$x^n$</td><td>$nx^{n-1}$</td><td>the power rule</td></tr>
+    <tr><td>$e^x$</td><td>$e^x$</td><td>its own derivative (§9)</td></tr>
+    <tr><td>$\ln x$</td><td>$\dfrac{1}{x}$</td><td>defined only for $x > 0$</td></tr>
+    <tr><td>$\sigma(x)$</td><td>$\sigma(x)\big(1 - \sigma(x)\big)$</td><td>expressible in its own output</td></tr>
+    <tr><td>$\tanh x$</td><td>$1 - \tanh^2 x$</td><td>same trick</td></tr>
+    <tr><td>$\max(0,x)$</td><td>$1$ if $x>0$, else $0$</td><td>ReLU; undefined exactly at 0</td></tr>
+  </tbody>
+</table>
+
+<figure>
+  <img src="figures/mf/07-ml-functions.svg" alt="Four activation functions with their derivatives plotted below">
+  <figcaption><b>Figure 7.</b> The four activations you will meet most, each with its
+  derivative directly beneath. Notice what the bottom row tells you: sigmoid and tanh
+  have derivatives that <b>collapse to nearly zero</b> at both extremes, while ReLU's is
+  a flat 1 wherever it is positive. That difference is the whole reason ReLU replaced
+  the others in hidden layers.</figcaption>
+</figure>
+
+<h4>Deriving the sigmoid's derivative</h4>
+
+<p>This is the single most instructive chain rule exercise available, so it is worth
+doing in full.</p>
+
+<div class="worked long">
+  <span class="label">Worked: $\sigma(x) = (1 + e^{-x})^{-1}$</span>
+  <p>Write it as a power to avoid the quotient rule: $\sigma(x) = (1+e^{-x})^{-1}$.</p>
+  <p>Outer: $\square^{-1}$, whose derivative is $-\square^{-2}$. Inner: $1 + e^{-x}$,
+  whose derivative is $-e^{-x}$ (one more chain rule, for the $-x$).</p>
+  <p>$\sigma'(x) = -(1+e^{-x})^{-2} \cdot (-e^{-x}) = \dfrac{e^{-x}}{(1+e^{-x})^2}$</p>
+  <p>Now the elegant part. Split the fraction:</p>
+  <p>$\dfrac{e^{-x}}{(1+e^{-x})^2} = \dfrac{1}{1+e^{-x}} \cdot \dfrac{e^{-x}}{1+e^{-x}}$</p>
+  <p>The first factor is $\sigma(x)$. The second is $1 - \sigma(x)$, because
+  $1 - \frac{1}{1+e^{-x}} = \frac{e^{-x}}{1+e^{-x}}$. Therefore:</p>
+  <p>$$\sigma'(x) = \sigma(x)\big(1 - \sigma(x)\big)$$</p>
+</div>
+
+<div class="box why">
+  <span class="label">Why deep learning cares: two consequences</span>
+  <p><b>It is cheap.</b> During the forward pass you already computed $\sigma(x)$. The
+  gradient then costs one multiplication and no new function evaluation. For a network
+  making billions of these calls, that matters.</p>
+  <p><b>It is bounded, and small.</b> The product $\sigma(1-\sigma)$ is maximised at
+  $\sigma = 0.5$, where it equals $0.25$, and approaches 0 at both ends. So every sigmoid
+  layer multiplies the gradient by <b>at most 0.25</b>. Stack ten of them and the
+  gradient is scaled by at most $0.25^{10} \approx 10^{-6}$: it has effectively
+  vanished. This is the vanishing gradient problem of §17, now with a specific number
+  attached, and it is why deep sigmoid networks were nearly untrainable before ReLU.</p>
+</div>
+
+<div class="box pitfall">
+  <span class="label">Pitfall: ReLU is not differentiable at zero</span>
+  <p>$\max(0,x)$ has a corner at $x=0$: the slope is 0 on the left and 1 on the right,
+  so no single tangent exists. Strictly, the derivative is undefined there.</p>
+  <p>In practice every framework simply defines it as 0 and moves on. This is
+  mathematically improper and entirely harmless: floating point hits exactly zero
+  essentially never, and the optimiser is robust to one arbitrary value at one point.
+  Worth knowing so that you are not confused when a textbook and a codebase
+  disagree.</p>
+</div>
+
+<h2><span class="part-kicker">Part H</span>Optimisation in one variable</h2>
+
+<h3><span class="num">§19</span> Critical points and the second derivative</h3>
+
+<div class="box history">
+  <span class="label">History: finding maxima before calculus existed</span>
+  <p>Around <span class="year">1636</span>, some thirty years before Newton and Leibniz,
+  Pierre de Fermat described a method for locating maxima and minima. His idea was to
+  compare the function's value at a point with its value a small distance away, set the
+  two roughly equal, simplify, and then let the small distance go to zero.</p>
+  <p>That is the derivative, arrived at without the concept of a derivative, and Fermat
+  had no way to justify the final step of discarding the quantity he had just divided by.
+  It is the same soft spot Berkeley would attack a century later.</p>
+  <p>Descartes disputed the method vigorously and was wrong to. Lagrange later held that
+  Fermat should be considered the true inventor of the calculus, which is a defensible
+  reading: he had the technique, if not the theory.</p>
+</div>
+
+<p>Training a model means minimising a function. So: how do you find a minimum?</p>
+
+<p>The idea that makes this tractable is almost embarrassingly simple, and it is the
+reason the derivative was worth all that trouble. Stand at the lowest point of a valley
+and consider the ground beneath your feet. It is <b>level</b>. It has to be: if it sloped
+downward in some direction, you could step that way and get lower, and you would not have
+been at the lowest point after all. So a minimum has a signature you can check for locally,
+without knowing anything about the rest of the landscape: the slope there is zero.</p>
+
+<p>That is a genuinely powerful trade. Finding the lowest point of a surface sounds like a
+global search, in which you would have to inspect everywhere. Instead we have converted it into a
+local test that can be applied at a single point using a single number. Everything about
+optimisation, in this book and in the field, is built on that conversion.</p>
+
+<p>At the bottom of a valley the ground is level: the tangent is horizontal, the slope
+is zero. That gives the first condition.</p>
+
+<div class="box def">
+  <span class="label">Definition: critical point</span>
+  <p>A point where $f'(x) = 0$ (or where the derivative does not exist). Every local
+  minimum and maximum is a critical point.</p>
+</div>
+
+<p>But the converse fails, and that failure is the point of this section. Level ground is
+necessary for a minimum and nowhere near sufficient: the ground is equally level at the
+top of a hill, and equally level at a mountain pass where you would descend in one
+direction and climb in the other. The zero-slope test finds every minimum, and also finds
+a number of things that are emphatically not minima, and by itself cannot tell you which
+is which.</p>
+
+<figure>
+  <img src="figures/mf/08-critical-points.svg" alt="A curve with a local minimum, a local maximum, and a global minimum marked">
+  <figcaption><b>Figure 8.</b> Three points where the derivative is exactly zero, on one
+  curve. One is a local minimum, one a local maximum, one the global minimum. <b>The
+  first derivative alone cannot distinguish them</b>: it reports zero at all three. You
+  need more information.</figcaption>
+</figure>
+
+<h4>The second derivative</h4>
+
+<p>Differentiate twice. $f''(x)$ measures how the <i>slope</i> is changing, that is, the
+curvature.</p>
+
+<p>Taking a derivative of a derivative sounds like an abstraction stacked on an
+abstraction, so make it concrete first. If $f$ is your position, $f'$ is your speed and
+$f''$ is your acceleration, the rate at which the speed itself is changing. Everyone has
+a physical sense of the difference: speed is what the needle reads, acceleration is what
+you feel pushing you into the seat. Nothing about the second derivative is stranger than
+that.</p>
+
+<p>Applied to a shape rather than a motion, the same quantity reports which way the curve
+bends. Walk left to right along a bowl and your slope goes from steeply negative, through
+zero at the bottom, to steeply positive: the slope is <i>increasing</i> throughout, so
+$f''$ is positive. Walk along a dome and the reverse happens: the slope decreases from
+positive to negative, so $f''$ is negative. The sign of the second derivative is the answer
+to "does this curve hold water or shed it", which is exactly the question you needed the
+first derivative to be unable to answer.</p>
+
+<p>That is why the test works and why it is not a trick to be memorised. Zero slope says
+you are at a flat spot. Positive curvature says the flat spot is the bottom of a bowl.
+Together they say: minimum.</p>
+
+<table class="compact">
+  <thead><tr><th>At a critical point</th><th>Shape</th><th>Conclusion</th></tr></thead>
+  <tbody>
+    <tr><td>$f''(x) > 0$</td><td>curving upward, like a bowl</td><td><b>local minimum</b></td></tr>
+    <tr><td>$f''(x) < 0$</td><td>curving downward, like a dome</td><td><b>local maximum</b></td></tr>
+    <tr><td>$f''(x) = 0$</td><td>inconclusive</td><td>could be anything</td></tr>
+  </tbody>
+</table>
+
+<p>This is the <b>second derivative test</b>, and it is exactly the idea Part I §18
+generalises to many dimensions: there, "curving upward in every direction" becomes
+"positive definite Hessian".</p>
+
+<div class="worked">
+  <span class="label">Worked: classify the critical points of $f(x) = x^3 - 3x$</span>
+  <p>$f'(x) = 3x^2 - 3$. Setting this to zero: $3x^2 = 3$, so $x = \pm 1$.</p>
+  <p>$f''(x) = 6x$.</p>
+  <p>At $x = 1$: $f''(1) = 6 > 0$, so a <b>local minimum</b>.</p>
+  <p>At $x = -1$: $f''(-1) = -6 < 0$, so a <b>local maximum</b>.</p>
+  <p>Neither is global: this cubic runs off to $\pm\infty$ in both directions, so it
+  has no global extremum at all.</p>
+</div>
+
+<div class="box pitfall">
+  <span class="label">Pitfall: local is not global</span>
+  <p>A local minimum is lower than its immediate neighbourhood. A global minimum is the
+  lowest point anywhere. Calculus finds local ones easily and global ones only with extra
+  argument.</p>
+  <p>This is the fear that hangs over neural network training: gradient descent finds a
+  local minimum, and there may be a far better one elsewhere. The reassuring modern
+  answer, developed in Part IX, is that in very high dimensions the problem is mostly
+  <b>saddle points</b> rather than bad local minima, since for a critical point to be a true
+  minimum, the curvature must be positive in <i>every</i> one of millions of directions,
+  which is vanishingly unlikely.</p>
+</div>
+
+<h3><span class="num">§20</span> Convexity</h3>
+
+<div class="sixty">
+  <span class="label">In 60 seconds</span>
+  <p>A convex function curves upward everywhere, so it has <b>at most one minimum and no
+  bad local ones</b>. That guarantee is why classical machine learning invested so heavily
+  in convex methods. Neural network losses are emphatically <b>not</b> convex; the field
+  traded the guarantee for expressive power, and it turned out to work anyway for reasons
+  still not fully understood.</p>
+</div>
+
+<div class="box def">
+  <span class="label">Definition: convex function</span>
+  <p>A function is <b>convex</b> if it curves upward everywhere: $f''(x) \geq 0$ for all
+  $x$. Equivalently, the line segment between any two points on the graph never dips
+  below the graph.</p>
+</div>
+
+<p>The second half of that definition is the one to picture, because it needs no calculus
+at all. Mark any two points on the graph and stretch a straight string between them. If
+the string never dips below the curve (if the curve always sags underneath the string,
+or touches it), the function is convex. Try it on a bowl and the string is always above.
+Try it on a dome and the string is immediately below. Try it on a curve with two separate
+valleys and a hill between them, and the string stretched across the two valley floors
+passes straight through the hill: not convex, and the hill is the proof.</p>
+
+<p>Convexity is the property that makes optimisation easy, for one reason:</p>
+
+<div class="box intuition">
+  <span class="label">Intuition: convex means no bad local minima</span>
+  <p>A convex function has <b>at most one</b> minimum, and if it has one it is global.
+  There is nowhere to get stuck. Roll a ball anywhere on the surface and it reaches the
+  bottom.</p>
+  <p>This is why classical machine learning invested so heavily in convex methods:
+  linear and logistic regression, SVMs. You get a guarantee: find a point where the
+  gradient vanishes and you are provably done.</p>
+</div>
+
+<p>Examples: $x^2$, $e^x$, $|x|$, and $-\ln x$ are all convex. Sums of convex functions
+are convex, which is why adding an $L^2$ penalty to a convex loss keeps it convex.</p>
+
+<p>It is worth being explicit about what the guarantee is actually worth, because it is
+larger than it first appears. On a convex function, a point where the gradient vanishes is
+not merely a candidate: it is <i>the answer</i>, provably, with no further checking. You
+can stop. You never have to wonder whether restarting from a different initial point would
+have found something better, because there is nothing better to find. Two different people
+running two different algorithms on the same convex problem arrive at the same solution,
+and the result is reproducible in the strong sense that it does not depend on where anyone
+started.</p>
+
+<p>Now consider what it means that neural networks give this up. There is no certificate
+of optimality, no reason to believe a second run would not do better, and no way to tell a
+good solution from a merely adequate one except by measuring. That is not a small
+concession, and the field made it knowingly, in exchange for models that can represent
+things convex ones cannot. Keeping the size of that trade in view is what makes the honest
+parts of the later chapters legible: when Part IX says that in high dimensions the
+practical obstacle is saddle points rather than bad local minima, it is telling you why the
+concession turned out to cost less than everyone feared.</p>
+
+<div class="box why">
+  <span class="label">Why deep learning cares, and why it gave up on this</span>
+  <p>Neural network loss surfaces are <b>not convex</b>. Not remotely. They have vast
+  numbers of critical points and no guarantee that gradient descent finds the best
+  one.</p>
+  <p>The field accepted this trade knowingly: convex models are reliably optimisable but
+  limited in what they can represent, while deep networks are far more expressive and
+  come with no guarantees. It turned out empirically that good-enough solutions are easy
+  to find in practice, for reasons still not fully understood. Part IX discusses this
+  honestly, and knowing what convexity <i>would</i> have bought you is what makes that
+  discussion legible.</p>
+</div>
+
+<div class="box try">
+  <span class="label">Try it</span>
+  <p>For $f(x) = x^4 - 2x^2$: find all critical points and classify each.</p>
+</div>
+
+<p><b>Answer.</b> $f'(x) = 4x^3 - 4x = 4x(x^2-1) = 4x(x-1)(x+1)$, which is zero at
+$x = 0, 1, -1$.</p>
+<p>$f''(x) = 12x^2 - 4$. At $x = 0$: $f'' = -4 < 0$, a <b>local maximum</b>. At
+$x = \pm 1$: $f'' = 8 > 0$, <b>local minima</b>.</p>
+<p>Both minima have $f(\pm 1) = 1 - 2 = -1$, so they are tied and both global. Note this
+function is <i>not</i> convex: a convex function cannot have two separate minima, and
+the local max at the origin is the proof.</p>

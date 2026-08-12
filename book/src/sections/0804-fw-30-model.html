@@ -1,0 +1,179 @@
+<h2><span class="part-kicker">Part C</span>The model</h2>
+
+<h3><span class="num">§8</span> <code>nn.Module</code>, and what <code>parameters()</code> is</h3>
+
+<div class="sixty">
+  <span class="label">In 60 seconds</span>
+  <p>A <b>Module</b> is an object that owns tensors and knows which of them are being
+  learned. That second half is the whole point: <code>model.parameters()</code> is how an
+  optimiser finds the few thousand tensors to update among the millions in your program.
+  Everything else Modules do (nesting, saving, device movement, train/eval) falls out of
+  the same bookkeeping.</p>
+</div>
+
+<p>The Part VII project asks you to write <code>parameters()</code> yourself, and describes it
+as "returns every trainable value, so the optimiser can find them". That sentence is the
+entire justification for the Module system, and it is worth seeing why the problem is hard
+enough to need one.</p>
+
+<p>An optimiser must be handed a list of tensors to update. In a fifty-layer network those
+tensors are scattered across nested objects, some layers have two, some have four, some have
+none, and a few tensors that look like parameters (a running mean in a normalisation layer,
+a positional encoding table) must <i>not</i> be updated. Assembling that list by hand is
+possible once and unmaintainable thereafter.</p>
+
+<pre><code><span class="k">import</span> torch.nn <span class="k">as</span> nn
+
+model = nn.Sequential(nn.Linear(<span class="n">3</span>, <span class="n">4</span>), nn.ReLU(), nn.Linear(<span class="n">4</span>, <span class="n">2</span>))
+
+sum(p.numel() <span class="k">for</span> p <span class="k">in</span> model.parameters())    <span class="c"># 26</span>
+[n <span class="k">for</span> n, _ <span class="k">in</span> model.named_parameters()]
+<span class="o">### ['0.weight', '0.bias', '2.weight', '2.bias']</span>
+</code></pre>
+
+<p>Twenty-six numbers: $3{\times}4 + 4$ for the first layer, $4{\times}2 + 2$ for the
+second. Note that <code>nn.ReLU</code> contributes nothing and is still in the list at index
+1, which is a Module with no parameters and a perfectly ordinary thing to be.</p>
+
+<h4>Writing one</h4>
+
+<p>Two methods, and the rest is inherited:</p>
+
+<pre><code><span class="k">class</span> MLP(nn.Module):
+    <span class="k">def</span> __init__(self, d_in, d_hidden, d_out):
+        super().__init__()                    <span class="c"># REQUIRED -- see below</span>
+        self.fc1 = nn.Linear(d_in, d_hidden)
+        self.fc2 = nn.Linear(d_hidden, d_out)
+
+    <span class="k">def</span> forward(self, x):
+        <span class="k">return</span> self.fc2(torch.relu(self.fc1(x)))
+
+model = MLP(<span class="n">20</span>, <span class="n">64</span>, <span class="n">2</span>)
+model(x)          <span class="c"># calls forward -- never call model.forward(x) directly</span>
+</code></pre>
+
+<div class="box why">
+  <span class="label">Why assignment is doing something invisible</span>
+  <p><code>self.fc1 = nn.Linear(...)</code> looks like an ordinary attribute assignment and
+  is not. <code>nn.Module</code> overrides <code>__setattr__</code>: when you assign a Module
+  or a Parameter to an attribute, it is <b>registered</b> in an internal dictionary. That
+  registration is what makes <code>parameters()</code>, <code>state_dict()</code>,
+  <code>.to(device)</code> and <code>.train()</code> able to find it.</p>
+  <p>Which explains two failures that otherwise look like magic:</p>
+  <ul class="tight">
+    <li><b>Forgetting <code>super().__init__()</code></b> means the internal dictionaries
+    never exist, and the assignment raises or the parameters vanish. It is not ceremony.</li>
+    <li><b>Putting layers in a plain Python list</b> (<code>self.layers = [nn.Linear(...),
+    ...]</code>) registers nothing, because a list is not a Module. The model runs, trains
+    nothing, and reports zero parameters. Use <code>nn.ModuleList</code> or
+    <code>nn.Sequential</code>, which are Modules that hold Modules.</li>
+  </ul>
+  <p>That second one is a genuinely nasty bug: the forward pass works, the loss decreases
+  slightly because the registered layers still learn, and the unregistered ones sit at their
+  initialisation forever.</p>
+</div>
+
+<p>And <code>model(x)</code> rather than <code>model.forward(x)</code> because
+<code>__call__</code> wraps <code>forward</code> with the hook machinery that other tooling
+depends on. Calling <code>forward</code> directly usually works and silently bypasses it.</p>
+
+<h4>Parameters versus buffers</h4>
+
+<p>Some tensors belong to a model, must be saved with it and moved to the GPU with it, and
+must <b>not</b> be touched by the optimiser. A batch-normalisation running average is the
+standard example: it is estimated from data, not learned by gradient descent.</p>
+
+<pre><code>self.weight = nn.Parameter(torch.randn(<span class="n">10</span>))       <span class="c"># learned</span>
+self.register_buffer(<span class="s">"running_mean"</span>, torch.zeros(<span class="n">10</span>))  <span class="c"># saved, moved, not learned</span>
+</code></pre>
+
+<p>The distinction exists because "part of the model" and "updated by the optimiser" are
+different questions, and the Module system answers them separately.</p>
+
+<h3><span class="num">§9</span> Composing, and reading someone else's model</h3>
+
+<p>Modules nest, and the nesting is what makes large models describable:</p>
+
+<pre><code>model = nn.Sequential(
+    nn.Linear(<span class="n">784</span>, <span class="n">256</span>), nn.ReLU(), nn.Dropout(<span class="n">0.2</span>),
+    nn.Linear(<span class="n">256</span>, <span class="n">64</span>),  nn.ReLU(),
+    nn.Linear(<span class="n">64</span>, <span class="n">10</span>),
+)
+print(model)        <span class="c"># prints the whole structure, indented</span>
+</code></pre>
+
+<p><code>nn.Sequential</code> is the right tool when the data flows straight through. The
+moment there is a branch, a skip connection or a conditional, you need a real
+<code>forward</code>, which is why residual networks, per Part VII §18, cannot be written
+as a <code>Sequential</code>:</p>
+
+<pre><code><span class="k">def</span> forward(self, x):
+    <span class="k">return</span> x + self.block(x)        <span class="c"># the skip of Part VII section 18</span>
+</code></pre>
+
+<p>One line, and it is the structural change that made very deep networks trainable. It is
+also exactly the line a purely sequential description cannot express, which is a good
+illustration of why the framework exposes <code>forward</code> at all rather than only
+offering layer stacks.</p>
+
+<div class="box shapes">
+  <span class="label">Watch the shapes: reading a model you did not write</span>
+  <p>Printing a model gives you the layer sizes, and the chaining rule of Part I §5 does the
+  rest: each layer's output width must equal the next one's input width. A model that prints
+  <code>Linear(784, 256)</code> followed by <code>Linear(128, 10)</code> is broken, and you
+  can see it without running anything.</p>
+  <p>The one that is not visible from the print is the <b>batch axis</b>, which every layer
+  passes through untouched. Part I §6's box on batched matrix multiplication is the fact you
+  need: shapes in a model description describe one example, and every real tensor has one
+  more axis on the left.</p>
+</div>
+
+<h3><span class="num">§10</span> Initialisation, which is not decoration</h3>
+
+<p>A freshly constructed layer already has values in it, and where those came from is the
+subject of Part VII §11. This section is about how to see them and change them.</p>
+
+<pre><code>layer = nn.Linear(<span class="n">256</span>, <span class="n">256</span>)
+layer.weight.std()          <span class="c"># about 0.036 -- roughly 1/sqrt(256) = 0.0625, scaled</span>
+
+nn.init.kaiming_normal_(layer.weight, nonlinearity=<span class="s">"relu"</span>)  <span class="c"># the ReLU scale</span>
+nn.init.zeros_(layer.bias)
+</code></pre>
+
+<p>The defaults are reasonable and not always right. PyTorch initialises
+<code>nn.Linear</code> from a uniform distribution scaled by $1/\sqrt{\text{fan-in}}$, which
+is the Part VII §11 derivation for a <i>linear</i> layer. For a ReLU network the correct
+scale carries an extra factor of $\sqrt{2}$, because ReLU discards half the signal, and the
+library does not know what activation you intend to put after the layer.</p>
+
+<div class="box why">
+  <span class="label">Why this is worth a section rather than a footnote</span>
+  <p>Initialisation is the clearest case in this book of a default that is invisible,
+  plausible, and capable of preventing a deep network from training at all.</p>
+  <p>Part VII's Figure 7 measures it: with the scale slightly too small, activations shrink
+  layer by layer until the signal reaching the output is numerically zero; slightly too
+  large and they explode. Neither raises an error. The loss simply refuses to move, or
+  becomes <code>nan</code>, and the symptom looks like a bad learning rate.</p>
+  <p>For a network of ten layers the default is fine. For fifty it is not, which is why
+  every serious architecture specifies its own initialisation, and why reading a model's
+  <code>reset_parameters</code> is part of reading the model.</p>
+</div>
+
+<div class="box try">
+  <span class="label">Try it</span>
+  <p>A colleague's model class stores its layers as
+  <code>self.layers = [nn.Linear(64, 64) for _ in range(8)]</code> and iterates over them in
+  <code>forward</code>. The model runs and the loss decreases a little, then plateaus. What
+  is wrong, and what single command would have revealed it in one second?</p>
+</div>
+
+<p><b>Answer.</b> A plain Python list registers nothing, so none of those eight layers appear
+in <code>model.parameters()</code>. The optimiser was never given them, so their weights sit
+at their random initialisation for the entire run. The loss moved a little because whatever
+<i>is</i> registered (an output layer, say) still learns, and then it plateaus because it
+is trying to classify the output of eight frozen random projections.</p>
+<p>The diagnostic: <code>sum(p.numel() for p in model.parameters())</code>. It would have
+reported a number far smaller than the architecture implies. <b>Count your parameters before
+training anything:</b> it takes one line, it catches this class of bug immediately, and it
+is also how you notice you have built a model ten times larger than you intended.</p>
+<p>The fix is <code>nn.ModuleList</code>, which is a list that is also a Module.</p>

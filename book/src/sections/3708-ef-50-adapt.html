@@ -1,0 +1,136 @@
+<h2><span class="part-kicker">Part E</span>Adaptation</h2>
+
+<p class="lede">Not about making one model faster, but about making it affordable to have many
+(one per task, per customer, per experiment) without paying for a full copy of each.</p>
+
+<h3><span class="num">§31</span> What full fine-tuning costs</h3>
+
+<div class="box def">
+  <span class="label">Three costs, and the third is the one that bites</span>
+  <p><b>Memory during training.</b> Part XVII §16's sixteen bytes per parameter, so a 7B model needs
+  well over 100 GiB before activations.</p>
+  <p><b>Compute.</b> A training run, though a short one.</p>
+  <p><b>Storage and serving, per variant.</b> Every fine-tune is a <b>complete copy</b> of the
+  model. Ten tasks is ten models to store, load and keep resident, and no two of them can share a
+  batch, which §38 says is where the throughput comes from.</p>
+  <p>That third cost is what motivates this movement. Even where the first two are affordable,
+  serving a hundred full fine-tunes is not.</p>
+</div>
+
+<h3><span class="num">§32</span> LoRA</h3>
+
+<div class="box def">
+  <span class="label">Constrain the update to be low rank</span>
+  <p>Freeze $W_0$ and learn the update as a product of two thin matrices:</p>
+  <p>$$W = W_0 + BA, \qquad B \in \mathbb{R}^{d\times r},\;
+  A \in \mathbb{R}^{r\times k},\; r \ll \min(d,k)$$</p>
+  <p>with $A$ initialised randomly and $B$ at <b>zero</b>, so the model starts exactly at $W_0$ and
+  the adaptation begins from no change at all.</p>
+  <p>At $r = 8$ on a 4096-wide matrix this is about 0.39% of the parameters: $r(d_{\text{in}} +
+  d_{\text{out}}) / (d_{\text{in}} d_{\text{out}}) = 2r/d$ for a square matrix. Gradients and optimiser
+  states are needed only for those, so the memory cost of §31's first item nearly vanishes: the
+  frozen base still needs a forward pass, but not the twelve bytes per parameter of Adam
+  state.</p>
+</div>
+
+<div class="box why">
+  <span class="label">Why it costs nothing at inference</span>
+  <p>$BA$ can be <b>merged</b> into $W_0$ after training, giving an ordinary dense matrix with no
+  extra operations and no extra latency. Unlike an adapter layer (§35), which adds depth and
+  therefore latency, LoRA's cost at serving time is exactly zero once merged.</p>
+  <p>And unmerged it is better still, which is §36's point: keeping the small matrices separate is
+  what lets one base model serve many adaptations at once.</p>
+</div>
+
+<h3><span class="num">§33</span> Is the update actually low rank</h3>
+
+<div class="readnow"><span class="label">Go and read</span><p><span class="src">Hu et al. (2022)</span>, <i>LoRA: low-rank adaptation of large language models</i>. The method, and §7's analysis of the update's rank. Read that section against this one's figure and keep the distinction: the empirical claim is that the spectrum decays, and the claim usually made from it, that a rank-8 constraint therefore suffices, is a different and better-supported statement about the constrained optimisation.</p></div>
+
+<figure>
+  <img src="figures/ef/06-lora-rank.svg" alt="Singular value spectra of fine-tuning weight updates, and the rank needed to capture 90 and 99 per cent of each">
+  <figcaption><b>Figure 6.</b> A model pretrained on one source and fine-tuned on a shifted one; the
+  weight deltas are decomposed by SVD. The spectrum decays sharply, so a small number of directions
+  carries most of the update's energy, and the rank needed for <b>99%</b> is several times the rank
+  needed for 90%, which is the number worth quoting.</figcaption>
+</figure>
+
+<div class="box pitfall">
+  <span class="label">Pitfall: "the update is low rank" is doing two jobs</span>
+  <p>The empirical claim is that the update's singular values decay quickly, which the figure
+  confirms. The claim usually made from it, that a rank-8 approximation is therefore enough, does
+  not follow, and is worth separating.</p>
+  <p><b>Energy is not effect.</b> Capturing 90% of the squared magnitude of an update is not
+  capturing 90% of its effect on the loss. A small-magnitude direction can matter a great deal.</p>
+  <p><b>And LoRA does not approximate the full update anyway.</b> It <b>constrains</b> the update to
+  be low rank from the start, and the optimiser then finds the best rank-$r$ update rather than the
+  best projection of the unconstrained one. Those are different objects, and the second is better
+  than the SVD analysis suggests.</p>
+  <p>So the honest version: the spectrum decays, the constraint costs less than it looks like it
+  should, and the reason is not fully explained by the rank argument that is usually given for
+  it.</p>
+</div>
+
+<h3><span class="num">§34</span> The variants</h3>
+
+<div class="readnow"><span class="label">Go and read</span><p><span class="src">Dettmers et al. (2023)</span>, <i>QLoRA: efficient finetuning of quantized LLMs</i>. Read for the two details a rank-and-scale summary skips: <b>4-bit NormalFloat</b>, a quantization grid built for weights already known to be roughly Gaussian rather than uniform, and <b>double quantization</b> of the scales themselves. Together they are why a 4-bit frozen base costs noticeably less memory than the naive arithmetic suggests.</p></div>
+
+<div class="box def">
+  <span class="label">What each changes</span>
+  <p><b>QLoRA</b> quantizes the frozen base to 4 bits and trains the adapters in 16, which is what
+  makes fine-tuning a large model possible on one device. The base is frozen, so quantization error
+  in it is a fixed offset the adapters can partly compensate for, which is why it costs less than
+  quantizing a model you intend to keep training.</p>
+  <p><b>DoRA</b> separates the update into magnitude and direction, which closes part of the gap to
+  full fine-tuning.</p>
+  <p><b>Rank and placement</b> are the two hyperparameters that matter. Higher rank helps up to a
+  point; applying LoRA to <b>all</b> linear layers rather than only the attention projections
+  reliably helps more than raising the rank does.</p>
+</div>
+
+<h3><span class="num">§35</span> The alternatives</h3>
+
+<div class="box def">
+  <span class="label">Three other ways to adapt, and why LoRA displaced them</span>
+  <p><b>Adapters</b> insert small bottleneck layers between blocks. They work, and they add depth,
+  so they add latency at every forward pass, which cannot be merged away.</p>
+  <p><b>Prefix and prompt tuning</b> learn continuous vectors prepended to the input. Extremely
+  cheap and they consume context, and they are harder to optimise.</p>
+  <p><b>Prompting</b> with no training at all. Free, immediate, and limited by what the model can be
+  induced to do (the right first thing to try, and §37's point).</p>
+  <p>LoRA won on one property: <b>zero inference cost when merged</b>, and multi-tenancy when not.
+  The others each pay something at serving time forever.</p>
+</div>
+
+<h3><span class="num">§36</span> Serving many adaptations</h3>
+
+<div class="box why">
+  <span class="label">The property that made this a deployment technique</span>
+  <p>Keep one copy of the base model resident and hold hundreds of small adapter pairs. A batch can
+  then contain requests for <b>different adaptations at once</b>: the base matrix multiply is shared
+  across the whole batch, and each request's tiny $BA$ correction is applied per-sequence.</p>
+  <p>This is why the technique matters beyond saving training memory. §38 says throughput comes from
+  batching, and full fine-tunes cannot share a batch: a hundred fine-tuned models is a hundred
+  separately-batched services, each poorly utilised. A hundred adapters is one well-utilised service.</p>
+  <p>The cost is real and small: the per-sequence correction is a low-intensity operation of exactly
+  the kind §3 warns about, so it is more expensive than its FLOP count suggests. It remains far
+  cheaper than the alternative.</p>
+</div>
+
+<h3><span class="num">§37</span> What to choose</h3>
+
+<div class="box def">
+  <span class="label">In order of cost</span>
+  <ol class="tight">
+    <li><b>Prompting.</b> Free and immediate. Try it and measure it before anything else, because
+    it is frequently sufficient and it establishes the baseline everything else must beat.</li>
+    <li><b>Retrieval.</b> If the gap is knowledge rather than behaviour, adding the right context
+    beats changing the weights, and it stays current.</li>
+    <li><b>LoRA.</b> When behaviour must change, when you need many variants, or when full
+    fine-tuning does not fit.</li>
+    <li><b>Full fine-tuning.</b> When the adaptation is large, you have the data, and you will
+    serve one model rather than many.</li>
+  </ol>
+  <p>The ordering is by cost and the common error is to start at the bottom. Part XIV's discipline
+  applies unchanged: establish what the cheapest option achieves before paying for the expensive
+  one.</p>
+</div>

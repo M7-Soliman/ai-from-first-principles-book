@@ -1,0 +1,283 @@
+<h2><span class="part-kicker">Part B</span>Self-attention</h2>
+
+<h3><span class="num">§7</span> The same operation, one sequence</h3>
+
+<div class="sixty">
+  <span class="label">In 60 seconds</span>
+  <p>Let the queries, keys and values all come from the <b>same</b> sequence. Every position
+  now builds its own summary of every other position, in one parallel operation with no
+  recurrence anywhere. That single change removes both of the limitations cross-attention left
+  standing.</p>
+</div>
+
+<div class="readnow"><span class="label">Go and read</span><p><span class="src">Vaswani et al. (2017)</span>, <i>Attention is all you need</i>. The title is a joke about exactly the move this section makes: the accessory turns out to be the whole thing. Read §3.2 for scaled dot-product attention, and do not skip the footnote justifying the $\sqrt{d_k}$: it is §4's variance argument, compressed into two sentences, and it is the only derivation in the paper.</p></div>
+
+<p>In §6 the queries came from a decoder and the keys and values from an encoder. Take one
+sequence $X$ of $n$ positions and produce all three from it:</p>
+
+$$Q = XW^Q, \qquad K = XW^K, \qquad V = XW^V,
+\qquad
+\text{SelfAttn}(X) = \text{softmax}\!\left(\frac{QK^\top}{\sqrt{d_k}}\right)V$$
+
+<p>Every position attends to every position, including itself. The output is $n$ vectors, one
+per position, each a weighted blend of all $n$ values with weights that position chose.</p>
+
+<div class="box shapes">
+  <span class="label">Shapes, and where the parallelism is</span>
+  <p>$$\underbrace{X}_{(n,\,d)} \to \underbrace{Q, K, V}_{(n,\,d)}
+  \to \underbrace{QK^\top}_{(n,\,n)}
+  \to \underbrace{\text{softmax}(\cdot)V}_{(n,\,d)}$$</p>
+  <p>Four matrix multiplications and a softmax. <b>No loop over positions appears anywhere.</b>
+  Part XI §6's $O(\tau)$ sequential dependency is not reduced; it is absent, because
+  $\mathbf{h}^{(t)}$ never needed $\mathbf{h}^{(t-1)}$ in the first place.</p>
+  <p>That is the property that displaced recurrence, and §21 returns to it once causal masking
+  makes it usable for generation.</p>
+</div>
+
+<h3><span class="num">§8</span> Path length</h3>
+
+<p>Part XI §28's first limitation was that information from position 1 reaches position 1,000
+through 999 applications of the same transformation. Self-attention connects them
+<b>directly</b>.</p>
+
+<figure>
+  <img src="figures/at/02-path-length.svg" alt="Steps between the ends of a sequence for four architectures, and the two cost curves">
+  <figcaption><b>Figure 2.</b> Left: how many transformations separate the two ends of a
+  length-$n$ sequence. At $n = 16{,}384$: recurrence <b>16,383</b>, a stacked $3\times3$
+  convolution <b>8,192</b>, dilated convolution <b>14</b>, attention <b>1</b>. Right: what the
+  constant path length costs. Attention's compute grows as $O(n^2d)$ against the feedforward
+  layer's $O(nd^2)$, and the two cross at $n = 4d$.</figcaption>
+</figure>
+
+<div class="box why">
+  <span class="label">Why constant path length matters more than the raw number suggests</span>
+  <p>Part XI §11 showed that a gradient travelling $t$ steps is multiplied by $t$ Jacobians, and
+  §12 showed the decay is inseparable from stable memory. With a path of length 1 there is
+  <b>no product</b>: the gradient from position 1,000 reaches position 1 through a single
+  softmax and a single matrix.</p>
+  <p>So the vanishing-gradient problem of Part XI Part C does not get better; it stops applying.
+  All of Part XI §§16–21's machinery (skip connections through time, leaky units, gating,
+  forget-gate biases) was built to manage a product of Jacobians that no longer exists.</p>
+  <p>This is worth registering as a pattern. Three parts have now met a problem caused by
+  composing many transformations, and the durable fix each time was <b>architectural</b>, not
+  algorithmic: residual connections in Part X, gating in Part XI, and here the removal of the
+  composition altogether. Part IX §27's principle, for the third time.</p>
+</div>
+
+<h3><span class="num">§9</span> Permutation equivariance, and why it is a defect here</h3>
+
+<p>Self-attention has an exact symmetry, and this time it is bad news.</p>
+
+<div class="box def">
+  <span class="label">Self-attention is permutation equivariant</span>
+  <p>For any permutation matrix $P$:</p>
+  <p>$$\text{SelfAttn}(PX) = P\,\text{SelfAttn}(X)$$</p>
+  <p>Shuffle the input positions and the outputs shuffle identically. <b>Measured at
+  $2.4\times10^{-7}$ relative</b>: float32 rounding, exactly as Part X §9 measured for
+  translation.</p>
+</div>
+
+<p>Look at the definition and it is obvious: the score $\mathbf{q}_i^\top\mathbf{k}_j$ depends
+on the contents at $i$ and $j$ and on nothing else. There is no $i$ or $j$ in the formula. The
+softmax sums over a set. Attention does not know what order its input is in, because nothing in
+the operation refers to order.</p>
+
+<div class="box why">
+  <span class="label">Why the same property is a virtue in Part X and a defect here</span>
+  <p>Part X §9 measured translation equivariance and called it the point of the architecture.
+  This is the same kind of statement, a symmetry the model is built to respect, and here it
+  has to be destroyed.</p>
+  <p>The difference is whether the symmetry is <b>true of the task</b>. Part X §11's framing
+  answers it: an architecture encodes an assumption, and the assumption is either right or
+  wrong about your data. Translating a cat does not change that it is a cat. Permuting the
+  words of a sentence <b>does</b> change what it means: <i>dog bites man</i> and <i>man bites
+  dog</i> are the same multiset.</p>
+  <p>So self-attention as defined is a <b>set</b> operation, and language is not a set. The
+  order information has to be put back by hand, which is what §10 and §11 are about, and it is
+  the one place where a transformer needs something bolted on rather than derived.</p>
+</div>
+
+<h3><span class="num">§10</span> Putting the order back</h3>
+
+<p>Two families, and the difference between them turned out to matter enormously.</p>
+
+<div class="box def">
+  <span class="label">Absolute positional encoding</span>
+  <p>Give each position $p$ a vector $\text{PE}(p)$ and add it to the input embedding before the
+  first layer. Two standard choices:</p>
+  <p><b>Learned.</b> An embedding table indexed by position, trained like any other parameter.
+  Simple, and it cannot extrapolate past the longest sequence it saw: position 5,000 has no
+  entry and no way to invent one.</p>
+  <p><b>Sinusoidal.</b> Fixed, not learned:</p>
+  <p>$$\text{PE}(p, 2i) = \sin\!\big(p/10000^{2i/d}\big), \qquad
+  \text{PE}(p, 2i+1) = \cos\!\big(p/10000^{2i/d}\big)$$</p>
+  <p>A bank of sinusoids at geometrically spaced wavelengths, from about $2\pi$ to about
+  $10000 \cdot 2\pi$. Defined for every $p$, so it extrapolates in the sense of producing
+  <i>something</i>, though a model trained only on short sequences has no reason to use it
+  well.</p>
+  <p>This is a Fourier basis evaluated at $p$, and the property that makes it work is the one
+  Part XXVII §33 derives: a shift becomes a rotation of each sine&ndash;cosine pair, so relative
+  position is a fixed linear function of the encoding. Every method for extending a model's context
+  is an edit to this frequency bank.</p>
+</div>
+
+<figure>
+  <img src="figures/at/03-permutation.svg" alt="Permutation equivariance error with and without positional encoding, and the sinusoidal pattern">
+  <figcaption><b>Figure 3.</b> Left: $\max|f(PX) - Pf(X)|$ relative to the activation range,
+  over twelve random permutations. Without positional information the error is
+  $2.4\times10^{-7}$: exact equivariance, which here means the model literally cannot tell the
+  order. Adding an encoding raises it to <b>0.51–1.12</b>: the symmetry is destroyed, which is
+  the intent. Right: the sinusoidal pattern, geometrically spaced wavelengths down the
+  dimension axis.</figcaption>
+</figure>
+
+<div class="box intuition">
+  <span class="label">Intuition: why sinusoids, and not just the number $p$</span>
+  <p>The obvious encoding is to append $p$ itself. Two problems, and both are instructive.</p>
+  <p><b>Scale.</b> $p$ grows without bound while the embeddings are $O(1)$, so by position 1,000
+  the positional signal swamps the content. Normalising by the maximum length reintroduces a
+  maximum length.</p>
+  <p><b>What the model needs is usually relative.</b> "The previous word" is a useful notion at
+  every position; "position 847" rarely is. A bank of sinusoids has a property that a raw
+  integer does not: $\text{PE}(p + k)$ is a <b>fixed linear function</b> of $\text{PE}(p)$ for
+  each offset $k$, because rotating a sine and cosine pair by a fixed angle is a linear map. So
+  a model <i>can</i> learn to attend by relative offset: the representation makes it
+  expressible.</p>
+  <p>Can, but need not. The relative structure is available and nothing enforces its use, which
+  is exactly the gap §11 closes.</p>
+</div>
+
+<h3><span class="num">§11</span> RoPE</h3>
+
+<div class="readnow"><span class="label">Go and read</span><p><span class="src">Su et al. (2024)</span>, <i>RoFormer: enhanced transformer with rotary position embedding</i>. Short, and the derivation is the point: the relative-position property is established as an <b>identity</b> rather than encouraged by a representation. That is what distinguishes it from everything before it, and Figure 4 is the identity checked.</p></div>
+
+<p>Rotary position embedding takes §10's observation and makes it structural: rather than
+<i>adding</i> something a model could use to infer relative position, <b>rotate</b> the queries
+and keys so that their inner product depends on relative position and nothing else.</p>
+
+<div class="box def">
+  <span class="label">Rotary position embedding</span>
+  <p>Split each query and key into $d/2$ pairs of coordinates and rotate pair $i$ at position
+  $m$ by angle $m\theta_i$, with $\theta_i = 10000^{-2i/d}$, the same geometric spacing as the
+  sinusoids.</p>
+  <p>Writing the rotation as $R_m$, the score becomes</p>
+  <p>$$\big(R_m\mathbf{q}\big)^\top\big(R_n\mathbf{k}\big)
+  = \mathbf{q}^\top R_m^\top R_n \mathbf{k}
+  = \mathbf{q}^\top R_{n-m}\,\mathbf{k}$$</p>
+  <p>because rotations compose by adding angles and $R_m^\top = R_{-m}$. <b>The absolute
+  positions cancel.</b> The score is a function of $\mathbf{q}$, $\mathbf{k}$ and the offset
+  $n - m$ alone.</p>
+</div>
+
+<figure>
+  <img src="figures/at/04-rope.svg" alt="RoPE score against offset for four different absolute anchor positions, and their deviation">
+  <figcaption><b>Figure 4.</b> The same query and key, rotated to four widely separated absolute
+  positions (30, 130, 1030 and 10030) and scored across offsets from $-20$ to $+20$. The four
+  curves are indistinguishable: the maximum deviation between them is
+  <b>$2.1\times10^{-12}$</b>, which is float64 rounding. The score depends on $m - n$ and on
+  nothing else, by construction rather than by training.</figcaption>
+</figure>
+
+<div class="box why">
+  <span class="label">Why this displaced the alternatives</span>
+  <p><b>It is a property, not a hope.</b> Sinusoidal encoding makes relative attention
+  <i>expressible</i>; RoPE makes it the <i>only</i> thing expressible. A model cannot
+  accidentally learn to key off absolute position, because absolute position is not in the
+  score.</p>
+  <p><b>It applies at every layer.</b> Absolute encodings are added once, at the input, and are
+  progressively mixed away by the layers above. RoPE is applied to the queries and keys of every
+  attention operation, so the positional structure does not decay with depth.</p>
+  <p><b>It leaves the values alone.</b> Only queries and keys are rotated: position affects
+  <i>where you look</i>, not <i>what you get back</i>, which is the right factorisation given
+  §3.</p>
+  <p>The caveat is that extrapolating beyond the trained length still fails, and the reason is
+  now precise: the model has never seen the rotation angles that long offsets produce. §39
+  returns to it, because the fixes (interpolating the frequencies, or changing the base) are
+  where practical long-context work actually happens.</p>
+</div>
+
+<div class="mnote">RoPE is not the only answer to §9. <b>ALiBi</b> skips rotation entirely: it
+subtracts a penalty proportional to distance directly from the attention logit, per head,
+before the softmax: no vectors added to $Q$ or $K$ at all, and nothing in the penalty that
+was ever fit to a training length, which is why it extrapolates by construction rather than by
+patching.</div>
+
+<h3><span class="num">§12</span> Multiple heads</h3>
+
+<p>One attention operation produces one weighted average per position. But a position may need
+several unrelated things at once (the subject of its verb, the noun its adjective modifies,
+the earlier mention of its pronoun) and a single softmax must choose between them.</p>
+
+<div class="box def">
+  <span class="label">Multi-head attention</span>
+  <p>Split the model dimension into $h$ heads of size $d_k = d/h$, run attention independently
+  in each, concatenate, and mix with a final projection:</p>
+  <p>$$\text{MHA}(X) = \big[\text{head}_1; \ldots; \text{head}_h\big]W^O,
+  \qquad
+  \text{head}_i = \text{Attention}(XW_i^Q, XW_i^K, XW_i^V)$$</p>
+  <p>The parameter count is <b>unchanged</b>: the projections that were $d \times d$ become $h$
+  projections of $d \times d/h$. Heads are free; they cost only the reshaping.</p>
+</div>
+
+<div class="box pitfall">
+  <span class="label">Pitfall: what heads are and are not</span>
+  <p>Attention maps are seductive. They are the one part of a network that looks interpretable
+  without any effort, and a great deal has been read into them that does not survive checking.</p>
+  <p><b>Heads do not carve up cleanly by function.</b> Some do: §37's induction heads are a
+  genuine, mechanistically understood example. Most are not one thing, and the same head often
+  does different work in different contexts.</p>
+  <p><b>A head is not a unit of computation on its own.</b> The output passes through $W^O$,
+  which mixes all heads together, so the model's behaviour depends on head <i>combinations</i>.
+  Reading a single head's map in isolation is reading one term of a sum.</p>
+  <p><b>Attention weights are not an explanation.</b> §36 is about this: a position can be
+  attended to strongly and contribute almost nothing, because the weight multiplies a value that
+  may be near zero. High attention is neither necessary nor sufficient for high influence, and
+  this has been demonstrated repeatedly.</p>
+  <p>What is well established: <b>more heads help, up to a point, and the useful count grows
+  with model size.</b> Many heads in trained models can be pruned with little loss, which is
+  itself informative: the redundancy is real.</p>
+</div>
+
+<h3><span class="num">§13</span> What it costs</h3>
+
+<p>The score matrix $QK^\top$ is $n \times n$. Everything follows from that.</p>
+
+<div class="box def">
+  <span class="label">The two terms, and where they cross</span>
+  <p>Per layer, ignoring constants:</p>
+  <table class="compact">
+    <thead><tr><th></th><th>Compute</th><th>Memory</th></tr></thead>
+    <tbody>
+      <tr><td>The four projections</td><td>$O(nd^2)$</td><td>$O(nd)$</td></tr>
+      <tr><td>Scores and the weighted sum</td><td>$O(n^2d)$</td><td>$O(n^2)$</td></tr>
+      <tr><td>The feedforward layer (§15)</td><td>$O(nd^2)$</td><td>$O(nd)$</td></tr>
+    </tbody>
+  </table>
+  <p>The quadratic term dominates once $n$ is large enough, and "large enough" is
+  <b>$n \approx 4d$</b>: below that, a transformer's cost is dominated by matrix
+  multiplications that have nothing to do with attention.</p>
+</div>
+
+<figure>
+  <img src="figures/at/05-cost.svg" alt="Measured time for attention and the feedforward layer against sequence length, and score matrix memory">
+  <figcaption><b>Figure 5.</b> Left: both halves of a block, timed on this machine at
+  $d = 256$. Attention is <b>cheaper</b> than the feedforward layer at every length below 512
+  and 2.15× more expensive by 2,048; the crossover falls between 512 and 1,024, against the
+  predicted $4d = 1024$. Right: the memory for a <b>single</b> score matrix: 17.2 GB at 65,536
+  positions, before any weights, activations or gradients.</figcaption>
+</figure>
+
+<div class="box why">
+  <span class="label">Why the crossover is the number to carry</span>
+  <p>"Attention is quadratic" is true and, on its own, misleading. At $d = 4096$ the crossover is
+  at $n \approx 16{,}000$, so for a model with a 4,096-token context, <b>attention is not the
+  bottleneck</b>, and optimising it buys little.</p>
+  <p>This explains something that otherwise looks like a puzzle: a large literature of efficient
+  attention mechanisms with excellent asymptotics that were not adopted. Below the crossover
+  they optimise the minority term, and they usually cost accuracy to do it. What was adopted
+  instead, §29's FlashAttention, changes no asymptotics at all and attacks memory traffic.</p>
+  <p>The memory story is different and less forgiving. Compute can be traded against time;
+  the score matrix either fits or it does not, and $O(n^2)$ reaches a modern accelerator's
+  capacity around 65,000 positions <b>for one matrix in one head of one layer</b>. That is the
+  wall §29 had to remove before long context was possible at all.</p>
+</div>

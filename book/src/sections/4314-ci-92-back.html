@@ -1,0 +1,183 @@
+<h2><span class="part-kicker">Build</span>The project</h2>
+
+<p class="lede">Ten to fourteen hours. You build the estimators, then use them on a system whose
+true effect you set, and finish by breaking every one of them on purpose, because knowing the
+failure mode is the part that transfers.</p>
+
+<h3><span class="num">P.1</span> What you are building</h3>
+
+<p><b><code>because</code></b>, a small causal toolkit: a graph with d-separation and the backdoor
+criterion, four estimators, three quasi-experimental designs, and a simulation harness that lets
+you set the truth and check whether the method found it.</p>
+
+<p>The rule that governs the project: <b>you set the effect, so you always know the answer</b>.
+That is the only setting in which a causal method can be scored at all, and it is why this project
+is simulation-first rather than dataset-first.</p>
+
+<h3><span class="num">P.2</span> Stage 1: the graph</h3>
+
+<ol>
+  <li>Represent a DAG as node → parents. Implement descendants, paths, colliders, blocking.</li>
+  <li>Implement d-separation. Verify the fork, chain and collider behave as §10 says, including
+  that conditioning on a collider's <i>descendant</i> also opens it.</li>
+  <li>Implement the backdoor criterion. Check it rejects a mediator.</li>
+  <li>Now draw the graph for a model you have actually deployed, encode it, and run the criterion
+  over your real covariate set.</li>
+</ol>
+
+<p><b>Deliverable:</b> the tools, and a written list of the descendants of the treatment that were
+in your feature set. Step four is the point of the stage.</p>
+
+<h3><span class="num">P.3</span> Stage 2: confounding, and what adjustment recovers</h3>
+
+<ol>
+  <li>Write a simulator that takes a true effect and a confounding strength and returns data.</li>
+  <li>Estimate naively and by stratified adjustment. Sweep the confounding and plot both against
+  the truth.</li>
+  <li>Find the strength at which the naive estimate changes sign.</li>
+  <li>Now hold the confounding fixed and sweep <span class="m">$n$</span> from 10<sup>3</sup> to
+  10<sup>6</sup>. Plot the naive estimate's error.</li>
+</ol>
+
+<p><b>Deliverable:</b> the two plots. The second is flat, and it is the one to keep: the error does
+not shrink, so no diagnostic that looks for variance will ever find it.</p>
+
+<h3><span class="num">P.4</span> Stage 3: propensity, overlap and double robustness</h3>
+
+<ol>
+  <li>Implement logistic regression by Newton–Raphson. Check it recovers a known assignment rule.</li>
+  <li>Implement IPW and AIPW. Confirm they agree with stratification when overlap is good.</li>
+  <li>Sweep the confounder's effect on treatment. Plot the propensity distributions by arm, and
+  track bias, spread and effective sample size.</li>
+  <li>Run all four combinations of correct and incorrect outcome and propensity models.</li>
+  <li>Break positivity, then sweep the weight clip and plot bias and spread separately.</li>
+</ol>
+
+<p><b>Deliverable:</b> the overlap panel, the four-arm result, and the clip trade-off. Predict all
+three before running them; the third surprises most people.</p>
+
+<h3><span class="num">P.5</span> Stage 4: designs, and how each one breaks</h3>
+
+<ol>
+  <li>Implement 2SLS, difference-in-differences and regression discontinuity.</li>
+  <li>Verify each recovers a known effect on data built for it.</li>
+  <li>Then break each on purpose: weaken the instrument until it is unusable, violate exclusion with
+  a small direct path, give the difference-in-differences groups diverging pre-trends, and let units
+  manipulate the running variable.</li>
+  <li>For each breakage, record whether it was detectable from the data alone.</li>
+</ol>
+
+<p><b>Deliverable:</b> a table of four designs against four breakages, with a column for "would I
+have noticed". Two of the eight are silent, and knowing which two is the deliverable.</p>
+
+<h3><span class="num">P.6</span> Stage 5: the machine-learning consequence</h3>
+
+<ol>
+  <li>Build a target with a causal parent and a spurious child whose relationship varies by
+  environment.</li>
+  <li>Train a predictor on the cause, one on the effect, one on both. Test across environments
+  including a reversed one.</li>
+  <li>Now evaluate all three with a random train/test split and compare what you conclude.</li>
+  <li>Implement off-policy evaluation and score a target policy from logged data. Then remove the
+  support and see what the estimator reports.</li>
+</ol>
+
+<p><b>Deliverable:</b> the environment table, the random-split table that contradicts it, and the
+unsupported off-policy estimate. Step three is the one that changes how you validate models.</p>
+
+<h3><span class="num">P.7</span> Stretch</h3>
+
+<ul>
+  <li><b>Sensitivity analysis</b>: the two-parameter contour at which your effect crosses zero.</li>
+  <li><b>CATE estimators</b>: S-, T- and X-learners, and an honest attempt to validate them.</li>
+  <li><b>Causal discovery</b> on data from a graph you generated, compared with the truth.</li>
+  <li><b>Synthetic control</b> with a placebo distribution.</li>
+  <li><b>Front-door</b> on a simulation where the confounder is genuinely unobserved.</li>
+  <li><b>Log the probability</b> in a system you run, and answer a counterfactual about last month.</li>
+</ul>
+
+<h3><span class="num">P.8</span> Done when</h3>
+
+<ul class="checklist">
+  <li>Your backdoor criterion rejects a mediator, and you have run it over a real feature set.</li>
+  <li>You have a naive estimate that reports the opposite sign of a truth you set.</li>
+  <li>You have shown that error is flat in <span class="m">$n$</span>.</li>
+  <li>You can manufacture a correlation between independent variables by conditioning, and by
+  selection, and can say why they are the same thing.</li>
+  <li>Your AIPW is exact when either model is right and biased when neither is.</li>
+  <li>You have measured what clipping the weights costs.</li>
+  <li>You have broken all four designs and know which breakages are silent.</li>
+  <li>You have a model that is best on a random split and worst on an environment split.</li>
+  <li>Your README names one covariate you would have adjusted for before this project and would
+  not now.</li>
+</ul>
+
+<div class="box why">
+  <span class="label">Why this project</span>
+  <p>Every method in this part is normally applied where the answer is unknown, which means a
+  practitioner can use them for years without ever finding out that one of them failed. Setting the
+  truth inverts that: the methods can be scored, and several of them fail in ways that are invisible
+  from the estimate alone.</p>
+  <p>Stage 5 is the reason the part is in a machine-learning book. The predictor that wins your
+  validation is the one that fails when the world moves, and the standard evaluation protocol is
+  structurally incapable of noticing.</p>
+</div>
+
+<h2 class="nobreak"><span class="part-kicker">Assess</span>Checkpoint</h2>
+
+<ul class="checklist">
+  <li>State the difference between <span class="m">$p(y \mid x)$</span> and
+  <span class="m">$p(y \mid \mathrm{do}(x))$</span>, and give a case where they differ in sign.</li>
+  <li>Name the three rungs and say why the hierarchy does not collapse.</li>
+  <li>Define confounding and explain why the resulting error does not shrink with more data.</li>
+  <li>Define a collider and say what conditioning on one does.</li>
+  <li>Explain why "control for everything available" is wrong, in one sentence per structure.</li>
+  <li>Say what a mediator does to an estimate and when adjusting for one is right.</li>
+  <li>Explain how selection into a sample can be conditioning on a collider.</li>
+  <li>Write down a structural causal model and say what the assignment symbol means.</li>
+  <li>Say what a missing arrow in a causal graph asserts.</li>
+  <li>Give the three-node vocabulary and state which one reverses under conditioning.</li>
+  <li>Define d-separation and say why it makes a graph testable.</li>
+  <li>Define the do-operator in terms of surgery on the model.</li>
+  <li>State the backdoor criterion, both conditions, and say what each rules out.</li>
+  <li>Write the adjustment formula and say why the weights are marginal rather than conditional.</li>
+  <li>State the front-door criterion and the assumption that makes it rarely usable.</li>
+  <li>Define identifiability and give a graph where the effect is provably not identifiable.</li>
+  <li>Say what randomisation does to the model and what it therefore does not require.</li>
+  <li>Give three things a randomised experiment still does not deliver.</li>
+  <li>Define the propensity score and state the balancing property.</li>
+  <li>Compare matching, stratification and weighting, and say what all three share.</li>
+  <li>Define positivity, say why it is the checkable assumption, and describe the check.</li>
+  <li>Say which error moves first as overlap degrades, and why that is the friendly case.</li>
+  <li>Write the AIPW estimator and state the property it is named for.</li>
+  <li>Explain why clipping the weights trades one error for another.</li>
+  <li>Describe sensitivity analysis and the form its output should take.</li>
+  <li>Name three ways an adjustment analysis goes wrong in practice.</li>
+  <li>Give the three conditions an instrument must satisfy and say which is testable.</li>
+  <li>Say what a weak instrument does, and how it differs from a violated exclusion restriction.</li>
+  <li>State the estimand two-stage least squares actually returns.</li>
+  <li>State the difference-in-differences assumption and the check that partially supports it.</li>
+  <li>State the regression discontinuity assumption and two things to check.</li>
+  <li>Say what a synthetic control does and why a good pre-period fit is not validation.</li>
+  <li>Explain why every design relocates an assumption rather than removing one.</li>
+  <li>Write the off-policy value estimator and name its two failure modes.</li>
+  <li>Say why a conditional average treatment effect cannot be validated like a prediction.</li>
+  <li>Explain why a predictor built on causes transfers and one built on effects does not.</li>
+  <li>Say why a random train/test split cannot detect the difference.</li>
+  <li>State what causal discovery returns and why it is not a substitute for domain knowledge.</li>
+  <li>Say in what sense a neural network is a structural causal model, and what that makes easy.</li>
+  <li>Say what an interpretability intervention establishes and what it does not.</li>
+  <li>Give the six things a causal claim owes its reader.</li>
+  <li>List the order in which to read a causal claim critically.</li>
+</ul>
+
+<div class="box fw">
+  <span class="label">The framework, extended</span>
+  <p>A model has been four choices throughout this book: a dataset, a model family, a loss, an
+  optimiser. Part XXI added a fifth, a claim about what the result establishes. This part adds the
+  sixth, and it comes before all of them: <b>the estimand</b>. What quantity, about which
+  population, under what intervention.</p>
+  <p>Everything downstream is machinery for computing it. Choosing the machinery before naming the
+  quantity is how a technically flawless analysis ends up answering a question nobody asked, and it
+  is the most common failure in applied work of every kind.</p>
+</div>

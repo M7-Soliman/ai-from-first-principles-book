@@ -1,0 +1,207 @@
+<h2><span class="part-kicker">Build</span>The project</h2>
+
+<p class="lede">Ten to fourteen hours. You solve a small MDP exactly, then rebuild the same answer
+four ways from samples, and use the exact solution to catch each method failing in its own
+characteristic way.</p>
+
+<h3><span class="num">P.1</span> What you are building</h3>
+
+<p><b><code>rlbench</code></b>: an exact solver, four sampled learners, and the instruments that
+show what each one gets wrong.</p>
+
+<p>The rule: <b>solve it exactly first</b>. Every claim in this project is checked against a number
+you computed rather than against a learning curve going up, and that is the whole reason the
+project uses a small MDP rather than a game.</p>
+
+<h3><span class="num">P.2</span> Stage 1: the exact solver</h3>
+
+<ol>
+  <li>A random MDP generator, and a gridworld with a goal.</li>
+  <li>Value iteration, policy iteration, and exact policy evaluation by linear solve.</li>
+  <li>Verify all three agree, and that value iteration reaches the same fixed point from
+  wildly different starting values.</li>
+  <li>Measure the per-sweep contraction rate and compare it to $\gamma$.</li>
+</ol>
+
+<p><b>Deliverable:</b> $V^*$, the optimal policy, and the measured contraction rate against theory.
+Everything downstream compares to these.</p>
+
+<h3><span class="num">P.3</span> Stage 2: learning values from samples</h3>
+
+<ol>
+  <li>TD(0) and Monte Carlo evaluation, both against the exact $V^\pi$.</li>
+  <li>Sweep the episode budget and report error <b>and</b> spread across at least ten seeds.</li>
+  <li>Implement $n$-step returns and sweep $n$.</li>
+  <li>Then decay the step size and show that the plateau both methods hit was the step size, not
+  the method.</li>
+</ol>
+
+<p><b>Deliverable:</b> the error-against-budget curves with spreads, and the best $n$. Predict the
+shape of the $n$ sweep before you run it.</p>
+
+<h3><span class="num">P.4</span> Stage 3: control, and two failures</h3>
+
+<ol>
+  <li>SARSA and Q-learning on the cliff gridworld. Compare the paths learned against the rewards
+  actually collected.</li>
+  <li>Build the two-state MDP that exposes the maximisation bias. Run Q-learning and double
+  Q-learning, and report how often each takes the action that is genuinely worse.</li>
+  <li>Implement Baird's counterexample. Run all four conditions and plot $\|\mathbf{w}\|$.</li>
+  <li>Add a target network to the diverging case and sweep the update interval.</li>
+</ol>
+
+<p><b>Deliverable:</b> three plots and one sentence each on the mechanism. For Baird's, be careful
+that "on-policy" means the state distribution too, getting that wrong makes it look as though the
+counterexample always diverges.</p>
+
+<h3><span class="num">P.5</span> Stage 4: policy gradients</h3>
+
+<ol>
+  <li>A one-step problem where the exact gradient is computable. Measure the sampled estimator's
+  bias and variance with and without a baseline.</li>
+  <li>Shift every reward by $+100$ and repeat. Explain the result.</li>
+  <li>REINFORCE on the gridworld, then with a baseline, then actor–critic with GAE.</li>
+  <li>Add PPO's clipping and plot the objective against the ratio for both signs of advantage.</li>
+</ol>
+
+<p><b>Deliverable:</b> the bias-and-variance table, and learning curves over ten seeds for the four
+variants. Step two is the one that makes the baseline's mechanism obvious.</p>
+
+<h3><span class="num">P.6</span> Stage 5: exploration</h3>
+
+<ol>
+  <li>Four bandit strategies, run to a long horizon. Report cumulative regret and the per-step
+  regret over the final quarter.</li>
+  <li>Then the chain task: reward behind a specific $n$-step sequence. Increase $n$ until
+  $\epsilon$-greedy stops finding it, and record the $n$.</li>
+  <li>Add a count-based bonus and find how much further it gets.</li>
+</ol>
+
+<p><b>Deliverable:</b> the regret slopes, and the $n$ at which undirected exploration fails. That
+second number is the honest scale of the exploration problem.</p>
+
+<h3><span class="num">P.7</span> Stage 6: reward design</h3>
+
+<ol>
+  <li>Add potential-based shaping with a large arbitrary potential. Confirm the optimal policy is
+  unchanged by comparing achieved <b>values</b>, and that $V$ shifts by exactly $-\Phi$.</li>
+  <li>Add an arbitrary action-dependent bonus and confirm the optimal policy does change.</li>
+  <li>Build a proxy reward that a cycle exploits. Solve exactly for both objectives and report
+  each policy's return under each.</li>
+  <li>Plot the proxy reward over training for the hacking policy.</li>
+</ol>
+
+<p><b>Deliverable:</b> the two-by-two return table, and the reward curve from step four, which
+rises the whole time while the agent does the wrong thing.</p>
+
+<h3><span class="num">P.8</span> Stretch</h3>
+
+<ul>
+  <li><b>Offline.</b> Log data from a mediocre policy, run Q-learning on it with no interaction,
+  and watch the values grow without bound. Then constrain to the data and watch it stop.</li>
+  <li><b>A reward model, over-optimised.</b> Generate preferences from a known utility, fit a model,
+  optimise against it, and plot model score against true utility.</li>
+  <li><b>Seeds.</b> Thirty runs of one algorithm; report the full distribution and what three seeds
+  would have said.</li>
+  <li><b>Imitation first.</b> Behaviour cloning against RL at matched compute.</li>
+  <li><b>The noisy TV.</b> A curiosity bonus and an unpredictable stimulus.</li>
+</ul>
+
+<h3><span class="num">P.9</span> Done when</h3>
+
+<ul class="checklist">
+  <li>Three exact methods agree, and the contraction rate matches $\gamma$.</li>
+  <li>Every sampled result is reported against the exact answer, with a spread over seeds.</li>
+  <li>You have measured the maximisation bias and shown double estimation removing it.</li>
+  <li>Baird's counterexample diverges, and each of the three removals fixes it.</li>
+  <li>You have the bias-and-variance table for the policy gradient, before and after the reward
+  shift.</li>
+  <li>You know the $n$ at which $\epsilon$-greedy stops finding the reward.</li>
+  <li>You have confirmed potential-based shaping is safe and an arbitrary bonus is not.</li>
+  <li>You have a policy that maximises its reward and does the wrong thing.</li>
+  <li>Your README names one result that changed when you increased the number of seeds.</li>
+</ul>
+
+<div class="box why">
+  <span class="label">Why this project</span>
+  <p>Stage 1 is the reason for the ordering. Almost every published reinforcement learning result is
+  a curve going up, and a curve going up is compatible with a great many things being wrong. Solving
+  the problem exactly first converts every later claim from "it improved" into "it reached the right
+  answer, or it did not".</p>
+  <p>Stage 3 is the second reason. Three of the most-cited failures in the subject (the cliff, the
+  maximisation bias, Baird's counterexample) are each about ten lines, and each is far more
+  convincing constructed than described.</p>
+</div>
+
+<h2 class="nobreak"><span class="part-kicker">Assess</span>Checkpoint</h2>
+
+<ul class="checklist">
+  <li>Say what changes when the learner's actions determine its data, and name four consequences.</li>
+  <li>Define an MDP and say what the Markov property is a claim about.</li>
+  <li>Give three reasons for discounting and say which one the theory needs.</li>
+  <li>State the effective horizon and why it is the number to reason with.</li>
+  <li>Define $V^\pi$ and $Q^\pi$ and say why control learns $Q$.</li>
+  <li>Write the Bellman expectation and optimality equations, and say which is linear.</li>
+  <li>Say why one deterministic stationary policy always suffices, and why stochastic policies are
+  used anyway.</li>
+  <li>Give the three axes of the taxonomy.</li>
+  <li>Give two ways to evaluate a policy exactly and their costs.</li>
+  <li>State the policy improvement theorem and what it guarantees about termination.</li>
+  <li>Describe value iteration and its relationship to policy iteration.</li>
+  <li>State the contraction property and derive the convergence rate from it.</li>
+  <li>Say how many sweeps six decimal places takes at $\gamma = 0.9$ and $0.99$.</li>
+  <li>Give three reasons exact methods do not scale.</li>
+  <li>Contrast Monte Carlo and TD on bias, variance and applicability.</li>
+  <li>Explain why TD usually wins despite being biased.</li>
+  <li>Describe $n$-step returns and TD($\lambda$).</li>
+  <li>Write the SARSA and Q-learning targets and explain the cliff result.</li>
+  <li>Explain the maximisation bias and why double estimation removes it.</li>
+  <li>Name the three ingredients of the deadly triad and what their combination does.</li>
+  <li>Say why a smaller learning rate does not fix it.</li>
+  <li>Give DQN's four components and what each addresses.</li>
+  <li>Say what DQN actually established.</li>
+  <li>Give four reasons to prefer policy gradients over value-based control.</li>
+  <li>State the policy gradient theorem and say what is absent from it.</li>
+  <li>Read the REINFORCE update in words and say what its weakness is.</li>
+  <li>Prove that a baseline does not change the expectation.</li>
+  <li>Explain what the critic is used for, twice.</li>
+  <li>Write GAE and say what $\lambda$ controls.</li>
+  <li>Say why a too-large step is worse here than in supervised learning.</li>
+  <li>Give TRPO's objective and constraint, and why the constraint is in policy space.</li>
+  <li>Write PPO's clipped objective and explain the role of the $\min$.</li>
+  <li>Give the honest account of why PPO won.</li>
+  <li>Explain why greedy action selection is self-confirming.</li>
+  <li>Define regret and say why its growth matters more than its size.</li>
+  <li>Describe four exploration strategies and which have linear regret.</li>
+  <li>Explain why bandit exploration does not solve exploration in MDPs.</li>
+  <li>Give four exploration methods for large state spaces and a failure of one.</li>
+  <li>Say why a reward function is a specification and what follows.</li>
+  <li>State the one shaping form with a guarantee and why it works.</li>
+  <li>Explain the extrapolation problem in offline RL.</li>
+  <li>Describe the three stages of learning from human feedback and why comparisons.</li>
+  <li>Say what over-optimising a reward model looks like and what the KL penalty is for.</li>
+  <li>Explain why verifiable rewards change the picture, and what remains hard.</li>
+  <li>Give four cases where reinforcement learning is the wrong tool.</li>
+</ul>
+
+<table class="compact">
+  <thead><tr><th>Score</th><th>Verdict</th></tr></thead>
+  <tbody>
+    <tr><td><b>36–45</b></td><td>Go on. You will solve the small case exactly before trusting a curve.</td></tr>
+    <tr><td><b>27–35</b></td><td>Reread what you missed, then continue.</td></tr>
+    <tr><td><b>18–26</b></td><td>Do the project's Stage 3. Three constructed failures fix most of this.</td></tr>
+    <tr><td><b>Under 18</b></td><td>Reread §§12, 21 and 39. The contraction, the triad and reward design carry the part.</td></tr>
+  </tbody>
+</table>
+
+<div class="box intuition">
+  <span class="label">The one thing to carry forward</span>
+  <p><b>The agent optimises the reward you wrote, using data it chose to collect.</b></p>
+  <p>Both halves cause the difficulties. Because the reward is what is optimised, any gap between it
+  and your intention gets found. Because the data is chosen by the policy, an early mistake removes
+  the evidence that would have corrected it, a bad step is not recoverable, and the training
+  distribution moves as the learner moves.</p>
+  <p>Every method here answers one of those. And the practical summary that most often matters: <b>if
+  you can turn the problem into supervised learning, do.</b> The cases where this part is necessary
+  are fewer than the number of projects that reach for it.</p>
+</div>

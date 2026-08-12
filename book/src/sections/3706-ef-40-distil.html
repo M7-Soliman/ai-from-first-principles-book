@@ -1,0 +1,114 @@
+<h2><span class="part-kicker">Part D</span>Distillation</h2>
+
+<h3><span class="num">§24</span> The idea</h3>
+
+<div class="box history">
+  <span class="label">Where this comes from</span>
+  <p>The source book has this, as <b>model compression</b>: a large model's size is often needed
+  only to prevent overfitting during training, so once it has fitted a function, generate as much
+  data as you like by evaluating it and train a smaller model to match.</p>
+  <p>That framing is exactly right and it undersells the mechanism. The refinement, train the small
+  model to match the large one's <b>full output distribution</b> rather than its answer, is what
+  made it work, and §25 is why.</p>
+</div>
+
+<div class="box def">
+  <span class="label">The construction</span>
+  <p>A <b>teacher</b> and a <b>student</b>. The student is trained on</p>
+  <p>$$\mathcal{L} = (1-\alpha)\,\mathcal{L}_{\text{hard}}(y, \hat{y})
+  \;+\; \alpha\, T^2 \cdot D_{KL}\big(p_T^{\text{teacher}} \,\|\, p_T^{\text{student}}\big)$$</p>
+  <p>where $p_T$ is the softmax at temperature $T$. The $T^2$ factor compensates for the gradient
+  magnitudes shrinking as $T$ grows, so $\alpha$ means the same thing at different temperatures.</p>
+</div>
+
+<h3><span class="num">§25</span> Why soft targets carry more</h3>
+
+<div class="readnow"><span class="label">Go and read</span><p><span class="src">Hinton, Vinyals &amp; Dean (2015)</span>, <i>Distilling the knowledge in a neural network</i>. Short, and its framing is the part that transfers: a teacher's distribution over the <b>wrong</b> answers is a statement about the structure of the problem that the label does not contain. That is also why distillation needs unlabelled data rather than labelled.</p></div>
+
+<div class="box why">
+  <span class="label">The information is in the wrong answers</span>
+  <p>A hard label says "this is a 7". The teacher's distribution says "this is a 7, and it looks
+  somewhat like a 1, and nothing like an 8". That relative ordering over the <b>incorrect</b>
+  classes is a statement about the structure of the problem that the label does not contain.</p>
+  <p>So a soft target carries more bits per example, and the gradient it produces has lower variance:
+  every class contributes rather than one. Both effects mean the student needs fewer examples,
+  which is the practical claim.</p>
+  <p>The name for this is the <b>dark knowledge</b> in the teacher's output, and it explains the
+  otherwise odd fact that a student can be trained on data with <b>no labels at all</b>: the teacher
+  supplies the targets, so distillation needs unlabelled data rather than labelled.</p>
+</div>
+
+<h3><span class="num">§26</span> Temperature</h3>
+
+<div class="box def">
+  <span class="label">What it controls</span>
+  <p>A trained teacher is confident, so its distribution is nearly one-hot and the dark knowledge is
+  numerically tiny. Raising $T$ flattens it and makes the relative sizes of the small probabilities
+  visible to the loss.</p>
+  <p>Too low and the soft target is a hard target. Too high and it approaches uniform, which carries
+  nothing. Values between 2 and 5 are typical, and it is worth sweeping, since the right value
+  depends on how confident the teacher is (Part XIV §5's calibration, deciding a hyperparameter).</p>
+</div>
+
+<h3><span class="num">§27</span> What is actually transferred</h3>
+
+<div class="box def">
+  <span class="label">Three variants, transferring different things</span>
+  <p><b>Response distillation</b> matches the output distribution. Simple, architecture-agnostic,
+  and what the term usually means.</p>
+  <p><b>Feature distillation</b> matches intermediate representations, which requires the shapes to
+  correspond or a learned projection between them. More signal, more constraint.</p>
+  <p><b>Sequence distillation</b>, for generative models, trains the student on the teacher's
+  <b>generated outputs</b> rather than on its per-token distributions, which sidesteps exposure
+  bias (Part XVI §12) by making the student's training distribution the teacher's output
+  distribution.</p>
+</div>
+
+<h3><span class="num">§28</span> Self-distillation</h3>
+
+<div class="box why">
+  <span class="label">A puzzle worth sitting with</span>
+  <p>Distil a model into a student of the <b>identical architecture</b> and the student is often
+  <b>better</b> than the teacher. Nothing was compressed, no new data was used, and the result
+  improves.</p>
+  <p>The explanations proposed are partial. The soft targets are a form of label smoothing, which
+  regularises. They also encode which examples are ambiguous, so the student is not pushed to be
+  confident where the teacher was not, an implicit per-example weighting. And the student's
+  optimisation problem is smoother, since it fits a continuous function rather than a set of hard
+  labels.</p>
+  <p>Worth flagging as genuinely not fully understood, because it is usually presented as though it
+  were. A technique that improves a model by training it to imitate itself is strange, and the
+  strangeness has not been explained away.</p>
+</div>
+
+<h3><span class="num">§29</span> Distilling a sampler</h3>
+
+<div class="readnow"><span class="label">Go and read</span><p><span class="src">Salimans &amp; Ho (2022)</span>, <i>Progressive distillation for fast sampling of diffusion models</i>. Read for the halving argument itself: a student trained to reproduce two teacher steps in one, then re-run as the new teacher for the next round, which is what turns a thousand-step sampler into a handful without ever retraining from scratch. The paper is also candid about what is lost, which is the source for this section's closing point about diversity.</p></div>
+
+<div class="box def">
+  <span class="label">The version that mattered most recently</span>
+  <p>Part XVI §29's diffusion sampler needs tens of network evaluations per sample. <b>Progressive
+  distillation</b> trains a student to take one step where the teacher took two, then repeats,
+  halving the step count each round, from 1,000 to a handful.</p>
+  <p>This is distillation of a <b>procedure</b> rather than of a function, and it is the technique
+  that made real-time image generation possible. The same idea appears as consistency models, which
+  train the student to map any point on the trajectory directly to its endpoint.</p>
+  <p>Note what it gives up. A few-step sampler is measurably less diverse than the many-step teacher:
+  it has learned the teacher's typical output rather than its distribution, which is Part XVI
+  §42's precision-and-recall trade arriving through the back door.</p>
+</div>
+
+<h3><span class="num">§30</span> When it works</h3>
+
+<div class="box def">
+  <span class="label">The honest summary</span>
+  <p><b>Works well</b> when a large teacher exists, unlabelled data in the domain is plentiful, and
+  the student is not too much smaller: factors of two to ten are routine, factors of a hundred
+  are not.</p>
+  <p><b>Works badly</b> when the student lacks the capacity to represent the teacher's function at
+  all, in which case it fits the easy part and fails the rest; and when the teacher is wrong, since
+  distillation transfers errors faithfully and with confidence.</p>
+  <p>The comparison that is often skipped: a student distilled from a teacher against the <b>same
+  student trained directly</b> on the same data. Distillation should win, and by how much is the
+  number that says whether the teacher was worth training.</p>
+</div>

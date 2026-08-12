@@ -1,0 +1,171 @@
+<h2><span class="part-kicker">Reference</span>Appendices</h2>
+
+<h3><span class="num">A</span> Notation card</h3>
+
+<p>Everything used in this chapter, in one place. Tear this out; most confusion in
+early linear algebra is notation confusion wearing a disguise.</p>
+
+<table class="compact">
+  <thead><tr><th>Symbol</th><th>Means</th><th>Shape</th></tr></thead>
+  <tbody>
+    <tr><td>$a$, $\alpha$</td><td>scalar: plain italic lowercase</td><td>n/a</td></tr>
+    <tr><td>$\mathbf{x}$</td><td>vector: bold lowercase, a column by default</td><td>$n \times 1$</td></tr>
+    <tr><td>$A$</td><td>matrix: capital</td><td>$m \times n$</td></tr>
+    <tr><td>$\mathsf{A}$</td><td>tensor: 3+ axes</td><td>varies</td></tr>
+    <tr><td>$x_i$</td><td>entry $i$ of $\mathbf{x}$ (not bold; it is a scalar)</td><td>n/a</td></tr>
+    <tr><td>$A_{i,j}$</td><td>row $i$, column $j$: <b>always row first</b></td><td>n/a</td></tr>
+    <tr><td>$A_{i,:}$</td><td>all of row $i$</td><td>$1 \times n$</td></tr>
+    <tr><td>$A_{:,j}$</td><td>all of column $j$</td><td>$m \times 1$</td></tr>
+    <tr><td>$A^\top$</td><td>transpose: rows become columns</td><td>$n \times m$</td></tr>
+    <tr><td>$A^{-1}$</td><td>inverse: exists only if square and full rank</td><td>$n \times n$</td></tr>
+    <tr><td>$A^+$</td><td>pseudoinverse: always exists</td><td>$n \times m$</td></tr>
+    <tr><td>$I$ or $I_n$</td><td>identity</td><td>$n \times n$</td></tr>
+    <tr><td>$\mathbf{e}_i$</td><td>standard basis vector: 1 in slot $i$, 0 elsewhere</td><td>$n \times 1$</td></tr>
+    <tr><td>$\mathbf{u}^\top\mathbf{v}$</td><td>dot product: a <b>scalar</b></td><td>$1 \times 1$</td></tr>
+    <tr><td>$\mathbf{u}\mathbf{v}^\top$</td><td>outer product: a <b>matrix</b> of rank 1</td><td>$m \times n$</td></tr>
+    <tr><td>$A \odot B$</td><td>elementwise (Hadamard) product</td><td>same as inputs</td></tr>
+    <tr><td>$\|\mathbf{x}\|_p$</td><td>$L^p$ norm; bare $\|\cdot\|$ means $p=2$</td><td>scalar</td></tr>
+    <tr><td>$\|A\|_F$</td><td>Frobenius norm</td><td>scalar</td></tr>
+    <tr><td>$\tr(A)$</td><td>trace: sum of the diagonal</td><td>scalar</td></tr>
+    <tr><td>$\det(A)$</td><td>determinant: signed volume scale factor</td><td>scalar</td></tr>
+    <tr><td>$\rank(A)$</td><td>rank: count of independent columns</td><td>scalar</td></tr>
+    <tr><td>$\lambda_i$, $\mathbf{v}_i$</td><td>eigenvalue and eigenvector</td><td>n/a</td></tr>
+    <tr><td>$\sigma_i$</td><td>singular value; always $\geq 0$, sorted descending</td><td>n/a</td></tr>
+    <tr><td>$\Lambda$</td><td>diagonal matrix of eigenvalues</td><td>$n \times n$</td></tr>
+    <tr><td>$\Sigma$</td><td>diagonal matrix of singular values</td><td>$m \times n$</td></tr>
+    <tr><td>$Q$</td><td>orthogonal matrix; $Q^{-1} = Q^\top$</td><td>$n \times n$</td></tr>
+    <tr><td>$\mathbb{R}^{m \times n}$</td><td>the set of real $m \times n$ matrices</td><td>n/a</td></tr>
+    <tr><td>$\in$</td><td>"is an element of": read it as a type annotation</td><td>n/a</td></tr>
+  </tbody>
+</table>
+
+<h3><span class="num">B</span> NumPy translation table</h3>
+
+<p>Math on the left, code on the right. The mismatches are where bugs live.</p>
+
+<table class="compact">
+  <thead><tr><th>Math</th><th>NumPy</th><th>Watch out</th></tr></thead>
+  <tbody>
+    <tr><td>$A\mathbf{x}$</td><td><code>A @ x</code></td><td>not <code>A * x</code></td></tr>
+    <tr><td>$AB$</td><td><code>A @ B</code></td><td><code>*</code> is elementwise and fails silently for square matrices</td></tr>
+    <tr><td>$A \odot B$</td><td><code>A * B</code></td><td>shapes must match or broadcast</td></tr>
+    <tr><td>$A^\top$</td><td><code>A.T</code></td><td>a view, not a copy</td></tr>
+    <tr><td>$\mathbf{u}^\top\mathbf{v}$</td><td><code>u @ v</code></td><td>returns a scalar for 1-D inputs</td></tr>
+    <tr><td>$\mathbf{u}\mathbf{v}^\top$</td><td><code>np.outer(u, v)</code></td><td><code>u @ v.T</code> does <i>not</i> work for 1-D arrays</td></tr>
+    <tr><td>$A^{-1}\mathbf{b}$</td><td><code>np.linalg.solve(A, b)</code></td><td>never <code>inv(A) @ b</code></td></tr>
+    <tr><td>$A^{+}\mathbf{b}$</td><td><code>np.linalg.lstsq(A, b, rcond=None)</code></td><td>preferred over <code>pinv</code></td></tr>
+    <tr><td>$\|\mathbf{x}\|_2$</td><td><code>np.linalg.norm(x)</code></td><td><code>ord=1</code>, <code>ord=np.inf</code> for others</td></tr>
+    <tr><td>$\|A\|_F$</td><td><code>np.linalg.norm(A)</code></td><td>the default for 2-D input is Frobenius</td></tr>
+    <tr><td>eigen (symmetric)</td><td><code>np.linalg.eigh(A)</code></td><td>returns <b>ascending</b> eigenvalues</td></tr>
+    <tr><td>eigen (general)</td><td><code>np.linalg.eig(A)</code></td><td>may return complex values</td></tr>
+    <tr><td>SVD</td><td><code>np.linalg.svd(A, full_matrices=False)</code></td><td>returns $V^\top$, not $V$: a very common slip</td></tr>
+    <tr><td>$\rank(A)$</td><td><code>np.linalg.matrix_rank(A)</code></td><td>uses a tolerance; never test <code>det == 0</code></td></tr>
+    <tr><td>$\tr(A)$</td><td><code>np.trace(A)</code></td><td>n/a</td></tr>
+    <tr><td>$I_n$</td><td><code>np.eye(n)</code></td><td>n/a</td></tr>
+    <tr><td>$\diag(\mathbf{v})$</td><td><code>np.diag(v)</code></td><td>on a matrix it <i>extracts</i> the diagonal instead</td></tr>
+    <tr><td>condition number</td><td><code>np.linalg.cond(A)</code></td><td>check it before trusting a solve</td></tr>
+  </tbody>
+</table>
+
+<div class="box pitfall">
+  <span class="label">Pitfall: the 1-D versus column-vector trap</span>
+  <p>NumPy distinguishes shape <code>(n,)</code> from <code>(n, 1)</code>, and
+  mathematics does not. A <code>(n,)</code> array is neither a row nor a column; it
+  adapts to context, which is convenient right up until it silently broadcasts into
+  something unintended. If <code>x.shape</code> is <code>(3,)</code> and
+  <code>y.shape</code> is <code>(3, 1)</code>, then <code>x + y</code> is a
+  <code>(3, 3)</code> matrix rather than the vector you expected. When a result has more
+  axes than you planned, this is the first thing to check. Use
+  <code>x.reshape(-1, 1)</code> to be explicit when you need a genuine column.</p>
+</div>
+
+<h3><span class="num">C</span> Error messages, decoded</h3>
+
+<p>The four errors you will actually hit, and what each is really telling you.</p>
+
+<h4><code>ValueError: matmul: Input operand 1 has a mismatch in its core dimension 0</code></h4>
+<p>The inner dimensions do not agree. Print both shapes and check the chaining rule from
+§5: $(m \times \underline{n})(\underline{n} \times p)$. Nine times out of ten a
+transpose is missing, or two operands are in the wrong order.</p>
+
+<h4><code>ValueError: operands could not be broadcast together with shapes (3,4) (5,4)</code></h4>
+<p>An elementwise operation on incompatible shapes. Broadcasting aligns axes from the
+<b>right</b> and requires each pair to be equal or to contain a 1. Here $3$ against $5$
+in the leading axis satisfies neither.</p>
+
+<h4><code>LinAlgError: Singular matrix</code></h4>
+<p>You asked to invert or solve with a rank-deficient matrix: §12's information-loss
+case. Do not reach for a workaround immediately; ask <i>why</i> it is singular.
+Duplicate features? A constant column? More unknowns than equations? The fix is usually
+<code>lstsq</code>, but the diagnosis matters more than the fix.</p>
+
+<h4>No error at all, and the numbers are wrong</h4>
+<p>The dangerous one. Ranked by how often it is the culprit:</p>
+<ol class="tight">
+  <li><code>*</code> used where <code>@</code> was meant, silent whenever shapes happen to be compatible.</li>
+  <li>Broadcasting that produced an extra axis you did not notice.</li>
+  <li><code>eigh</code> output used without sorting descending.</li>
+  <li>Data not centred before PCA.</li>
+  <li>A missing transpose, in code where the shapes happen to work both ways.</li>
+</ol>
+<p>The defence is the habit from §0.4: assert your shapes. A single
+<code>assert H.shape == (batch, hidden)</code> in the right place catches most of
+these instantly, and costs nothing.</p>
+
+<h3><span class="num">D</span> Where each idea reappears</h3>
+
+<p>Part I is an investment. Here is the return schedule, worth glancing at when a
+section feels unmotivated.</p>
+
+<table class="compact">
+  <thead><tr><th>From this chapter</th><th>Comes back in</th></tr></thead>
+  <tbody>
+    <tr><td>Matrix multiplication (§4–5)</td><td>Every forward pass, everywhere. Part VII onward.</td></tr>
+    <tr><td>Transpose rules (§6)</td><td>Backpropagation: gradients flow through $W^\top$. Part VII §14.</td></tr>
+    <tr><td>Rank and column space (§11–12)</td><td>Feature redundancy, model capacity, LoRA. Part XIX §32.</td></tr>
+    <tr><td>Conditioning (§13)</td><td>Why gradient descent zigzags; momentum and Adam. Part III §9, §15–16.</td></tr>
+    <tr><td>Norms (§14–15)</td><td>Weight decay, $L^1$ sparsity, gradient clipping. Part VIII §4–5, Part XI §13.</td></tr>
+    <tr><td>Orthogonality (§16)</td><td>Weight initialisation; vanishing gradients. Part VII §11, Part XI §11–13.</td></tr>
+    <tr><td>Eigendecomposition (§17)</td><td>Hessian analysis; PCA; spectral methods. Part III §10.</td></tr>
+    <tr><td>Positive definiteness (§18)</td><td>The second derivative test; saddle points. Part III §8, §10.</td></tr>
+    <tr><td>SVD (§19)</td><td>PCA, pseudoinverse, model compression, LoRA. Part III §20, Part XIX §32.</td></tr>
+    <tr><td>Pseudoinverse (§20)</td><td>Linear regression, the opening of Part III §20.</td></tr>
+    <tr><td>PCA (§23)</td><td>The baseline every autoencoder is measured against.</td></tr>
+  </tbody>
+</table>
+
+<h3><span class="num">E</span> If you want more</h3>
+
+<p>Three genuinely different resources, listed in the order most people benefit from
+them:</p>
+
+<dl>
+  <dt>3Blue1Brown: <i>Essence of Linear Algebra</i></dt>
+  <dd>A short video series built entirely on the function view of §4. If the geometric
+  picture is the part not clicking, watch this first. Free on YouTube.</dd>
+
+  <dt>Gilbert Strang: <i>Introduction to Linear Algebra</i>, and MIT 18.06</dt>
+  <dd>The standard full course, lectures free on MIT OpenCourseWare. Strang emphasises
+  the column view more than most texts, which aligns well with how this part is
+  organised.</dd>
+
+  <dt>Trefethen &amp; Bau: <i>Numerical Linear Algebra</i></dt>
+  <dd>For when §13 and §19 leave you wanting the real story about conditioning and
+  stability. Harder, and worth it if you end up doing numerical work.</dd>
+</dl>
+
+<hr>
+
+<h3>Onward</h3>
+
+<p>You now have the vocabulary the rest of this book is written in. Part II changes
+subject to probability and leans on Part I only lightly, so it is a reasonable place
+to catch your breath. Part III brings both together and is where the climb resumes in
+earnest.</p>
+
+<p>One last thing worth saying plainly. If parts of this were hard, that is the material
+being hard, not you being slow. Eigendecomposition took mathematicians a couple of
+centuries to work out properly. Spending a few days on it is not a delay; it is roughly
+the correct amount of time.</p>
+
+

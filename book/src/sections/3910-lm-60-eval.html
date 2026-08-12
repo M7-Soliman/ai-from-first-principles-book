@@ -1,0 +1,99 @@
+<h2><span class="part-kicker">Part F</span>Evaluation</h2>
+
+<h3><span class="num">§40</span> Why this is the hardest part</h3>
+
+<div class="box def">
+  <span class="label">Four difficulties, compounding</span>
+  <p><b>The output space is open.</b> There is no right answer to compare against, only a space of
+  acceptable ones: Part XVI §40's problem, with the additional feature that acceptability depends
+  on the asker.</p>
+  <p><b>The capability surface is enormous.</b> A model that writes code, summarises, translates and
+  reasons has no single axis, and any benchmark samples a tiny corner of it.</p>
+  <p><b>The training corpus is unpublished.</b> Part XIII §13's contamination question cannot be
+  answered from outside, for any model whose data is not disclosed.</p>
+  <p><b>The thing you care about is deployment behaviour</b>, which is a distribution of real
+  requests you do not have at evaluation time.</p>
+</div>
+
+<h3><span class="num">§41</span> Benchmarks, and their decay</h3>
+
+<div class="box why">
+  <span class="label">The lifecycle, which is now predictable</span>
+  <p>A benchmark is released and is hard. It becomes a target. Scores rise, partly from genuine
+  improvement and partly from Part XIV §22's three mechanisms: contamination, saturation and
+  community overfitting. Within a few years it is uninformative and a replacement appears.</p>
+  <p>This is not misconduct and it is not avoidable by trying harder. It is Goodhart's law
+  (Part XIV §33) operating on a shared public target, and the only structural defences are the ones
+  Part XIV named: <b>held-out sets used once</b>, benchmarks refreshed with new items, and private
+  evaluations that never enter the corpus.</p>
+  <p>The practical consequence for reading results: a score on a benchmark older than the model is
+  weak evidence, and the age of the benchmark relative to the model's training cutoff is a number
+  worth checking.</p>
+</div>
+
+<h3><span class="num">§42</span> Model-as-judge, again</h3>
+
+<div class="box def">
+  <span class="label">What Part XIV established, and what is specific here</span>
+  <p>Part XIV §24 gave the method and its biases (position, verbosity, self-preference) and the
+  requirement that its agreement with your own labels be measured on your own task.</p>
+  <p>Two things specific to evaluating language models. The judge is usually a model from the same
+  family as one of the contestants, so <b>self-preference</b> is not a hypothetical. And §31's
+  verbosity bias means the judge shares the annotators' preference for length, so a model tuned to
+  be verbose scores well with a judge trained on people who liked verbose answers, a correlated
+  error rather than an independent one.</p>
+  <p>The controls are the obvious ones and are cheap: randomise position, control for length, and
+  use a judge from a different family than either contestant.</p>
+</div>
+
+<h3><span class="num">§43</span> What cannot currently be measured well</h3>
+
+<div class="box def">
+  <span class="label">Four gaps, stated as gaps</span>
+  <p><b>Reliability.</b> Benchmarks report average accuracy. Deployments care about the worst case
+  and about consistency across paraphrases of the same request, and almost nothing reports
+  either.</p>
+  <p><b>Calibration.</b> Part XIV §5's measurement applied to open-ended output is not solved:
+  there is no agreed way to extract a confidence from a free-form answer, and the model's stated
+  confidence is a learned register (§31) rather than a probability.</p>
+  <p><b>Long-horizon behaviour.</b> §36's agents are evaluated on short tasks because long ones are
+  expensive and noisy, so the regime that matters most is measured least.</p>
+  <p><b>Harm.</b> Part XXI's subject. Benchmarks for it exist, they are narrow, and the space of
+  misuse is adversarial and therefore not sampled by any fixed set.</p>
+</div>
+
+<h3><span class="num">§44</span> Capability against reliability</h3>
+
+<div class="box why">
+  <span class="label">The gap that matters most in practice</span>
+  <p>The distinction worth carrying out of this part: <b>can it ever</b> versus <b>does it
+  always</b>. Benchmarks measure the first. Almost every real difficulty is the second.</p>
+  <p>A model that answers correctly 95% of the time is impressive on a benchmark and difficult to
+  build on, because §36's arithmetic applies: chained twenty deep it succeeds a third of the time,
+  and a system that fails unpredictably one time in twenty needs an error path for every use.</p>
+  <p>This is why so much of movements D and E is about <b>constraining</b> rather than improving:
+  tools that compute rather than guess, verifiers that check, retrieval that grounds, structured
+  output that cannot be malformed. Each converts a probabilistic behaviour into something with a
+  failure mode you can handle.</p>
+  <p>And it is why the capability-first framing misleads about deployment. The question is rarely
+  whether the model can do the task. It is what happens the one time in twenty that it does
+  not.</p>
+</div>
+
+<h3><span class="num">§45</span> What movements A to F establish</h3>
+
+<div class="box intuition">
+  <span class="label">The one thing</span>
+  <p><b>Almost nothing in this part is specific to language.</b></p>
+  <p>The architecture is Part XII's, the objective Part XVI's, the scaling Part XVII's, the
+  alignment machinery Part XVIII's, the serving Part XIX's. What is genuinely particular to language
+  is the tokenizer, and the tokenizer turns out to explain a family of failures that looked like
+  reasoning failures.</p>
+  <p>That is the useful way to hold this subject. A language model is not a new kind of object. It
+  is the objects of the preceding nine parts, composed, at a scale where the composition produced
+  behaviours nobody designed: in-context learning most clearly, and it emerged from an architecture
+  chosen for throughput and an objective chosen for tractability.</p>
+  <p>The second thing, because it is what deployment turns on: <b>capability is not reliability</b>,
+  benchmarks measure the first, and the engineering that makes these systems usable is almost
+  entirely about the second.</p>
+</div>

@@ -1,0 +1,550 @@
+<h2><span class="part-kicker">Part C</span>The objective, and where to start</h2>
+
+<h3><span class="num">§9</span> The cost function is a log-likelihood</h3>
+
+<div class="sixty">
+  <span class="label">In 60 seconds</span>
+  <p>You do not choose a loss function for a network. You choose what distribution the output
+  represents, and the loss is its negative log-likelihood. Part II §26 established this; this
+  section notes that nothing about depth changes it.</p>
+</div>
+
+$$J(\boldsymbol{\theta}) = -\mathbb{E}_{(\mathbf{x},y)\sim\hat{p}_{\text{data}}}\big[\log p_{\text{model}}(y \mid \mathbf{x};\boldsymbol{\theta})\big]$$
+
+<p>That is Part II's maximum likelihood, with the model now being a network instead of a
+linear map. The derivation is identical because it never depended on the model's form,
+which is exactly why the same loss serves logistic regression and a fifty-layer
+network.</p>
+
+<h3><span class="num">§10</span> Why cross-entropy and not squared error</h3>
+
+<p>For classification you could, in principle, use squared error on the sigmoid output. It is
+a legitimate loss and it trains badly. The reason is worth seeing, because it is the clearest
+case in this book of a loss function's <i>gradient</i> mattering more than its shape.</p>
+
+<figure>
+  <img src="figures/nn/06-ce-vs-mse.svg" alt="Loss and gradient magnitude for squared error versus cross-entropy against the logit">
+  <figcaption><b>Figure 6.</b> A unit whose true label is 1, plotted against its logit. Left:
+  both losses fall as the model improves. Right, and decisively: the <b>gradient</b>. When the
+  model is confidently wrong (far left), squared error's gradient has collapsed to nearly
+  zero, so learning stalls exactly where correction is most needed. Cross-entropy's stays at
+  its maximum where the model is most wrong, instead of collapsing to zero.</figcaption>
+</figure>
+
+<div class="worked">
+  <span class="label">Worked: where the difference comes from</span>
+  <p>With $a = \sigma(z)$ and target $y = 1$:</p>
+  <p><b>Squared error</b> $L = (a-1)^2$. By the chain rule,
+  $\dfrac{\partial L}{\partial z} = 2(a-1)\cdot\sigma'(z) = 2(a-1)\,a(1-a)$.</p>
+  <p>That $a(1-a)$ factor is the sigmoid's derivative, and Part 0 §18 showed it collapses to
+  zero when the unit saturates. A confidently wrong unit has $a \approx 0$, so the gradient is
+  $\approx 0$; the unit is stuck.</p>
+  <p><b>Cross-entropy</b> $L = -\log a$. Working through,
+  $\dfrac{\partial L}{\partial z} = a - 1$.</p>
+  <p>The $\sigma'$ factor <b>cancels exactly</b>. A confidently wrong unit has gradient
+  $\approx -1$: the largest correction available. The log in the loss undoes the exponential
+  in the sigmoid, which is not a coincidence; it is why the pairing in §6's table is the
+  right one.</p>
+</div>
+
+<h4>Which statistic of the answer are you asking for?</h4>
+
+<p>There is a second, less obvious consequence of choosing a loss, and it is one of the
+most useful facts in this part. Section 9 said the loss follows from the distribution you
+claim the output has. But suppose you do not want a whole distribution; suppose you just
+want <i>a number</i>. Which number you get is decided entirely by the loss.</p>
+
+<div class="box def">
+  <span class="label">The two you will meet</span>
+  <p>Minimising <b>squared error</b> over all possible functions gives, at each input, the
+  <b>mean</b> of $y$ given $\mathbf{x}$:</p>
+  <p>$$f^*(\mathbf{x}) = \mathbb{E}\big[y \mid \mathbf{x}\big]$$</p>
+  <p>Minimising <b>absolute error</b> gives the <b>median</b> instead.</p>
+</div>
+
+<p>Both follow from a short optimisation argument. The value $c$ minimising
+$\mathbb{E}[(y-c)^2]$ is the mean: differentiate and set to zero and you get
+$c = \mathbb{E}[y]$ immediately. The value minimising $\mathbb{E}[|y-c|]$ is the median,
+because the derivative of $|y-c|$ is $\pm 1$ and the total balances when half the mass sits
+either side.</p>
+
+<p>Your network is doing this <b>separately at every input</b>. It is not fitting a curve
+through the data; it is estimating a summary statistic of the conditional distribution, and
+the loss chooses which summary.</p>
+
+<div class="box why">
+  <span class="label">Why this explains blurry generated images</span>
+  <p>Train a model to predict the next video frame under squared error. For a genuinely
+  ambiguous input there are many plausible next frames, and the model returns the
+  <b>average</b> of them, because that is what squared error asks for.</p>
+  <p>The average of several sharp images is a blurry image. Not a slightly worse image: a
+  qualitatively different kind of object, one that may resemble no plausible frame at all.
+  Part II §18's mixture drill made exactly this point: the mean of a bimodal distribution
+  can sit where the distribution has essentially no mass.</p>
+  <p>So the blurriness so often blamed on model capacity is frequently the loss doing
+  precisely what it was asked. It is also why generative models in Part XVI abandon
+  per-pixel squared error entirely: if you want a <i>sample</i> rather than an <i>average</i>,
+  no choice of network fixes a loss that requests the average.</p>
+  <p>Two practical corollaries. Absolute error gives the conditional median, which for
+  images is usually sharper, a real and cheap improvement. And when the conditional
+  distribution is genuinely multimodal, the honest move is to model the distribution rather
+  than a summary of it, which is what a mixture density output does.</p>
+</div>
+
+<h3><span class="num">§11</span> Initialisation</h3>
+
+<div class="sixty">
+  <span class="label">In 60 seconds</span>
+  <p>Weights cannot start at zero; every unit would compute the same thing forever. They
+  cannot be large or small either: the forward signal is multiplied once per layer, so any
+  systematic scaling compounds and either explodes or dies. The fix is to scale the initial
+  weights by $1/\sqrt{n_{\text{in}}}$, which keeps the variance roughly constant with
+  depth.</p>
+</div>
+
+<div class="readnow"><span class="label">Go and read</span><p><span class="src">Glorot &amp; Bengio (2010)</span>, <i>Understanding the difficulty of training deep feedforward neural networks</i>. The variance argument of this section, in its original form, and note the title, which is a fair description of what the field was doing at the time. Then <span class="src">He et al. (2015)</span> for the factor of two that ReLU requires. Part IX §16 returns to both, because the derivation here uses only the forward pass and there is a second half.</p></div>
+
+<figure>
+  <img src="figures/nn/07-initialization.svg" alt="Activation and gradient magnitude across 30 layers under three initialisation scales">
+  <figcaption><b>Figure 7.</b> Real forward and backward passes through 30 layers. Too small
+  and the signal is gone within ten layers; too large and it explodes past anything
+  representable. Scaling by $\sqrt{2/n}$ holds it roughly constant the whole way, and the
+  backward pass, right, has exactly the same three fates.</figcaption>
+</figure>
+
+<div class="box intuition">
+  <span class="label">Intuition: keep the variance from compounding</span>
+  <p>A unit sums $n$ incoming terms. If each weight has variance $\sigma^2$ and each input
+  has variance 1, the sum has variance $n\sigma^2$. To keep that at 1 you need
+  $\sigma^2 = 1/n$, so weights scale as $1/\sqrt{n_{\text{in}}}$.</p>
+  <p>With ReLU, roughly half the units are zero at any moment, which halves the variance. The
+  correction is a factor of two: $\sigma^2 = 2/n$. That is the whole derivation of what is
+  usually called He initialisation, and it is the reason the number 2 appears in it.</p>
+</div>
+
+<div class="box pitfall">
+  <span class="label">Pitfall: zero initialisation breaks symmetry</span>
+  <p>Initialise every weight to zero and every unit in a layer computes the identical
+  function, receives the identical gradient, and updates identically, forever. The layer
+  behaves as a single unit no matter how wide it is.</p>
+  <p><b>Biases</b> may safely start at zero, because the incoming weights already differ.
+  It is only the weight matrices that need randomness, and its purpose is symmetry breaking
+  rather than anything statistical.</p>
+</div>
+
+<h2><span class="part-kicker">Part D</span>Backpropagation</h2>
+
+<h3><span class="num">§12</span> Computational graphs</h3>
+
+<div class="sixty">
+  <span class="label">In 60 seconds</span>
+  <p>Any expression can be drawn as a graph: nodes are operations, edges carry values. Once
+  you have that graph, differentiating is mechanical: attach a local derivative to each edge
+  and multiply along paths. Backpropagation is that procedure, organised so shared work is
+  computed once.</p>
+</div>
+
+<figure>
+  <img src="figures/nn/08-computational-graph.svg" alt="A small expression drawn as a directed acyclic graph with a backward arrow">
+  <figcaption><b>Figure 8.</b> The expression $L = (\sigma(wx + b) - y)^2$ as a graph. Each
+  node is one elementary operation whose local derivative is known. The forward pass computes
+  left to right; the backward pass multiplies local derivatives right to left. Every framework
+  builds exactly this object.</figcaption>
+</figure>
+
+<p>It is worth being explicit about what redrawing an expression as a graph buys, because on
+first sight it looks like notation rather than progress.</p>
+
+<p>The problem with differentiating a neural network is not that any individual step is hard.
+It is that the composed expression is enormous: fifty layers of matrix multiplications and
+nonlinearities, written out in full, is a formula nobody could hold, let alone
+differentiate by inspection. Attacking it as <i>one expression</i> is hopeless.</p>
+
+<p>The graph dissolves that difficulty by refusing to form the expression at all. Every node
+is a single elementary operation (an add, a multiply, a sigmoid) whose derivative is
+something you learned in Part 0 §16 and could write down in a second. <b>The complexity was
+never in the operations; it was in their composition</b>, and composition is exactly what
+the chain rule already knows how to handle.</p>
+
+<div class="box intuition">
+  <span class="label">Intuition: the question changes shape</span>
+  <p>Before the graph, the question is <i>how do I differentiate this enormous function?</i>
+  After it, the question is <i>how do I walk this graph?</i></p>
+  <p>That is a much better question, because walking a graph is mechanical. Each node needs
+  to know only two things: its own local derivative, and the gradient arriving from the node
+  in front. Neither requires any knowledge of the network as a whole; a node does not know
+  whether it sits in layer 2 or layer 50, and does not need to.</p>
+  <p>This is why a framework can differentiate an architecture nobody has invented yet.
+  It never analyses your model. It only ever composes local rules, and locality is what makes
+  the procedure indifferent to what you built.</p>
+</div>
+
+<h3><span class="num">§13</span> Forward mode and reverse mode</h3>
+
+<div class="readnow"><span class="label">Go and read</span><p><span class="src">Baydin, Pearlmutter, Radul &amp; Siskind (2018)</span>, <i>Automatic differentiation in machine learning: a survey</i>. The clearest modern account of what this section covers and what frameworks actually do with it, including the distinction, routinely muddled, between automatic differentiation, symbolic differentiation and numerical differencing. Read it before attempting §21's engine, not after.</p></div>
+
+<p>There are two ways to apply the chain rule to a graph, and choosing correctly is worth a
+factor of a million.</p>
+
+<p><b>Forward mode</b> propagates derivatives with respect to <i>one input</i> forward through
+the graph. One pass gives you $\partial(\text{everything})/\partial x_i$, the effect of one
+input on all outputs.</p>
+
+<p><b>Reverse mode</b> propagates derivatives of <i>one output</i> backward. One pass gives
+you $\partial L/\partial(\text{everything})$, the effect of all inputs on one output.</p>
+
+<figure>
+  <img src="figures/nn/09-forward-vs-reverse.svg" alt="Forward mode cost growing linearly with input count while reverse mode stays constant">
+  <figcaption><b>Figure 9.</b> Cost of computing a full gradient. Forward mode needs one pass
+  per input; reverse mode needs one pass total, regardless. For a network with a million
+  parameters and one scalar loss, that is a million-fold difference, and it is the reason
+  training is possible at all.</figcaption>
+</figure>
+
+<div class="box intuition">
+  <span class="label">Intuition: count the ends</span>
+  <p>The rule is simply which end is narrower. <b>Many inputs, one output</b>: go backward.
+  <b>One input, many outputs</b>: go forward.</p>
+  <p>Training a network is the extreme case of the first: millions of parameters, one scalar
+  loss. Reverse mode is not a clever optimisation here; it is the only tractable option, and
+  "backpropagation" is just its name in this field.</p>
+</div>
+
+<h4>Why one backward pass is enough</h4>
+
+<p>The claim in Figure 9 is strong enough to deserve an argument: a <i>single</i> traversal
+yields the derivative of the loss with respect to <b>every</b> parameter, however many there
+are. That sounds like getting a million answers for the price of one, and it is worth seeing
+where the saving comes from.</p>
+
+<p>It comes from <b>sharing</b>. Consider a weight buried in the first layer. Its influence
+on the loss travels forward through every subsequent layer, and so does the influence of
+every <i>other</i> first-layer weight. They all traverse the same path through layers 2
+onward. The chain rule says each weight's gradient is a product of factors along its route,
+and those routes overlap almost entirely.</p>
+
+<p>Reverse mode exploits that overlap directly. Working backwards, it computes the gradient
+at each <b>node</b> once, and every parameter feeding that node then reuses it. The shared
+tail of the journey is computed a single time rather than once per parameter.</p>
+
+<div class="box intuition">
+  <span class="label">Intuition: distances to one city, not between all pairs</span>
+  <p>Suppose you want the distance from every town in a country to one capital.</p>
+  <p>The naive method takes each town in turn and traces its route, retracing the same
+  motorway every time, because near the capital all routes coincide. That is forward mode:
+  one pass per starting point, with the shared portion repeated.</p>
+  <p>The efficient method starts <i>at the capital</i> and works outward, recording each
+  junction's distance once. Any town beyond that junction just adds its own last leg. That is
+  reverse mode, and the loss is the capital.</p>
+  <p>The saving is exactly the amount of route the towns have in common, which, in a deep
+  network where every early parameter must pass through every later layer, is nearly
+  all of it.</p>
+</div>
+
+<p>Which also explains the asymmetry in the rule above. Reverse mode is efficient when there
+is <b>one destination</b> and many origins, because then everything shares. With many outputs
+it loses that advantage; you would need one backward pass per output, and forward mode
+becomes the better choice. Training has exactly one output, the scalar loss, and that single
+fact is what makes the whole enterprise affordable.</p>
+
+<h3><span class="num">§14</span> Backpropagation, derived</h3>
+
+<p>Now the derivation. For a network of layers, write $\mathbf{z}^{(k)} = W^{(k)}\mathbf{a}^{(k-1)}
++ \mathbf{b}^{(k)}$ and $\mathbf{a}^{(k)} = g(\mathbf{z}^{(k)})$.</p>
+
+<p>Define the quantity that does all the work, the gradient of the loss with respect to a
+layer's pre-activation:</p>
+
+$$\boldsymbol{\delta}^{(k)} = \frac{\partial L}{\partial \mathbf{z}^{(k)}}$$
+
+<div class="box def">
+  <span class="label">The four equations</span>
+  <p><b>1. At the output.</b> With the matched pairing of §6 (softmax or sigmoid with
+  cross-entropy), this is simply</p>
+  <p>$$\boldsymbol{\delta}^{(L)} = \hat{\mathbf{y}} - \mathbf{y}$$</p>
+  <p><b>2. Propagate backward.</b> Push through the weights, then through the activation:</p>
+  <p>$$\boldsymbol{\delta}^{(k)} = \big(W^{(k+1)\top}\boldsymbol{\delta}^{(k+1)}\big) \odot g'\big(\mathbf{z}^{(k)}\big)$$</p>
+  <p><b>3. Weight gradients.</b></p>
+  <p>$$\frac{\partial L}{\partial W^{(k)}} = \boldsymbol{\delta}^{(k)} \mathbf{a}^{(k-1)\top}$$</p>
+  <p><b>4. Bias gradients.</b></p>
+  <p>$$\frac{\partial L}{\partial \mathbf{b}^{(k)}} = \boldsymbol{\delta}^{(k)}$$</p>
+</div>
+
+<p>That is the entire algorithm. Everything else is bookkeeping.</p>
+
+<h4>Where the four equations come from</h4>
+
+<p>They are not postulated. Each is the chain rule applied to a specific question, and the
+only technique involved is one you have had since Part 0 §17: <b>to find how something
+affects the loss, sum over every route by which it does.</b> Take them in order of
+difficulty rather than in the order they are numbered.</p>
+
+<p>One preliminary. Everything below hinges on knowing which quantities a given variable can
+reach. Look at the two lines defining a layer:</p>
+
+$$\mathbf{z}^{(k)} = W^{(k)}\mathbf{a}^{(k-1)} + \mathbf{b}^{(k)}, \qquad
+  \mathbf{a}^{(k)} = g\big(\mathbf{z}^{(k)}\big)$$
+
+<p>and note that $b^{(k)}_i$ and the weights in row $i$ of $W^{(k)}$ influence
+<b>only</b> $z^{(k)}_i$, one component, not the whole vector. That is why the sums below
+collapse to single terms, and it is the entire reason these equations are simple.</p>
+
+<div class="worked long">
+  <span class="label">Equation 4: the bias</span>
+  <p>Ask how $b^{(k)}_i$ reaches the loss. Its only route is through $z^{(k)}_i$, so the
+  chain rule is a product of two factors rather than a sum over many:</p>
+  <p>$\dfrac{\partial L}{\partial b^{(k)}_i}
+     = \dfrac{\partial L}{\partial z^{(k)}_i}\cdot\dfrac{\partial z^{(k)}_i}{\partial b^{(k)}_i}$</p>
+  <p>The first factor is $\delta^{(k)}_i$, by the definition we just made. The second is the
+  derivative of $\;W^{(k)}\mathbf{a}^{(k-1)} + \mathbf{b}^{(k)}\;$ with respect to a bias that
+  appears in it exactly once, added, so it is <b>1</b>.</p>
+  <p>$$\frac{\partial L}{\partial \mathbf{b}^{(k)}} = \boldsymbol{\delta}^{(k)}$$</p>
+  <p>The bias gradient <i>is</i> $\delta$. Nothing was computed; $\delta$ was already the
+  answer, which is why it was worth defining.</p>
+</div>
+
+<div class="worked long">
+  <span class="label">Equation 3: the weights</span>
+  <p>Same question for $W^{(k)}_{ij}$, the weight from input $j$ into unit $i$. Again it
+  reaches the loss only through $z^{(k)}_i$:</p>
+  <p>$\dfrac{\partial L}{\partial W^{(k)}_{ij}}
+     = \delta^{(k)}_i \cdot \dfrac{\partial z^{(k)}_i}{\partial W^{(k)}_{ij}}$</p>
+  <p>Now $z^{(k)}_i = \sum_n W^{(k)}_{in} a^{(k-1)}_n + b^{(k)}_i$. Differentiating that sum
+  with respect to one particular $W^{(k)}_{ij}$ kills every term except $n = j$, leaving the
+  coefficient it multiplied:</p>
+  <p>$\dfrac{\partial z^{(k)}_i}{\partial W^{(k)}_{ij}} = a^{(k-1)}_j$</p>
+  <p>So $\;\partial L/\partial W^{(k)}_{ij} = \delta^{(k)}_i\, a^{(k-1)}_j$, an entry indexed
+  by $i$ from one vector times an entry indexed by $j$ from another, which is precisely the
+  outer product of Part I §6:</p>
+  <p>$$\frac{\partial L}{\partial W^{(k)}} = \boldsymbol{\delta}^{(k)}\,\mathbf{a}^{(k-1)\top}$$</p>
+  <p>Read it as a sentence: <b>how much this weight matters is how wrong its output was,
+  times how active its input was.</b> A weight carrying a large signal into a badly wrong unit
+  gets a large gradient; a weight whose input was zero gets none at all, whatever the error,
+  which is the mechanism behind the dead unit of §19.</p>
+</div>
+
+<div class="worked long">
+  <span class="label">Equation 2: propagating backward</span>
+  <p>The only one requiring a genuine sum. Ask how $z^{(k)}_i$ reaches the loss. It first
+  becomes $a^{(k)}_i = g(z^{(k)}_i)$, and that single activation is then fed to <b>every</b>
+  unit of the next layer. So there are many routes, and the chain rule sums over all of
+  them:</p>
+  <p>$\delta^{(k)}_i = \dfrac{\partial L}{\partial z^{(k)}_i}
+     = \sum_j \dfrac{\partial L}{\partial z^{(k+1)}_j}\cdot\dfrac{\partial z^{(k+1)}_j}{\partial z^{(k)}_i}
+     = \sum_j \delta^{(k+1)}_j \cdot \dfrac{\partial z^{(k+1)}_j}{\partial z^{(k)}_i}$</p>
+  <p>For the remaining factor, expand the next layer and apply the chain rule once more:
+  through the weight, then through the activation:</p>
+  <p>$z^{(k+1)}_j = \sum_n W^{(k+1)}_{jn}\, g\big(z^{(k)}_n\big) + b^{(k+1)}_j
+    \quad\Longrightarrow\quad
+    \dfrac{\partial z^{(k+1)}_j}{\partial z^{(k)}_i} = W^{(k+1)}_{ji}\; g'\big(z^{(k)}_i\big)$</p>
+  <p>Substituting, and pulling $g'(z^{(k)}_i)$ out of the sum because it does not depend on
+  $j$:</p>
+  <p>$\delta^{(k)}_i = \Big(\sum_j W^{(k+1)}_{ji}\,\delta^{(k+1)}_j\Big)\, g'\big(z^{(k)}_i\big)$</p>
+  <p>That bracket sums over the <b>first</b> index of $W$ while the free index $i$ is the
+  second, which is exactly what $W^\top$ means. Hence:</p>
+  <p>$$\boldsymbol{\delta}^{(k)} = \big(W^{(k+1)\top}\boldsymbol{\delta}^{(k+1)}\big) \odot g'\big(\mathbf{z}^{(k)}\big)$$</p>
+  <p><b>The transpose was not a choice.</b> It fell out of the index bookkeeping, and it means
+  what Part I §6's box said it means: the same wires, read from the far end. Gradients travel
+  back through the connections they came forward through.</p>
+</div>
+
+<p>Equation 1 needs no work here, because §10 already did it. There we found that pairing a
+sigmoid output with cross-entropy makes the $\sigma'$ factor cancel exactly, leaving
+$\partial L/\partial z = a - y$. The same cancellation happens for softmax with
+cross-entropy, giving $\boldsymbol{\delta}^{(L)} = \hat{\mathbf{y}} - \mathbf{y}$, the
+prediction minus the truth, and nothing else.</p>
+
+<div class="box why">
+  <span class="label">Why the derivation is worth having done once</span>
+  <p>Three things become visible that the equations alone conceal.</p>
+  <p><b>Why $\delta$ exists.</b> It is not a notational convenience. Equations 3 and 4 turn
+  out to be trivial <i>given</i> $\delta$, so the whole problem reduces to computing one
+  vector per layer. Defining the right intermediate quantity is most of the work, and it is
+  the move you would have to reinvent for any new architecture.</p>
+  <p><b>Why only equation 2 has a sum.</b> Weights and biases each touch one unit, so their
+  routes are unique. An activation is broadcast to the entire next layer, so its routes are
+  many. The presence or absence of a sum is a fact about the wiring, readable off the graph
+  before any calculus.</p>
+  <p><b>Why the two factors in equation 2 are the two failure modes.</b> The derivation
+  produces exactly $W^\top$ and $g'$, one from the wiring and one from the nonlinearity, and
+  §18 shows that repeated multiplication by either is what makes gradients vanish or explode.
+  The problem was visible in the derivation before anyone trained a deep network.</p>
+</div>
+
+<div class="box intuition">
+  <span class="label">Intuition: read equation 2</span>
+  <p>It says the gradient arriving at layer $k$ is the gradient at layer $k+1$, sent back
+  through the same weights it came forward through (transposed, because it is travelling the
+  other way), and then multiplied by how responsive this layer's activation was.</p>
+  <p>Both factors are the whole story of §18. Multiply by $W^\top$ repeatedly and the scale
+  depends on the weights. Multiply by $g'$ repeatedly and the scale depends on the
+  activation. Depth means doing both many times, and products of many factors do not stay
+  put.</p>
+</div>
+
+<div class="box history">
+  <span class="label">History: invented repeatedly, connected slowly</span>
+  <p>Part 0 §24 noted that reverse-mode differentiation was arrived at independently several
+  times. The detail worth adding here is the <b>gap</b>.</p>
+  <p>Seppo Linnainmaa published the general method in <span class="year">1970</span>. Paul
+  Werbos proposed applying it to networks in his <span class="year">1974</span> thesis. It
+  became widely known only through a <span class="year">1986</span> paper by Rumelhart, Hinton
+  and Williams.</p>
+  <p>So the mathematical technique existed for sixteen years while the field that needed it
+  most sat in a winter caused by not having it. The obstacle was never the mathematics; it was
+  that the two communities did not overlap and neural networks were unfashionable enough that
+  a result about them could be published and not read.</p>
+</div>
+
+<h3><span class="num">§15</span> A whole network, by hand</h3>
+
+<p>Part 0 §24 did one unit. Here is a two-layer network, with the same discipline.</p>
+
+<div class="worked long">
+  <span class="label">Worked: forward and backward, with numbers</span>
+  <p><b>Setup.</b> Two inputs, two hidden ReLU units, one sigmoid output. Weights are stored
+  <b>output by input</b>, the convention of §14 and of Part I §8, so each <i>row</i> of
+  $W^{(1)}$ is one hidden unit's incoming weights.</p>
+  <p>$W^{(1)} = \begin{bmatrix} 1 & 0.5 \\ -1 & 2 \end{bmatrix}$, $\mathbf{b}^{(1)} = (0, -1)$,
+  $W^{(2)} = \begin{bmatrix} 1.5 & -1 \end{bmatrix}$, $b^{(2)} = 0.5$</p>
+  <p>Input $\mathbf{x} = (1, 2)$, target $y = 1$.</p>
+
+  <p><b>Forward.</b></p>
+  <p>$\mathbf{z}^{(1)} = W^{(1)}\mathbf{x} + \mathbf{b}^{(1)}
+   = (1(1) + 0.5(2),\; -1(1) + 2(2)) + (0,-1) = (2,\; 2)$</p>
+  <p>$\mathbf{a}^{(1)} = \text{ReLU}(2, 2) = (2, 2)$, both units active.</p>
+  <p>$z^{(2)} = 1.5(2) + (-1)(2) + 0.5 = 1.5$</p>
+  <p>$\hat{y} = \sigma(1.5) = 0.8176$</p>
+  <p>$L = -\log(0.8176) = 0.2014$</p>
+
+  <p><b>Backward.</b> Equation 1:</p>
+  <p>$\delta^{(2)} = \hat{y} - y = 0.8176 - 1 = -0.1824$</p>
+  <p>Equation 3 and 4 at the output layer:</p>
+  <p>$\dfrac{\partial L}{\partial W^{(2)}} = \delta^{(2)}\mathbf{a}^{(1)} = -0.1824 \times (2,2) = (-0.3648,\ -0.3648)$</p>
+  <p>$\dfrac{\partial L}{\partial b^{(2)}} = -0.1824$</p>
+  <p>Equation 2, propagating back. ReLU's derivative is 1 where $z > 0$, and both are:</p>
+  <p>$\boldsymbol{\delta}^{(1)} = \big(W^{(2)\top}\delta^{(2)}\big) \odot (1,1)
+   = (1.5,\ -1)\times(-0.1824) = (-0.2736,\ 0.1824)$</p>
+  <p>And the first-layer weights, by equation 3:</p>
+  <p>$\dfrac{\partial L}{\partial W^{(1)}} = \boldsymbol{\delta}^{(1)}\mathbf{x}^\top
+   = \begin{bmatrix} -0.2736 \\ 0.1824 \end{bmatrix}\begin{bmatrix} 1 & 2 \end{bmatrix}
+   = \begin{bmatrix} -0.2736 & -0.5472 \\ 0.1824 & 0.3648 \end{bmatrix}$</p>
+  <p>Check the shape against the invariant below: $W^{(1)}$ is $2\times2$ and so is its
+  gradient. Row $i$ of that matrix is how the loss responds to hidden unit $i$'s incoming
+  weights, which is $\delta^{(1)}_i$ scaled by each input in turn.</p>
+
+  <p><b>Sanity check.</b> The output was 0.82 against a target of 1, so the network should
+  increase its output. $\partial L/\partial b^{(2)}$ is negative, so gradient descent
+  <i>increases</i> $b^{(2)}$, which raises $z^{(2)}$ and raises $\hat{y}$. Correct.</p>
+</div>
+
+<div class="box shapes">
+  <span class="label">Watch the shapes</span>
+  <p>$\boldsymbol{\delta}^{(k)}$ always has the shape of $\mathbf{z}^{(k)}$. $\partial
+  L/\partial W^{(k)}$ always has the shape of $W^{(k)}$. Those two invariants catch nearly
+  every backpropagation bug you will write, and they are why §0.3 asked you to track shapes
+  in both directions.</p>
+</div>
+
+<h3><span class="num">§16</span> What a framework actually does</h3>
+
+<p>Nobody writes §14's equations for each new architecture. Frameworks apply reverse-mode
+automatic differentiation to whatever graph you build, and it is worth knowing that this is
+neither symbolic differentiation nor numerical approximation.</p>
+
+<table class="compact">
+  <thead><tr><th>Approach</th><th>What it does</th><th>Problem</th></tr></thead>
+  <tbody>
+    <tr><td><b>Numerical</b></td><td>finite differences</td><td>one pass per parameter, and inaccurate (Part III §3)</td></tr>
+    <tr><td><b>Symbolic</b></td><td>manipulates formulas</td><td>expressions blow up in size</td></tr>
+    <tr><td><b>Automatic</b></td><td>applies the chain rule numerically at each node</td><td>none of the above</td></tr>
+  </tbody>
+</table>
+
+<p>Automatic differentiation gets exact derivatives (to floating point) at a cost
+proportional to the forward pass, by never forming a symbolic expression and never
+approximating. Each operation knows its own local derivative; the framework composes
+them.</p>
+
+<h4>What the graph is made of, and why it matters</h4>
+
+<p>There are two ways to build the backward pass, and the difference decides what else the
+framework can do.</p>
+
+<dl>
+  <dt>Symbol-to-number</dt>
+  <dd>Take the graph and a set of input values, and return <b>numbers</b>: the gradients.
+  This is what the engine of §21 does, and what a reader would naturally write.</dd>
+
+  <dt>Symbol-to-symbol</dt>
+  <dd>Take the graph and return <b>another graph</b>: the one that computes the gradient.
+  The numbers come later, when you run it.</dd>
+</dl>
+
+<p>The second sounds like an indirection with no benefit, and it has one large one. If the
+derivative is itself a graph, you can <b>feed it back into the same machinery</b> and
+differentiate it again. Higher derivatives cost nothing extra in machinery, because there
+is no separate mechanism; differentiation is closed over its own output.</p>
+
+<h4>Higher-order derivatives, without ever forming the Hessian</h4>
+
+<p>Which resolves a problem Part III raised and left open. Section 12 there established that
+Newton's method needs the Hessian, that an $n$-parameter model has an $n \times n$ one, and
+that at $n = 10^6$ this is $10^{12}$ numbers, several terabytes, rebuilt every iteration.
+The conclusion was that curvature is unaffordable at scale.</p>
+
+<p>That conclusion is right about the <i>matrix</i> and wrong about the <i>curvature</i>,
+because almost no algorithm actually needs $H$. What they need is $H\mathbf{v}$ (the
+Hessian applied to one direction), and that is available for the price of a couple of
+backward passes:</p>
+
+$$H\mathbf{v} = \nabla_{\boldsymbol{\theta}}\big(\nabla_{\boldsymbol{\theta}} f \cdot \mathbf{v}\big)$$
+
+<div class="box intuition">
+  <span class="label">Intuition: read it right to left</span>
+  <p>Take the gradient. Dot it with a fixed direction $\mathbf{v}$, giving a
+  <b>scalar</b>, the rate of change of $f$ along $\mathbf{v}$. Now differentiate <i>that
+  scalar</i> with respect to the parameters.</p>
+  <p>You get a vector: how the directional derivative changes as the parameters move, which
+  is exactly the Hessian's action on $\mathbf{v}$. And because the intermediate quantity was
+  a scalar, §13's argument applies: reverse mode delivers its full gradient in one pass.</p>
+  <p><b>Cost: about two backward passes. Memory: one vector.</b> Never $n^2$ anything.</p>
+</div>
+
+<p>This is why second-order methods have not disappeared from deep learning despite Part III
+§12's objection. Conjugate gradient, Hessian-free optimisation and the Krylov methods all
+work by probing $H$ through products with chosen directions, never assembling it; and they
+are only implementable because differentiation composes with itself.</p>
+
+<p>The practical trace of this in a framework is the <code>create_graph=True</code> argument
+to <code>backward()</code>: it says <i>build the backward pass as a graph rather than as
+numbers, because I intend to differentiate it again.</i> The default is off, since most runs
+never need it and building the extra graph costs memory.</p>
+
+<h3><span class="num">§17</span> The cost of remembering</h3>
+
+<p>One consequence of §14 that surprises people: <b>the backward pass needs the forward
+pass's intermediate values.</b> Equation 3 uses $\mathbf{a}^{(k-1)}$, equation 2 uses
+$\mathbf{z}^{(k)}$.</p>
+
+<p>So every activation must be kept alive from the forward pass until it is consumed by the
+backward pass, and the <i>activation</i> term therefore scales with <b>depth times batch
+size times width</b>. In practice it is memory rather than compute that caps model size on a
+given device.</p>
+
+<p>One qualification, because the product above is often quoted as though it were the whole
+story. Equations 2 and 3 also need $W$ itself, so the weight matrices are retained too, and
+those do not scale with the batch. Part IV §6 measures the two terms separately and shows
+that on a wide model at a modest batch the parameters dominate, which is why halving the
+batch sometimes frees almost nothing.</p>
+
+<div class="box why">
+  <span class="label">Why this matters: gradient checkpointing</span>
+  <p>The standard remedy is a direct compute-for-memory trade. Store only a subset of
+  activations, and <b>recompute</b> the rest during the backward pass by re-running short
+  stretches of the forward pass.</p>
+  <p>With checkpoints spaced every $\sqrt{L}$ layers, memory drops from $O(L)$ to
+  $O(\sqrt{L})$ at the cost of roughly one extra forward pass. That trade is what makes
+  training very deep models on ordinary hardware possible, and it is a direct application of
+  knowing why the backward pass needs what it needs.</p>
+</div>

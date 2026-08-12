@@ -1,0 +1,269 @@
+<h2><span class="part-kicker">Part E</span>Making it fast</h2>
+
+<p class="lede">§13 measured the cost. This movement is what was done about it, and the useful
+lesson is that the technique which mattered most changed no asymptotics whatever, while a large
+literature with excellent asymptotics was not adopted.</p>
+
+<h3><span class="num">§27</span> Two different problems</h3>
+
+<p>Before any technique, a distinction that most treatments skip and that determines which
+technique applies.</p>
+
+<div class="box def">
+  <span class="label">Training and inference are not the same computation</span>
+  <table class="compact">
+    <thead><tr><th></th><th>Training</th><th>Generation</th></tr></thead>
+    <tbody>
+      <tr><td>Sequence</td><td>All $n$ positions at once</td><td>One new token at a time</td></tr>
+      <tr><td>Dominant cost</td><td><b>Arithmetic</b></td><td><b>Memory bandwidth</b></td></tr>
+      <tr><td>Matrix shapes</td><td>Large, dense</td><td>Tall and thin, often a vector</td></tr>
+      <tr><td>Bottleneck</td><td>FLOPs, then activation memory</td><td>Reading the weights and the cache</td></tr>
+    </tbody>
+  </table>
+  <p>Generating one token requires reading <b>every parameter of the model</b> to do a small
+  amount of arithmetic with each. The hardware is starved of data, not of compute: the exact
+  reverse of training.</p>
+</div>
+
+<div class="box why">
+  <span class="label">Why this distinction organises the rest of the movement</span>
+  <p>Almost every efficiency technique targets one side and not the other, and knowing which is
+  how you avoid applying the wrong one.</p>
+  <p><b>Training-side:</b> FlashAttention (§29), mixed precision, activation checkpointing,
+  sparse attention (§31).</p>
+  <p><b>Inference-side:</b> KV caching (§28), grouped-query attention (§30), quantization (§34),
+  speculative decoding.</p>
+  <p><b>Both:</b> mixture of experts (§33), which reduces active parameters per token.</p>
+  <p>And it explains the recurring surprise of §19's pitfall: a change that cuts FLOPs by nine
+  can leave latency untouched, because latency was never about FLOPs.</p>
+</div>
+
+<h3><span class="num">§28</span> The KV cache</h3>
+
+<p>Generate token $t$, append it, generate token $t+1$. Done naively, the second step recomputes
+the keys and values for every previous position, which have not changed.</p>
+
+<div class="box def">
+  <span class="label">Caching</span>
+  <p>Keep $K$ and $V$ for every position generated so far. At each new step compute only the new
+  position's key and value, append them, and attend.</p>
+  <p>Cost per token drops from $O(n^2 d)$ to $O(nd)$, so generating $n$ tokens goes from
+  $O(n^3)$ to $O(n^2)$. There is no approximation: the arithmetic is identical.</p>
+</div>
+
+<figure>
+  <img src="figures/at/09-kv-cache.svg" alt="KV cache size against context length, and measured generation time with and without caching">
+  <figcaption><b>Figure 9.</b> Left: the cache for a 32-layer model at $d = 4096$ in bfloat16.
+  At 131,072 tokens it is <b>68.7 GB</b>: roughly five times the weights of a 7-billion-parameter
+  model in the same precision. Right: generation timed on this machine, with and without the
+  cache.</figcaption>
+</figure>
+
+<div class="box why">
+  <span class="label">Why the cache became the binding constraint</span>
+  <p>The cache is $2 \times n_{\text{layers}} \times n \times d$ values, and it grows
+  <b>linearly with every token generated</b>, per concurrent request.</p>
+  <p>So a long-context deployment allocates most of its memory to a data structure that is not
+  the model. This is why serving systems are built around cache management rather than around
+  arithmetic: paged allocation to avoid fragmentation, sharing prefixes between requests that
+  begin identically, and evicting or compressing old entries.</p>
+  <p>It is also why §30 exists. If the cache is the constraint, then the way to serve longer
+  contexts is to make each cached entry smaller, and that is an architectural change, decided
+  when the model is designed rather than when it is deployed.</p>
+</div>
+
+<h3><span class="num">§29</span> FlashAttention</h3>
+
+<div class="sixty">
+  <span class="label">In 60 seconds</span>
+  <p>The $n \times n$ score matrix is written to memory and read back several times. Never
+  materialise it: process the sequence in tiles that fit in fast on-chip memory, and keep a
+  running softmax. Same arithmetic, same output <b>to the bit</b>, and memory drops from
+  $O(n^2)$ to $O(n)$.</p>
+</div>
+
+<div class="readnow"><span class="label">Go and read</span><p><span class="src">Dao et al. (2022)</span>, <i>FlashAttention: fast and memory-efficient exact attention with IO-awareness</i>. The word <b>exact</b> in the title is the whole argument. Read §2 for the memory hierarchy and §3 for the tiling, and notice what is absent: no approximation, no asymptotic improvement in arithmetic, and it succeeded where a decade of cleverer algorithms did not. The resource that mattered was never the one being counted.</p></div>
+
+<p>This is the technique that mattered, and it is instructive precisely because it is not an
+approximation and not an asymptotic improvement in compute.</p>
+
+<div class="box why">
+  <span class="label">Why the bottleneck was never the arithmetic</span>
+  <p>An accelerator has a small amount of very fast on-chip memory and a large amount of much
+  slower high-bandwidth memory, with the gap in bandwidth being <b>an order of magnitude or
+  more</b>. This is an <b>arithmetic-intensity</b> argument, FLOPs performed per byte moved,
+  applied to a single kernel rather than a whole forward pass; Part XIX §3 develops it properly,
+  with the roofline it implies, once inference has a chapter of its own.</p>
+  <p>A standard attention implementation computes $S = QK^\top$ and <b>writes $n^2$ values to
+  slow memory</b>. Then reads them back to softmax. Writes them again. Reads them again to
+  multiply by $V$. The arithmetic is $O(n^2d)$; the memory traffic is $O(n^2)$, and at realistic
+  sizes the traffic is what you wait for.</p>
+  <p>FlashAttention never writes the matrix. It loads a tile of $Q$ and a tile of $K, V$, does
+  the arithmetic on-chip, updates a running output and running softmax statistics, and moves on.
+  The score matrix exists only in fast memory, one tile at a time.</p>
+</div>
+
+<div class="box def">
+  <span class="label">The trick that makes it work: online softmax</span>
+  <p>A softmax appears to need all its inputs: you cannot normalise before you have seen every
+  term. The standard stable form subtracts the maximum (Part III §2), which also seems to need
+  everything.</p>
+  <p>It does not. Keep a running maximum $m$ and a running sum $\ell$. On a new tile with
+  maximum $m'$, rescale what you have by $e^{m - m_{\text{new}}}$ and add the new terms scaled
+  by $e^{m' - m_{\text{new}}}$. The same correction applies to the accumulated output.</p>
+  <p>Exact, numerically stable, and one pass. The whole technique rests on this.</p>
+</div>
+
+<div class="box why">
+  <span class="label">Why this is the most instructive optimisation in the part</span>
+  <p>It computes <b>the same function</b> (bitwise, up to floating-point summation order) and
+  it made long context practical where a decade of cleverer algorithms did not.</p>
+  <p>The lesson generalises past attention: <b>the asymptotic cost model that says
+  $O(n^2 d)$ arithmetic is the thing to reduce was measuring the wrong resource.</b> Once the
+  traffic was addressed, the quadratic arithmetic turned out to be affordable at lengths nobody
+  had thought reachable.</p>
+  <p>Which puts §§31–32's approximations in an uncomfortable position, and §32 says so plainly.</p>
+</div>
+
+<h3><span class="num">§30</span> Multi-query and grouped-query attention</h3>
+
+<p>§28 established the cache as the constraint. This is the architectural response.</p>
+
+<div class="box def">
+  <span class="label">Sharing keys and values across heads</span>
+  <p><b>Multi-head:</b> $h$ query heads, $h$ key heads, $h$ value heads. Cache size proportional
+  to $h$.</p>
+  <p><b>Multi-query:</b> $h$ query heads, <b>one</b> key head and one value head, shared by all.
+  Cache size divided by $h$.</p>
+  <p><b>Grouped-query:</b> $h$ query heads sharing $g$ key–value heads, with $1 < g < h$. Cache
+  divided by $h/g$.</p>
+  <p>The queries, where each head looks, stay independent. Only what they retrieve is shared.</p>
+</div>
+
+<p>Multi-query cuts the cache by the head count and costs a little quality. Grouped-query, with
+$g$ around 8, recovers nearly all of it while keeping most of the saving, and is the current
+default in large models. It is an unusually clean example of a design decided by a
+<b>deployment</b> constraint reaching back into the architecture.</p>
+
+<h3><span class="num">§31</span> Sparse and local attention</h3>
+
+<p>If the $n \times n$ matrix is the problem, compute only part of it. Every scheme is a choice
+of which entries to keep.</p>
+
+<div class="box def">
+  <span class="label">The standard patterns</span>
+  <ul class="tight">
+    <li><b>Local or sliding window.</b> Each position attends to the $w$ nearest. Cost $O(nw)$.
+    Stacked, the receptive field grows with depth, which is Part X §10 exactly, including the
+    $\sqrt{L}$ effective-field problem.</li>
+    <li><b>Strided.</b> Attend to every $k$-th position, so a few layers reach everything.</li>
+    <li><b>Global tokens.</b> A handful of positions attend to all and are attended by all,
+    giving every pair a two-hop path.</li>
+    <li><b>Combinations.</b> Most practical schemes are local plus a few global tokens.</li>
+  </ul>
+</div>
+
+<div class="box pitfall">
+  <span class="label">Pitfall: sparse attention gives back what §8 bought</span>
+  <p>The reason to use attention at all was §8: a path length of 1 between any two positions.
+  Local attention has a path length of $O(n/w)$ and needs depth to close it.</p>
+  <p>So a sliding-window transformer is, structurally, a convolutional network with learned
+  weights, and it inherits Part X's limitations, including the gap between theoretical and
+  effective receptive field. That is a real trade and it is often worth making; it is not the
+  free lunch the asymptotics suggest.</p>
+  <p>The honest position: sparse patterns are used in practice, usually as <b>some</b> layers
+  rather than all, with full attention retained in the rest so at least one $O(1)$ path exists.</p>
+</div>
+
+<h3><span class="num">§32</span> Linear attention</h3>
+
+<p>A more ambitious line removes the quadratic term entirely, and the mechanism is one this book
+has already derived.</p>
+
+<div class="box worked">
+  <span class="label">Worked: where the quadratic term actually comes from</span>
+  <p>Attention computes $\text{softmax}(QK^\top)V$. The parenthesisation is forced: the softmax
+  sits between $QK^\top$ and $V$, so the $n \times n$ matrix must be formed.</p>
+  <p>Replace the softmax with a kernel $\phi(\mathbf{q})^\top\phi(\mathbf{k})$ and the
+  normalisation with a sum. Now there is no nonlinearity in the middle, so you may reassociate:</p>
+  <p>$$\big(\phi(Q)\,\phi(K)^\top\big)V \;=\; \phi(Q)\,\big(\phi(K)^\top V\big)$$</p>
+  <p>The right-hand form computes a $d \times d$ matrix first. Cost $O(nd^2)$: <b>linear in
+  $n$</b>. The quadratic term was never intrinsic to attention; it came from the softmax
+  standing in the way.</p>
+</div>
+
+<div class="box why">
+  <span class="label">Why this is Part VI §15's kernel trick, backwards, and why it lost anyway</span>
+  <p>Part VI §15's kernel trick avoided computing an explicit feature map by working with inner
+  products. This does the opposite: it <b>replaces</b> the implicit kernel with an explicit
+  feature map in order to reassociate. Same identity, run in the other direction.</p>
+  <p>And there is a second reading worth having. $\phi(K)^\top V$ is a fixed-size matrix
+  summarising everything seen so far, updated additively as the sequence proceeds. That is a
+  <b>recurrent state</b>, so linear attention is a recurrent network, and Part XI §28's
+  bottleneck is exactly what it reintroduces.</p>
+  <p>Which is why, despite excellent asymptotics, these methods have not displaced softmax
+  attention. They trade the property that made attention work (an unbounded, query-dependent
+  view of the whole past) for a fixed-size summary. §40 returns to this, because the modern
+  state space models are the same trade made much more carefully.</p>
+</div>
+
+<h3><span class="num">§33</span> Mixture of experts</h3>
+
+<div class="readnow"><span class="label">Go and read</span><p><span class="src">Shazeer et al. (2017)</span>, <i>Outrageously large neural networks: the sparsely-gated mixture-of-experts layer</i>. Conditional computation, with the load-balancing problem confronted rather than mentioned. Note where the experts are placed: the feedforward layer, because §15 says that is where the parameters are. Then <span class="src">Shazeer (2019)</span>, <i>Fast transformer decoding</i>, two pages of multi-query attention and an unusually clean case of a serving constraint reaching back into the architecture.</p></div>
+
+<p>§15 established that two thirds of the parameters are in the feedforward layer. This is what
+follows if you take that seriously.</p>
+
+<div class="box def">
+  <span class="label">Conditional computation</span>
+  <p>Replace the single feedforward layer with $E$ of them, <b>experts</b>, and a small router
+  that, per token, selects $k$ of them (typically $k = 1$ or $2$). Only the selected experts run.</p>
+  <p>Total parameters scale with $E$; compute per token scales with $k$. A model with 8× the
+  parameters can cost the same per token as one without.</p>
+</div>
+
+<div class="box why">
+  <span class="label">Why this decouples two things that had been welded together</span>
+  <p>Part XVII's scaling laws relate performance to parameters and to compute. Dense models tie
+  them: every parameter participates in every token, so more parameters means proportionally
+  more compute.</p>
+  <p>MoE breaks the tie. Capacity and cost become separate dials, which matters enormously when
+  serving cost is the binding constraint rather than training cost.</p>
+  <p>The costs are real and they are not FLOPs. <b>All</b> experts must be in memory even though
+  few run, so the memory footprint is the dense one. Routing must be balanced or a few experts
+  receive everything, which needs an auxiliary loss and remains fiddly. And routing is discrete,
+  which is Part XI §26's problem: the top-$k$ selection has no gradient, and the standard fix,
+  weighting the outputs by the router's probabilities, is a soft relaxation of exactly the kind
+  attention itself is.</p>
+</div>
+
+<h3><span class="num">§34</span> Quantization</h3>
+
+<p>Part III §1 established the precision–range trade and Part IV met bfloat16. Inference pushes
+further: 8 bits, 4 bits, sometimes fewer.</p>
+
+<div class="box def">
+  <span class="label">Two regimes</span>
+  <p><b>Post-training quantization.</b> Take a trained model and round its weights. Cheap, and
+  the quality loss becomes serious below 8 bits without care.</p>
+  <p><b>Quantization-aware training.</b> Simulate the rounding during training so the model
+  adapts. Better results, at the cost of retraining.</p>
+  <p>Weights and activations are separate decisions. Weight-only quantization is easier and
+  often sufficient, because §27 established that generation is <b>bandwidth-bound</b>: halving
+  the bytes read per parameter nearly halves the time, whatever the arithmetic precision.</p>
+</div>
+
+<div class="box pitfall">
+  <span class="label">Pitfall: outlier features, and why attention is the hard part</span>
+  <p>Quantization assumes values are spread reasonably within their range. Transformer
+  activations violate this badly: a small number of feature dimensions carry values
+  <b>orders of magnitude larger</b> than the rest, and they appear reliably in the same
+  dimensions across inputs.</p>
+  <p>Quantise naively and the range is set by the outliers, so everything else collapses into a
+  few levels. The standard remedies keep the outlier dimensions in higher precision, or migrate
+  the scale from activations into weights before quantising.</p>
+  <p>The attention logits are the other sensitive point, for §4's reason: they feed a softmax,
+  and a softmax is sensitive to differences that quantisation error can swamp. Most schemes keep
+  the softmax and the accumulation in higher precision even when everything around them is in
+  four bits: Part III §2's stability argument, still binding at the far end of the stack.</p>
+</div>

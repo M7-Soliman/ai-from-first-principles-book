@@ -1,0 +1,171 @@
+<h2><span class="part-kicker">Part C</span>What message passing cannot do</h2>
+
+<p class="mvt">The family of movement B has an exact upper bound on what it can distinguish, and it
+is not a loose one: it is a classical graph-isomorphism heuristic from 1968. This movement
+establishes the bound, demonstrates it on two graphs of six nodes, and covers the second structural
+failure, which is about distance rather than expressivity.</p>
+
+<h3><span class="num">§16</span> The colour-refinement algorithm</h3>
+
+<div class="readnow"><span class="label">Go and read</span><p><span class="src">Xu et al. (2019)</span>, <i>How powerful are graph neural networks?</i> The Weisfeiler&ndash;Leman bound proved below, and the reason sum aggregation is an expressivity choice rather than a preference. The proof is short and the consequence is the only exact capability limit in this book.</p></div>
+
+<div class="box def">
+  <span class="label">One-dimensional Weisfeiler–Leman</span>
+  <p>Give every node the same colour. Repeatedly, replace each node's colour with a hash of its own
+  colour together with the <b>multiset</b> of its neighbours' colours. Stop when the partition stops
+  changing. Two graphs whose final colour multisets differ are certainly not isomorphic; if the
+  multisets agree, the test is inconclusive.</p>
+  <p>Compare that with §8's loop. Node state, neighbourhood multiset, update: it is the same
+  procedure with a learned hash. That correspondence is exact, and it is the source of the
+  bound.</p>
+</div>
+
+<div class="box def">
+  <span class="label">The theorem</span>
+  <p>A message-passing network is <b>at most as powerful</b> as 1-WL at distinguishing graphs: if
+  colour refinement cannot separate two graphs, no message-passing network can, at any depth, with
+  any weights.</p>
+  <p>And it is tight: with an injective aggregator, the network is <i>exactly</i> as powerful. Sum
+  is injective on multisets and mean and max are not, which is why §12's choice is an expressivity
+  question rather than a preference.</p>
+</div>
+
+<h3><span class="num">§17</span> The bound, demonstrated</h3>
+
+<figure>
+  <img src="figures/gg/03-wl-bound.svg" alt="Difference between two graphs' readouts against message-passing depth, with uniform features and with a triangle count">
+  <figcaption><b>Figure 3.</b> Two graphs on six nodes, both 2-regular: a pair of disjoint triangles,
+  and a six-cycle. They are not isomorphic (one is full of triangles and the other has none), and
+  every node in both has exactly two neighbours, so colour refinement never separates them. A
+  message-passing readout gives the two graphs representations differing by <b>exactly zero</b> at
+  every depth tested. Supplying one structural feature the loop cannot compute, a count of
+  triangles through each node, separates them immediately.</figcaption>
+</figure>
+
+<div class="box why">
+  <span class="label">Why zero and not merely small</span>
+  <p>Every node in both graphs starts identical and has an identical neighbourhood multiset at every
+  round, so the two computations are the same computation. The difference is zero for the same
+  reason <span class="m">$x - x$</span> is zero, not because the numbers happened to agree.</p>
+  <p>This is worth dwelling on because it is a rare thing in this book: a capability limit that is
+  <b>provable and exact</b>, rather than a measured tendency. Part XXIII found the classical bounds
+  vacuous; this one bites.</p>
+</div>
+
+<h3><span class="num">§18</span> What the limit costs in practice</h3>
+
+<div class="box shapes">
+  <span class="label">Three things a message-passing network cannot count</span>
+  <p><b>Triangles</b>, and cycles generally. Which matters for molecules, where a ring is a chemical
+  fact, and for social graphs, where a closed triangle is a real relationship.</p>
+  <p><b>Regular substructures.</b> Any two <span class="m">$k$</span>-regular graphs on the same
+  number of nodes are indistinguishable without features.</p>
+  <p><b>Distinguishing nodes that are structurally identical.</b> In a symmetric graph two nodes in
+  equivalent positions get equal representations, always, which is correct if you wanted
+  equivariance and wrong if you wanted to tell them apart.</p>
+</div>
+
+<h3><span class="num">§19</span> Three ways past it</h3>
+
+<div class="box shapes">
+  <span class="label">And what each gives up</span>
+  <p><b>Better features.</b> Precompute what the loop cannot: cycle counts, distances to landmarks,
+  spectral coordinates. Cheap, effective, and it fixes the specific gap you anticipated rather than
+  the family's limit.</p>
+  <p><b>Random node identifiers.</b> Give each node a random vector, which breaks every tie. Now the
+  network is more expressive and <b>no longer invariant</b> (the same graph gives different answers),
+  so invariance has to be recovered by averaging over draws, which costs samples.</p>
+  <p><b>Higher-order message passing.</b> Pass messages between pairs or triples of nodes rather
+  than nodes, climbing the WL hierarchy. Strictly more expressive, and the cost goes from linear in
+  edges to polynomial in nodes.</p>
+  <p>The pattern is the one from Part XXIII §21: every step up in power is bought with an assumption
+  given up or a cost taken on. There is no free expressivity.</p>
+</div>
+
+<h3><span class="num">§20</span> Over-squashing</h3>
+
+<div class="readnow"><span class="label">Go and read</span><p><span class="src">Alon &amp; Yahav (2021)</span>, <i>On the bottleneck of graph neural networks and its practical implications</i>. Over-squashing named and measured. Read it beside §13's over-smoothing, because the two failures pull in opposite directions and a fix for one usually worsens the other.</p></div>
+
+<figure>
+  <img src="figures/gg/04-oversquashing.svg" alt="The source node's share of what arrives at the target, against distance, on a path and on a bottlenecked graph">
+  <figcaption><b>Figure 4.</b> A separate failure, about distance rather than expressivity. The share
+  of what arrives at a target node that originated at a chosen source falls from
+  <b>5.6×10<sup>−2</sup></b> at distance 3 to <b>8.5×10<sup>−6</sup></b> at distance 11 on a simple
+  path, a factor of <b>6,561</b>. On two binary trees joined at their roots, where every
+  cross-graph path uses one edge, it is worse at every distance and the gap widens from
+  <b>1.8×</b> to <b>17.8×</b>. The information is not lost to depth; it is diluted by everything
+  else arriving.</figcaption>
+</figure>
+
+<div class="box def">
+  <span class="label">Over-squashing</span>
+  <p>A node's receptive field grows exponentially with depth while its representation stays a
+  fixed-width vector. Everything in that growing neighbourhood must be compressed into the same
+  number of dimensions, so a distant node's contribution is diluted in proportion to how many other
+  nodes are competing.</p>
+  <p>It is the opposite constraint from over-smoothing and they bite together: too few layers and a
+  distant node is unreachable; too many and every node says the same thing. Between them they are
+  the reason long-range dependence on graphs is hard, and both are properties of the architecture
+  rather than of the optimiser.</p>
+</div>
+
+<h3><span class="num">§21</span> Bottlenecks, and rewiring</h3>
+
+<div class="box intuition">
+  <span class="label">The graph's own shape is the problem</span>
+  <p>Figure 4's second graph is the standard construction: two trees joined at the root, so every
+  message between the halves crosses a single edge. That edge has to carry an exponential number of
+  node pairs' worth of information, and it cannot.</p>
+  <p>The graph-theoretic quantity is <b>negative curvature</b> (edges whose removal disconnects
+  many pairs), and the standard repairs <b>rewire</b>: add edges to relieve the bottleneck, either
+  by a curvature-guided rule or by connecting every node to a small number of random others.</p>
+  <p>Every rewiring changes the graph, which was the input. That is a real cost, not a technicality:
+  a model that has been given extra edges is answering a question about a different graph, and
+  whether that is acceptable depends on whether the edges meant something.</p>
+</div>
+
+<h3><span class="num">§22</span> Graph transformers</h3>
+
+<div class="box why">
+  <span class="label">The limit case of rewiring</span>
+  <p>If bottlenecks are the problem, remove them entirely: let every node attend to every other, and
+  supply the structure as a <b>positional encoding</b> instead of as a restriction. That is a graph
+  transformer, and it is exactly Part XII's architecture with the adjacency moved from the mask into
+  the features.</p>
+  <p>It escapes both failures (no diffusion and no bottleneck) and pays Part XII §13's quadratic
+  cost, which on a graph with a hundred thousand nodes is prohibitive. It also gives up the sparsity
+  prior: the model must now learn from data that non-adjacent nodes are usually irrelevant, which
+  message passing asserted for free.</p>
+  <p>The encodings that work are spectral: eigenvectors of the Laplacian, which are the graph's
+  analogue of the sinusoids of Part XII §10, and are permutation-equivariant by the argument of
+  §3.</p>
+</div>
+
+<h3><span class="num">§23</span> Which of these you actually have</h3>
+
+<div class="box try">
+  <span class="label">A diagnostic, before reaching for a fix</span>
+  <p>The two failures are distinguishable and the repairs are opposite, so identify which you have.</p>
+  <p><b>Over-smoothing:</b> measure the mean pairwise distance between node representations as
+  depth grows. If it falls toward zero, that is your problem, and the answer is fewer layers or
+  residual connections.</p>
+  <p><b>Over-squashing:</b> check whether the task needs information from far away, and whether your
+  graph has a bottleneck. If accuracy is poor with enough depth to reach, adding depth will not help
+  and rewiring might.</p>
+  <p><b>The WL bound:</b> check whether the pairs your model confuses are structurally
+  indistinguishable. If they are, no amount of training helps and the answer is features.</p>
+</div>
+
+<h3><span class="num">§24</span> What movement C establishes</h3>
+
+<div class="box intuition">
+  <span class="label">Three things</span>
+  <p><b>The family has an exact expressive ceiling</b>, equal to a 1968 isomorphism heuristic.
+  Figure 3 measures two non-isomorphic graphs receiving identical representations to exactly zero,
+  at every depth.</p>
+  <p><b>There is a second, independent failure about distance.</b> Figure 4 measures a source's
+  contribution falling by a factor of 6,561 across a path and considerably faster through a
+  bottleneck.</p>
+  <p><b>The two pull in opposite directions</b>, which is why long-range dependence on graphs is
+  genuinely hard, and why the diagnostic in §23 comes before the repair.</p>
+</div>

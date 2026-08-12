@@ -1,0 +1,149 @@
+<h2><span class="part-kicker">Part A</span>Concentration</h2>
+
+<p class="mvt">All of learning theory rests on one fact: an average of independent quantities is
+close to its expectation, and the probability of it not being close falls exponentially. This
+movement states that fact three ways, measures how much each one gives up, and shows why the
+whole subject then has to do something more elaborate.</p>
+
+<h3><span class="num">§1</span> The question, stated so it can be answered</h3>
+
+<div class="box def">
+  <span class="label">Risk, empirical risk, and the gap between them</span>
+  <p>A hypothesis <span class="m">$h$</span> has <b>true risk</b>
+  <span class="m">$R(h) = \mathbb{E}_{(x,y) \sim \mathcal{D}}[\ell(h(x), y)]$</span> and
+  <b>empirical risk</b> <span class="m">$\hat{R}_S(h) = \frac{1}{n}\sum_i \ell(h(x_i), y_i)$</span>
+  on a sample <span class="m">$S$</span> of size <span class="m">$n$</span>.</p>
+  <p>You can compute the second and you care about the first. Learning theory is the study of
+  <span class="m">$R(h) - \hat{R}_S(h)$</span>, and Part VI §4 named this the generalisation gap
+  without saying anything that would let you bound it.</p>
+</div>
+
+<div class="box why">
+  <span class="label">Why this is not simply the law of large numbers</span>
+  <p>For a <b>fixed</b> hypothesis chosen before seeing the data, the gap is an average of
+  independent terms minus its mean, and §2's bounds settle it immediately.</p>
+  <p>The difficulty is that you do not use a fixed hypothesis. You choose <span class="m">$h$</span>
+  <i>because</i> it did well on <span class="m">$S$</span>, which makes
+  <span class="m">$\hat{R}_S(h)$</span> a biased estimate of <span class="m">$R(h)$</span>, the
+  same structure as Part XIV §20's biased maximum, now the central obstacle of a whole subject
+  rather than a caution about model selection.</p>
+  <p>Everything in movements B and C is machinery for handling that one problem: how much can the
+  selection have inflated the empirical performance, given how much freedom the selection had.</p>
+</div>
+
+<h3><span class="num">§2</span> Three bounds, and what each one uses</h3>
+
+<div class="box def">
+  <span class="label">Hoeffding, Bernstein, McDiarmid</span>
+  <p><b>Hoeffding.</b> For independent <span class="m">$X_i \in [a,b]$</span> with mean
+  <span class="m">$\mu$</span>,</p>
+  <p class="m">$$P\left(\left|\bar{X} - \mu\right| \geq \varepsilon\right) \;\leq\; 2\exp\!\left(\frac{-2n\varepsilon^2}{(b-a)^2}\right)$$</p>
+  <p>Uses only the range. Knows nothing about the distribution inside it.</p>
+  <p><b>Bernstein.</b> Adds the variance <span class="m">$\sigma^2$</span>:</p>
+  <p class="m">$$P\left(\left|\bar{X} - \mu\right| \geq \varepsilon\right) \;\leq\; 2\exp\!\left(\frac{-n\varepsilon^2}{2\sigma^2 + \tfrac{2}{3}\varepsilon}\right)$$</p>
+  <p><b>McDiarmid.</b> Generalises Hoeffding from an average to <i>any</i> function of the sample
+  that changes by at most <span class="m">$c_i$</span> when one point changes. This is the one that
+  does real work later, because the quantity movement C needs to bound,
+  <span class="m">$\sup_h (R(h) - \hat{R}_S(h))$</span>, is not an average of anything.</p>
+</div>
+
+<h3><span class="num">§3</span> How much the bounds give up</h3>
+
+<figure>
+  <img src="figures/lt/01-concentration.svg" alt="Empirical tail probability against the Hoeffding and Bernstein bounds, at two values of p">
+  <figcaption><b>Figure 1.</b> The bounds against the tail they bound, simulated over 400,000
+  repetitions at <span class="m">$n = 200$</span>. Both hold everywhere, as they must. At
+  <span class="m">$p = 0.5$</span> and <span class="m">$\varepsilon \approx 0.105$</span> (the nearest
+  point on the plotted grid) the true tail is
+  <b>2.3×10<sup>−3</sup></b>, Hoeffding says 2.4×10<sup>−2</sup> and Bernstein <b>4.1×10<sup>−2</sup></b>;
+  Bernstein is the <i>looser</i> of the two here. At <span class="m">$p = 0.05$</span> Hoeffding
+  is unchanged, because it never looked at the distribution, while Bernstein reaches
+  <b>3.0×10<sup>−6</sup></b>. Neither dominates.</figcaption>
+</figure>
+
+<div class="box why">
+  <span class="label">Reading the two panels together</span>
+  <p>Hoeffding's curve is <b>identical</b> in both panels. That is the whole content of "uses only
+  the range": the bound for a coin that lands heads half the time is the same as for one that lands
+  heads one time in twenty, and the second is enormously more predictable.</p>
+  <p>Bernstein pays for using the variance with a worse constant, which is why it loses at
+  <span class="m">$p = 0.5$</span> where the variance is at its maximum, and wins by four orders of
+  magnitude where the variance is small. Choosing between them is not a matter of one being
+  sharper; it is a question about the problem.</p>
+  <p>Both are loose by roughly an order of magnitude even where they do best. Every generalisation
+  bound in movements B and C is built on top of this looseness, and then adds more.</p>
+</div>
+
+<div class="box try">
+  <span class="label">Try it</span>
+  <p>Reproduce the figure, then find the <span class="m">$p$</span> at which the two bounds cross.
+  Then compute what <span class="m">$n$</span> each one says you need for a 95% confidence interval
+  of width 0.02 at <span class="m">$p = 0.01$</span>, and compare with the exact binomial answer.
+  The ratio is the price of a distribution-free guarantee.</p>
+</div>
+
+<h3><span class="num">§4</span> The union bound, and the first real theorem</h3>
+
+<div class="box def">
+  <span class="label">A finite hypothesis class</span>
+  <p>If <span class="m">$\mathcal{H}$</span> is finite, apply Hoeffding to each
+  <span class="m">$h$</span> and add up the failure probabilities. With probability at least
+  <span class="m">$1 - \delta$</span>, <b>simultaneously for every</b>
+  <span class="m">$h \in \mathcal{H}$</span>:</p>
+  <p class="m">$$R(h) \;\leq\; \hat{R}_S(h) + \sqrt{\frac{\log|\mathcal{H}| + \log(2/\delta)}{2n}}$$</p>
+  <p>Which is the first statement in this book that licenses choosing a hypothesis after seeing the
+  data. The price of that licence is <span class="m">$\log|\mathcal{H}|$</span>, the logarithm of
+  how many things you were choosing among.</p>
+</div>
+
+<div class="box intuition">
+  <span class="label">Why the logarithm is the good news</span>
+  <p>Doubling the number of candidates adds a constant to
+  <span class="m">$\log|\mathcal{H}|$</span> rather than doubling the penalty. You can search over
+  an enormous class and pay only logarithmically, which is the reason model search is viable at
+  all.</p>
+  <p>The bad news arrives immediately: almost no interesting class is finite. A linear classifier
+  has continuum-many members and <span class="m">$\log|\mathcal{H}| = \infty$</span>, making the
+  bound useless. Movement B's entire purpose is to replace the count with something that stays
+  finite.</p>
+</div>
+
+<h3><span class="num">§5</span> What "with high probability" is a statement about</h3>
+
+<div class="box pitfall">
+  <span class="label">Pitfall: the randomness is in the sample, not the hypothesis</span>
+  <p>A bound holding "with probability <span class="m">$1-\delta$</span>" means: over draws of the
+  training set, at most a <span class="m">$\delta$</span> fraction produce a sample on which the
+  bound fails. It says nothing about the sample you have.</p>
+  <p>So a 95% bound is not a promise about your model. It is a property of the procedure that
+  produced it, in the same sense as Part V §9's confidence interval, and the same
+  misinterpretation is available and equally common.</p>
+</div>
+
+<h3><span class="num">§6</span> What concentration cannot reach</h3>
+
+<div class="box shapes">
+  <span class="label">Three assumptions, and each one is load-bearing</span>
+  <p><b>Independence.</b> Correlated samples concentrate more slowly, and Part XIII §25's
+  non-i.i.d. splitting is this failure arriving in practice. Part XXI §27's correlated evaluation
+  suite is the same point again.</p>
+  <p><b>Boundedness.</b> Hoeffding needs a range. Unbounded losses need heavier machinery, and
+  Part XXI §18's Goodhart result is a reminder that tails decide outcomes.</p>
+  <p><b>A fixed distribution.</b> Everything here assumes train and test come from the same
+  <span class="m">$\mathcal{D}$</span>. Movement F is what remains when they do not.</p>
+</div>
+
+<h3><span class="num">§7</span> What movement A establishes</h3>
+
+<div class="box intuition">
+  <span class="label">Three things</span>
+  <p><b>The gap for a fixed hypothesis is easy</b> and falls exponentially in
+  <span class="m">$n$</span>. The subject is hard only because you choose the hypothesis using the
+  same data you evaluate it on.</p>
+  <p><b>Distribution-free bounds pay for their generality.</b> Figure 1 measures the price: about
+  an order of magnitude where they do best, and Hoeffding's indifference to the distribution costs
+  four orders when the variance is small.</p>
+  <p><b>A logarithmic penalty in the size of the search is affordable.</b> That is what makes
+  choosing after seeing the data legitimate, and it needs a finite class, which nothing
+  interesting is.</p>
+</div>

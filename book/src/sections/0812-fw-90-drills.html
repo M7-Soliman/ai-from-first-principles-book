@@ -1,0 +1,350 @@
+<h2><span class="part-kicker">Practice</span>Drills</h2>
+
+<p class="lede">Thirty-five problems. Most are diagnostic: a symptom, and the question is what
+causes it. That is deliberate: the skill this part is trying to build is reading a failure
+and knowing which derivation it violates, which is a different skill from writing code that
+works the first time.</p>
+
+<h3><span class="num">Tier 0</span> Estimate first</h3>
+
+<div class="drill">
+  <div class="head"><span class="tier est">Estimate</span>E1 &middot; How big a validation set</div>
+  <p>You want your validation accuracy to have a standard error of one percentage point. Write down the number of examples you need, before deriving it.</p>
+  <div class="ans"><b>Answer.</b> <b>2,500</b>. The standard error is &radic;(p(1&minus;p)/n), worst at p = 0.5, so n = 0.25/0.0001. Most validation sets are smaller than this, which means most reported differences of a point or two are inside the noise of the set that produced them. <i>Score yourself: within a factor of two is a pass, and an order of magnitude out is worth understanding before you go on.</i></div>
+</div>
+
+<h3><span class="num">Tier 1</span> Warm-up</h3>
+
+<div class="drill">
+  <div class="head"><span class="tier warm">Warm</span>W1 · The five attributes</div>
+  <p>Name the five attributes of a tensor that account for most runtime errors.</p>
+  <div class="ans"><b>Answer.</b> <code>shape</code>, <code>dtype</code>,
+  <code>device</code>, <code>requires_grad</code>, <code>grad</code>. Shapes must chain,
+  dtypes must match, devices must match, tracking must be on, and the gradient is where the
+  answer lands.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier warm">Warm</span>W2 · Default dtype</div>
+  <p>What are the dtypes of <code>torch.tensor([1.0])</code>, <code>torch.tensor([1])</code>,
+  and <code>torch.from_numpy(np.array([1.0]))</code>?</p>
+  <div class="ans"><b>Answer.</b> <code>float32</code>, <code>int64</code>,
+  <code>float64</code>. Three defaults, three answers, and the third is the one that
+  collides with a model's float32 weights.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier warm">Warm</span>W3 · Leaf or not</div>
+  <p>In <code>x = torch.tensor(2.0, requires_grad=True); y = x * 3</code>, which has
+  <code>is_leaf == True</code>, and which will have a <code>.grad</code> after
+  <code>y.backward()</code>?</p>
+  <div class="ans"><b>Answer.</b> <code>x</code> is the leaf and gets the gradient.
+  <code>y</code> is computed, so <code>y.grad</code> is <code>None</code>. Autograd computes
+  intermediate gradients and discards them; you never update an activation.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier warm">Warm</span>W4 · Parameter count</div>
+  <p>How many learnable numbers in
+  <code>nn.Sequential(nn.Linear(10, 20), nn.ReLU(), nn.Linear(20, 5))</code>?</p>
+  <div class="ans"><b>Answer.</b> $(10{\times}20 + 20) + (20{\times}5 + 5) = 220 + 105 =
+  \mathbf{325}$. <code>nn.ReLU</code> has none; it is a Module with no parameters, which is
+  ordinary.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier warm">Warm</span>W5 · Which loss</div>
+  <p>Your model's last layer is <code>nn.Linear(64, 10)</code> and you are classifying into
+  10 classes. Do you apply a softmax before the loss?</p>
+  <div class="ans"><b>Answer.</b> No. <code>F.cross_entropy</code> takes <b>logits</b> and
+  performs the log-softmax internally, fused for the stability reason in Part II §25.
+  Applying softmax yourself runs it twice and inflates the loss without raising anything.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier warm">Warm</span>W6 · The missing line</div>
+  <p>A loop runs <code>forward</code>, <code>loss</code>, <code>backward</code>,
+  <code>step</code>, and the loss diverges after about fifty steps. What is missing?</p>
+  <div class="ans"><b>Answer.</b> <code>opt.zero_grad()</code>. Gradients accumulate, so by
+  step 50 you are stepping on the sum of fifty batches, an effective learning rate fifty
+  times too large.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier warm">Warm</span>W7 · Item</div>
+  <p>Why is <code>total += loss.item()</code> preferable to <code>total += loss</code>?</p>
+  <div class="ans"><b>Answer.</b> <code>loss</code> carries its whole graph, so accumulating
+  the tensor keeps every batch's activations alive and the run eventually runs out of
+  memory. <code>.item()</code> extracts a plain float and lets the graph be freed.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier warm">Warm</span>W8 · Two modes</div>
+  <p>Which layers behave differently in <code>train()</code> and <code>eval()</code>?</p>
+  <div class="ans"><b>Answer.</b> Dropout (active vs disabled) and batch normalisation
+  (batch statistics vs stored running averages). Everything else is unaffected.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier warm">Warm</span>W9 · Save what</div>
+  <p>Why <code>torch.save(model.state_dict(), ...)</code> rather than
+  <code>torch.save(model, ...)</code>?</p>
+  <div class="ans"><b>Answer.</b> The state dict holds only tensors and names, so it loads
+  anywhere. Saving the model pickles a reference to your class definition, and breaks if the
+  class moves, is renamed, or the library version changes.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier warm">Warm</span>W10 · The asymmetry</div>
+  <p><code>model.to(device)</code> is called once; <code>xb.to(device)</code> is called every
+  iteration. Why?</p>
+  <div class="ans"><b>Answer.</b> Parameters persist, so moving them once is enough. Each
+  batch is a new tensor from the loader, so it must be moved every time. Note also that the
+  model version acts in place while the tensor version returns a new tensor; you must
+  assign the result.</div>
+</div>
+
+<h3><span class="num">Tier 2</span> Core</h3>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C1 · Read the graph</div>
+  <p>For <code>loss = (torch.sigmoid(w*x + b) - y)**2</code> with <code>w</code> and
+  <code>b</code> tracked, how many <code>AccumulateGrad</code> nodes does the graph contain,
+  and why that number?</p>
+  <div class="ans"><b>Answer.</b> Two: one per leaf, so one per parameter. <code>x</code>
+  and <code>y</code> are data and are not tracked, so they contribute no accumulation node.
+  Figure 1 is this graph, read out of PyTorch.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C2 · Why it must save</div>
+  <p>Why does a forward pass have to store activations at all? Answer in terms of one
+  specific operation.</p>
+  <div class="ans"><b>Answer.</b> Because a local derivative needs a value from the forward
+  pass. For $y=\sigma(z)$, the backward needs $\sigma(z)(1-\sigma(z))$ and therefore the
+  value $\sigma(z)$. For $\mathbf{h}=W\mathbf{x}$, the gradient with respect to $W$ needs
+  $\mathbf{x}$. Every operation needs some input or output of its own forward.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C3 · Memory scaling</div>
+  <p>A run runs out of memory. Halving the batch is the standard first move. When does it
+  work, and how would you tell in one experiment?</p>
+  <div class="ans"><b>Answer.</b> It works only to the extent you are <b>activation-bound</b>.
+  The graph also saves the weight matrices, which do not scale with the batch at all, and
+  Figure 2 shows that at width 512 a 128-fold batch increase moves total memory by only
+  1.6×. The experiment: halve the batch <i>once</i> and see whether memory follows. If it
+  does, keep going. If it barely moves, you are parameter-bound and the levers are a smaller
+  model, gradient checkpointing, or lower precision.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C4 · Backward twice</div>
+  <p>Why does calling <code>backward()</code> twice raise, and when is
+  <code>retain_graph=True</code> the right fix rather than a mask?</p>
+  <div class="ans"><b>Answer.</b> The first call frees the saved intermediates. It is the
+  right fix when you genuinely need two passes over one graph, say two losses on shared
+  activations. It is a mask when the real cause is a tensor from a previous iteration
+  still attached, in which case retaining leaks memory instead of failing.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C5 · In-place, sometimes</div>
+  <p>Why does <code>b = torch.sigmoid(a); b.mul_(2); b.sum().backward()</code> raise, while
+  <code>b = a * 3; b.mul_(2); b.sum().backward()</code> does not?</p>
+  <div class="ans"><b>Answer.</b> Sigmoid's backward needs its own <i>output</i>, which the
+  in-place multiply overwrote; the version counter catches it. Multiplication's backward
+  needs the <i>other operand</i>, not its output, so overwriting the result is harmless. In-place
+  is dangerous exactly when the overwritten value is one a backward depends on.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C6 · Three ways to stop</div>
+  <p>Distinguish <code>no_grad()</code>, <code>detach()</code> and
+  <code>requires_grad_(False)</code> by what each is scoped to.</p>
+  <div class="ans"><b>Answer.</b> <code>no_grad()</code> scopes to a <i>region of code</i>;
+  <code>detach()</code> to a <i>single tensor</i>; <code>requires_grad_(False)</code> to a
+  <i>parameter for the rest of its life</i>. Evaluation uses the first, logging the second,
+  freezing a backbone the third.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C7 · The list bug</div>
+  <p><code>self.layers = [nn.Linear(64,64) for _ in range(8)]</code>. What happens, and what
+  single command reveals it?</p>
+  <div class="ans"><b>Answer.</b> A list is not a Module, so nothing is registered. Those
+  eight layers never appear in <code>parameters()</code>, are never given to the optimiser,
+  and stay at their random initialisation forever. Reveal it with
+  <code>sum(p.numel() for p in model.parameters())</code>. Fix with
+  <code>nn.ModuleList</code>.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C8 · Why super</div>
+  <p>What breaks if you omit <code>super().__init__()</code> in a Module subclass?</p>
+  <div class="ans"><b>Answer.</b> The internal registries never exist, so assigning a
+  submodule or parameter either raises or registers nothing. <code>parameters()</code>,
+  <code>state_dict()</code>, <code>.to()</code> and <code>.train()</code> all depend on
+  them: assignment to a Module attribute is intercepted, not ordinary.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C9 · Parameter or buffer</div>
+  <p>A batch-norm running mean is saved with the model and moved to the GPU with it, and must
+  not be updated by the optimiser. Which is it, and why does the distinction exist?</p>
+  <div class="ans"><b>Answer.</b> A <b>buffer</b>. "Part of the model" and "updated by
+  gradient descent" are different questions: the running mean is estimated from data, not
+  learned, so the Module system answers them separately.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C10 · Decode a shape error</div>
+  <p><code>mat1 and mat2 shapes cannot be multiplied (8x7 and 10x5)</code>, raised inside an
+  <code>nn.Linear</code>. What did you build, and what did you feed it?</p>
+  <div class="ans"><b>Answer.</b> The layer is <code>nn.Linear(10, 5)</code>: the message
+  reports the weight already transposed for the multiply, so <code>10x5</code> is
+  in×out, not the stored shape $(5,10)$. You fed it a batch of 8 examples of width 7. The
+  layer wants width 10.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C11 · Two dtype errors</div>
+  <p>You load features and labels the same way from NumPy. Name the two errors, in order, and
+  the two opposite fixes.</p>
+  <div class="ans"><b>Answer.</b> Features: <code>mat1 and mat2 must have the same dtype,
+  but got Double and Float</code>, float64 data, float32 weights, fixed with <code>.float()</code>. Labels:
+  <code>expected scalar type Long but found Double</code>: cross-entropy wants class
+  indices, fixed with <code>.long()</code>. <b>Features want floats, labels want
+  integers.</b></div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C12 · Non-scalar backward</div>
+  <p><code>grad can be implicitly created only for scalar outputs</code>. What did you do?</p>
+  <div class="ans"><b>Answer.</b> Called <code>backward()</code> on a tensor with more than
+  one element, most often a loss with <code>reduction="none"</code>, which returns one value
+  per example. A gradient is defined with respect to a scalar (Part 0 §23). Add the missing
+  <code>.mean()</code>.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C13 · The silent evaluation bug</div>
+  <p>A loaded checkpoint evaluates several points below its training score, and differs each
+  run. Diagnose from the symptoms alone.</p>
+  <div class="ans"><b>Answer.</b> Missing <code>model.eval()</code>: a fresh module is in
+  training mode, so dropout is active. Lower, because you are measuring a crippled model;
+  different each time, because the mask is redrawn. Figure 4 is this distribution.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C14 · Shuffle</div>
+  <p>Your loss curve oscillates with a period exactly equal to one epoch. What is the most
+  likely cause?</p>
+  <div class="ans"><b>Answer.</b> <code>shuffle=False</code> on data with meaningful order:
+  sorted by class, date or source. Each batch is then drawn from a different distribution,
+  the gradient estimate is no longer unbiased (Part II §17), and the model chases whichever
+  region it is passing through.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C15 · Resuming</div>
+  <p>You save only <code>model.state_dict()</code> and resume from it. The loss shows a
+  visible bump at the resume point. Why?</p>
+  <div class="ans"><b>Answer.</b> The optimiser state was discarded. Momentum and the
+  squared-gradient average of Part III §16 restart from zero, so the first steps after
+  resuming are effectively unmomented and mis-scaled. Save
+  <code>opt.state_dict()</code> too.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C16 · Accumulation, deliberately</div>
+  <p>You want an effective batch of 128 but only 32 fits. Write the loop, and say why the
+  loss must be divided.</p>
+  <div class="ans"><b>Answer.</b> Call <code>backward()</code> on each of four batches and
+  only then <code>step()</code> and <code>zero_grad()</code>. Divide the loss by 4 because
+  each is already a <i>mean</i> over its batch: summing four means without scaling gives
+  four times the intended gradient.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C17 · Order matters</div>
+  <p>Where may <code>zero_grad()</code> go in the loop, and where may it not?</p>
+  <div class="ans"><b>Answer.</b> Top of the loop, or immediately after <code>step()</code>,
+  both correct. Never between <code>backward()</code> and <code>step()</code>, which erases
+  the gradients just computed and makes the optimiser a no-op.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C18 · Which zero</div>
+  <p>After <code>backward()</code>, a parameter's <code>p.grad</code> is <code>None</code>.
+  A different one is exactly <code>0.0</code>. Do these mean the same thing?</p>
+  <div class="ans"><b>Answer.</b> No. <code>None</code> means the parameter was never in the
+  graph: unregistered, detached, or frozen. Exactly zero means it <i>was</i> in the graph
+  and the gradient genuinely came out zero, which points at a dead ReLU (Part VII §19) or a
+  broken path. Different causes, different fixes.</div>
+</div>
+
+<h3><span class="num">Tier 3</span> Stretch</h3>
+
+<div class="drill">
+  <div class="head"><span class="tier stretch">Stretch</span>S1 · Measure the graph</div>
+  <p>Write code that walks <code>loss.grad_fn.next_functions</code> recursively and prints
+  every node type. Run it on a two-layer MLP. How many nodes, and can you name each?</p>
+  <div class="ans"><b>Answer.</b> You will find <code>AddmmBackward</code> (the fused
+  $XW^\top+b$ of a linear layer), <code>ReluBackward</code>,
+  <code>NllLossBackward</code> and <code>LogSoftmaxBackward</code> from the fused
+  cross-entropy, and one <code>AccumulateGrad</code> per parameter tensor: four for two
+  linear layers. This is how Figure 1 was produced.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier stretch">Stretch</span>S2 · Reproduce Figure 2</div>
+  <p>Measure retained activation memory by traversing the graph and summing every
+  <code>_saved_</code> tensor. Confirm it is linear in batch size and in depth.</p>
+  <div class="ans"><b>Answer.</b> Both linear, as the figure shows. The instructive part is
+  what is <i>not</i> counted: the parameters themselves, which do not scale with batch. On a
+  wide, deep model at a large batch, activations dominate parameter memory by an order of
+  magnitude or more.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier stretch">Stretch</span>S3 · Reproduce Figure 4</div>
+  <p>Forward one fixed input through a model with dropout 2,000 times in each mode. Report
+  both standard deviations.</p>
+  <div class="ans"><b>Answer.</b> In <code>train()</code> the spread is substantial, about
+  0.26 for the model in the figure. In <code>eval()</code> it is exactly zero: dropout is
+  disabled, so the function is deterministic. That contrast is the whole argument for the
+  discipline in §14.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier stretch">Stretch</span>S4 · Batch and throughput</div>
+  <p>Time forward+backward across batch sizes 1 to 256 on one thread. Plot examples per
+  second. Where does the curve flatten, and what does that tell you?</p>
+  <div class="ans"><b>Answer.</b> Figure 3 measured a factor of about 72 from batch 1 to
+  256. It flattens once the matrices are large enough to keep the arithmetic units busy;
+  past that, extra batch buys memory pressure rather than speed. Combined with Part III
+  §14's $1/\sqrt{b}$ noise argument, that flattening point is a reasonable place to look for
+  a batch size.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier stretch">Stretch</span>S5 · Gradient check a Module</div>
+  <p>Write a custom <code>torch.autograd.Function</code> with a deliberately wrong backward
+  (off by a factor of two) and confirm <code>gradcheck</code> catches it. Then fix it.</p>
+  <div class="ans"><b>Answer.</b> <code>gradcheck</code> compares against numerical
+  differentiation and fails loudly. Note it requires <code>float64</code> inputs, for Part
+  III §3's reason: the central difference loses digits to cancellation and float32 has none
+  to spare. That constraint is a numerical fact appearing as an argument requirement.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier stretch">Stretch</span>S6 · Find the leak</div>
+  <p>Write an evaluation loop that leaks memory, measure the growth, then fix it two
+  different ways and confirm both work.</p>
+  <div class="ans"><b>Answer.</b> Appending <code>model(xb)</code> without
+  <code>no_grad</code> retains a graph per batch, so memory grows linearly with batches
+  processed. Fix by wrapping in <code>torch.no_grad()</code> (better: no graph is built at
+  all) or by appending <code>.detach()</code> (works, but pays to build the graph first).
+  Measuring the growth is the point: it makes the graph's cost concrete.</div>
+</div>

@@ -1,0 +1,333 @@
+<h2><span class="part-kicker">Practice</span>Drills</h2>
+
+<p class="mvt">Thirty-nine drills. The harness in <code>parts/22-causal/drills/</code> covers
+twenty of them with twenty-six tests. Several assert a negative result, because that is this
+part's subject: a correctly computed estimate reporting the wrong sign, and an adjustment that
+makes the answer worse.</p>
+
+<h3><span class="num">Tier 0</span> Estimate first</h3>
+
+<div class="drill">
+  <div class="head"><span class="tier est">Estimate</span>E1 &middot; How big an experiment</div>
+  <p>A randomised trial to detect a 2 percentage point lift on a 10% base rate, at 80% power. Write down the sample size per arm.</p>
+  <div class="ans"><b>Answer.</b> <b>3,600 per arm</b>, from n &asymp; 16p(1&minus;p)/&delta;<sup>2</sup>. Halve the effect you care about and it quadruples. Do this arithmetic before the experiment, because afterwards it only tells you the experiment could never have answered the question. <i>Score yourself: within a factor of two is a pass, and an order of magnitude out is worth understanding before you go on.</i></div>
+</div>
+
+<h3><span class="num">Tier 1</span> Warm-up</h3>
+
+<div class="drill">
+  <div class="head"><span class="tier warm">Warm-up</span>W1 · Which rung</div>
+  <p>Classify each: "smokers have worse outcomes", "smoking worsens outcomes", "this patient would
+  have recovered had they not smoked".</p>
+  <div class="ans"><b>Answer.</b> Association, intervention, counterfactual. Each needs strictly
+  more than the one before, and no amount of the first delivers the second.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier warm">Warm-up</span>W2 · The verb test</div>
+  <p>Take three abstracts from your field. Underline every verb implying action, then check whether
+  anything was assigned rather than observed.</p>
+  <div class="ans"><b>Answer.</b> The gap is usually large and usually unremarked. This is the
+  cheapest reading habit in the part.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier warm">Warm-up</span>W3 · Three variables, three prescriptions</div>
+  <p>For a confounder, a collider and a mediator, say whether to adjust.</p>
+  <div class="ans"><b>Answer.</b> Adjust; do not adjust; depends on whether you want the direct or
+  total effect. And you cannot tell which is which from the correlations (§5).</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier warm">Warm-up</span>W4 · Why bias does not shrink</div>
+  <p>Figure 1's naive estimate is computed on 40,000 points. Would 40 million help?</p>
+  <div class="ans"><b>Answer.</b> No. It would make the wrong number more precise. Confounding is
+  bias; every diagnostic in Part XIV is about variance and fit, and all of them pass.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier warm">Warm-up</span>W5 · Berkson's admission</div>
+  <p>Two unrelated conditions each independently make hospitalisation likely. Among inpatients,
+  what association do you find?</p>
+  <div class="ans"><b>Answer.</b> Negative. Admission is a collider; conditioning on it opens the
+  path. Figure 2 measures the same structure at −0.519.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier warm">Warm-up</span>W6 · What randomisation deletes</div>
+  <p>State what a coin flip does to the structural causal model, and what it therefore does not
+  require you to know.</p>
+  <div class="ans"><b>Answer.</b> It deletes the equation producing the treatment. So it severs
+  every backdoor path, including through confounders you never measured or thought of. That is
+  the entire advantage.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier warm">Warm-up</span>W7 · The weights in the formula</div>
+  <p>Backdoor adjustment averages <span class="m">$p(y \mid x, z)$</span> over
+  <span class="m">$p(z)$</span>. Why not over <span class="m">$p(z \mid x)$</span>?</p>
+  <div class="ans"><b>Answer.</b> Averaging over <span class="m">$p(z \mid x)$</span> returns
+  <span class="m">$p(y \mid x)$</span>: the conditional you were trying to escape. The marginal is
+  what represents the whole population under intervention.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier warm">Warm-up</span>W8 · The checkable assumption</div>
+  <p>Of no-unmeasured-confounding, positivity and consistency, which can you check, and how?</p>
+  <div class="ans"><b>Answer.</b> Positivity. Plot the propensity distribution by arm and look for
+  regions with only one. One line of code, and Figure 3 is why it matters.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier warm">Warm-up</span>W9 · Which model has to be right</div>
+  <p>State the doubly robust property, then say what Figure 4's fourth bar shows.</p>
+  <div class="ans"><b>Answer.</b> Consistent if either the outcome or the propensity model is
+  correct. The fourth bar, neither correct, carries a bias of +0.98 on a true effect of 2.00, and
+  reports it with a standard deviation of 0.04.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier warm">Warm-up</span>W10 · The three instrument conditions</div>
+  <p>Name them and say which is testable.</p>
+  <div class="ans"><b>Answer.</b> Relevance, exogeneity, exclusion. Only relevance is testable, and
+  it is the one that gets tested. Exclusion is asserted in a sentence and is where instruments
+  usually fail.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier warm">Warm-up</span>W11 · Whose effect</div>
+  <p>Give the estimand for: an instrument, a discontinuity, a matched analysis.</p>
+  <div class="ans"><b>Answer.</b> Compliers; units at the cutoff; the matched subset. All three
+  are routinely written up as if they were the population average.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier warm">Warm-up</span>W12 · Read Figure 6</div>
+  <p>Which model is best on training-like data, and which is best when the environment reverses?</p>
+  <div class="ans"><b>Answer.</b> The one using both features (0.060), and the one using only the
+  cause (0.255). The ordering inverts completely, and a random split cannot detect it.</div>
+</div>
+
+<h3><span class="num">Tier 2</span> Core</h3>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C1 · Build the graph tools</div>
+  <p>Implement <code>descendants</code>, <code>paths</code>, <code>is_collider</code> and
+  <code>path_is_blocked</code>.</p>
+  <div class="ans"><b>Answer.</b> The collider rule is the one to get right: a collider blocks
+  unless it <i>or a descendant</i> is conditioned on. Forgetting the descendant clause is the usual
+  bug and it is exactly the case that bites in practice, because you rarely condition on the
+  collider itself.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C2 · d-separation, and the reversal</div>
+  <p>Implement <code>d_separated</code>. Verify that a fork is open and closes under conditioning,
+  and that a collider is closed and opens.</p>
+  <div class="ans"><b>Answer.</b> The reversal is the whole content. Every other structure behaves
+  the way intuition expects; the collider does the opposite, and it is why "control for more" is
+  not conservative.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C3 · The backdoor criterion, in code</div>
+  <p>Implement <code>satisfies_backdoor</code>. Check that it rejects a mediator and accepts the
+  confounder.</p>
+  <div class="ans"><b>Answer.</b> The first condition, no descendants of the treatment, is what
+  makes it reject the mediator. Having written it, run it over the covariate set of a model you
+  have deployed.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C4 · Reproduce Figure 1</div>
+  <p>Generate from a known structural causal model, sweep the confounding strength, and plot naive
+  against adjusted.</p>
+  <div class="ans"><b>Answer.</b> The naive estimate crosses zero at a confounding strength of
+  2.25 and reports −0.476 at 3.0, against a true effect of +1.00. Setting the truth yourself is
+  what makes the comparison meaningful.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C5 · Stratify it</div>
+  <p>Plot the same data with per-stratum regression lines and a pooled line.</p>
+  <div class="ans"><b>Answer.</b> Every stratum positive, the pool negative. Nothing has gone wrong
+  with either calculation: they answer different questions.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C6 · Manufacture a correlation</div>
+  <p>Generate two independent variables and a common effect. Measure the correlation before and
+  after conditioning, sweeping the collider's strength.</p>
+  <div class="ans"><b>Answer.</b> From −0.003 to −0.519. Then do it by <i>selection</i> rather than
+  regression, drop the units with low <span class="m">$C$</span>, and confirm it is the same
+  thing. That equivalence is §6.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C7 · Adjust for a mediator on purpose</div>
+  <p>Build <span class="m">$X \rightarrow M \rightarrow Y$</span> with no direct path. Estimate the
+  effect with and without adjusting for <span class="m">$M$</span>.</p>
+  <div class="ans"><b>Answer.</b> Adjusting gives approximately zero, which is the correct direct
+  effect and a wrong summary of whether <span class="m">$X$</span> matters. Report which one you
+  computed.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C8 · The adjustment estimator</div>
+  <p>Implement <code>backdoor_adjust</code> by stratification. Weight the strata correctly.</p>
+  <div class="ans"><b>Answer.</b> By each bin's share of the whole sample, not of the treated:
+  W7's point, in code. Weighting by the treated share silently returns the conditional.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C9 · Fit a propensity score</div>
+  <p>Implement logistic regression by Newton–Raphson and check it recovers a known assignment
+  rule.</p>
+  <div class="ans"><b>Answer.</b> Mean absolute error under 0.02 on 40,000 points. Write it out
+  rather than importing it: the doubly robust figure in this part was wrong for an afternoon
+  because a least-squares line pushed through a logistic is not logistic regression.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C10 · Weighting against stratification</div>
+  <p>Estimate the same effect by IPW and by stratification. Compare estimates and spread.</p>
+  <div class="ans"><b>Answer.</b> They agree when overlap is good. IPW is more efficient and more
+  fragile, and the fragility shows up as variance before it shows up as bias.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C11 · Destroy the overlap</div>
+  <p>Reproduce Figure 3: sweep how strongly the confounder drives treatment, and track bias,
+  spread and effective sample size.</p>
+  <div class="ans"><b>Answer.</b> Effective sample size 0.96 → 0.04; spread 0.066 → 0.791; bias
+  under 0.03 almost throughout. Variance goes first, which is the friendly failure: it warns
+  you.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C12 · The four arms</div>
+  <p>Implement AIPW and run all four combinations of correct and incorrect models.</p>
+  <div class="ans"><b>Answer.</b> +2.0012, +2.0015, +2.0010, +2.9831 against a truth of 2.00. Make
+  the "wrong" model genuinely wrong: a linear function of <span class="m">$U$</span> against a
+  true dependence on <span class="m">$U^2$</span>, so no coefficient can rescue it.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C13 · What clipping costs</div>
+  <p>Break positivity, then sweep the weight clip and measure bias and spread separately.</p>
+  <div class="ans"><b>Answer.</b> Clip 0.05 gives bias 0.187 and spread 0.050; clip 0.001 gives
+  0.045 and 0.215. The remedy for the variance is a bias, and they move in opposite directions.
+  This is Figure 4's right panel and it exists because the left panel would not come out.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C14 · Two-stage least squares</div>
+  <p>Implement it and recover an effect with the confounder never observed.</p>
+  <div class="ans"><b>Answer.</b> +0.998 against a truth of +1.00 while OLS gives well over 1.2 on
+  the same data. Nothing measured the confounder; the design supplied variation instead.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C15 · What the F &gt; 10 rule is worth</div>
+  <p>Sweep instrument strength. Record the first-stage F and the spread of the estimate across
+  repeated samples.</p>
+  <div class="ans"><b>Answer.</b> At the weak end the estimate is not a wide interval around the
+  right answer: it is unstable across samples with a spread several times the effect. Find where
+  F sits when that happens and form your own view of the threshold.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C16 · Violate exclusion</div>
+  <p>Add a small direct path from the instrument to the outcome and re-estimate.</p>
+  <div class="ans"><b>Answer.</b> The estimate moves and nothing warns you: the first-stage F is
+  unchanged, the interval is tight. This is why exclusion is argued rather than tested, and why the
+  argument belongs in the write-up.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C17 · Differences and discontinuities</div>
+  <p>Implement <code>did_estimate</code> and <code>rdd_estimate</code>. Then break each: give the
+  groups diverging pre-trends, and let units manipulate the running variable.</p>
+  <div class="ans"><b>Answer.</b> Both break, and both breakages are detectable: a pre-trend plot
+  and a density check at the cutoff. Run them by default.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C18 · Off-policy evaluation</div>
+  <p>Implement the inverse-propensity and self-normalised estimators. Evaluate a target policy from
+  logs of a different one.</p>
+  <div class="ans"><b>Answer.</b> Recovers the value when support holds. Self-normalising has
+  lower variance and is biased. Then remove support entirely, an action the logging policy never
+  took, and confirm the estimator returns a confident number about a policy it has no information
+  on.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C19 · Reproduce Figure 6</div>
+  <p>Build a target with a causal parent and a spurious child whose relationship varies by
+  environment. Train three predictors and test across environments.</p>
+  <div class="ans"><b>Answer.</b> The causal model holds at 0.242–0.258 across all four; the others
+  go from best (0.060) to 3.211 and 5.484. Then run a random split instead of an environment split
+  and confirm it sees nothing.</div>
+</div>
+
+<h3><span class="num">Tier 3</span> Stretch</h3>
+
+<div class="drill">
+  <div class="head"><span class="tier stretch">Stretch</span>S1 · Draw the graph for something you built</div>
+  <p>Take a deployed model. Draw the graph, classify every feature, and find the descendants of the
+  treatment in your covariate set.</p>
+  <div class="ans"><b>Answer.</b> Most feature sets contain at least one. Part XIII §11's leakage is
+  the extreme case; the ordinary case is a mediator that improved validation accuracy.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier stretch">Stretch</span>S2 · Sensitivity analysis</div>
+  <p>Implement the two-parameter sweep of §22 and produce the contour at which your effect crosses
+  zero.</p>
+  <div class="ans"><b>Answer.</b> Report it as "a confounder would need to be about as strong as
+  <span class="m">$Z_3$</span>." That is checkable against domain knowledge; the point estimate
+  alone is not.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier stretch">Stretch</span>S3 · CATE, and why you cannot score it</div>
+  <p>Implement an S-, T- and X-learner. Try to validate them, and write down why each attempt
+  fails.</p>
+  <div class="ans"><b>Answer.</b> The label does not exist for any unit. What you can do is score
+  the implied policy off-policy, or check that groups ranked by predicted effect show the predicted
+  ordering. Both are weaker than a held-out loss.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier stretch">Stretch</span>S4 · Causal discovery, honestly</div>
+  <p>Run a constraint-based discovery algorithm on data from a graph you generated. Compare what it
+  returns with the truth.</p>
+  <div class="ans"><b>Answer.</b> A Markov equivalence class, with many edges unoriented, and it
+  degrades fast with sample size and with a hidden confounder. Useful as a check on a graph you
+  drew, not as a substitute for drawing one.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier stretch">Stretch</span>S5 · A synthetic control, with placebos</div>
+  <p>Build one for a single treated unit, then run the placebo test on every donor.</p>
+  <div class="ans"><b>Answer.</b> If the real effect does not stand out from the placebo
+  distribution, the pre-period fit was Part XIV §20's biased maximum over the weight space.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier stretch">Stretch</span>S6 · Audit a published causal claim</div>
+  <p>Take a paper in your field and answer §41's six questions from it.</p>
+  <div class="ans"><b>Answer.</b> The positivity check is usually absent and the estimand usually
+  broader in the conclusion than in the design. Doing this once changes how you read the
+  literature.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier stretch">Stretch</span>S7 · Log the probability</div>
+  <p>Take a system you run that makes choices. Add logging of the action probability and the policy
+  version. Then answer a counterfactual question about last month.</p>
+  <div class="ans"><b>Answer.</b> The single highest-return change in this part, and it is an
+  engineering change rather than a modelling one. It cannot be applied retroactively, which is
+  why it is worth doing before you need it.</div>
+</div>

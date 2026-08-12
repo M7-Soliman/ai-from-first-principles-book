@@ -1,0 +1,176 @@
+<h2><span class="part-kicker">Part E</span>Making data</h2>
+
+<p class="lede">Six ways to have more data than you collected. Each adds something and none adds
+information that was not already there, which is the constraint the whole movement is
+organised around.</p>
+
+<h3><span class="num">§26</span> Augmentation, revisited</h3>
+
+<p>Part VIII §10 treated augmentation as a regulariser: transform the inputs in ways that should
+not change the label, and the model learns the invariance. Seen from this part it is something
+slightly different: a way of <b>injecting knowledge you have and the data does not show</b>.</p>
+
+<div class="box why">
+  <span class="label">Why augmentation is the only entry in this movement that adds anything</span>
+  <p>A rotation-augmented dataset encodes a fact, that this task is rotation-invariant, which
+  came from <i>you</i>, not from the data. That is genuinely new information in the model, and
+  it is why augmentation is the one technique here that reliably improves generalisation rather
+  than merely rearranging what you had.</p>
+  <p>The condition is that the invariance must be <b>true</b>. Part VIII §10's warning: a
+  vertical flip is a valid augmentation for aerial photography and destroys handwritten digits,
+  because 6 and 9 are not the same character. An augmentation that is false injects false
+  knowledge, confidently.</p>
+  <p>And it is bounded. Augmentation cannot show the model a category it has never seen, or a
+  condition your frame excluded. It expands each example; it does not extend the frame.</p>
+</div>
+
+<h3><span class="num">§27</span> Synthetic data</h3>
+
+<p>Generate examples with a model, or a simulator, or a program, and train on them. This is the
+most-discussed data strategy of the moment and it needs its central limit stated plainly.</p>
+
+<div class="box def">
+  <span class="label">What synthetic data can and cannot supply</span>
+  <p><b>Can:</b> more examples of structure the generator already knows. Coverage of rare
+  configurations you can specify. Labels that are exact by construction: a simulator knows the
+  ground truth it rendered. Cheap volume where volume is the constraint.</p>
+  <p><b>Cannot:</b> information about the world that was not in the generator. A model's outputs
+  are a resampling of what it learned; a simulator's outputs are a resampling of its designer's
+  assumptions.</p>
+  <p>The clean statement: <b>synthetic data can transfer and reorganise information, and cannot
+  create it.</b> Everything useful and everything dangerous about it follows from that.</p>
+</div>
+
+<div class="box why">
+  <span class="label">Why it nonetheless works, when it works</span>
+  <p>Given the limit, why is synthetic data useful at all? Three legitimate mechanisms, all of
+  which are transfers rather than creations.</p>
+  <p><b>From a bigger model to a smaller one.</b> Distillation (§29). The information came from
+  the teacher's training data.</p>
+  <p><b>From a program to a network.</b> A renderer, a physics engine, a solver: the information
+  came from the person who wrote it, and it is often information you genuinely have and cannot
+  otherwise express as examples.</p>
+  <p><b>From an expensive process to a cheap one.</b> Verification is often easier than
+  generation: you can generate many candidate solutions and keep the ones a checker validates.
+  The information came from the checker.</p>
+  <p>Notice that in each case you can name the source. If you cannot name where the information
+  came from, it did not come from anywhere, and §28 is what happens then.</p>
+</div>
+
+<h3><span class="num">§28</span> Model collapse</h3>
+
+<div class="sixty">
+  <span class="label">In 60 seconds</span>
+  <p>Train on your own outputs, repeatedly, and the distribution degrades. The usual explanation,
+  that sampling error compounds, turns out to be <b>much weaker than advertised</b>. The
+  mechanisms that actually do the damage are filtering and model mismatch, and both are things
+  real pipelines do deliberately.</p>
+</div>
+
+<div class="readnow"><span class="label">Go and read</span><p><span class="src">Shumailov et al. (2024)</span>, <i>AI models collapse when trained on recursively generated data</i>. The paper that named it. Read it alongside Figure 5, which finds the sampling-error mechanism much weaker than the popular summary suggests and locates the damage in <b>filtering</b> and <b>model mismatch</b> instead. Then <span class="src">Gerstgrasser et al. (2024)</span>, which shows that collapse largely disappears if generated data <i>accumulates</i> alongside the real data rather than replacing it, a difference in pipeline design, not in mathematics.</p></div>
+
+<figure>
+  <img src="figures/dt/05-collapse.svg" alt="Standard deviation across generations under three regimes, and the distribution under model mismatch">
+  <figcaption><b>Figure 5.</b> Left: fit, sample, refit, repeated, averaged over 40 runs at
+  $n = 1000$. <b>Resampling alone barely collapses</b>: after twelve generations the spread is
+  still <b>0.99</b> of the original. Keeping only the most typical half of each generation's
+  samples collapses it to <b>0.00001</b>. Right: the other mechanism, a single Gaussian fitted
+  to bimodal data. The two modes are gone at generation 1 while the standard deviation moves
+  only from 3.10 to 3.09.</figcaption>
+</figure>
+
+<div class="box why">
+  <span class="label">Why the folk version does not reproduce, and what does</span>
+  <p>The standard account is that each generation's sample statistics are slightly off, and the
+  errors compound. That is true and the magnitude is tiny: at $n=1000$ the sample standard
+  deviation is biased low by about <b>0.025%</b>, so twelve generations lose under 1% of the
+  spread, far less than the run-to-run variation. This figure was built expecting a collapse
+  and did not find one.</p>
+  <p>What does collapse it:</p>
+  <p><b>Filtering.</b> Keep the "good" outputs (the typical ones, the ones a reward model
+  scores highly, the ones that pass a check), and you are resampling from the <b>middle</b> of
+  the distribution every time. Twelve generations of keeping the typical half leaves essentially
+  a point mass. And this is not a hypothetical: filtering generated data for quality is exactly
+  what every synthetic pipeline does.</p>
+  <p><b>Model mismatch.</b> If the model cannot represent the data's structure, generation 1
+  already destroys it. The right panel is the important one: the two modes vanish immediately
+  while the <b>variance barely moves</b>, so the summary statistic everybody monitors reports
+  that nothing is wrong.</p>
+  <p>The practical conclusion is sharper than "avoid synthetic data". It is: <b>the danger is in
+  the selection step, not the generation step</b>, and monitoring variance will not detect it.
+  Watch the tails and the modes.</p>
+</div>
+
+<h3><span class="num">§29</span> Distillation</h3>
+
+<p>Train a small model on a large model's outputs: the mechanism in full, including the soft-target
+loss below, is Part XIX §24. Part IX §26's teacher hints did a narrower version of the same thing,
+treated as an optimisation aid; here it is a data-generation method, and the framing clarifies
+what it can achieve.</p>
+
+<div class="box why">
+  <span class="label">Why soft targets carry more than labels</span>
+  <p>A hard label says "cat". The teacher's full distribution says "cat 0.7, lynx 0.2, dog 0.05",
+  which encodes the teacher's view of how the classes relate, on <i>this</i> example. That is
+  substantially more information per example than the label, and it is why distillation
+  outperforms training the student on the original labels.</p>
+  <p>The information budget is unchanged: it all originated in the teacher's training data. What
+  distillation does is <b>transfer it more efficiently</b>, which is a real and useful thing that
+  is not the same as creating anything.</p>
+  <p>And the student inherits everything: the teacher's biases, its shortcuts (§8), and its
+  memorised training data. A student distilled from a contaminated teacher is contaminated, and
+  no examination of the student's own training data will show it.</p>
+</div>
+
+<h3><span class="num">§30</span> Active learning</h3>
+
+<p>If labelling is the bottleneck, label the most informative examples first. Train, find the
+examples the model is least certain about, label those, repeat.</p>
+
+<div class="box pitfall">
+  <span class="label">Pitfall: you have built a feedback loop over your own frame</span>
+  <p>Active learning works, and it introduces the failure of §7 by construction.</p>
+  <p>The examples selected are chosen by the <b>current model</b>. So the labelled set is no
+  longer a sample from your frame; it is a sample from the region the model found confusing,
+  which depends on the model's initialisation and on everything it has already been shown.</p>
+  <p>Two consequences. The labelled set is <b>not a valid evaluation set</b> for anything, and it
+  is not a valid training set for a <i>different</i> model architecture, which may find different
+  things confusing. And a category the model is confidently wrong about will never be selected,
+  because confidence is what the selection is keyed on, so active learning systematically
+  under-samples exactly the errors you most want to find.</p>
+  <p>The standard mitigation is to reserve a fraction of the labelling budget for uniform random
+  selection. It costs a little efficiency and it is what keeps you able to measure anything.</p>
+</div>
+
+<h3><span class="num">§31</span> Annotation as a system</h3>
+
+<p>The last method of making data is the oldest: pay people to produce it. It is a system with
+failure modes, and treating it as a black box that emits labels is how §4's systematic noise
+gets in.</p>
+
+<div class="box def">
+  <span class="label">What determines annotation quality</span>
+  <ul class="tight">
+    <li><b>The guideline.</b> The actual specification of the task (§6). Ambiguity here becomes
+    irreducible disagreement there.</li>
+    <li><b>Who annotates.</b> Expertise, incentives, and whether they share the assumptions the
+    task depends on. Annotators recruited from one population share its blind spots.</li>
+    <li><b>How they are paid.</b> Per item rewards speed. Per hour rewards care. This shows up
+    in the data.</li>
+    <li><b>Feedback.</b> Annotators who never learn whether they were right cannot improve, and
+    drift.</li>
+    <li><b>Adjudication.</b> What happens on disagreement, and whether the disagreement is
+    <b>recorded</b> (§5) or discarded.</li>
+  </ul>
+</div>
+
+<div class="box why">
+  <span class="label">Why the guideline is a piece of engineering</span>
+  <p>It is tempting to treat the guideline as documentation and the labels as the artefact. It is
+  the other way round: §6 established that the labels <i>are</i> the task, and the guideline is
+  the specification the labels implement.</p>
+  <p>Which means it should be versioned, tested against examples, revised when disagreement
+  reveals ambiguity, and, critically, <b>re-run on old data when it changes</b>. A dataset
+  labelled under three successive guidelines and merged is three tasks in a trenchcoat, and
+  nothing downstream will tell you.</p>
+</div>

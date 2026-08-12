@@ -1,0 +1,198 @@
+<h2><span class="part-kicker">Build</span>The project</h2>
+
+<p class="lede">Ten to fourteen hours. You build four ways of producing an interval, measure what
+each one's intervals actually contain, then break the only one with a guarantee and watch it fail
+without saying so.</p>
+
+<h3><span class="num">P.1</span> What you are building</h3>
+
+<p><b><code>howsure</code></b>, an uncertainty toolkit: a Gaussian process from scratch, an
+ensemble, a conformal wrapper that works on any model, and a coverage harness that scores all of
+them against the same nominal level.</p>
+
+<p>The rule: <b>no interval ships without a measured coverage number beside its nominal one</b>.
+That comparison is the entire subject, and producing it is one line that almost nobody writes.</p>
+
+<h3><span class="num">P.2</span> Stage 1: the coverage harness</h3>
+
+<ol>
+  <li>Implement coverage, coverage by group, and mean width.</li>
+  <li>Apply them to any model you already have, with whatever intervals it currently produces.</li>
+  <li>Compute coverage on your oldest and newest data slices separately.</li>
+</ol>
+
+<p><b>Deliverable:</b> the nominal and measured numbers side by side, plus the by-group table. Step
+three is the early-warning system for the rest of the project.</p>
+
+<h3><span class="num">P.3</span> Stage 2: separating the two kinds</h3>
+
+<ol>
+  <li>Build a generator whose noise level you set.</li>
+  <li>Fit an ensemble across sample sizes and decompose the predictive variance.</li>
+  <li>Plot both terms against <span class="m">$n$</span>.</li>
+  <li>Now check your ensemble is real: measure member disagreement in-distribution and
+  out-of-distribution.</li>
+</ol>
+
+<p><b>Deliverable:</b> the two curves, and the disagreement ratio. If disagreement does not rise
+off-distribution, fix the ensemble before continuing: everything downstream depends on it.</p>
+
+<h3><span class="num">P.4</span> Stage 3: the exact case</h3>
+
+<ol>
+  <li>Implement a Gaussian process with a Cholesky factorisation.</li>
+  <li>Reproduce the widening interval over a gap in the observations.</li>
+  <li>Verify the posterior variance is unchanged when you replace every observed value with
+  nonsense.</li>
+  <li>Sweep the length-scale across three orders of magnitude.</li>
+  <li>Implement the marginal likelihood and recover a length-scale you generated from.</li>
+</ol>
+
+<p><b>Deliverable:</b> the posterior plot, the invariance check, and the length-scale sweep. Step
+three surprises people and is two lines.</p>
+
+<h3><span class="num">P.5</span> Stage 4: four methods, one number</h3>
+
+<ol>
+  <li>On a problem where the exact posterior is available, measure coverage for the exact posterior,
+  a bootstrap ensemble, MC dropout and a point estimate.</li>
+  <li>Query inside the training range only, then partly outside it, and compare.</li>
+  <li>Rank them by coverage error and by width.</li>
+</ol>
+
+<p><b>Deliverable:</b> the four-method table, computed twice. The gap between the two query regimes
+is why in-distribution benchmarks do not detect over-confidence.</p>
+
+<h3><span class="num">P.6</span> Stage 5: a guarantee</h3>
+
+<ol>
+  <li>Implement split conformal. Verify coverage at five nominal levels.</li>
+  <li>Run it with a deliberately useless model and compare coverage and width.</li>
+  <li>Implement the <span class="m">$n$</span> version of the quantile and measure the
+  under-coverage.</li>
+  <li>Implement normalised scores and prediction sets.</li>
+  <li>Break exchangeability by shifting the test distribution, and track coverage down.</li>
+  <li>Implement weighted conformal and recover it.</li>
+</ol>
+
+<p><b>Deliverable:</b> the coverage table, the good-versus-useless comparison, and the shift curve.
+Step five is the one to internalise: nothing in the method reports that the promise has stopped
+holding.</p>
+
+<h3><span class="num">P.7</span> Stage 6: turning it into a decision</h3>
+
+<ol>
+  <li>Build a calibrated model by construction: draw the probability, then draw the outcome.</li>
+  <li>Implement the optimal threshold and verify by brute force that the formula wins.</li>
+  <li>Sweep the cost ratio and compute what the default threshold costs.</li>
+  <li>Implement value of information, and construct a case where an informative signal is worth
+  nothing.</li>
+  <li>Price an abstention band.</li>
+</ol>
+
+<p><b>Deliverable:</b> the cost-ratio table, and the two value-of-information cases. Then find the
+threshold in a system you run and compute what it has been costing.</p>
+
+<h3><span class="num">P.8</span> Stretch</h3>
+
+<ul>
+  <li><b>Conformal on top of an ensemble</b>, using the spread as the difficulty estimate.</li>
+  <li><b>Bayesian optimisation</b> with expected improvement, against random search.</li>
+  <li><b>A Laplace approximation</b>, diagonal against Kronecker-factored.</li>
+  <li><b>Weighted conformal</b> across two real time periods.</li>
+  <li><b>A rolling coverage monitor</b> on a running system.</li>
+  <li><b>The five-item coverage report</b> for something you have deployed.</li>
+</ul>
+
+<h3><span class="num">P.9</span> Done when</h3>
+
+<ul class="checklist">
+  <li>You have a measured coverage number beside a nominal one, for a model you already had.</li>
+  <li>You have that number broken down by group, and it is not uniform.</li>
+  <li>You have separated aleatoric from epistemic on data whose noise you set.</li>
+  <li>You have confirmed your ensemble disagrees more off-distribution than on.</li>
+  <li>Your GP's posterior variance is unchanged when the observed values are replaced by
+  nonsense.</li>
+  <li>You have four methods scored against one nominal level, inside and outside the training
+  range.</li>
+  <li>Your conformal implementation hits nominal at five levels, and still does with a useless
+  model.</li>
+  <li>You have watched coverage fall under shift without the method reporting anything.</li>
+  <li>You have computed what your current decision threshold costs relative to the optimal one.</li>
+  <li>Your README names one interval you previously reported that you now know was wrong, and in
+  which direction.</li>
+</ul>
+
+<div class="box why">
+  <span class="label">Why this project</span>
+  <p>Uncertainty is the part of a model most often produced and least often checked. A number comes
+  out, it is reported, and no one asks whether intervals of nominal 90% contain the truth 90% of the
+  time, which takes one line to answer and is frequently no.</p>
+  <p>Stage 5 is the reason for the project's shape. Conformal is the only method here that promises
+  rather than hopes, the promise survives an arbitrarily bad model, and it collapses silently the
+  moment the data stops resembling the calibration set. Holding both of those at once is what it
+  means to understand a guarantee.</p>
+</div>
+
+<h2 class="nobreak"><span class="part-kicker">Assess</span>Checkpoint</h2>
+
+<ul class="checklist">
+  <li>State what a nominal coverage level promises, and over what randomness.</li>
+  <li>Define aleatoric and epistemic uncertainty, and give the test that separates them.</li>
+  <li>Say what action each kind calls for, and why one reported number cannot guide it.</li>
+  <li>Write the law of total variance for a predictive distribution and identify each term.</li>
+  <li>Describe a heteroscedastic output head and the loss it is trained with.</li>
+  <li>Give the failure mode of that loss and the symptom it produces.</li>
+  <li>Name three things calibration does not tell you.</li>
+  <li>Define a Gaussian process and say what the kernel encodes.</li>
+  <li>Write the GP posterior mean and variance, and say what the variance does not depend on.</li>
+  <li>Explain why the interval widens away from the data.</li>
+  <li>Write the marginal likelihood and identify the complexity penalty.</li>
+  <li>Say how it differs from cross-validation, and where it is less robust.</li>
+  <li>Give the cost of exact GP inference and three ways it is reduced.</li>
+  <li>Describe Bayesian optimisation and say which term does the exploring.</li>
+  <li>Say when a Gaussian process is the right instrument and when it is not.</li>
+  <li>Write the predictive integral for a Bayesian neural network and say why it is hard.</li>
+  <li>Say what an isotropic Gaussian prior on weights implies about functions.</li>
+  <li>Describe variational inference for weights and give its known bias.</li>
+  <li>Describe the Laplace approximation and what makes it attractive.</li>
+  <li>Compare MC dropout and deep ensembles on cost and on measured quality.</li>
+  <li>Give the measured coverage of four methods against a nominal 0.95, and say which failure is
+  dangerous.</li>
+  <li>Explain why ensembles outperform single-mode methods.</li>
+  <li>Say how to check whether an ensemble is genuinely diverse.</li>
+  <li>State the four steps of split conformal.</li>
+  <li>Explain in one sentence why it works.</li>
+  <li>Say why the quantile uses <span class="m">$n+1$</span> rather than
+  <span class="m">$n$</span>.</li>
+  <li>State what conformal guarantees and what the model still controls.</li>
+  <li>Distinguish marginal from conditional coverage, and say which is impossible without
+  assumptions.</li>
+  <li>Give three ways to make conformal intervals adapt in width.</li>
+  <li>Describe conformal prediction sets and say what an empty set means.</li>
+  <li>State the single assumption conformal needs and what happens when it fails.</li>
+  <li>Name three responses to shift, and say which needs labels.</li>
+  <li>List four things conformal does not give you.</li>
+  <li>Write the expected-utility rule and say who supplies each piece.</li>
+  <li>Derive the optimal decision threshold from two costs.</li>
+  <li>Say what thresholding at 0.5 asserts.</li>
+  <li>Give the cost of the default threshold at a 50:1 ratio.</li>
+  <li>Explain risk aversion as a choice of functional.</li>
+  <li>Define the expected value of information and say when it is zero.</li>
+  <li>Describe abstention as a priced action and give the band.</li>
+  <li>Say which method to choose given a trained network and a held-out set.</li>
+  <li>List the five things a coverage report should contain.</li>
+</ul>
+
+<div class="box fw">
+  <span class="label">The framework, and where the interval attaches</span>
+  <p>Dataset, model family, loss, optimiser; then Part XXI's claim about what the result
+  establishes, and Part XXII's estimand. This part adds the seventh: <b>the interval, and the
+  assumption it rests on</b>.</p>
+  <p>Every method here attaches to a different place. A Gaussian process puts it in the prior over
+  functions. An ensemble puts it in the diversity of the optimiser's solutions. Conformal puts it
+  nowhere in the model at all: it attaches to a held-out set and an exchangeability assumption.
+  Naming which one you are relying on is what turns an error bar into a claim, and Part XXIII's
+  lesson applies unchanged: a guarantee is worth exactly as much as the assumption underneath it,
+  and the assumption is usually the thing nobody wrote down.</p>
+</div>

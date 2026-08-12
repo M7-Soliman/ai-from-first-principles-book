@@ -1,0 +1,206 @@
+<h2><span class="part-kicker">Part A</span>What generating means</h2>
+
+<h3><span class="num">§1</span> A different object</h3>
+
+<div class="sixty">
+  <span class="label">In 60 seconds</span>
+  <p>A discriminative model learns $p(y \mid \mathbf{x})$: given an input, produce an answer. A
+  generative model learns $p(\mathbf{x})$ itself. The difference is not a matter of degree: you
+  are now asked to account for <b>everything</b> about the data, including all the structure no
+  particular task needed.</p>
+</div>
+
+<div class="box def">
+  <span class="label">Three things you might want, and they are not the same</span>
+  <p><b>Sampling.</b> Produce new $\mathbf{x}$ that could have come from the data. Generation in
+  the everyday sense.</p>
+  <p><b>Density evaluation.</b> Given an $\mathbf{x}$, report $p(\mathbf{x})$. What anomaly
+  detection, compression and model comparison need.</p>
+  <p><b>Inference.</b> Given an $\mathbf{x}$, recover the latent variables that explain it:
+  Part XV's representation, arrived at from the other direction.</p>
+  <p>No single model family gives all three cheaply, and most of this part is about which two you
+  are buying. A model that samples beautifully may be unable to tell you the probability of
+  anything, and §41 is what that does to the practice of comparing models.</p>
+</div>
+
+<div class="box why">
+  <span class="label">Why $p(\mathbf{x})$ is so much harder than $p(y \mid \mathbf{x})$</span>
+  <p>A classifier over 1,000 categories predicts a distribution over 1,000 outcomes. A generative
+  model of $256\times256$ colour images predicts a distribution over $256^{196608}$ outcomes.
+  Nothing about the discriminative apparatus scales to this by being made larger.</p>
+  <p>The manifold assumption (Part XV §5) is what makes it possible at all: almost all of that
+  space has essentially zero probability, and the model only has to describe the vanishing region
+  that does not. Generative modelling is the business of finding that region and putting a
+  measure on it.</p>
+</div>
+
+<h3><span class="num">§2</span> The normalising constant</h3>
+
+<p>Most of the difficulty in this part traces to one place. It is worth isolating before any model
+appears.</p>
+
+<div class="box def">
+  <span class="label">Where $Z$ comes from</span>
+  <p>Suppose you write a model as an unnormalised score $\tilde{p}(\mathbf{x}; \theta)$: any
+  positive function, as flexible as you like. To make it a distribution you must divide by</p>
+  <p>$$Z(\theta) = \int \tilde{p}(\mathbf{x}; \theta)\, d\mathbf{x}$$</p>
+  <p>and this integral is over the whole space. For images that is an integral in a hundred
+  thousand dimensions, with no closed form, and it must be recomputed <b>every time $\theta$
+  changes</b>, which is every gradient step.</p>
+</div>
+
+<div class="box why">
+  <span class="label">Why this single quantity organises the whole part</span>
+  <p>Every family in this part is a different answer to "what do we do about $Z$".</p>
+  <table class="compact">
+    <thead><tr><th>Family</th><th>The answer</th><th>Cost</th></tr></thead>
+    <tbody>
+      <tr><td><b>Autoregressive</b></td><td>Build $p$ from conditionals that each normalise over
+      one variable</td><td>Sampling is sequential (§11)</td></tr>
+      <tr><td><b>Latent variable</b></td><td>Optimise a lower bound instead</td><td>The bound has
+      a gap you cannot see (§17)</td></tr>
+      <tr><td><b>Score-based</b></td><td>Learn $\nabla_{\mathbf{x}} \log p$, which does not
+      contain $Z$</td><td>No density, and sampling is iterative</td></tr>
+      <tr><td><b>Implicit</b></td><td>Never represent a density at all</td><td>No likelihood, and
+      an unstable game (§36)</td></tr>
+      <tr><td><b>Energy-based</b></td><td>Confront it with MCMC</td><td>Expensive, and the chains
+      mix badly (§7)</td></tr>
+    </tbody>
+  </table>
+  <p>Read the table as the plan of this part. Nobody eliminated $Z$; they found places to put the
+  difficulty where it hurts less.</p>
+</div>
+
+<h3><span class="num">§3</span> Energy-based models</h3>
+
+<div class="box def">
+  <span class="label">The form</span>
+  <p>$$p(\mathbf{x}) = \frac{1}{Z}\exp\big(-E(\mathbf{x})\big)$$</p>
+  <p>with $E$ any function you can compute (a neural network, typically). Low energy means high
+  probability. The form is completely general: <b>any</b> strictly positive density can be written
+  this way, by setting $E = -\log p$.</p>
+  <p>That generality is exactly why it is not free. All the difficulty has been moved into $Z$,
+  and none of it has been removed.</p>
+</div>
+
+<div class="box why">
+  <span class="label">Why the gradient needs samples from the model</span>
+  <p>Differentiate the log-likelihood of an energy-based model and it splits in two:</p>
+  <p>$$\nabla_\theta \log p(\mathbf{x}) = -\nabla_\theta E(\mathbf{x})
+  \;+\; \mathbb{E}_{\mathbf{x}' \sim p_\theta}\big[\nabla_\theta E(\mathbf{x}')\big]$$</p>
+  <p>The first term is the <b>positive phase</b>: push energy down at the data. The second is the
+  <b>negative phase</b>: push energy up everywhere the <i>model</i> currently puts mass. Without
+  it, the model would drive energy to $-\infty$ everywhere and learn nothing.</p>
+  <p>And the negative phase is an expectation under the model, so computing it requires
+  <b>sampling from the model</b> (at every gradient step, from a model that is currently wrong).
+  That is the loop this whole approach has never escaped, and §7 is why it does not work well.</p>
+</div>
+
+<h3><span class="num">§4</span> Which direction of KL</h3>
+
+<p>Part II §24 introduced the KL divergence and showed with a figure that its two directions
+give different answers. That difference now becomes a design decision with visible consequences.</p>
+
+<div class="box def">
+  <span class="label">Two objectives, two failure modes</span>
+  <p><b>Forward, $D_{KL}(p_{\text{data}} \parallel p_{\text{model}})$.</b> This is what maximum
+  likelihood minimises. It is infinite wherever the data has mass and the model has none, so the
+  model is forced to <b>cover</b> everything. Where it cannot fit, it spreads: putting mass in
+  places the data never visits.</p>
+  <p><b>Reverse, $D_{KL}(p_{\text{model}} \parallel p_{\text{data}})$.</b> Infinite wherever the
+  <i>model</i> has mass and the data has none, so the model is forced to stay <b>inside</b> the
+  data. It may safely ignore whole regions, and it will.</p>
+  <p>Part II §24's figure is this, fitted numerically: forward KL stretches a single Gaussian
+  across both humps of a bimodal target and puts mass in the empty valley; reverse KL locks onto
+  one hump and abandons the other.</p>
+</div>
+
+<div class="box why">
+  <span class="label">Why this predicts two famous complaints</span>
+  <p><b>Blurry samples</b> are mode covering. A maximum-likelihood model that cannot represent the
+  data exactly will hedge, and hedging between two sharp possibilities produces something between
+  them that resembles neither. §22 is this, in the VAE.</p>
+  <p><b>Mode collapse</b> is mode seeking. A model that is only penalised for producing
+  implausible output, and never for failing to produce something, will find one thing it can do
+  well and do only that. §36 is this, in the GAN (measured, and with a surprise about where it
+  actually comes from).</p>
+  <p>The two failures are not bugs in two architectures. They are the two directions of one
+  divergence, and knowing which one a method optimises tells you in advance which way it will
+  fail.</p>
+</div>
+
+<h3><span class="num">§5</span> The taxonomy</h3>
+
+<div class="box def">
+  <span class="label">Explicit tractable, explicit approximate, implicit</span>
+  <p><b>Explicit and tractable.</b> The model defines a density you can evaluate exactly.
+  Autoregressive models and normalising flows. You get likelihoods; you pay in architectural
+  constraints.</p>
+  <p><b>Explicit and approximate.</b> The model defines a density you cannot evaluate, so you
+  optimise a bound or an alternative objective. VAEs, energy-based models, diffusion. You get an
+  approximation whose looseness is generally unknown (§17).</p>
+  <p><b>Implicit.</b> The model defines a sampling procedure and no density at all. GANs. You get
+  samples and no way to score anything, including your own model.</p>
+</div>
+
+<div class="box pitfall">
+  <span class="label">Pitfall: the categories are not quality tiers</span>
+  <p>It is tempting to read this list as a ranking, with exact likelihood best. It is not. The
+  family that dominated image generation for the last several years is in the middle category and
+  cannot report a likelihood you would want to quote.</p>
+  <p>What the categories predict is <b>which questions you will be able to answer</b>. If you need
+  anomaly detection, an implicit model is useless however good its samples. If you need samples,
+  the exactness of a likelihood may buy you nothing at all; §42 is the measurement that shows
+  those two goals coming apart.</p>
+</div>
+
+<h3><span class="num">§6</span> Ancestral sampling</h3>
+
+<div class="box def">
+  <span class="label">The one sampling method that is easy</span>
+  <p>If a model factorises as a directed graph, each variable depends only on its parents, then
+  sampling is trivial: order the variables so parents come first, and draw each from its
+  conditional given the values already drawn.</p>
+  <p>One pass, no iteration, exact samples. Every generative model in this part that is pleasant to
+  sample from is pleasant for this reason, and every one that is painful is painful because it is
+  not a directed graph you can order.</p>
+</div>
+
+<div class="box why">
+  <span class="label">Why undirected models cannot do this</span>
+  <p>An undirected model specifies compatibilities between variables, not a generative order.
+  There is no "first" variable, so there is nothing to condition on, and the only general way to
+  sample is to run a Markov chain until it forgets where it started.</p>
+  <p>This is the practical content of the directed/undirected distinction, and it is why the field
+  moved decisively toward models that are directed by construction. Diffusion (§29) is an
+  extreme case: a directed chain of a thousand steps, each one trivial.</p>
+</div>
+
+<h3><span class="num">§7</span> MCMC, and why it disappointed</h3>
+
+<div class="box def">
+  <span class="label">The method</span>
+  <p>Construct a Markov chain whose stationary distribution is the one you want, run it, and take
+  late states as samples. <b>Gibbs sampling</b> does this by repeatedly resampling one variable
+  from its conditional given all the others, which is cheap when the conditionals are simple.</p>
+  <p>The theory is unimprovable: under mild conditions the chain converges to the target from any
+  starting point. The theory says nothing about <b>when</b>.</p>
+</div>
+
+<div class="box why">
+  <span class="label">Why mixing is the problem, and why it is worst exactly where you need it</span>
+  <p>To move between two separated modes, a chain must pass through the low-probability region
+  between them, and it is a chain that prefers high probability, so it does not want to. The time
+  to cross grows exponentially with the depth of the valley.</p>
+  <p>So a Gibbs sampler on a well-trained model of realistic data gets stuck. It produces
+  plausible samples that are all variations of one thing, and it does not report that it is
+  stuck: the samples look fine.</p>
+  <p>Now recall §3: an energy-based model needs samples from itself <b>at every gradient step</b>,
+  and the better it gets, the sharper its modes and the worse the mixing. The method's difficulty
+  grows with its own success. That is the structural reason this family lost, and the reason
+  Boltzmann machines are a history box (§39) rather than a movement.</p>
+  <p>Tempering methods, running parallel chains at different temperatures so mass can cross
+  between modes at the hot end, help and do not solve it. The approach that actually worked
+  was to stop needing samples from the model during training, which is what score matching (§23)
+  achieves, and it is why the machinery in this movement leads where it does.</p>
+</div>

@@ -1,0 +1,147 @@
+<h2><span class="part-kicker">Part E</span>Adversaries</h2>
+
+<p class="mvt">Every measurement in this book has assumed the inputs were not chosen to defeat it.
+Drop that assumption and the worst case replaces the average, which is a different question with
+different answers, and one that no accuracy metric addresses.</p>
+
+<h3><span class="num">§33</span> Stating a threat model</h3>
+
+<div class="box def">
+  <span class="label">Three questions before any defence</span>
+  <p><b>What can the adversary do?</b> Query the model, see its probabilities, modify the input,
+  poison the training data, read the weights.</p>
+  <p><b>What are they trying to achieve?</b> A specific wrong answer, any wrong answer, recovering
+  data, cloning the model.</p>
+  <p><b>What do they know?</b> The architecture, the weights, the training data, the defence.</p>
+  <p>A defence is only meaningful against a stated model, and <b>the assumption that the adversary
+  does not know the defence is the one that fails</b>, repeatedly, and always in the same way. A
+  large fraction of published defences were broken by an attack adapted to them.</p>
+</div>
+
+<h3><span class="num">§34</span> Adversarial examples</h3>
+
+<figure class="illus">
+  <img src="figures/sy/07-adversarial.svg" alt="Schematic of the fraction of points attacked and the fraction proved safe against perturbation budget, with a gap between">
+  <figcaption><span class="illus-tag">Illustrative</span><b>Figure 7.</b> Two curves and the gap
+  between them. As the perturbation budget grows, attacks begin to succeed; certification proves
+  safety only for a much smaller budget, because a bound must hold against every attack including
+  ones nobody has written. In between is a region where a point is neither proved safe nor known to
+  be attackable, and that region is wide. This diagram carries no measured quantities.</figcaption>
+</figure>
+
+<div class="box why">
+  <span class="label">What the gap means for a claim</span>
+  <p>An <b>empirical</b> robustness number is an upper bound on the attack you tried; it says
+  nothing about the attack you did not. A <b>certified</b> number is a lower bound on safety and is
+  conservative by a large factor.</p>
+  <p>So the two numbers answer different questions and neither is "how robust is this model".
+  Reporting empirical robustness without naming the attack is the most common error in this
+  literature, and the fix is a sentence rather than a technique.</p>
+</div>
+
+<div class="box def">
+  <span class="label">Randomised smoothing: how a certified number is actually produced</span>
+  <p>Take any classifier <span class="m">$f$</span> and build a new one from it: the <b>smoothed
+  classifier</b> <span class="m">$g$</span> answers with whichever class <span class="m">$f$</span>
+  returns most often on the input plus Gaussian noise,</p>
+  <p class="m">$$g(x) = \arg\max_c \Pr_{\delta \sim \mathcal{N}(0,\sigma^2 I)}\big[f(x+\delta) = c\big].$$</p>
+  <p><span class="m">$g$</span> can be certified even though <span class="m">$f$</span> cannot,
+  because the guarantee only has to reason about the noise distribution, not about
+  <span class="m">$f$</span>'s internals. Let <span class="m">$p_A$</span> be the probability the
+  winning class gets under the noise, estimated by sampling with a confidence correction rather
+  than assumed exact. The Neyman–Pearson lemma, applied to two shifted Gaussians, gives the largest
+  perturbation <span class="m">$g$</span> is guaranteed to survive without changing its answer:</p>
+  <p class="m">$$R = \sigma\,\Phi^{-1}(p_A)$$</p>
+  <p>where <span class="m">$\Phi^{-1}$</span> is the standard normal quantile. At
+  <span class="m">$\sigma = 0.5$</span> and <span class="m">$p_A = 0.9$</span>,
+  <span class="m">$\Phi^{-1}(0.9) \approx 1.28$</span>, so <span class="m">$R \approx 0.641$</span>:
+  a number, not the shape Figure 7 draws, and it is what "certification proves safety only for a
+  much smaller budget" in that figure's caption is standing in for. The cost is exactly what buys
+  the guarantee: raising <span class="m">$\sigma$</span> raises the certifiable radius and lowers
+  clean accuracy, because a classifier that must stay right under heavy noise is a worse classifier
+  on an unperturbed input: the same trade §28's privacy-utility curve makes, with noise doing the
+  work in both places.</p>
+</div>
+
+<h3><span class="num">§35</span> Poisoning and backdoors</h3>
+
+<div class="box shapes">
+  <span class="label">Attacking the training set rather than the input</span>
+  <p><b>Poisoning</b> degrades a model by corrupting its data. <b>A backdoor</b> is worse and
+  quieter: the model behaves normally except on inputs carrying a trigger the attacker chose, so
+  every ordinary evaluation passes.</p>
+  <p>The reason this is not theoretical is the supply chain. Training data is scraped from sources
+  anyone can write to; pretrained weights are downloaded; datasets are assembled from other
+  datasets. A backdoor placed in any of those is inherited by everything downstream, and no
+  accuracy metric detects it because accuracy is exactly what it preserves.</p>
+</div>
+
+<h3><span class="num">§36</span> Model extraction</h3>
+
+<figure>
+  <img src="figures/sy/08-extraction.svg" alt="Agreement with a victim model against number of queries, for probability outputs and label-only outputs">
+  <figcaption><b>Figure 8.</b> Cloning a model through its API. With probability outputs, a clone
+  reaches <b>95% agreement in 40 queries</b> against a victim with 30 parameters, a victim that had
+  been fitted on thousands of examples. Restricting the output to a label raises the cost to
+  <b>640</b> queries, a factor of sixteen, and reaches 97% anyway. <b>The query cost scales with
+  what is being recovered, not with what the victim was trained on</b>, which is why a model trained
+  on a proprietary corpus can be cloned by someone who has none of it.</figcaption>
+</figure>
+
+<div class="box why">
+  <span class="label">Why the defences are weak, and what they are for</span>
+  <p>Rate limiting, output truncation and watermarking all raise the cost and none prevents the
+  attack: Figure 8 measures a sixteen-fold increase from removing probabilities entirely, which is
+  a speed bump rather than a wall.</p>
+  <p>The honest position is that <b>query access is disclosure</b>, at a price the attacker can pay,
+  and the defences shift where the economics land rather than closing the door. Watermarking is
+  therefore the most useful of them: it does not prevent extraction, it makes the result
+  attributable, which is a legal remedy rather than a technical one.</p>
+</div>
+
+<h3><span class="num">§37</span> Agents, and the confused deputy</h3>
+
+<div class="box pitfall">
+  <span class="label">Pitfall: the oldest bug in security, in a new place</span>
+  <p>A model that reads untrusted content and takes actions has no reliable boundary between
+  instruction and data. Text in a web page, a document or an email can be read as a command, and the
+  model executes it with <i>the user's</i> authority. That is a confused deputy: a privileged
+  component persuaded to act for someone who lacks the privilege.</p>
+  <p>What makes it hard is that the separation is architectural everywhere else and absent here.
+  Parameterised queries exist because SQL had this problem and solved it structurally; a language
+  model has one channel, so the same fix is not available.</p>
+  <p>Which leaves the remedies where they should have been anyway: <b>least privilege</b>, so a
+  compromised agent can do little; <b>confirmation</b> for actions that are hard to reverse; and
+  <b>isolation</b>, so what an agent reads cannot reach what it can spend. Part XXXI §35's shield,
+  in another setting.</p>
+</div>
+
+<h3><span class="num">§38</span> What defends, and what does not</h3>
+
+<div class="box shapes">
+  <span class="label">Three that hold up, and the pattern in the ones that do not</span>
+  <p><b>Adversarial training</b>, training on attacked examples, is the only empirical defence that
+  has held up broadly, and it costs accuracy and compute.</p>
+  <p><b>Certification</b> gives a guarantee for a small radius, honestly: §34's smoothed classifier
+  and its radius <span class="m">$R = \sigma\Phi^{-1}(p_A)$</span> are the mechanism, and "small" is
+  quantitative, not a figure of speech.</p>
+  <p><b>Architecture</b> (least privilege, isolation, confirmation) is what actually protects a
+  deployed system, and it is not a model property at all.</p>
+  <p>The pattern in what fails: <b>anything that obscures the gradient</b> rather than changing the
+  decision boundary. It defeats the standard attack, is published as a defence, and falls to an
+  attack that estimates the gradient differently. If a defence's mechanism is that the attacker
+  cannot compute something, assume it will be computed.</p>
+</div>
+
+<h3><span class="num">§39</span> What movement E establishes</h3>
+
+<div class="box intuition">
+  <span class="label">Three things</span>
+  <p><b>A defence without a threat model is not a claim</b>, and the assumption that fails is always
+  that the adversary does not know the defence.</p>
+  <p><b>Query access is disclosure.</b> Figure 8 measures a clone at 95% agreement in 40 queries,
+  and removing probabilities raises the cost sixteen-fold without preventing it.</p>
+  <p><b>What protects a deployed system is architecture, not model properties.</b> Least privilege,
+  isolation and confirmation work against attacks nobody has thought of; a robustness number does
+  not.</p>
+</div>

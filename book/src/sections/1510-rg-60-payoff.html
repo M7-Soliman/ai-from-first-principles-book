@@ -1,0 +1,147 @@
+<h2><span class="part-kicker">Part F</span>The payoff</h2>
+
+<h3><span class="num">§21</span> One idea, six costumes</h3>
+
+<p class="lede">The claim this part opened with can now be settled. A dozen techniques that
+appear in different chapters of different books, taught as unrelated tricks, are the same
+operation seen from different angles.</p>
+
+<table>
+  <thead><tr><th>Technique</th><th>Prefers functions that…</th><th>Shown equal to</th></tr></thead>
+  <tbody>
+    <tr><td><b>$L^2$ / weight decay</b></td><td>have small weights</td>
+        <td>a Gaussian prior (II §17); adding $\alpha$ to every eigenvalue (III §7)</td></tr>
+    <tr><td><b>$L^1$</b></td><td>use few inputs</td>
+        <td>a Laplace prior (II §17); a constraint with corners (I §15, §7)</td></tr>
+    <tr><td><b>Input noise</b></td><td>ignore small perturbations</td>
+        <td><b>exactly $L^2$</b>, with $\alpha = n\sigma^2$ (§12, measured to 1.4%)</td></tr>
+    <tr><td><b>Early stopping</b></td><td>are reachable quickly from the start</td>
+        <td>the same family as $L^2$, same ordering (§14, measured)</td></tr>
+    <tr><td><b>Dropout</b></td><td>depend on no single unit</td>
+        <td>bagging over $2^n$ weight-sharing subnetworks (§19)</td></tr>
+    <tr><td><b>Augmentation</b></td><td>are invariant to known transformations</td>
+        <td>a constraint carrying domain knowledge (§10)</td></tr>
+    <tr><td><b>Parameter sharing</b></td><td>reuse the same rule everywhere</td>
+        <td>architecture: capacity removed, not constrained (§15)</td></tr>
+    <tr><td><b>Sparse representations</b></td><td>describe each example with few factors</td>
+        <td>$L^1$ again, applied to activations rather than weights (§6)</td></tr>
+    <tr><td><b>Multi-task learning</b></td><td>serve several tasks at once</td>
+        <td>sharing across tasks; more data for the shared trunk (§16)</td></tr>
+    <tr><td><b>Semi-supervised</b></td><td>respect the structure of $p(\mathbf{x})$</td>
+        <td>a constraint bought with unlabelled data (§17)</td></tr>
+    <tr><td><b>Tangent propagation</b></td><td>are flat along the data manifold</td>
+        <td>augmentation's invariance, imposed by derivative rather than by example (§11)</td></tr>
+    <tr><td><b>Bagging</b></td><td>(none)</td>
+        <td>the one that cuts variance without buying bias (§18)</td></tr>
+  </tbody>
+</table>
+
+<div class="box intuition">
+  <span class="label">The one thing to carry forward</span>
+  <p><b>Every regulariser is a statement about which functions you would rather have, made
+  before you know which ones fit.</b></p>
+  <p>That is why they can be equivalent despite looking nothing alike: two procedures
+  expressing the same preference must produce the same solutions, whatever route they take
+  to it. Input noise and weight decay are not similar in form and are identical in effect,
+  because both say the output should not swing wildly.</p>
+  <p>And it is why none of them is universally good. A preference is an assumption, Part VI
+  §7 guarantees no assumption wins everywhere, and the useful question is never "how much
+  regularization" but <b>"which preference is true here, and how strongly".</b></p>
+</div>
+
+<h3><span class="num">§22</span> Choosing, in practice</h3>
+
+<p>The honest ordering, and it is not the order these are usually taught in.</p>
+
+<div class="box def">
+  <span class="label">What to reach for, in order</span>
+  <ol class="tight">
+    <li><b>Diagnose first.</b> Part VI §6's learning curves. If both errors are high and
+    close, everything below will make it worse: you have a bias problem and regularization
+    treats variance.</li>
+    <li><b>More data</b>, if it can be had. It cuts variance and buys no bias, which
+    nothing else here offers.</li>
+    <li><b>Augmentation</b>, if you know a true invariance. The only regulariser carrying
+    actual knowledge of your problem.</li>
+    <li><b>Early stopping.</b> Nearly free, self-tuning, composes with everything.</li>
+    <li><b>Weight decay</b>, swept on a validation set. The reliable generic.</li>
+    <li><b>Dropout</b>, for large models with a real gap.</li>
+    <li><b>Ensembling</b>, when the compute is worth the last point or two.</li>
+  </ol>
+</div>
+
+<div class="box pitfall">
+  <span class="label">Pitfall: the total, not the terms</span>
+  <p>The single most common regularization error in practice is not picking the wrong one.
+  It is <b>not noticing how many are running at once.</b></p>
+  <p>A typical modern configuration has augmentation, dropout, weight decay, early stopping,
+  a finite learning rate, and small-batch gradient noise: six preferences, each defensible,
+  <b>and their strengths add</b>. §12 showed input noise alone contributing an effective
+  $\alpha$ twenty times the explicit one; §14 showed early stopping contributing $2.5$ where
+  someone was about to sweep $\alpha$ over $[0.1, 1]$.</p>
+  <p>The symptom is underfitting that looks like a broken model: training error will not
+  come down, and adding capacity does not help because capacity is not the constraint. The
+  diagnostic is to <b>turn them all off and confirm the model can overfit</b> (Part VII
+  §20's ten-example test), and then add back one at a time.</p>
+</div>
+
+<h3><span class="num">§23</span> What regularization cannot do</h3>
+
+<p>Three limits worth stating plainly, because each is a place where more regularization is
+the wrong response.</p>
+
+<dl>
+  <dt>It cannot manufacture information</dt>
+  <dd>Part V §20's irreducible error $\sigma^2$ is a property of the world. A model already
+  at the noise floor is finished, and every technique here will only move it away. Knowing
+  $\sigma^2$ (or having a human baseline that estimates it) is what tells you whether you
+  are underfitting or done.</dd>
+
+  <dt>It cannot fix a wrong model class</dt>
+  <dd>If the true function is not in your family, no preference among the functions that
+  <i>are</i> will reach it. Regularization chooses within a class; it cannot enlarge one.
+  A straight line penalised more gently is still a straight line.</dd>
+
+  <dt>It cannot survive distribution shift</dt>
+  <dd>Every guarantee in Parts V and VI rests on the i.i.d. assumption of Part VI §5. A
+  regulariser tuned on a validation set drawn from the training distribution tells you
+  nothing about a deployment distribution that differs. This is the most common way a
+  well-regularized model fails in production, and no amount of $\alpha$ addresses it.</dd>
+</dl>
+
+<div class="box why">
+  <span class="label">Why the honest version of this part is short</span>
+  <p>Regularization has an unusual place in the field: it is where practice ran furthest
+  ahead of theory, and the gap has not closed.</p>
+  <p>Dropout was proposed with an ensemble argument that is suggestive rather than rigorous.
+  Batch normalisation's stated explanation has since been disputed while the method keeps
+  working. The classical bias–variance account that motivates the whole subject <b>fails to
+  describe modern networks</b>, as Part V §20's double-descent figure showed, and the
+  question of why enormously overparameterized models generalise at all remains open.</p>
+  <p>What survives that uncertainty is the part of this chapter that is derived rather than
+  observed: the eigen-shrinkage of §4, the noise-equals-penalty identity of §12, the
+  constrained reading of §7, the variance algebra of §18. Those are theorems and will still
+  be true when the folklore around them has been replaced.</p>
+  <p>Which is the argument for having done them properly. <b>When a field's practice is
+  unsettled, the derivations are the part you can stand on.</b></p>
+</div>
+
+<div class="box try">
+  <span class="label">Try it: the last one</span>
+  <p>A model gets 3% training error and 22% test error. You add dropout 0.5, weight decay
+  $\alpha = 0.1$, and heavy augmentation, all at once. Training error rises to 19% and test
+  error to 24%. What happened, and what is the next step?</p>
+</div>
+
+<p><b>Answer.</b> You overshot, and by a lot. The original diagnosis was right (a 19-point
+gap is variance, and regularization was the correct family of remedy), but three regularisers
+applied simultaneously totalled far more than the problem needed, and the model is now
+underfitting. Training error at 19% is the tell: it is close to test error, which is Part VI
+§6's high-bias signature, and it means the model can no longer represent the data it has.</p>
+<p><b>The next step is not to reduce all three proportionally.</b> You do not know which is
+doing the damage, and their strengths are not comparable in any units you have. Turn all
+three off, confirm the original 3%/22% reproduces, then add <b>one</b> back and sweep it
+alone on the validation set. Then the next, holding the first at its chosen value.</p>
+<p>That is slower and it is the only procedure that produces a number you can defend. It is
+also Part V §14's warning in a new setting: three knobs tuned jointly by eye is a search,
+and the configuration you land on is partly selected by luck.</p>

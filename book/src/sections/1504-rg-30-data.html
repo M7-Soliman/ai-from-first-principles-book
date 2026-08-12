@@ -1,0 +1,190 @@
+<h2><span class="part-kicker">Part C</span>More data, and pretending you have it</h2>
+
+<h3><span class="num">§9</span> The best regulariser is more data</h3>
+
+<p>Before any technique: Part VI §6's learning curves established that a high-variance model
+improves with data and a high-bias one does not. Where the gap is large, <b>more data
+dominates every method in this part</b>: it reduces variance without buying any bias at
+all, which is a trade none of the penalties can offer.</p>
+
+<p>The difficulty is that data is the expensive thing. So the field asks a narrower
+question: <b>can we manufacture examples we do not have?</b> Sometimes, and the conditions
+under which it works are precise.</p>
+
+<h3><span class="num">§10</span> Dataset augmentation</h3>
+
+<div class="sixty">
+  <span class="label">In 60 seconds</span>
+  <p>Transform your training examples in ways that <b>should not change the label</b>
+  (rotate an image, crop it, alter its colour) and train on the results as if they were new
+  data. It is regularization because it states a preference: functions invariant to those
+  transformations. It works exactly to the extent that the invariance is true.</p>
+</div>
+
+<p>The mechanism is §1's definition made literal. You are not adding information; you are
+adding a <i>constraint</i>, and the constraint is that the model's output should not change
+under transformations you have declared irrelevant.</p>
+
+<div class="box why">
+  <span class="label">Why it is the strongest regulariser available, when it is available</span>
+  <p>Every other technique in this part expresses a generic preference: smaller weights,
+  fewer weights, less dependence on any one unit. None of them knows anything about your
+  problem.</p>
+  <p>Augmentation is different: it encodes <b>a fact about the domain</b>. A rotated 7 is a
+  7. A photograph with the brightness raised is the same photograph. That is knowledge, and
+  a regulariser carrying real knowledge is worth more than one carrying a preference for
+  tidiness.</p>
+  <p>Which is why augmentation is close to mandatory in vision and much rarer in tabular
+  problems: images come with a large group of transformations everyone agrees are
+  label-preserving, and a table of customer records does not.</p>
+</div>
+
+<div class="box pitfall">
+  <span class="label">Pitfall: an invariance that is not true</span>
+  <p>The whole method rests on the transformation preserving the label, and the standard
+  counterexample is worth remembering because it is so easy to get wrong.</p>
+  <p><b>Horizontal flips</b> are a staple of image augmentation, and they are correct for
+  cats and disastrous for digits: a flipped <b>2</b> is not a 2, and a flipped <b>b</b> is
+  a <b>d</b>. <b>Rotation by 180°</b> turns a 6 into a 9. Aggressive cropping can remove the
+  object you are trying to classify while keeping its label.</p>
+  <p>Each of these teaches the model something false, and the symptom is not obvious: the
+  model trains fine and is simply worse, having spent capacity learning an invariance the
+  task does not have.</p>
+  <p>The check is not statistical. It is to look at the augmented examples and ask whether
+  a human would still assign the original label.</p>
+</div>
+
+<h3><span class="num">§11</span> Encoding an invariance without generating data</h3>
+
+<p>Augmentation states an invariance by <b>example</b>: here are a thousand rotated digits,
+infer that rotation does not matter. That is effective and indirect; you are hoping the
+model draws the general conclusion from the instances.</p>
+
+<p>A family of older methods states it <b>directly</b> instead, and they are worth knowing
+because of what they reveal rather than because you are likely to use them.</p>
+
+<div class="box def">
+  <span class="label">Tangent propagation</span>
+  <p>If the label is unchanged along some transformation, then the model's output should not
+  change along it either, so its <b>directional derivative in that direction should be
+  zero</b>.</p>
+  <p>Write $\mathbf{v}^{(i)}$ for the direction in input space corresponding to an
+  infinitesimal rotation, translation or scaling. Then penalise</p>
+  <p>$$\Omega(f) = \sum_i \big(\nabla_{\mathbf{x}} f(\mathbf{x})^\top \mathbf{v}^{(i)}\big)^2$$</p>
+  <p>which is zero exactly when the output is flat along every transformation you named.</p>
+</div>
+
+<p>Compare the two approaches. Augmentation samples the transformation and lets the model
+work out the rule; tangent prop differentiates it and imposes the rule. The second is more
+direct and needs you to <b>write down the tangent vectors</b>, which requires knowing the
+transformation analytically, easy for rotation and translation but hopeless for "different
+lighting" or "a different person's handwriting".</p>
+
+<p>That practical limit is why augmentation won. But the idea has an afterlife worth
+noticing.</p>
+
+<div class="box why">
+  <span class="label">Why this connects to the manifold hypothesis</span>
+  <p>Part VI §23 argued that real data concentrates near a low-dimensional manifold, and
+  that representation learning is the search for coordinates on it. Tangent methods are that
+  claim used as a regulariser.</p>
+  <p>The transformations you can apply to an image without changing its label (rotate,
+  translate, scale, adjust lighting) trace out <b>directions along the manifold</b>. The
+  tangent vectors $\mathbf{v}^{(i)}$ are literally a basis for its tangent space, which is
+  where the name comes from.</p>
+  <p>So the penalty says: <b>be flat along the manifold, and free to vary across it.</b>
+  That is a remarkably precise statement of what a good classifier should do, and it is the
+  same instinct behind the <i>manifold tangent classifier</i>, which estimates the tangent
+  directions from data with an autoencoder rather than requiring you to supply them.</p>
+  <p>Which is the honest reason these methods are in this book despite being little used:
+  they are the clearest statement anyone has made of what augmentation is <i>for</i>, and
+  they connect it to the argument in Part VI that motivates the whole enterprise.</p>
+</div>
+
+<p>A closely related method, <b>tangent distance</b>, uses the same idea for nearest
+neighbours: measure the distance between two examples' <i>manifolds</i> rather than between
+the points, so a digit and its rotated copy are correctly judged close. It predates deep
+learning by decades and was the strongest MNIST method of its era.</p>
+
+<h3><span class="num">§12</span> Noise, and why it is a penalty</h3>
+
+<p>A particular kind of augmentation deserves its own treatment, because it turns out to be
+one of the penalties from Part B in disguise.</p>
+
+<p>Add Gaussian noise to the inputs during training. It is a reasonable thing to try: the
+model should not care about small perturbations, and there is no obvious connection to
+weight decay. There is an exact one.</p>
+
+<figure>
+  <img src="figures/rg/04-noise-is-penalty.svg" alt="Weight norm from noise-corrupted fitting matching ridge regression with alpha = n sigma squared">
+  <figcaption><b>Figure 4.</b> Two procedures with nothing visibly in common. The points are
+  fits on training inputs corrupted with noise of scale $\sigma$, averaged over 60 noisy
+  copies. The line is <b>ridge regression on clean data</b> with $\alpha = n\sigma^2$, with no
+  noise anywhere. The largest disagreement across the whole sweep is <b>1.4%</b>.</figcaption>
+</figure>
+
+<div class="worked">
+  <span class="label">Worked: why they coincide</span>
+  <p>Take squared error on a linear model and perturb the input,
+  $\tilde{\mathbf{x}} = \mathbf{x} + \boldsymbol{\epsilon}$ with
+  $\mathbb{E}[\boldsymbol{\epsilon}] = \mathbf{0}$ and covariance $\sigma^2 I$. The expected
+  loss is</p>
+  <p>$\mathbb{E}\big[(\mathbf{w}^\top(\mathbf{x}+\boldsymbol{\epsilon}) - y)^2\big]
+     = \mathbb{E}\big[(\mathbf{w}^\top\mathbf{x} - y)^2\big]
+     + 2\,\mathbb{E}\big[(\mathbf{w}^\top\mathbf{x}-y)\,\mathbf{w}^\top\boldsymbol{\epsilon}\big]
+     + \mathbb{E}\big[(\mathbf{w}^\top\boldsymbol{\epsilon})^2\big]$</p>
+  <p>The middle term vanishes, because $\boldsymbol{\epsilon}$ has mean zero and is
+  independent of everything else in it. The last one is a quadratic form in the noise
+  covariance, which for $\sigma^2 I$ collapses to $\sigma^2\|\mathbf{w}\|_2^2$. So:</p>
+  <p>$$\mathbb{E}[\text{loss with noise}] = \text{loss without noise} + \sigma^2\|\mathbf{w}\|_2^2$$</p>
+  <p>That is the per-example result. Summing over all $n$ training examples gives a total
+  extra cost of $n\sigma^2\|\mathbf{w}\|_2^2$, which is an $L^2$ penalty with strength
+  $\alpha = n\sigma^2$, the value the figure confirms.</p>
+</div>
+
+<p>Note what the derivation used: linearity of the model and zero-mean noise, and nothing
+else. For a nonlinear model the equivalence is approximate rather than exact, but the
+mechanism survives, which is why noise injection behaves like a penalty in networks too.</p>
+
+<h4>Noise elsewhere</h4>
+
+<p>The same idea is applied in three other places, and each expresses a different
+preference:</p>
+
+<dl>
+  <dt>Noise on the weights</dt>
+  <dd>Perturb the parameters rather than the inputs. For squared error this works out to a
+  penalty on the <i>gradient</i> of the output with respect to the weights, a preference
+  for regions of parameter space where small weight changes do not change the function much.
+  Flat minima, in other words, and that is the same preference Part III §14 noted small-batch
+  noise appears to express.</dd>
+
+  <dt>Noise on the labels</dt>
+  <dd><b>Label smoothing</b>: replace a hard target of 1 with $1-\epsilon$, and spread
+  $\epsilon$ over the other classes. This exists because of Part II §25's loss curve:
+  cross-entropy drives the correct logit toward infinity to reach a target of exactly 1, and
+  it never gets there. A softened target is attainable, so the weights stop growing.</dd>
+
+  <dt>Noise on the activations</dt>
+  <dd>Which is dropout, and it is different enough to need §19.</dd>
+</dl>
+
+<div class="box try">
+  <span class="label">Try it</span>
+  <p>You add input noise with $\sigma = 0.1$ and also weight decay with $\alpha = 0.5$, on
+  1,000 examples. Roughly what total penalty are you applying, and what should you do before
+  tuning either?</p>
+</div>
+
+<p><b>Answer.</b> The noise contributes an effective $\alpha_{\text{noise}} = n\sigma^2 =
+1000 \times 0.01 = 10$, which swamps the explicit $\alpha = 0.5$ by a factor of twenty. The
+total is about $10.5$, and essentially all of it is coming from the noise you may not have
+thought of as regularization at all.</p>
+<p>What to do first: <b>recognise that you have one knob, not two.</b> Tuning $\alpha$ over
+a range of 0.1 to 1 while $\sigma$ silently contributes 10 will look like weight decay
+having no effect, and the natural conclusion (that regularization does not help here) is
+wrong. Sweep the dominant term, or fold them into a single effective strength and sweep
+that.</p>
+<p>The general lesson is worth more than the arithmetic: <b>regularisers compose, and their
+strengths add.</b> Several mild-looking ones can total something severe, which is one of the
+most common causes of unexplained underfitting.</p>

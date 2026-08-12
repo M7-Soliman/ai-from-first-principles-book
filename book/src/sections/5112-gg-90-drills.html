@@ -1,0 +1,247 @@
+<h2><span class="part-kicker">Practice</span>Drills</h2>
+
+<p class="mvt">Thirty-nine drills. The harness in <code>parts/26-graph/drills/</code> covers twenty
+of them with thirty-two tests. Numpy only: building the aggregation is the point, and a
+permutation test is three lines you should be able to write from memory.</p>
+
+<h3><span class="num">Tier 0</span> Estimate first</h3>
+
+<div class="drill">
+  <div class="head"><span class="tier est">Estimate</span>E1 &middot; How to store a graph</div>
+  <p>A graph with a million nodes and average degree 20. Write down the number of edges, and the memory for a dense adjacency matrix against an edge list.</p>
+  <div class="ans"><b>Answer.</b> <b>10<sup>7</sup></b> edges; <b>1&nbsp;TB</b> dense at one byte an entry, against <b>160&nbsp;MB</b> as an edge list. Six thousand times, and it is why every practical implementation is written against an edge list, and why an algorithm needing the full spectrum is transductive in practice as well as in principle. <i>Score yourself: within a factor of two is a pass, and an order of magnitude out is worth understanding before you go on.</i></div>
+</div>
+
+<h3><span class="num">Tier 1</span> Warm-up</h3>
+
+<div class="drill">
+  <div class="head"><span class="tier warm">Warm-up</span>W1 · The count</div>
+  <p>How many orderings of a 30-node graph, and what does the number argue?</p>
+  <div class="ans"><b>Answer.</b> 30! ≈ 2.7 × 10<sup>32</sup>. No amount of augmentation covers that, so the symmetry has to be built in rather than shown.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier warm">Warm-up</span>W2 · Invariant or equivariant</div>
+  <p>Which does a node classifier need, and which a molecule property predictor?</p>
+  <div class="ans"><b>Answer.</b> Equivariant and invariant. Relabel the nodes and the node predictions should permute with them; the molecule's energy should not move at all.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier warm">Warm-up</span>W3 · Read Figure 1</div>
+  <p>What did the invariant model score on relabelled test data, and the augmented one?</p>
+  <div class="ans"><b>Answer.</b> 1.000 and 0.947. The gap is the difference between a guarantee and a habit, and the constraint cost the invariant model nothing in accuracy.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier warm">Warm-up</span>W4 · Three aggregators</div>
+  <p>Sum, mean, max. Which distinguishes a node with two identical neighbours from one with four?</p>
+  <div class="ans"><b>Answer.</b> Sum. Mean and max both return the same value, which is why sum is the choice when degree carries signal and the wrong choice when degree varies for reasons the label does not care about.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier warm">Warm-up</span>W5 · Depth is reach</div>
+  <p>How far can information travel in a three-layer message-passing network?</p>
+  <div class="ans"><b>Answer.</b> Three hops. Depth on a graph buys receptive field, not capacity, which is why it cannot be tuned the way Part IX tunes depth.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier warm">Warm-up</span>W6 · Read Figure 2</div>
+  <p>What happens to mean pairwise distance between node representations as depth grows?</p>
+  <div class="ans"><b>Answer.</b> It falls from 1.351 to 0.000. That is the distance between representations after normalising each to unit length: every node ends up pointing in the same <i>direction</i>, not the same vector: the figure's symmetric normalisation preserves degree as a scale factor even as directions align. Accuracy falls with it, a paired drop of 0.096 ± 0.017 past the peak.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier warm">Warm-up</span>W7 · The transformer connection</div>
+  <p>What graph is a transformer a graph network on?</p>
+  <div class="ans"><b>Answer.</b> The complete one. Attention is message passing where every node is every node's neighbour, which is why it has no over-squashing and no structural information either.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier warm">Warm-up</span>W8 · Read Figure 3</div>
+  <p>What was the difference between the two 2-regular graphs' representations?</p>
+  <div class="ans"><b>Answer.</b> Exactly 0.00e+00, at every depth. Not small: zero, because colour refinement cannot separate them and no amount of training changes that.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier warm">Warm-up</span>W9 · Transductive or inductive</div>
+  <p>A fraud model that scores accounts opened tomorrow. Which is it?</p>
+  <div class="ans"><b>Answer.</b> Inductive. Any method needing the full graph at training time (anything spectral) cannot be used, and a transductive benchmark number does not predict its performance.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier warm">Warm-up</span>W10 · The homophily check</div>
+  <p>What is the one number to compute before choosing an architecture?</p>
+  <div class="ans"><b>Answer.</b> The fraction of edges joining same-label nodes. Below about half, message passing is averaging away the signal and a feature-only model wins.</div>
+</div>
+
+<h3><span class="num">Tier 2</span> Core</h3>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C1 · Write the permutation test</div>
+  <p>Given a model and a graph, verify invariance numerically.</p>
+  <div class="ans"><b>Answer.</b> Draw a permutation, permute the features and rows-and-columns of the adjacency, predict, and compare. Three lines, and it catches an entire class of implementation bug that trains fine and is silently wrong.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C2 · Implement one layer</div>
+  <p>Write a message-passing layer from an edge list, without building a dense adjacency.</p>
+  <div class="ans"><b>Answer.</b> Gather the source features by edge, scatter-add into the targets, then transform. The cost is O(|E|) and the dense version is O(n²), the difference between a graph that fits and one that does not.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C3 · Reproduce the collapse</div>
+  <p>Regenerate Figure 2 and confirm the distance goes to zero. Then repeat with the symmetric normalisation and say precisely what happens.</p>
+  <div class="ans"><b>Answer.</b> Under mean aggregation it goes to exactly zero: the operator is row-stochastic and repeated diffusion has one fixed point. Under the symmetric normalisation it does not: distances shrink by a factor of tens, every pair of representations becomes perfectly aligned, and what survives is the square root of degree. Same loss, different arithmetic, and the loose statement is wrong for the operator most people use.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C4 · Residuals against collapse</div>
+  <p>Add a residual connection to the layer of C2 and re-run C3.</p>
+  <div class="ans"><b>Answer.</b> The collapse slows and does not stop. A residual keeps some of the previous representation, so the fixed point takes longer to reach, the standard mitigation, and a delay rather than a fix.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C5 · Sum against mean, measured</div>
+  <p>Build a task where the label depends on degree, and one where it does not. Fit both aggregators.</p>
+  <div class="ans"><b>Answer.</b> Sum wins the first and can lose the second, because it makes representation scale track degree and hands the model a nuisance variable to fit.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C6 · The regular-graph pair</div>
+  <p>Construct two non-isomorphic regular graphs of the same degree and confirm Figure 3's zero.</p>
+  <div class="ans"><b>Answer.</b> Every node has identical initial features and identical degree, so refinement never splits the colour classes. The two graphs are indistinguishable to the family regardless of width, depth or training.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C7 · Break the tie</div>
+  <p>Add a feature to the graphs of C6 that lets the model separate them.</p>
+  <div class="ans"><b>Answer.</b> Anything the refinement cannot compute: a triangle count, a cycle count, a random identifier. The last works and destroys invariance, which is the trade §19 names.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C8 · Reproduce the bottleneck</div>
+  <p>Regenerate Figure 4 and read off the fall in source influence along a path.</p>
+  <div class="ans"><b>Answer.</b> A factor of 6,561 over the path, and the bottleneck ratio grows from 1.8× to 17.8× with distance. The signal is not lost so much as diluted below what a fixed-width vector resolves.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C9 · The leaky split</div>
+  <p>Split a homophilous graph randomly by node, train, then re-split inductively and compare.</p>
+  <div class="ans"><b>Answer.</b> The random split scores higher, sometimes much higher. Test nodes' neighbours are training nodes whose labels the model saw, and on a homophilous graph that is most of the answer.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C10 · Negatives decide the metric</div>
+  <p>Score a link predictor against uniform negatives, then against distance-two negatives.</p>
+  <div class="ans"><b>Answer.</b> The metric drops, often by tens of points. Uniform negatives are mostly trivial, so the easy version measures whether the model knows which component a node is in.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C11 · Remove the edge you predict</div>
+  <p>Train a link predictor without deleting test edges from the message-passing graph.</p>
+  <div class="ans"><b>Answer.</b> Near-perfect scores that mean nothing. The edge being predicted is in the adjacency the model reads, so the task is copying rather than predicting.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C12 · Label propagation as a baseline</div>
+  <p>Spread known labels along edges with no learning and compare against a trained network.</p>
+  <div class="ans"><b>Answer.</b> On a homophilous benchmark it is close, and sometimes ahead: that is the number saying how much of the reported accuracy the architecture is responsible for. Then draw the seeds at random rather than balanced and re-measure: the harmonic solution has no notion of a class prior, so the majority seed class spreads further and accuracy falls from 0.99 to about 0.81 over twelve graphs. A propagation baseline needs its seed counts reported beside it.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C13 · Features without the graph</div>
+  <p>Fit a tabular model on the node features alone.</p>
+  <div class="ans"><b>Answer.</b> On several standard benchmarks it is competitive. If it matches, you have a Part XXV problem and the edges are decoration.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C14 · Seed spread</div>
+  <p>Train the same architecture on the same split with ten seeds.</p>
+  <div class="ans"><b>Answer.</b> On the small standard benchmarks the spread is often as large as the differences between published methods, which is most of §41's explanation.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C15 · Distances are invariant</div>
+  <p>Build a point-cloud model on pairwise distances and rotate the test set.</p>
+  <div class="ans"><b>Answer.</b> The predictions do not move, to floating-point precision. The invariance is a property of the input representation, so no constraint on the network is needed.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C16 · Reproduce Figure 5</div>
+  <p>Compare an invariant model against augmentation across training sizes.</p>
+  <div class="ans"><b>Answer.</b> The invariant model leads at every size, but not by a fixed amount: the gap is 0.004 at 100 examples, widens to 0.073 by 400–800, and narrows to 0.039 by 3,200. Augmentation buys the symmetry with data once there is enough data for the augmented model to use, and the exchange rate is unfavourable but not infinite.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C17 · Rewiring, measured</div>
+  <p>Add a virtual node connected to everything and re-run a long-range task.</p>
+  <div class="ans"><b>Answer.</b> Long-range accuracy improves and the graph you are modelling is no longer the one you were given. Whether that is legitimate depends on the question, not the metric.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C18 · The chirality trap</div>
+  <p>Why can an E(3)-invariant model not distinguish enantiomers?</p>
+  <div class="ans"><b>Answer.</b> Reflection is in the group, so the model is built to give mirror images the same answer. Declaring too large a symmetry makes the needed distinction unrepresentable, a modelling error no training run can repair.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C19 · Vectors need equivariance</div>
+  <p>Why can a distance-only network not predict a force?</p>
+  <div class="ans"><b>Answer.</b> Distances have no direction. To output a vector the network must carry vectors, which is §35's scalar-weighted sum of relative positions.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C20 · The filtered rank</div>
+  <p>Score a knowledge-graph model with and without filtering known true triples from the candidates.</p>
+  <div class="ans"><b>Answer.</b> The unfiltered number is worse and it penalises the model for being right about other true triples. Numbers computed the two ways are not comparable.</div>
+</div>
+
+<h3><span class="num">Tier 3</span> Stretch</h3>
+
+<div class="drill">
+  <div class="head"><span class="tier stretch">Stretch</span>S1 · Colour refinement by hand</div>
+  <p>Run the refinement on a pair of graphs until the colour classes stabilise, then relate the result to what a message-passing network can distinguish.</p>
+  <div class="ans"><b>Answer.</b> The stable colouring is exactly the partition the network can express. The equivalence is a theorem, and it makes the ceiling checkable without training anything.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier stretch">Stretch</span>S2 · Over-smoothing against over-squashing</div>
+  <p>Design a task that needs six hops and measure both failures on it.</p>
+  <div class="ans"><b>Answer.</b> Shallow networks cannot reach and deep ones collapse, so the accuracy curve has a peak with a bad reason on each side. This is why long-range dependence on graphs is genuinely open.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier stretch">Stretch</span>S3 · A graph transformer, and what it costs</div>
+  <p>Replace message passing with full attention plus a structural encoding, and measure both accuracy and memory against graph size.</p>
+  <div class="ans"><b>Answer.</b> Long-range accuracy improves and memory goes quadratic. The structural encoding is now carrying the graph, so its choice matters as much as the architecture did.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier stretch">Stretch</span>S4 · Equivariant layer from scratch</div>
+  <p>Implement §35's scalar-and-vector update and verify equivariance by rotating an input.</p>
+  <div class="ans"><b>Answer.</b> The scalars are unchanged and the vectors rotate exactly. The test is as cheap as C1's and catches the same class of bug.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier stretch">Stretch</span>S5 · Heterophily, and what to do</div>
+  <p>Build a graph where neighbours systematically differ and fit a standard architecture.</p>
+  <div class="ans"><b>Answer.</b> It underperforms features alone. Separating the self representation from the neighbour aggregate recovers most of it, because the damage was mixing them.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier stretch">Stretch</span>S6 · Scale to a graph that does not fit</div>
+  <p>Train on a graph too large for memory using neighbour sampling, and measure what the sampling costs.</p>
+  <div class="ans"><b>Answer.</b> The estimate of each node's aggregate becomes noisy and the bias compounds with depth. It works, and the variance it introduces is part of why deep sampled networks are worse than the arithmetic suggests.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier stretch">Stretch</span>S7 · Re-run a published comparison</div>
+  <p>Take a reported graph result and add §40's four baselines, tuned equally.</p>
+  <div class="ans"><b>Answer.</b> The gap usually shrinks and sometimes reverses. Careful re-evaluations have found this repeatedly, which is the reason §41 exists.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier stretch">Stretch</span>S8 · Audit a graph system you run</div>
+  <p>Check the split, the negatives, the homophily and the feature-only baseline.</p>
+  <div class="ans"><b>Answer.</b> The most common finding is a transductive number standing in for an inductive deployment. The second is that the edges were not carrying much.</div>
+</div>

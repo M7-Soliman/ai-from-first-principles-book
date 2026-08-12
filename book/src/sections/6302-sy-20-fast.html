@@ -1,0 +1,116 @@
+<h2><span class="part-kicker">Part B</span>Making it fast</h2>
+
+<p class="mvt">Two transformations account for most of the speed in numerical code, and neither
+changes the arithmetic: do more per pass over the data, and arrange for the data to be somewhere
+close. Everything a compiler does automatically is one of those.</p>
+
+<h3><span class="num">§9</span> Fusion</h3>
+
+<div class="box def">
+  <span class="label">Fewer trips</span>
+  <p>A chain of elementwise operations, each written as its own kernel, reads the whole array from
+  memory and writes it back once per operation. Fusing them into a single pass reads once, does all
+  the arithmetic in registers, and writes once.</p>
+  <p>The arithmetic is identical. The traffic falls by roughly the chain length, and since the
+  chain was memory-bound the time falls with it. This is the single most valuable transformation in
+  numerical code and it is why a compiler exists at all.</p>
+</div>
+
+<h3><span class="num">§10</span> What it is worth</h3>
+
+<figure>
+  <img src="figures/sy/02-fusion.svg" alt="Speedup from fusing an elementwise chain against the chain length, with the chain length drawn as an upper bound">
+  <figcaption><b>Figure 2.</b> A chain of elementwise operations on a 32&nbsp;MB array, run as
+  separate passes and as one. Both arms write into preallocated buffers, so the only difference is
+  the number of trips to memory. The speedup grows from <b>1.10&times;</b> at a chain of one to
+  <b>7.52&times;</b> at eight, tracking the chain length, which is meant as a ceiling, because you
+  cannot make fewer than one pass, and holds everywhere except a chain of two, where the measured
+  speedup is <b>2.11&times;</b>: writing in place is slightly cache-friendlier than reading a
+  freshly allocated array, so the dashed line is a close guide rather than a hard limit.</figcaption>
+</figure>
+
+<h3><span class="num">§11</span> Blocking</h3>
+
+<div class="box def">
+  <span class="label">Working on a piece that fits</span>
+  <p>A matrix multiplication written in the obvious order streams through both inputs repeatedly,
+  and once they exceed cache each pass fetches from main memory again. Splitting the computation
+  into blocks small enough that a block of each input fits in cache means each block is fetched once
+  and reused many times.</p>
+  <p>The arithmetic is identical again. The traffic falls by a factor of the block size, and the
+  right block size is the one whose working set matches a level of the hierarchy, so it can be
+  computed rather than searched.</p>
+</div>
+
+<h3><span class="num">§12</span> What that is worth</h3>
+
+<figure>
+  <img src="figures/sy/03-cache.svg" alt="Throughput in GFLOP/s against matrix size, for row-at-a-time and cache-blocked multiplication">
+  <figcaption><b>Figure 3.</b> The same multiplication, organised two ways. Blocking to a working
+  set of about 1.6&nbsp;MB runs at <b>3.3 to 3.6&times;</b> the throughput of the row-at-a-time
+  version at every size, and the best block size is <b>256</b> throughout, corresponding to a
+  working set that fits a cache level, which is why it can be predicted rather than
+  swept.</figcaption>
+</figure>
+
+<h3><span class="num">§13</span> What a compiler does</h3>
+
+<div class="box shapes">
+  <span class="label">Four transformations, and the reason a graph is captured first</span>
+  <p><b>Fusion</b>, §9. <b>Layout selection</b>: choosing how tensors are arranged in memory so the
+  access pattern is contiguous. <b>Algebraic simplification</b>: cancelling operations that
+  neighbour each other. <b>Kernel selection</b>: picking an implementation for the shapes at hand.</p>
+  <p>All four need the <b>whole computation visible at once</b>, which is why frameworks capture a
+  graph before optimising. It is also why anything that breaks capture (a data-dependent branch, a
+  shape that changes every call) silently returns you to unfused execution, and the symptom is a
+  model that is mysteriously slower after a small change.</p>
+</div>
+
+<h3><span class="num">§14</span> Writing a kernel</h3>
+
+<div class="box try">
+  <span class="label">When it is worth doing by hand, and the shape of the work</span>
+  <p>Write a kernel when the operation is memory-bound, appears in a chain, and the compiler will
+  not fuse it: a custom attention variant, a fused optimiser step, a quantisation routine. Not for
+  matrix multiplication, where the vendor's implementation is the product of person-years.</p>
+  <p>The shape of the work is always the same: decide which piece of the output each unit of
+  parallelism produces, load the inputs it needs into fast memory once, compute, write once. Modern
+  tooling lets that be expressed at the block level rather than the thread level, which removes most
+  of the difficulty and none of the thinking.</p>
+  <p><b>Triton</b> is that tooling in its most direct form: a kernel is a Python function decorated
+  <code>@triton.jit</code>, written once per block rather than once per thread: you name the tile
+  a program instance owns, <code>tl.load</code> it, compute, <code>tl.store</code> it back, and the
+  compiler handles the thread-level scheduling and register allocation the hand-written version
+  above does implicitly. It is the same three-step shape as §9's fusion and drill S1's numpy
+  kernel, at the level a GPU actually executes it. This book's snippets are run and checked before
+  they ship, per this book's own rule, and that rule is exactly why a Triton listing is not printed
+  here: the execution environment behind these pages has no GPU to run one against, so the honest
+  choice is to describe the model rather than paste an unverified kernel. The numpy fusion in Figure
+  2 and drill S1 is the same idea, checked on hardware this book does have.</p>
+</div>
+
+<h3><span class="num">§15</span> Reading a profile</h3>
+
+<div class="box try">
+  <span class="label">In order, and stop when you have the answer</span>
+  <p><b>Where does the time go?</b> Usually a handful of kernels. Optimise anything else and the
+  total will not move (Amdahl, arriving as a scheduling decision).</p>
+  <p><b>Is that kernel memory-bound or compute-bound?</b> Compute its arithmetic intensity and place
+  it on Figure 1's plot.</p>
+  <p><b>How close is it to the relevant ceiling?</b> A memory-bound kernel at 80% of bandwidth is
+  finished. One at 15% has something wrong with its access pattern.</p>
+  <p><b>Only then look at occupancy</b>, and only to explain what you already measured.</p>
+</div>
+
+<h3><span class="num">§16</span> What movement B establishes</h3>
+
+<div class="box intuition">
+  <span class="label">Three things</span>
+  <p><b>The two transformations that matter change no arithmetic.</b> Fusion reduces trips; blocking
+  reduces distance.</p>
+  <p><b>Both are measurable and bounded.</b> Figure 2 measures fusion at 7.5&times; on a chain of
+  eight, bounded by the chain length; Figure 3 measures blocking at 3.5&times;, with the best block
+  size predictable from cache size.</p>
+  <p><b>A profile is read in a fixed order</b>, and occupancy is the last thing to look at rather
+  than the first.</p>
+</div>

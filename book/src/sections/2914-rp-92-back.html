@@ -1,0 +1,221 @@
+<h2><span class="part-kicker">Build</span>The project</h2>
+
+<p class="lede">Eight to twelve hours. You build one encoder four ways, and then a set of instruments
+for finding out what each of them kept, including the instruments that report confidently on
+representations containing nothing.</p>
+
+<h3><span class="num">P.1</span> What you are building</h3>
+
+<p><b><code>repr</code></b>: four self-supervised encoders on one dataset, and an instrument panel
+that measures what they hold.</p>
+
+<p>The rule: <b>before each measurement, write down what you expect it to say.</b> This part
+contains three results that contradict the obvious expectation, and the only way to find out
+whether you would have caught them is to have committed first.</p>
+
+<h3><span class="num">P.2</span> Stage 1: the data, with known factors</h3>
+
+<p>Do not start with images. Generate data from factors you control, so that "did it keep the right
+thing" is a question with an answer.</p>
+
+<ol>
+  <li>Two or three independent factors: one you will call the signal, the others nuisance.</li>
+  <li>Push them through a <b>fixed nonlinearity</b> before observing. Skip this and the signal is
+  linearly readable from the raw input, which quietly removes most of what you are trying to
+  measure.</li>
+  <li>Verify the difficulty: a linear probe on the raw input should be well short of perfect, and a
+  strong nonlinear one should be near it. That gap is the room your representation has to work
+  in.</li>
+</ol>
+
+<p><b>Deliverable:</b> a generator, plus the two raw-input probe numbers that establish the task is
+neither trivial nor impossible.</p>
+
+<h3><span class="num">P.3</span> Stage 2: four encoders</h3>
+
+<ol>
+  <li><b>Undercomplete autoencoder.</b> Also fit PCA at the same rank and compare, by principal
+  angles and per-axis cosine.</li>
+  <li><b>Denoising autoencoder</b> at a fixed $\sigma$.</li>
+  <li><b>Contrastive</b>, InfoNCE, with augmentation that varies the nuisance.</li>
+  <li><b>Positives only</b>, which is your collapse control.</li>
+</ol>
+
+<p><b>Deliverable:</b> four encoders and one table: effective rank, linear probe on the signal,
+linear probe on the nuisance, for each. Predict the table before you fill it in.</p>
+
+<h3><span class="num">P.4</span> Stage 3: the score</h3>
+
+<ol>
+  <li>Use a Gaussian mixture, so the score is available in closed form.</li>
+  <li>Train the denoiser and compare $(r(\mathbf{x})-\mathbf{x})/\sigma^2$ to the analytic score.</li>
+  <li>Compare against <b>both</b> the smoothed and the unsmoothed score, reporting cosine and
+  magnitude ratio separately for each.</li>
+  <li>Sweep $\sigma$ across two orders of magnitude and plot both agreements against it.</li>
+</ol>
+
+<p><b>Deliverable:</b> the four numbers, and a sentence on why the magnitude ratio against the
+unsmoothed score is the one that goes wrong. If you reported only cosine you would have concluded
+the identity holds exactly; it does, for a distribution that is not the one you sampled from.</p>
+
+<h3><span class="num">P.5</span> Stage 4: the instruments</h3>
+
+<ol>
+  <li><b>Effective rank</b>, logged during training rather than at the end.</li>
+  <li><b>Linear probe</b>, with the regularization strength recorded.</li>
+  <li><b>Control task</b>, fixed random label per identity, and selectivity.</li>
+  <li><b>Alignment and uniformity</b>, reported as a pair.</li>
+  <li><b>Anisotropy</b>, before and after centring.</li>
+  <li><b>Hubness</b>: the $N_k$ distribution, its skew, and the orphan fraction.</li>
+</ol>
+
+<p><b>Deliverable:</b> six functions with a common interface, each documenting what it does
+<b>not</b> detect. Then run all six on all four encoders, which is the table the rest of the
+project argues from.</p>
+
+<h3><span class="num">P.6</span> Stage 5: two instruments that lie</h3>
+
+<ol>
+  <li>Train the positives-only encoder and log effective rank <b>and</b> probe accuracy together.
+  Then rebuild the data so the signal is linearly readable from the raw input, and repeat. Find the
+  task on which the probe misses the collapse entirely.</li>
+  <li>Run the control task with a linear probe and with an MLP probe, on the raw input and on each
+  encoder. Find the combination whose selectivity is approximately zero while its accuracy is
+  above 0.95.</li>
+</ol>
+
+<p><b>Deliverable:</b> two concrete cases, from your own runs, where a standard measurement reports
+a result that is not true. Write down what you would have concluded from each in isolation.</p>
+
+<h3><span class="num">P.7</span> Stage 6: superposition</h3>
+
+<ol>
+  <li>Implement the toy model: $n$ features, $m < n$ dimensions, importance decaying across
+  features.</li>
+  <li>Sweep sparsity from dense to 99% and count stored features and mean interference.</li>
+  <li>Find the sparsity at which the count first exceeds $m$.</li>
+  <li>Then train a wide sparse autoencoder on the toy model's own hidden activations and check
+  whether it recovers the original feature directions.</li>
+</ol>
+
+<p><b>Deliverable:</b> the count-against-sparsity curve, and (from step four) the fraction of the
+planted features the sparse autoencoder recovered, plus its dead-feature fraction. This is the
+smallest honest end-to-end test of the §34 method there is, and it has ground truth, which the real
+application does not.</p>
+
+<h3><span class="num">P.8</span> Stretch</h3>
+
+<ul>
+  <li><b>Many noise levels.</b> Condition the denoiser on $\sigma$, train across a schedule, then
+  sample by following the field while annealing. You have built a diffusion model.</li>
+  <li><b>Ablate the stop-gradient.</b> Predictor with and without, stop-gradient with and without.
+  Four runs, effective rank for each.</li>
+  <li><b>Mask ratio.</b> Sweep it on a redundant signal and on a dense one, and find where the task
+  stops being solvable by local interpolation.</li>
+  <li><b>A real encoder.</b> Take a published pretrained model and run the whole panel on it.
+  Report its anisotropy and its hub statistics.</li>
+  <li><b>Layer sweep.</b> Probe every layer for a property the pretraining task needed and one it
+  did not.</li>
+</ul>
+
+<h3><span class="num">P.9</span> Done when</h3>
+
+<ul class="checklist">
+  <li>Four encoders exist and you predicted the comparison table before filling it in.</li>
+  <li>Your linear autoencoder matches PCA's error and not PCA's axes, and you can say why.</li>
+  <li>You have measured the denoiser against both the smoothed and unsmoothed score.</li>
+  <li>Six instruments exist, each documenting what it cannot see.</li>
+  <li>You have one case where a probe misses a collapse, from your own run.</li>
+  <li>You have one case where a probe's accuracy is high and its selectivity is zero.</li>
+  <li>You know the sparsity at which your toy model starts storing more features than dimensions.</li>
+  <li>Your README names one measurement whose result you predicted wrongly.</li>
+</ul>
+
+<div class="box why">
+  <span class="label">Why this project</span>
+  <p>Stage 5 is the reason. Every other stage builds something that works; that stage establishes
+  that two of the field's standard instruments will report a confident result on a representation
+  that contains nothing, and that you can construct the situation deliberately.</p>
+  <p>The last checklist item is the second reason. This part's own figures were rebuilt twice
+  because the first version measured something easier than intended: a collapse lag that turned
+  out to be an artifact of a task too simple, and a label-efficiency gap that was small because the
+  signal was linearly available from the start. Both looked fine until the generator was made
+  honest. You should expect at least one of yours to go the same way.</p>
+</div>
+
+<h2 class="nobreak"><span class="part-kicker">Assess</span>Checkpoint</h2>
+
+<ul class="checklist">
+  <li>Say what makes one representation better than another, and why the definition is circular.</li>
+  <li>Explain why every supervised network is already a representation learner.</li>
+  <li>Say why the penultimate layer is not always the right place to take features from.</li>
+  <li>Name the three properties asked of a representation and say which two conflict.</li>
+  <li>Give the region count for $n$ linear-threshold features in $\mathbb{R}^d$, and say which
+  symbol carries the exponent.</li>
+  <li>Explain why distributed representations generalise, in terms of shared entries.</li>
+  <li>State the manifold assumption and the evidence for it.</li>
+  <li>Say why local non-parametric manifold learning is not enough, using the translation
+  example.</li>
+  <li>Define an autoencoder and say what the load-bearing clause of the definition is.</li>
+  <li>Explain the relationship between a linear autoencoder and PCA, precisely.</li>
+  <li>Say why the reconstruction loss cannot select PCA's axes.</li>
+  <li>Give the index-code argument and what it establishes.</li>
+  <li>Explain why a sparsity penalty has no straightforward prior interpretation, and the reading
+  that does work.</li>
+  <li>Describe the denoising objective and why it defeats copying.</li>
+  <li>Give the identity relating a denoiser to the score, including which density.</li>
+  <li>Say what goes wrong if you compare a denoiser to the unsmoothed score.</li>
+  <li>Describe the contractive penalty and what its large singular values correspond to.</li>
+  <li>Give the trivial exploit of the contractive penalty and the fix.</li>
+  <li>State the two forces and say why neither alone is useful.</li>
+  <li>Give four reasons greedy layer-wise pretraining was abandoned.</li>
+  <li>Say what the correct generalisation of that history was.</li>
+  <li>Explain why pretext tasks plateaued.</li>
+  <li>Write down the InfoNCE objective and say what it is cross-entropy over.</li>
+  <li>Say what the negatives are for, in terms of the trivial optimum.</li>
+  <li>Explain why the augmentation set is the specification of the task.</li>
+  <li>Give an augmentation that would destroy a representation for a named task.</li>
+  <li>Define effective rank and say what it returns for isotropic and collapsed data.</li>
+  <li>Say why a probe is not a reliable collapse monitor.</li>
+  <li>Explain how BYOL and SimSiam avoid collapse without negatives.</li>
+  <li>Say why that argument is of a different kind from the rest of this part.</li>
+  <li>Explain why BERT masks 15% and MAE masks 75%.</li>
+  <li>State what self-supervision buys and what the fair comparison would cost.</li>
+  <li>Give the identity relating cosine and Euclidean distance on the unit sphere.</li>
+  <li>Define anisotropy and give the cheap repair.</li>
+  <li>Explain hubness, its mechanism, and two mitigations.</li>
+  <li>State what a t-SNE plot supports and what it does not.</li>
+  <li>Say why relative cluster sizes are not preserved by a neighbour embedding.</li>
+  <li>Separate the two independent sources of loss in a retrieval system.</li>
+  <li>Define a control task and selectivity, and say why accuracy alone is not evidence.</li>
+  <li>Explain superposition and the condition that makes it worthwhile.</li>
+  <li>Say why polysemantic neurons are expected rather than surprising.</li>
+  <li>Describe a sparse autoencoder for interpretability and name four things usually omitted from
+  the report.</li>
+  <li>Explain the modality gap and why the objective permits it.</li>
+  <li>Say when to probe and when to fine-tune.</li>
+  <li>State why unsupervised disentanglement is unidentifiable, and what restores it.</li>
+  <li>Say what scale improves about a representation and what it does not.</li>
+</ul>
+
+<table class="compact">
+  <thead><tr><th>Score</th><th>Verdict</th></tr></thead>
+  <tbody>
+    <tr><td><b>37–46</b></td><td>Go on. You will ask what an objective requires before asking whether it works.</td></tr>
+    <tr><td><b>28–36</b></td><td>Reread what you missed, then continue.</td></tr>
+    <tr><td><b>19–27</b></td><td>Do the project's Stage 5. Two instruments that lie fixes most of this.</td></tr>
+    <tr><td><b>Under 19</b></td><td>Reread §§12, 19 and 32. The score identity, the augmentation, and what a probe proves carry the part.</td></tr>
+  </tbody>
+</table>
+
+<div class="box intuition">
+  <span class="label">The one thing to carry forward</span>
+  <p><b>The objective decides what the representation keeps, and it decides exactly.</b></p>
+  <p>An augmentation that varies a factor removes that factor. A loss invariant under rotation fixes
+  the code only up to rotation. A loss with nothing pushing outward collapses to a point. In every
+  case the representation is the exact solution to the problem posed, and every surprise in this
+  part came from the problem being subtly different from the one intended.</p>
+  <p>So the question to ask of any method here is not whether it produces good features. It is what
+  this objective <b>requires to be preserved</b> and what it <b>permits to be discarded</b>, a
+  question you can answer on paper, before spending the compute.</p>
+</div>

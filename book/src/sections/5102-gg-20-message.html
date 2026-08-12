@@ -1,0 +1,147 @@
+<h2><span class="part-kicker">Part B</span>Message passing</h2>
+
+<p class="mvt">Rather than choosing invariant features by hand, learn them: give every node a
+representation, let it exchange information with its neighbours, and repeat. Almost every graph
+architecture is that one loop with different choices inside it, and the loop has a failure mode
+built in.</p>
+
+<h3><span class="num">§8</span> The loop</h3>
+
+<div class="readnow"><span class="label">Go and read</span><p><span class="src">Gilmer et al. (2017)</span>, <i>Neural message passing for quantum chemistry</i>. Read §2, which shows a dozen separately published architectures as the same loop below with different messages and aggregators, the single most clarifying page in this area.</p></div>
+
+<div class="box def">
+  <span class="label">One round</span>
+  <p>Each node collects from its neighbours, aggregates, and updates:</p>
+  <p class="m">$$h_i^{(k+1)} = \psi\!\left(h_i^{(k)}, \; \bigoplus_{j \in \mathcal{N}(i)} \phi\!\left(h_i^{(k)}, h_j^{(k)}\right)\right)$$</p>
+  <p>The aggregator <span class="m">$\bigoplus$</span> must be permutation-invariant (§2's sum,
+  mean or max), which is what makes the whole layer equivariant. Everything else is an ordinary
+  learned function.</p>
+  <p>After <span class="m">$K$</span> rounds a node's representation depends on its
+  <span class="m">$K$</span>-hop neighbourhood and nothing further. Depth is <b>reach</b>, which is
+  a different quantity from what depth means anywhere else in this book.</p>
+</div>
+
+<h3><span class="num">§9</span> The graph convolutional network</h3>
+
+<div class="readnow"><span class="label">Go and read</span><p><span class="src">Kipf &amp; Welling (2017)</span>, <i>Semi-supervised classification with graph convolutional networks</i>. The paper that made graph learning ordinary, and short enough to read in one sitting. Note what it does not say: the symmetric normalisation below is presented as a first-order approximation to a spectral filter, and the two-layer depth that everyone copied was a practical choice whose reason §13 measures.</p></div>
+
+<div class="box def">
+  <span class="label">The simplest useful choice</span>
+  <p>Take <span class="m">$\phi$</span> to be a shared linear map, aggregate by a normalised sum,
+  and apply a nonlinearity:</p>
+  <p class="m">$$H^{(k+1)} = \sigma\!\left(\tilde{D}^{-1/2}\tilde{A}\,\tilde{D}^{-1/2} H^{(k)} W^{(k)}\right)$$</p>
+  <p>with <span class="m">$\tilde{A} = A + I$</span> adding a self-loop. The normalisation keeps the
+  scale stable across nodes of very different degree: without it, a hub's representation swamps
+  everything downstream, which is Part IX §16's initialisation problem on an irregular graph.</p>
+  <p>Note what this layer is: a sparse matrix multiply and a dense one. All of Part I applies, and
+  the sparsity is why it is affordable.</p>
+</div>
+
+<h3><span class="num">§10</span> Sampling, and why it was needed</h3>
+
+<div class="box why">
+  <span class="label">The neighbourhood explosion</span>
+  <p>A node's <span class="m">$K$</span>-hop neighbourhood grows exponentially in
+  <span class="m">$K$</span>. On a graph with average degree 20, three hops reach eight thousand
+  nodes and four reach a hundred and sixty thousand, so a single training example can touch a large
+  fraction of the graph, and minibatching stops meaning anything.</p>
+  <p><b>Neighbour sampling</b> is the standard repair: at each layer, aggregate over a fixed-size
+  random sample of neighbours rather than all of them. This bounds the computation per node,
+  restores minibatching, and adds noise that acts as a regulariser. It also makes the aggregation
+  stochastic, so the model must be evaluated with care: the same input gives different answers.
+  <b>GraphSAGE</b> is the name attached to this combination: sampled neighbourhoods, a learned
+  aggregator, and features that generalise to nodes never seen at training time.</p>
+</div>
+
+<h3><span class="num">§11</span> Attention on a graph</h3>
+
+<div class="box def">
+  <span class="label">Learning the weights of the aggregation</span>
+  <p>A normalised sum weights neighbours by degree alone. <b>Graph attention</b> (the architecture
+  usually called <b>GAT</b>) learns the weights instead: score each neighbour, softmax over the
+  neighbourhood, and take the weighted sum.</p>
+  <p>This is Part XII's attention with the neighbourhood as the context window rather than the whole
+  sequence, and the comparison is worth making precisely. A transformer attends to everything,
+  which is a complete graph; a graph attention layer attends to the neighbours, which is the
+  adjacency used as a mask. §22 returns to what happens when you remove the mask.</p>
+</div>
+
+<h3><span class="num">§12</span> What the aggregator decides</h3>
+
+<div class="box shapes">
+  <span class="label">Three choices, three different blindnesses</span>
+  <p><b>Mean.</b> Cannot count. Two nodes with three neighbours of a kind and thirty look
+  identical, which matters whenever degree is informative.</p>
+  <p><b>Max.</b> Sees only the extreme. Robust, and blind to multiplicity entirely.</p>
+  <p><b>Sum.</b> Distinguishes multiset size, and is the only one of the three that can, which is
+  why §16's expressivity result requires it.</p>
+  <p>The practical position: sum is the most expressive and the least stable on graphs with wildly
+  varying degree. Normalising trades expressivity for conditioning, and knowing that is the trade,
+  rather than that one is correct, is the point.</p>
+</div>
+
+<h3><span class="num">§13</span> Depth, which does not mean what it usually means</h3>
+
+<figure>
+  <img src="figures/gg/02-oversmoothing.svg" alt="Mean pairwise distance between node representations and node classification accuracy, both against the number of message-passing rounds">
+  <figcaption><b>Figure 2.</b> Repeated neighbourhood aggregation under the symmetric normalisation
+  <span class="m">$D^{-1/2}(A+I)D^{-1/2}$</span> (this figure's operator) is a diffusion, but not
+  the kind that drives every node to one shared vector: it drives representations toward a common
+  <i>direction</i>, scaled by degree. Plotted is the mean pairwise distance after normalising each
+  representation to unit length, which measures that alignment; it falls monotonically from
+  <b>1.351</b> to <b>0.000</b>: every node ends up pointing the same way, though the raw,
+  un-normalised representations do not coincide, as the box below states precisely. Node
+  classification peaks at <b>four</b> rounds and falls by <b>0.096 ± 0.017</b> by twenty-four, a
+  separated difference, ending barely above the chance rate of 0.250. Adding layers to a graph
+  network is not adding capacity; past a point it is deleting information.</figcaption>
+</figure>
+
+<div class="box def">
+  <span class="label">Over-smoothing</span>
+  <p><b>Over-smoothing</b> is the convergence of node representations toward each other under
+  repeated aggregation. Under mean aggregation (multiplication by a row-stochastic matrix), repeated
+  application is a random walk, and a random walk on a connected graph converges to a stationary
+  distribution that does not depend on where it started: every node's raw representation collapses to
+  the same vector.</p>
+  <p>So the collapse is not an optimisation failure or a gradient problem. It is what the operator
+  does, and it would happen with perfectly trained weights.</p>
+  <p>One refinement, because mean aggregation is not the operator Figure 2 runs, and the loose
+  version of the claim above is wrong for the operator most often used in practice. The symmetric
+  normalisation <span class="m">$D^{-1/2}(A+I)D^{-1/2}$</span> (the figure's operator) is not
+  stochastic, and under it the rows do not go to a constant: they go to a common <i>direction</i>
+  scaled by the square root of degree. Raw distances shrink by a factor of tens rather than to zero;
+  what falls to Figure 2's plotted <b>0.000</b> is the distance between representations after
+  normalising each to unit length, which measures alignment, not identity. Every pair becomes
+  perfectly aligned, and the only surviving information is each node's degree. The same loss, two
+  different operators, two different exact statements; drill C3 measures both.</p>
+</div>
+
+<h3><span class="num">§14</span> What is done about it</h3>
+
+<div class="box shapes">
+  <span class="label">Four repairs, and what each concedes</span>
+  <p><b>Stay shallow.</b> Two to four rounds, which is what most deployed models do. Concedes
+  long-range dependence entirely.</p>
+  <p><b>Residual connections.</b> Keep a path for the node's own representation, so the layer adds
+  rather than replaces. Part X §23's ResNet, for the same reason.</p>
+  <p><b>Keep the initial features.</b> Concatenate or re-inject <span class="m">$h^{(0)}$</span> at
+  every layer, so no amount of diffusion erases what the node started with.</p>
+  <p><b>Normalise against collapse.</b> Explicitly penalise or rescale to keep representations
+  spread out.</p>
+  <p>All four treat the symptom. None removes the fact that the aggregation operator is a diffusion,
+  and the honest summary is that depth in a graph network buys reach at a cost that the repairs
+  reduce rather than eliminate.</p>
+</div>
+
+<h3><span class="num">§15</span> What movement B establishes</h3>
+
+<div class="box intuition">
+  <span class="label">Three things</span>
+  <p><b>One loop covers the family.</b> Collect from neighbours, aggregate invariantly, update.
+  Convolutional, sampled and attentional variants differ in the aggregation and nothing else.</p>
+  <p><b>Depth is reach, not capacity.</b> After <span class="m">$K$</span> rounds a node has seen
+  <span class="m">$K$</span> hops, which is why the neighbourhood explodes and why sampling exists.</p>
+  <p><b>The operator is a diffusion, so it converges.</b> Figure 2 measures representations
+  collapsing to a mean pairwise distance of zero and the task following them down. That is the
+  behaviour of the layer rather than a defect of the training.</p>
+</div>

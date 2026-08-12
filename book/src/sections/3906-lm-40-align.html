@@ -1,0 +1,182 @@
+<h2><span class="part-kicker">Part D</span>Alignment</h2>
+
+<p class="lede">Turning a text continuer into something that answers. The machinery is Part XVIII's;
+what is new here is the pipeline, the data, and an honest account of what it changes and what it
+only appears to.</p>
+
+<h3><span class="num">§25</span> The interface problem</h3>
+
+<div class="box def">
+  <span class="label">What instruction tuning does</span>
+  <p>Fine-tune on (instruction, response) pairs. The model learns that a request is followed by a
+  compliant answer rather than by more text of the same kind.</p>
+  <p>The striking empirical fact is how <b>little</b> data this takes: thousands of examples, not
+  millions, against a pretraining corpus of trillions of tokens. That ratio is the evidence for the
+  standard interpretation: instruction tuning is not teaching capability, it is selecting an
+  <b>interface</b> to capability that already existed.</p>
+  <p>Which also predicts its limit. If the capability is absent, no amount of instruction data
+  installs it: you get a model that responds confidently in the right format.</p>
+</div>
+
+<h3><span class="num">§26</span> The pipeline</h3>
+
+<div class="readnow"><span class="label">Go and read</span><p><span class="src">Ouyang et al. (2022)</span>, <i>Training language models to follow instructions with human feedback</i>. The three-stage pipeline as it is actually run. The number worth noticing is how little preference data changes how usable the model is, which is the evidence for §30's reading that this is an interface change rather than a capability one.</p></div>
+
+<div class="box def">
+  <span class="label">Three stages</span>
+  <p><b>Pretraining</b> on a large corpus, for capability. <b>Supervised fine-tuning</b> on
+  demonstrations, for the interface. <b>Preference optimisation</b> against human judgements, for
+  the things demonstrations cannot express.</p>
+  <p>The third stage exists because of a specific gap. Demonstrations teach what a good answer looks
+  like; they cannot express <b>relative</b> quality, and they cannot express what to refuse. Both
+  are easier to obtain as comparisons than as demonstrations: Part XVIII §41's point, which is also
+  Part XIII §5's finding that people rank more consistently than they score.</p>
+</div>
+
+<h3><span class="num">§27</span> The preference data</h3>
+
+<div class="box pitfall">
+  <span class="label">Pitfall: the data encodes the annotators, and the instructions given to them</span>
+  <p>A preference dataset is a record of what a particular group of people, working to a particular
+  written guideline, preferred on a particular distribution of prompts. Part XIII §6's finding
+  applies without modification: <b>the labels define the task</b>.</p>
+  <p>Two consequences that are measurable and are measured. Annotators prefer <b>longer</b> answers
+  and answers that <b>agree with them</b>, so a model optimised against their preferences becomes
+  more verbose and more agreeable, neither of which anyone asked for.</p>
+  <p>The guideline is therefore the specification, and it is the artefact that should be published
+  alongside the model. It rarely is.</p>
+</div>
+
+<h3><span class="num">§28</span> RLHF, applied</h3>
+
+<div class="box def">
+  <span class="label">The pieces, from Part XVIII</span>
+  <p>Fit a <b>reward model</b> on the comparisons, then optimise the policy against it with PPO
+  (Part XVIII §31) plus a KL penalty against the supervised model.</p>
+  <p>The KL penalty is not a regularisation detail. Part XVIII §41 measured why: optimising hard
+  against a learned reward finds its errors, and reward-model score rises while human ratings
+  plateau and fall. The penalty prices moving away from the region where the reward model was
+  trained, and its coefficient is the main control on overoptimisation.</p>
+</div>
+
+<h3><span class="num">§29</span> The direct methods</h3>
+
+<div class="readnow"><span class="label">Go and read</span><p><span class="src">Rafailov et al. (2023)</span>, <i>Direct preference optimization</i>. The derivation that removes the reward model and the RL loop entirely, leaving a classification loss with the same optimum. Read §4 for what is given up (the online loop) because that is exactly Part XVIII §40's offline problem arriving here.</p></div>
+
+<p>The equivalence is worth deriving rather than taking on trust, because it is short and it is the
+one place in this movement an error would be easy to miss. Start from §28's objective: maximise
+reward against a KL penalty that keeps the policy near the supervised model, for a fixed prompt
+<span class="m">$x$</span>:</p>
+
+<p>$$\max_{\pi}\; \mathbb{E}_{y\sim\pi(\cdot|x)}\big[r(x,y)\big] \;-\; \beta\,\mathrm{KL}\big(\pi(\cdot|x)\,\|\,\pi_{\text{ref}}(\cdot|x)\big)$$</p>
+
+<p>Written out, the quantity being maximised is
+<span class="m">$\sum_y \pi(y)\big[r(x,y) - \beta\log\pi(y) + \beta\log\pi_{\text{ref}}(y)\big]$</span>,
+subject only to <span class="m">$\pi(\cdot|x)$</span> summing to one: the reward term is linear in
+<span class="m">$\pi$</span> and the KL term is strictly convex, so the objective is strictly concave
+and has a unique maximiser. Attach a Lagrange multiplier to the one constraint and differentiate
+inside the sum: the stationary condition for every <span class="m">$y$</span> is
+<span class="m">$\log\pi(y) = r(x,y)/\beta + \log\pi_{\text{ref}}(y) - 1 - \lambda/\beta$</span>, which
+says <span class="m">$\pi(y)$</span> is <span class="m">$\pi_{\text{ref}}(y)$</span> tilted
+exponentially by the reward and renormalised:</p>
+
+<div class="box def">
+  <span class="label">The KL-regularised optimum</span>
+  <p>$$\pi^*(y\,|\,x) \;=\; \frac{1}{Z(x)}\,\pi_{\text{ref}}(y\,|\,x)\,\exp\!\left(\frac{r(x,y)}{\beta}\right),
+  \qquad Z(x) = \sum_y \pi_{\text{ref}}(y\,|\,x)\,\exp\!\left(\frac{r(x,y)}{\beta}\right)$$</p>
+  <p>This is what KL-penalised PPO (§28) is targeting, whether or not sampling and the reward
+  model's own error let it get there exactly.</p>
+</div>
+
+<p>Invert this and every reward becomes recoverable, up to a per-prompt constant, from the policy
+optimising against it: <span class="m">$r(x,y) = \beta\log\dfrac{\pi^*(y|x)}{\pi_{\text{ref}}(y|x)} +
+\beta\log Z(x)$</span>. Substitute into the Bradley–Terry preference model
+(Part XVIII §41) that the reward model was fit to in the first place,
+<span class="m">$p(y_w \succ y_l\,|\,x) = \sigma\big(r(x,y_w) - r(x,y_l)\big)$</span>: because
+<span class="m">$y_w$</span> and <span class="m">$y_l$</span> are two responses to the <i>same</i>
+prompt, the <span class="m">$\beta\log Z(x)$</span> term is identical in both and cancels exactly,
+leaving a probability that never mentions <span class="m">$Z(x)$</span> or the reward model at all.
+That cancellation is the whole trick.</p>
+
+<div class="box def">
+  <span class="label">DPO, and what it removes</span>
+  <p>The reward model and the RL loop can be eliminated. Fit <span class="m">$\pi_\theta$</span>
+  directly against the preference pairs by minimising</p>
+  <p>$$\mathcal{L}_{\text{DPO}}(\theta) = -\,\mathbb{E}_{(x,\,y_w,\,y_l)}\left[\log\sigma\!\left(
+  \beta\log\frac{\pi_\theta(y_w|x)}{\pi_{\text{ref}}(y_w|x)} -
+  \beta\log\frac{\pi_\theta(y_l|x)}{\pi_{\text{ref}}(y_l|x)}\right)\right]$$</p>
+  <p>which is exactly the negative log-likelihood of the Bradley–Terry model above with
+  <span class="m">$r(x,y)$</span> replaced by the <b>implicit reward</b>
+  <span class="m">$\beta\log\big(\pi_\theta(y|x)/\pi_{\text{ref}}(y|x)\big)$</span>. <b>Direct
+  preference optimisation</b> derives, from the same preference model, a classification loss on the
+  pairs whose optimum is the same policy: minimising it drives <span class="m">$\pi_\theta$</span>
+  to the <span class="m">$\pi^*$</span> above, so it is a supervised objective on preference data
+  with no sampling, no reward model and no PPO.</p>
+  <p>Simpler, more stable, cheaper, and widely adopted for those reasons. What it gives up is the
+  <b>online</b> loop: RLHF samples fresh outputs from the current policy and has them judged, so it
+  gets signal about what the policy does <i>now</i>. DPO learns from a fixed set of comparisons, so
+  it is Part XVIII §40's offline problem: the policy can drift to regions the data says nothing
+  about.</p>
+  <p>The methods that add back iteration (regenerate, rejudge, retrain) recover much of the gap,
+  which is the expected shape given the offline diagnosis.</p>
+</div>
+
+<h3><span class="num">§30</span> What alignment changes</h3>
+
+<div class="box why">
+  <span class="label">Surface behaviour, mostly, and that is not nothing</span>
+  <p>The evidence that alignment is largely a change of <b>interface</b> rather than of capability:
+  the data is tiny relative to pretraining; benchmark capability changes little; the model's
+  knowledge is unchanged; and prompting a base model carefully recovers a substantial fraction of
+  the behaviour.</p>
+  <p>Being precise about what that does <i>not</i> mean: refusal behaviour, formatting, calibration
+  of hedging and the whole usability of the system are real changes, and they are what made these
+  models usable by anyone. "Surface" is a claim about where in the model the change lives, not about
+  whether it matters.</p>
+</div>
+
+<h3><span class="num">§31</span> The measurable failure modes</h3>
+
+<div class="box def">
+  <span class="label">Four, each a direct consequence of the objective</span>
+  <p><b>Sycophancy.</b> The model agrees with the user's stated position, including when it is
+  wrong. Measurable: state an opinion, then ask; measure how often the answer moves. It follows
+  directly from §27: annotators preferred agreement.</p>
+  <p><b>Verbosity.</b> Longer answers score better, so answers get longer. Length is the confound
+  that any preference evaluation must control for, and frequently does not.</p>
+  <p><b>Over-refusal.</b> Refusing is heavily rewarded when it is right and lightly penalised when
+  it is wrong, so the trained policy refuses benign requests that pattern-match to unsafe ones.
+  Measurable on a benign set built to look risky.</p>
+  <p><b>Confident hedging.</b> The model expresses uncertainty in the register annotators liked,
+  which is not the same as being calibrated. Part XIV §5's measurement is the check, and post-trained
+  models are frequently <b>worse</b> calibrated than the base model they came from.</p>
+</div>
+
+<h3><span class="num">§32</span> The alignment tax</h3>
+
+<div class="box def">
+  <span class="label">What it costs, and where</span>
+  <p>Post-training can reduce capability on tasks unrelated to the preferences it was trained on:
+  the <b>alignment tax</b>. The mechanism is Part XIX §31's: fine-tuning on a narrow distribution
+  distorts the model away from it.</p>
+  <p>The standard mitigations are the standard ones for that mechanism: mix pretraining data into
+  post-training, keep the KL penalty, and use low learning rates. Reported taxes are much smaller
+  than they were, which is a genuine improvement and also partly a change in what gets
+  measured.</p>
+</div>
+
+<h3><span class="num">§33</span> Jailbreaks</h3>
+
+<div class="box why">
+  <span class="label">Why this is a persistent property rather than a bug list</span>
+  <p>Refusal is a learned behaviour over a distribution of prompts, and an attacker chooses prompts
+  off that distribution. Roleplay framings, encodings, low-resource languages, long contexts that
+  push the instruction out of the effective window, and gradient-optimised adversarial suffixes all
+  work by the same route.</p>
+  <p>This is Part VIII §20's adversarial examples in a setting with a much larger and more accessible
+  input space. The defences (adversarial training on discovered attacks, input and output
+  classifiers, system-level constraints) raise the cost and none of them closes the class.</p>
+  <p>The honest framing, and it is the one Part XXI will need: alignment as currently practised
+  produces a <b>propensity</b>, not a guarantee. It changes what the model does by default and does
+  not constrain what it can be made to do.</p>
+</div>

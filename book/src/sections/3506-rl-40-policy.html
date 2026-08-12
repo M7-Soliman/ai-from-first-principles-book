@@ -1,0 +1,182 @@
+<h2><span class="part-kicker">Part D</span>Policy gradients</h2>
+
+<p class="lede">Stop learning values and learn the policy directly, by gradient ascent on the thing
+you actually want. It works, it has a beautiful derivation, and its practical history is almost
+entirely about controlling the variance of one estimator.</p>
+
+<h3><span class="num">§24</span> Optimising the policy directly</h3>
+
+<div class="box def">
+  <span class="label">The objective</span>
+  <p>Parameterise $\pi_\theta(a \mid s)$ and maximise the expected return
+  $J(\theta) = \mathbb{E}_{\tau \sim \pi_\theta}[G(\tau)]$ by ascending $\nabla_\theta J$.</p>
+  <p>Four reasons to prefer this over value-based control. It handles <b>continuous</b> action
+  spaces, where $\max_a Q$ is itself an optimisation problem. It learns <b>stochastic</b> policies,
+  which are sometimes optimal: under partial observability, and in games. It changes the policy
+  <b>smoothly</b>, where a small change in $Q$ can flip a greedy action discontinuously. And it
+  optimises the objective you care about rather than a proxy for it.</p>
+</div>
+
+<h3><span class="num">§25</span> The policy gradient theorem</h3>
+
+<div class="box def">
+  <span class="label">Differentiating through a distribution you sample from</span>
+  <p>The difficulty is that $\theta$ appears in the distribution being averaged over, not in the
+  integrand. The identity that resolves it is one line:</p>
+  <p>$$\nabla_\theta p_\theta(x) = p_\theta(x)\,\nabla_\theta \log p_\theta(x)$$</p>
+  <p>so that</p>
+  <p>$$\nabla_\theta J = \mathbb{E}_{\pi_\theta}\Big[\textstyle\sum_t
+  \nabla_\theta \log \pi_\theta(a_t \mid s_t)\, G_t\Big]$$</p>
+  <p>An expectation you can sample. Note what is <b>absent</b>: any derivative of the environment.
+  The transition kernel does not appear, so no model is needed and no differentiability of the world
+  is assumed.</p>
+  <p>This is Part XVI §16's other estimator, the score-function or REINFORCE gradient, which that
+  part set aside for its variance. Here it cannot be set aside, because the environment is not
+  reparameterisable.</p>
+</div>
+
+<div class="box why">
+  <span class="label">Reading the update</span>
+  <p>$\nabla_\theta \log \pi_\theta(a\mid s)$ is the direction that makes action $a$ more likely.
+  Multiplying by $G_t$ scales it by how well things went. So the update is: <b>make what you did
+  more likely, in proportion to how good the outcome was</b>.</p>
+  <p>Which immediately exposes the weakness. If all returns are large and positive, every action
+  taken is reinforced, and the policy improves only through the <i>differences</i> between returns,
+  differences that are swamped by the common part. §27 is the fix, and it is the single most
+  important practical detail in this movement.</p>
+  <p>One smaller approximation, worth naming rather than leaving silent: the exact gradient of the
+  discounted objective carries a $\gamma^t$ inside the sum,
+  $\mathbb{E}[\sum_t \gamma^t \nabla_\theta \log \pi_\theta(a_t\mid s_t)\,G_t]$, down-weighting late
+  time steps because they contribute less to $J$. The formula above, and every practical
+  implementation including this part's, drops it and weights every step equally. That is the
+  universal convention rather than an oversight, but it means the estimator in routine use targets
+  the undiscounted step distribution, not quite the discounted objective it is presented as.</p>
+</div>
+
+<h3><span class="num">§26</span> REINFORCE</h3>
+
+<div class="box def">
+  <span class="label">The algorithm, in full</span>
+  <p>Run an episode. For each step compute the return $G_t$. Take a gradient step on
+  $\sum_t \nabla_\theta \log \pi_\theta(a_t\mid s_t) G_t$. Repeat.</p>
+  <p>Unbiased, model-free, and about six lines of code. Also close to unusable on anything
+  substantial without the next three sections, because of its variance.</p>
+</div>
+
+<h3><span class="num">§27</span> Baselines</h3>
+
+<figure>
+  <img src="figures/rl/05-baseline.svg" alt="Variance of the gradient estimate against sample count with and without a baseline, and the bias against the exact gradient">
+  <figcaption><b>Figure 5.</b> The exact gradient is computable here, so both properties can be
+  checked. Subtracting the mean reward cuts the estimator's variance by <b>89×</b> at eight samples
+  and leaves the bias at zero: both curves agree with the exact gradient to within sampling
+  error.</figcaption>
+</figure>
+
+<div class="box def">
+  <span class="label">Subtract anything that does not depend on the action</span>
+  <p>$$\nabla_\theta J = \mathbb{E}\Big[\textstyle\sum_t \nabla_\theta \log \pi_\theta(a_t\mid s_t)
+  \big(G_t - b(s_t)\big)\Big]$$</p>
+  <p>for <b>any</b> $b$ that does not depend on $a_t$. The expectation is unchanged, because</p>
+  <p>$$\mathbb{E}_{a\sim\pi}\big[\nabla_\theta \log \pi_\theta(a\mid s)\big]
+  = \sum_a \nabla_\theta \pi_\theta(a\mid s) = \nabla_\theta \sum_a \pi_\theta(a\mid s)
+  = \nabla_\theta 1 = 0$$</p>
+  <p>The expected score function is zero. That three-step identity is why a baseline is free, and it
+  is worth carrying because the same fact appears throughout statistics.</p>
+  <p>The best baseline is close to $V^\pi(s)$, which makes $G_t - b(s_t)$ an estimate of the
+  <b>advantage</b>: how much better this action was than the state's average. Actions that are
+  merely typical get no push.</p>
+</div>
+
+<h3><span class="num">§28</span> Actor–critic</h3>
+
+<div class="box def">
+  <span class="label">Learn the baseline too</span>
+  <p>An <b>actor</b> $\pi_\theta$ and a <b>critic</b> $V_\phi$, trained together. The critic is
+  fitted by TD (§16); the actor uses the critic as its baseline, and can also use the critic to
+  <b>bootstrap</b> the return rather than waiting for the episode to end.</p>
+  <p>That second use is the more consequential: it converts the return from a full trajectory sum
+  into a one-step or $n$-step quantity, which removes most of the remaining variance and allows
+  updates on continuing tasks.</p>
+  <p>And it reintroduces bias, since the critic is wrong. So the whole movement's variance problem
+  has been converted into movement C's bias problem, which is a better problem, because §17 says a
+  transient bias beats a permanent variance.</p>
+</div>
+
+<h3><span class="num">§29</span> Advantage estimation</h3>
+
+<div class="box def">
+  <span class="label">Choosing where on the spectrum to sit</span>
+  <p>The $n$-step advantage bootstraps after $n$ steps: small $n$ is low variance and high bias,
+  large $n$ the reverse: §17's trade, in the actor's target.</p>
+  <p><b>Generalised advantage estimation</b> takes an exponentially weighted average over all $n$,
+  controlled by $\lambda$:</p>
+  <p>$$\hat{A}_t = \sum_{k=0}^{\infty} (\gamma\lambda)^k \delta_{t+k},
+  \qquad \delta_t = r_t + \gamma V(s_{t+1}) - V(s_t)$$</p>
+  <p>$\lambda = 0$ gives the one-step advantage, $\lambda = 1$ gives the Monte Carlo advantage, and
+  values around 0.95 are the usual choice. It is TD($\lambda$) applied to advantages, and it is
+  computed in one backward pass over the trajectory.</p>
+</div>
+
+<h3><span class="num">§30</span> Why step size is the central difficulty</h3>
+
+<div class="box why">
+  <span class="label">A bad step is not recoverable here</span>
+  <p>In supervised learning a step that is too large produces a worse model, and the next batch,
+  drawn from the same fixed distribution, pulls it back.</p>
+  <p>Here a step that is too large produces a worse <b>policy</b>, which then <b>collects worse
+  data</b>, from which you learn a worse policy. There is no fixed dataset to recover against, and a
+  collapse can be permanent.</p>
+  <p>That asymmetry is why this movement's history is a sequence of increasingly careful ways to
+  ask the same question: how far can the policy move before the data it collects stops being
+  informative about where to go next?</p>
+</div>
+
+<h3><span class="num">§31</span> Trust regions, and then clipping</h3>
+
+<div class="box def">
+  <span class="label">TRPO</span>
+  <p>Maximise a surrogate objective subject to a constraint on the KL divergence between the old
+  and new policies:</p>
+  <p>$$\max_\theta \; \mathbb{E}\Big[\frac{\pi_\theta(a\mid s)}{\pi_{\text{old}}(a\mid s)}
+  \hat{A}\Big]
+  \quad\text{subject to}\quad \mathbb{E}\big[D_{KL}(\pi_{\text{old}} \,\|\, \pi_\theta)\big]
+  \leq \delta$$</p>
+  <p>The constraint is in <b>policy space</b>, not parameter space, which is the right place: the
+  same parameter change can barely move one policy and destroy another. It comes with a monotonic
+  improvement guarantee, and it requires a constrained optimisation with conjugate gradients and a
+  Fisher-vector product per step.</p>
+</div>
+
+<div class="box def">
+  <span class="label">PPO</span>
+  <p>Replace the constraint with a clipped objective:</p>
+  <p>$$L = \mathbb{E}\Big[\min\big(\rho_t \hat{A}_t,\;
+  \mathrm{clip}(\rho_t, 1-\epsilon, 1+\epsilon)\hat{A}_t\big)\Big],
+  \qquad \rho_t = \frac{\pi_\theta(a_t\mid s_t)}{\pi_{\text{old}}(a_t\mid s_t)}$$</p>
+  <p>The $\min$ is what makes it work, and it is worth reading carefully. When the advantage is
+  positive, the objective stops improving once $\rho > 1+\epsilon$: no reward for pushing further.
+  When the advantage is negative, it stops once $\rho < 1-\epsilon$. Either way the gradient
+  <b>vanishes</b> outside the trust region rather than being penalised, so a step cannot be bought
+  by accepting a penalty.</p>
+</div>
+
+<h3><span class="num">§32</span> Why PPO won</h3>
+
+<div class="readnow"><span class="label">Go and read</span><p><span class="src">Engstrom et al. (2020)</span>, <i>Implementation matters in deep RL: a case study on PPO and TRPO</i>. The replication that separated PPO's clipped objective from the code-level details shipped alongside it, and found the details doing much of the work. An uncomfortable paper and a model of how to check a method: Part XIV §21's ablation discipline applied to a whole subfield.</p></div>
+
+<div class="box why">
+  <span class="label">Not because it is better in theory</span>
+  <p>TRPO has the guarantee; PPO has none. What PPO has is first-order updates, ordinary
+  minibatch SGD, several epochs of reuse per batch of experience, and about twenty lines of code.
+  It is TRPO's insight with the machinery removed.</p>
+  <p>The honest qualification, established by careful reimplementation studies: a substantial part
+  of PPO's reported advantage comes from <b>implementation details</b> that are not in the paper's
+  equations: advantage normalisation, observation normalisation, value-function clipping, learning
+  rate annealing, orthogonal initialisation, gradient clipping, and an entropy bonus added to the
+  objective to slow the policy from collapsing to a point mass too early. Removing them costs more
+  than removing the clipping does.</p>
+  <p>That is worth stating plainly rather than treating as gossip. It is Part XIV §21's ablation
+  problem at the scale of a whole subfield: a method's reported benefit was partly the benefit of a
+  well-tuned codebase, and it took deliberate replication work to find out.</p>
+</div>

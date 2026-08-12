@@ -1,0 +1,454 @@
+<h2><span class="part-kicker">Part I</span>Many variables</h2>
+
+<p class="lede">Everything so far had one input. A neural network has millions. This part
+makes that jump, and it is smaller than it sounds: the trick is to change one variable
+at a time.</p>
+
+<h3><span class="num">§21</span> Functions of several variables</h3>
+
+<p>A function can take several inputs and still return one number:</p>
+
+$$f(x, y) = x^2 + 3y, \qquad f(x,y,z) = xyz$$
+
+<p>With two inputs you can still picture it: the graph is a <b>surface</b> over the
+plane. Each pair $(x,y)$ has a height $f(x,y)$, like terrain over a map. With three or
+more inputs the picture is gone, but nothing else changes, and as Part I §3 argued,
+you reason in two dimensions and carry the conclusion upward.</p>
+
+<p>Take that last claim seriously, because it is the one that decides whether this part
+feels manageable or impossible. You are about to be told that a loss function has ten
+million inputs, and the honest response is that nobody can visualise such a thing,
+not the author, not the researchers who invented these methods, nobody. What everyone
+actually does is picture a two-dimensional version, reason about it, and then check that
+the reasoning used nothing specific to two dimensions.</p>
+
+<p>That is a legitimate technique rather than a coping strategy, and the reason is worth
+stating. Almost every idea in this part is defined <b>one variable at a time</b>. A partial
+derivative involves exactly one input; the gradient is a list of such things; a step of
+gradient descent adjusts each coordinate by its own number. None of those definitions
+mentions how many coordinates there are, so none of them changes when there are ten million
+instead of two. The picture in your head is a two-dimensional cartoon of a
+ten-million-dimensional object, and it is a reliable cartoon precisely because the
+mathematics never looks at more than one dimension at a time either.</p>
+
+<p>Where the analogy does break (and it genuinely does) is in matters of <i>volume</i>
+and <i>proportion</i>: how much room there is, how likely a random direction is to point
+uphill, whether a critical point is more likely to be a minimum or a saddle. Low-dimensional
+intuition is actively misleading about all of those, and this book flags each place it
+happens rather than pretending otherwise. For the mechanics of differentiation, the cartoon
+is safe.</p>
+
+<div class="box why">
+  <span class="label">Why deep learning cares</span>
+  <p>A loss function takes <i>every parameter in the network</i> as input and returns one
+  number. For a modest model that is a function of ten million variables, returning a
+  single scalar. Training is finding the input point where that one number is
+  smallest.</p>
+  <p>Impossible to visualise, entirely routine to compute with. That gap is what this
+  part closes.</p>
+</div>
+
+<h3><span class="num">§22</span> Partial derivatives</h3>
+
+<p>With several inputs, "the slope" is ambiguous: slope in <i>which</i> direction? The
+resolution is to pick one variable, hold everything else fixed, and differentiate as
+usual.</p>
+
+<p>Notice that the ambiguity is real and not a notational quibble. Standing on a hillside,
+"how steep is it here" has no single answer: steep if you face uphill, level if you walk
+along the contour, and steeply downward if you turn around. The question only becomes
+answerable once you say which way you intend to walk. What §22 does is agree on a fixed
+set of directions to ask about (one per input variable) and answer the question for each
+of them separately.</p>
+
+<p>The everyday version of this is how anyone tunes anything with more than one control. A
+shower has two taps and you want a particular temperature and flow. Nobody solves that
+jointly. You hold one tap still, move the other, observe what happens, and then swap. A
+sound engineer at a mixing desk with forty faders does the same: nudge one, listen, nudge
+the next. That procedure (<b>vary one thing, freeze the rest, see what changes</b>) is
+exactly a partial derivative, and you have been doing it since long before anyone wrote a
+$\partial$ in front of you.</p>
+
+<p>The reason it is the right move mathematically, and not merely a convenient
+simplification, is that the results compose. Once you know how the output responds to each
+input separately, you know how it responds to any combination of small changes at once:
+you add up the individual contributions. That is what makes the whole strategy legitimate,
+and it is why a single number per parameter is enough to train a network with millions of
+them.</p>
+
+<div class="box def">
+  <span class="label">Definition: partial derivative</span>
+  <p>$\dfrac{\partial f}{\partial x}$ is the derivative of $f$ with respect to $x$,
+  <b>treating every other variable as a constant</b>.</p>
+  <p>The curly $\partial$ signals "there are other variables, and I am ignoring them for
+  now".</p>
+</div>
+
+<figure>
+  <img src="figures/mf/09-partial-derivatives.svg" alt="A surface, and two slices showing the partial derivatives">
+  <figcaption><b>Figure 9.</b> A partial derivative is the slope of a <b>slice</b>. Fix
+  $y = 1$ and walk along the $x$ direction: you trace a curve, and its slope is
+  $\partial f/\partial x$. Fix $x = 1$ and walk in $y$: a different curve, a different
+  slope. Holding the other variable constant is exactly what taking a slice
+  means.</figcaption>
+</figure>
+
+<div class="worked">
+  <span class="label">Worked: $f(x,y) = x^2 y + 3y^2 + 5x$</span>
+  <p><b>With respect to $x$</b> (treat $y$ as a number):</p>
+  <p>$x^2 y$ differentiates to $2xy$, since the $y$ is a constant multiplier that rides
+  along. $3y^2$ is entirely constant, giving 0. $5x$ gives 5.</p>
+  <p>$\dfrac{\partial f}{\partial x} = 2xy + 5$</p>
+
+  <p><b>With respect to $y$</b> (treat $x$ as a number):</p>
+  <p>$x^2 y$ differentiates to $x^2$. $3y^2$ gives $6y$. $5x$ is constant, giving 0.</p>
+  <p>$\dfrac{\partial f}{\partial y} = x^2 + 6y$</p>
+</div>
+
+<div class="box pitfall">
+  <span class="label">Pitfall: a term can vanish in one partial and not another</span>
+  <p>$3y^2$ disappeared when differentiating with respect to $x$, but became $6y$ for
+  $y$. This is correct and is the most common source of errors; before differentiating,
+  say out loud which variable is live and which are frozen.</p>
+</div>
+
+<p>One piece of bookkeeping before moving on, because it gets used later and is nothing more
+than the above arranged in a grid.</p>
+
+<div class="box def">
+  <span class="label">The Jacobian</span>
+  <p>So far $f$ has taken several inputs and produced <b>one</b> output. Suppose instead it
+  takes $n$ inputs and produces $m$ outputs (a layer of a network is exactly this). Then there
+  is a partial derivative for every input–output pair, and collecting them into a rectangular
+  array gives the <b>Jacobian</b>:</p>
+  <p>$$J_{i,j} = \frac{\partial f_i}{\partial x_j},
+  \qquad\text{an } m \times n \text{ array}$$</p>
+  <p>Row $i$ says how output $i$ responds to each input. Column $j$ says how input $j$ affects
+  each output.</p>
+  <p>Nothing new is being defined: every entry is a partial derivative you already know how to
+  compute. The Jacobian is a filing system for them, and it is worth having a name because the
+  chain rule for vector-valued functions turns into multiplication of these arrays, which is
+  where the whole of §17's chain rule reappears in Part VII.</p>
+</div>
+
+<h3><span class="num">§23</span> The gradient</h3>
+
+<div class="sixty">
+  <span class="label">In 60 seconds</span>
+  <p>Collect every partial derivative into one vector and you have the <b>gradient</b>,
+  $\nabla f$. It points in the direction of <b>steepest ascent</b>, and its length says
+  how steep. It is always perpendicular to the contours, because moving along a contour
+  changes nothing, so the direction of fastest change must be at right angles to it.</p>
+</div>
+
+<p>Collect all the partial derivatives into one vector:</p>
+
+<div class="box def">
+  <span class="label">Definition: gradient</span>
+  <p>$$\nabla f = \begin{bmatrix} \partial f/\partial x_1 \\ \partial f/\partial x_2 \\ \vdots \\ \partial f/\partial x_n \end{bmatrix}$$
+  Pronounced "grad f" or "del f". One entry per input variable.</p>
+</div>
+
+<p>For $f(x,y) = x^2y + 3y^2 + 5x$ from above, $\nabla f = (2xy + 5,\; x^2 + 6y)$.</p>
+
+<p>The gradient has one property that makes it the central object of optimisation:</p>
+
+<div class="box def">
+  <span class="label">The key property</span>
+  <p>$\nabla f$ points in the direction of <b>steepest ascent</b>, and its length is how
+  steep that is.</p>
+</div>
+
+<p>That property is the reason the gradient exists as a named object, and it deserves an
+explanation rather than an assertion, because it is not obvious. We only asked about a few
+special directions (one per axis), so why should stapling those answers together tell us
+anything about the <i>best</i> direction, which is generally none of them?</p>
+
+<p>Here is the argument, and it needs no machinery. Take a step of some small fixed length
+in a direction of your choosing. That step has a component along each axis, and the change
+in $f$ it produces is the sum of the changes each component contributes: move a little in
+$x$ and gain $\partial f/\partial x$ for each unit; move a little in $y$ and gain
+$\partial f/\partial y$ for each unit. Your total gain is the pairing of your step's
+components against the partials.</p>
+
+<p>So now the question is a budgeting problem. You have a fixed step length to spend across
+the axes, and each axis pays a different rate, namely that axis's partial
+derivative. Where do you spend it? Obviously not equally: you put more of your step into the
+directions that pay well and less into the ones that pay poorly, and you spend nothing on a
+direction that pays nothing. Work through what "optimal allocation" means precisely and the
+answer is to distribute your step across the axes <b>in exact proportion to the payoff
+rates</b>, which is to say, to step in the direction whose components are the partial
+derivatives themselves. That direction is $\nabla f$.</p>
+
+<p>The two halves of the property then come apart cleanly. The <i>direction</i> of the
+gradient is the best allocation of a step. The <i>length</i> of the gradient is what that
+best allocation earns you, large when some partials are large, and zero exactly when every
+partial is zero, which is the flat ground of §19 arriving in many dimensions.</p>
+
+<p>The budgeting argument is the informal version of a standard result called the
+<b>Cauchy–Schwarz inequality</b>, which is what makes "in exact proportion" precise. You do
+not need it to proceed, and this book never uses it directly, but the name is worth
+recognising, because it is how the claim is stated whenever you meet it proved rather than
+described.</p>
+
+<figure>
+  <img src="figures/mf/10-gradient-field.svg" alt="Gradient arrows on a contour plot, all pointing perpendicular to the contours">
+  <figcaption><b>Figure 10.</b> Contours of a bowl-shaped function, with gradient arrows
+  drawn at sample points. Every arrow points <b>directly uphill</b> and sits
+  perpendicular to the contour through it. That perpendicularity is not a coincidence:
+  moving along a contour keeps the value constant, so the direction of fastest change
+  must be at right angles to it.</figcaption>
+</figure>
+
+<div class="box intuition">
+  <span class="label">Intuition: the gradient is the fog rule</span>
+  <p>You are on a hillside in thick fog and want to reach the top. You cannot see the
+  summit, but you can feel which way the ground rises most steeply under your feet. Step
+  that way. Repeat.</p>
+  <p>That local feel is the gradient. And since we want to <i>minimise</i> a loss rather
+  than maximise it, we go the opposite way: the direction of steepest descent is
+  $-\nabla f$. That single sign flip is the whole of gradient descent.</p>
+</div>
+
+<h3><span class="num">§24</span> Gradient descent</h3>
+
+<div class="sixty">
+  <span class="label">In 60 seconds</span>
+  <p>$\theta \leftarrow \theta - \alpha\nabla f(\theta)$. Compute the direction of
+  steepest ascent, go the other way, by an amount set by the learning rate $\alpha$.
+  Repeat. Every neural network ever trained uses this line or a refinement of it, and the
+  learning rate is the single most consequential number in the whole procedure.</p>
+</div>
+
+<div class="readnow"><span class="label">Go and read</span><p><span class="src">Rumelhart, Hinton &amp; Williams (1986)</span>, <i>Learning representations by back-propagating errors</i>. Four pages, almost no notation beyond what you now have, and the paper most people mean when they cite backpropagation. Read it for the tone as much as the content: it is a confident claim made when the idea was still unfashionable.</p></div>
+
+<div class="box history">
+  <span class="label">History: a century older than the computer</span>
+  <p>Gradient descent is usually presented as a modern algorithm. It was published by
+  Augustin-Louis Cauchy in <span class="year">1847</span>, in a short note about solving
+  systems of equations that arose in astronomy.</p>
+  <p>Cauchy's problem was that celestial mechanics generated large systems he could not
+  solve exactly, and he wanted a method of successive approximation that a human computer
+  (which in 1847 meant an actual person with a pen) could grind through reliably. His
+  proposal was to move in the direction that decreases the function fastest, take a step,
+  and repeat.</p>
+  <p>That is the algorithm in this section, unchanged. It sat as a minor numerical
+  technique for a hundred years, waiting for a machine fast enough to iterate it millions
+  of times and a problem large enough to need it. Both arrived in the twentieth
+  century.</p>
+</div>
+
+<p>Everything in this document has been building to five lines.</p>
+
+<div class="box def">
+  <span class="label">The gradient descent algorithm</span>
+  <p>Repeat until satisfied:</p>
+  <p>$$\theta \leftarrow \theta - \alpha \nabla f(\theta)$$</p>
+  <p>where $\alpha > 0$ is the <b>learning rate</b>, controlling how big a step to take.</p>
+</div>
+
+<p>Read it as a sentence: compute the direction of steepest ascent, go the other way, by
+an amount controlled by $\alpha$. Repeat.</p>
+
+<p>That is how every neural network in existence is trained. There are refinements
+(momentum, Adam, learning rate schedules, all in Part IX), but every one of them is a
+variation on this line.</p>
+
+<h4>Why not just solve it?</h4>
+
+<p>The obvious objection deserves an answer, because it is the right question to ask.
+Section 19 said minima occur where the derivative is zero. We now have the derivative in
+every direction. So why not set $\nabla f = 0$, solve, and be finished in one step instead
+of grinding out thousands of small ones?</p>
+
+<p>Sometimes you can, and where you can, you should: Part VI does exactly this for linear
+regression and gets a closed-form answer with no iteration at all. But it stops working
+almost immediately after, for two independent reasons.</p>
+
+<p>The first is that $\nabla f = 0$ is not one equation. It is one equation <i>per
+parameter</i>, so for a modest network it is a system of ten million simultaneous
+equations, and they are not linear. There is no formula that solves such a system, and
+there is no reason to expect one to exist; the great majority of nonlinear systems have
+solutions that cannot be written down in closed form at all. Wanting an exact answer does
+not make one available.</p>
+
+<p>The second reason is more interesting, and it is the one that shapes the whole field.
+Even when a closed-form solution does exist, computing it may cost far more than iterating.
+The exact solution for linear regression requires inverting a matrix whose size is the
+number of parameters, at a cost that grows roughly with the cube of that number. Gradient
+descent costs one gradient evaluation per step. Past a few thousand parameters the iterative
+method is not merely competitive but the only option anyone would consider, and past a few
+million the exact method is not describable as slow; it is impossible.</p>
+
+<p>So gradient descent is not a compromise adopted for lack of something better. It is what
+you use when the landscape has no formula for its bottom and you must find it by feel. The
+fog metaphor above is exact: you cannot see the valley floor, you cannot compute where it
+is, but you can always tell which way is down from where you stand, and that turns out to
+be enough.</p>
+
+<figure>
+  <img src="figures/mf/11-gradient-descent.svg" alt="Three gradient descent runs with different learning rates">
+  <figcaption><b>Figure 11.</b> Real iterations on the same bowl, differing only in
+  $\alpha$. Too small and it crawls, wasting time. Just right and it converges quickly.
+  Too large and it overshoots the valley on every step, bouncing outward until it
+  diverges entirely. <b>The learning rate is the single most important hyperparameter in
+  deep learning</b>, and this figure is why.</figcaption>
+</figure>
+
+<p>The learning rate is worth understanding rather than merely tuning. The gradient tells
+you which way to go and how steep it is there; it says nothing whatever about <i>how
+far</i> the descent continues in that direction. It is a purely local report, valid at the
+point where you measured it and nowhere else. So $\alpha$ is your answer to a question the
+gradient cannot answer: how far am I willing to trust this measurement before taking a new
+one?</p>
+
+<p>Set it small and you trust the reading barely at all, re-measuring constantly: accurate,
+and unbearably slow. Set it large and you commit to a long stride based on the slope at the
+point you left, which was correct when you took it and may be badly wrong halfway along.
+Overshoot the valley floor and you land on the opposite wall, where the gradient now points
+back the way you came, and the next oversized step returns you across the valley slightly
+further out than before. That is the diverging run in Figure 11: not random failure, but a
+systematic oscillation that grows because every step is planned with information that
+expired before it was used.</p>
+
+<div class="box pitfall">
+  <span class="label">Pitfall: the learning rate has no safe default</span>
+  <p>Too small wastes compute and can stall on a plateau. Too large diverges, often
+  producing <code>nan</code> within a few steps. The workable range depends on the
+  problem, the architecture, and the scale of the data.</p>
+  <p>If a training run produces <code>nan</code> loss in the first few iterations, lower
+  the learning rate before investigating anything else. It is the most common cause by a
+  wide margin.</p>
+</div>
+
+<h4>The promised payoff: a tiny network, by hand</h4>
+
+<div class="box history">
+  <span class="label">History: backpropagation had to be invented three or four times</span>
+  <p>The calculation you are about to do by hand has an oddly repetitive history. The
+  underlying idea (applying the chain rule backwards through a composed function, reusing
+  shared work rather than recomputing it) was arrived at independently by several people
+  who did not know of each other's results.</p>
+  <p>It appears in control theory in the <span class="year">1960s</span>. Seppo Linnainmaa
+  published the general method for automatic differentiation in <span
+  class="year">1970</span>. Paul Werbos proposed applying it to neural networks in his
+  <span class="year">1974</span> doctoral thesis, where it attracted little attention. It
+  finally became widely known through a <span class="year">1986</span> paper by Rumelhart,
+  Hinton and Williams, which is the citation most people know.</p>
+  <p>Why the repetition? Partly because the idea looks unremarkable once you have it; it
+  <i>is</i> just the chain rule with careful bookkeeping. And partly because during much
+  of that period neural networks were an unfashionable research topic, so a good result
+  about them could be published and simply not read.</p>
+</div>
+
+<p>Here is a complete gradient descent step on a real (if very small) model. This is
+exactly what a framework does, with the same arithmetic.</p>
+
+<div class="worked long">
+  <span class="label">Worked: one training step, from scratch</span>
+  <p><b>The model.</b> One input $x$, one weight $w$, one bias $b$, sigmoid output:</p>
+  <p>$\hat{y} = \sigma(wx + b)$</p>
+  <p><b>The loss.</b> Squared error against a target $y$:</p>
+  <p>$L = (\hat{y} - y)^2$</p>
+  <p><b>The numbers.</b> $x = 2$, $y = 1$ (the true answer), and current parameters
+  $w = 0.5$, $b = 0$. Learning rate $\alpha = 1.0$.</p>
+
+  <p><b>Step 1: forward pass.</b></p>
+  <p>$z = wx + b = 0.5(2) + 0 = 1$</p>
+  <p>$\hat{y} = \sigma(1) = \dfrac{1}{1+e^{-1}} \approx 0.7311$</p>
+  <p>$L = (0.7311 - 1)^2 = (-0.2689)^2 \approx 0.0723$</p>
+
+  <p><b>Step 2: the chain.</b> We need $\partial L/\partial w$. The dependency runs
+  $w \to z \to \hat{y} \to L$, so the chain rule gives three factors:</p>
+  <p>$\dfrac{\partial L}{\partial w} = \dfrac{\partial L}{\partial \hat{y}} \cdot \dfrac{\partial \hat{y}}{\partial z} \cdot \dfrac{\partial z}{\partial w}$</p>
+
+  <p><b>Step 3: each factor.</b></p>
+  <p>$\dfrac{\partial L}{\partial \hat{y}} = 2(\hat{y} - y) = 2(-0.2689) = -0.5379$</p>
+  <p>$\dfrac{\partial \hat{y}}{\partial z} = \sigma(z)(1-\sigma(z)) = 0.7311 \times 0.2689 \approx 0.1966$ &nbsp;&nbsp;<span class="muted">(§18)</span></p>
+  <p>$\dfrac{\partial z}{\partial w} = x = 2$</p>
+
+  <p><b>Step 4: multiply.</b></p>
+  <p>$\dfrac{\partial L}{\partial w} = (-0.5379)(0.1966)(2) \approx -0.2115$</p>
+  <p>And similarly, since $\partial z/\partial b = 1$:</p>
+  <p>$\dfrac{\partial L}{\partial b} = (-0.5379)(0.1966)(1) \approx -0.1058$</p>
+
+  <p><b>Step 5: take the step.</b></p>
+  <p>$w \leftarrow 0.5 - 1.0(-0.2115) = 0.7115$</p>
+  <p>$b \leftarrow 0 - 1.0(-0.1058) = 0.1058$</p>
+
+  <p><b>Step 6: did it help?</b> Recompute the forward pass with the new parameters:</p>
+  <p>$z = 0.7115(2) + 0.1058 = 1.5288$, so $\hat{y} = \sigma(1.5288) \approx 0.8218$</p>
+  <p>$L = (0.8218 - 1)^2 \approx 0.0317$</p>
+  <p>The loss fell from $0.0723$ to $0.0317$, <b>less than half</b>. The prediction moved
+  from $0.7311$ toward the target of 1. One step of learning, performed entirely by
+  hand.</p>
+</div>
+
+<div class="box why">
+  <span class="label">What you just did</span>
+  <p>That was a complete forward pass, backward pass, and parameter update: the full
+  training loop. A real network does the same thing with millions of weights instead of
+  two, and matrices instead of scalars, but <b>the arithmetic is identical</b>. Every
+  factor you multiplied has a counterpart in PyTorch's autograd graph.</p>
+  <p>Notice the gradient was <i>negative</i>, so the update <i>increased</i> $w$. That is
+  the minus sign in $\theta - \alpha\nabla f$ doing its job: the loss was decreasing in
+  the direction of larger $w$, so we went there.</p>
+</div>
+
+<div class="box fw">
+  <span class="label">In the framework: the same six steps, checked against your arithmetic</span>
+  <p>This is the only place in Part 0 that mentions a deep learning library, and it is here
+  to settle one question: is the calculation you just did by hand <i>actually</i> what a
+  framework does, or merely an illustration of it?</p>
+  <p>Run this. The numbers are not similar to yours: they are the same numbers.</p>
+<pre><code><span class="k">import</span> torch
+
+w = torch.tensor(<span class="n">0.5</span>, requires_grad=<span class="k">True</span>)   <span class="c"># the parameters we are learning</span>
+b = torch.tensor(<span class="n">0.0</span>, requires_grad=<span class="k">True</span>)
+x, y = torch.tensor(<span class="n">2.0</span>), torch.tensor(<span class="n">1.0</span>)     <span class="c"># the one training example</span>
+
+y_hat = torch.sigmoid(w * x + b)              <span class="c"># step 1: forward pass</span>
+loss  = (y_hat - y) ** <span class="n">2</span>
+
+loss.backward()                               <span class="c"># steps 2-4: the whole chain, at once</span>
+print(loss.item(), w.grad.item(), b.grad.item())
+<span class="o">### 0.0723   -0.2115   -0.1058</span>
+
+<span class="k">with</span> torch.no_grad():                        <span class="c"># step 5: take the step</span>
+    w -= <span class="n">1.0</span> * w.grad
+    b -= <span class="n">1.0</span> * b.grad
+print(w.item(), b.item())                     <span class="o">### 0.7115   0.1058</span>
+print(((torch.sigmoid(w*x+b) - y)**<span class="n">2</span>).item())  <span class="o">### 0.0317  -- step 6</span>
+</code></pre>
+  <p><b>What each piece corresponds to.</b> <code>requires_grad=True</code> marks a value as
+  something to differentiate <i>with respect to</i>: it is how you say "this is a parameter,
+  not data". The single call to <code>backward()</code> replaces steps 2 through 4: it walks
+  the chain $w \to z \to \hat{y} \to L$ backwards and deposits the result in
+  <code>.grad</code>. Your three factors ($-0.5379$, $0.1966$ and $2$) were multiplied
+  inside it, in that order, and you never see them.</p>
+  <p><code>torch.no_grad()</code> is there because the update is bookkeeping rather than
+  part of the model: without it the library would dutifully record the subtraction as one
+  more operation to differentiate later. That single detail is responsible for a surprising
+  amount of early confusion, and it makes sense only once you know that a framework is
+  recording a graph as you go.</p>
+  <p>Nothing else is hidden. A network with fifty million parameters runs this exact
+  procedure, with vectors in place of the two scalars, which is what Part I is for, and why
+  it comes next.</p>
+</div>
+
+<div class="box try">
+  <span class="label">Try it</span>
+  <p>Same model and numbers, but the target is now $y = 0$ instead of 1. Compute
+  $\partial L/\partial w$ and the updated $w$. Which direction does the weight move, and
+  does that make sense?</p>
+</div>
+
+<p><b>Answer.</b> The forward pass is unchanged: $\hat y \approx 0.7311$. But now
+$\partial L/\partial \hat y = 2(0.7311 - 0) = 1.4621$. The other two factors are the same,
+$0.1966$ and $2$.</p>
+<p>$\dfrac{\partial L}{\partial w} = (1.4621)(0.1966)(2) \approx 0.5750$</p>
+<p>$w \leftarrow 0.5 - 1.0(0.5750) = -0.0750$</p>
+<p>The weight went <b>down</b>, and turned negative. That is exactly right: the target is
+now 0, the model is outputting $0.7311$, so it must reduce its output, and with a
+positive input $x = 2$, reducing the output requires reducing the weight. The sign of the
+gradient flipped because the direction of the error flipped.</p>

@@ -1,0 +1,185 @@
+<h2><span class="part-kicker">Build</span>The project</h2>
+
+<p class="lede">Six to eight hours. Unusually for this book, the project is not to build
+something: it is to <b>break something, repeatedly, on purpose</b>, and learn to recognise
+the wreckage.</p>
+
+<h3><span class="num">P.1</span> What you are building</h3>
+
+<p><b><code>brokenrepo</code></b>: a working training script, and then eleven deliberately
+sabotaged copies of it, each with a single bug from this part.</p>
+
+<p>The rule: <b>you must diagnose each one from its symptoms before looking at the diff.</b>
+Run it, observe, form a hypothesis, check the hypothesis, and only then read the change.
+Write down what you predicted and whether you were right.</p>
+
+<h3><span class="num">P.2</span> Stage 1: the working baseline</h3>
+
+<p>Write a clean training script for a small classification problem. It must include, and
+you must be able to justify, every line:</p>
+
+<ul>
+  <li>A <code>Dataset</code> and a <code>DataLoader</code> with <code>shuffle=True</code>.</li>
+  <li>A model written as a <code>nn.Module</code> subclass, not a <code>Sequential</code>.</li>
+  <li><code>train()</code> / <code>eval()</code> switching, and <code>no_grad()</code> for evaluation.</li>
+  <li>A parameter count printed before training starts.</li>
+  <li>Train, validation and test splits, with the test set touched exactly once (Part VI §9).</li>
+  <li>A checkpoint saving model, optimiser and epoch.</li>
+</ul>
+
+<p><b>Deliverable:</b> a run that reaches a sensible accuracy, plus a bootstrap interval on
+the final test number using Part V §10. A point estimate alone does not count.</p>
+
+<h3><span class="num">P.3</span> Stage 2: the eleven bugs</h3>
+
+<p>Make eleven copies. Introduce exactly one fault in each, run it, and record the symptom
+<i>before</i> diagnosing.</p>
+
+<table class="compact">
+  <thead><tr><th>#</th><th>Sabotage</th><th>Predict before running</th></tr></thead>
+  <tbody>
+    <tr><td>1</td><td>delete <code>opt.zero_grad()</code></td><td>how many steps until it diverges?</td></tr>
+    <tr><td>2</td><td>delete <code>opt.step()</code></td><td>what exactly does the loss do?</td></tr>
+    <tr><td>3</td><td>delete <code>loss.backward()</code></td><td>how does this differ from 2?</td></tr>
+    <tr><td>4</td><td>store layers in a plain list</td><td>does it run? does it learn at all?</td></tr>
+    <tr><td>5</td><td>omit <code>super().__init__()</code></td><td>which line raises, and what does it say?</td></tr>
+    <tr><td>6</td><td>apply <code>softmax</code> before <code>cross_entropy</code></td><td>does it error? is the loss higher or lower?</td></tr>
+    <tr><td>7</td><td>never call <code>model.eval()</code></td><td>which direction does accuracy move, and is it stable?</td></tr>
+    <tr><td>8</td><td><code>total += loss</code> instead of <code>.item()</code></td><td>after how many batches does memory bite?</td></tr>
+    <tr><td>9</td><td><code>shuffle=False</code> on class-sorted data</td><td>what shape does the loss curve take?</td></tr>
+    <tr><td>10</td><td>raise the learning rate 1000×</td><td>ramp to <code>nan</code>, or cliff?</td></tr>
+    <tr><td>11</td><td>feed <code>float64</code> features</td><td>which of the two dtype errors, and where?</td></tr>
+  </tbody>
+</table>
+
+<p><b>Deliverable:</b> a table with three columns (symptom observed, hypothesis, actual
+cause) and an honest count of how many you got right first time. Most people get six or
+seven. The ones people miss are usually 2 versus 3, and 6.</p>
+
+<h3><span class="num">P.4</span> Stage 3: instrument it</h3>
+
+<p>Return to the working version and add the diagnostics of §17, so that the next real bug
+announces itself:</p>
+
+<ul>
+  <li>Parameter count, printed once, compared against what the architecture implies.</li>
+  <li>Gradient norm, printed every $N$ steps. Watch for <code>None</code>, exact zero, and
+  <code>nan</code>: three different failures, per drill C18.</li>
+  <li>A tiny-sample overfitting test: ten examples, trained until the loss is near zero,
+  run automatically before the real training starts. If it fails, stop.</li>
+  <li>Shapes of the first batch, printed once.</li>
+</ul>
+
+<p><b>Deliverable:</b> reintroduce bugs 1, 4 and 7 and confirm your instrumentation catches
+each <i>before</i> the run finishes.</p>
+
+<h3><span class="num">P.5</span> Stage 4: measure the machine</h3>
+
+<p>Reproduce this part's figures on your own hardware. They will differ, and the differences
+are the interesting part.</p>
+
+<ol>
+  <li><b>The graph.</b> Walk <code>grad_fn</code> for your model and print every node. Count
+  the <code>AccumulateGrad</code> nodes and check it equals your parameter tensor count.</li>
+  <li><b>Memory.</b> Sum the saved activations against batch size. Confirm linearity.</li>
+  <li><b>Throughput.</b> Time a step across batch sizes. Find where your curve flattens.</li>
+  <li><b>Modes.</b> Forward one input 2,000 times in each mode; report both spreads.</li>
+</ol>
+
+<h3><span class="num">P.6</span> Stretch</h3>
+
+<ul>
+  <li><b>Gradient accumulation.</b> Verify that four batches of 32 with accumulation give the
+  same gradient as one batch of 128, to floating point tolerance. This is a real test and it
+  catches the missing division.</li>
+  <li><b>A custom <code>autograd.Function</code></b> with a hand-written backward, verified
+  with <code>gradcheck</code>. This is the Part VII project's <code>Value</code> class,
+  wearing the library's interface.</li>
+  <li><b>Mixed precision.</b> Run in bfloat16 with <code>autocast</code> and measure both
+  the speedup and the change in final accuracy. Part III §1 predicts which one is
+  large.</li>
+  <li><b>Freeze and fine-tune.</b> Train a model, freeze all but the last layer with
+  <code>requires_grad_(False)</code>, and confirm from the parameter count and the gradient
+  norms that only the head is moving.</li>
+</ul>
+
+<h3><span class="num">P.7</span> Done when</h3>
+
+<ul class="checklist">
+  <li>The baseline trains, and every line in it can be justified.</li>
+  <li>All eleven bugs diagnosed, with your first-guess accuracy recorded honestly.</li>
+  <li>Instrumentation catches bugs 1, 4 and 7 automatically.</li>
+  <li>The four figures reproduced on your hardware.</li>
+  <li>A bootstrap interval on the final test accuracy.</li>
+  <li>Your notes name one thing the framework does that you had previously assumed was
+  magic.</li>
+</ul>
+
+<div class="box why">
+  <span class="label">Why this project, rather than building something</span>
+  <p>Every other project in this book asks you to construct a thing from nothing, because
+  construction is how you learn what a thing is. This one is different because the skill it
+  targets is different.</p>
+  <p>You will spend far more of your working life reading failures than writing new
+  implementations. A framework's characteristic hazard, per §17, is that it happily runs
+  wrong programs, and the three most expensive bugs in this part (the unregistered list, the
+  missing <code>eval()</code>, the double softmax) all produce plausible numbers rather than
+  errors. The only defence is to have seen each symptom once, deliberately, when you already
+  knew the answer.</p>
+  <p>Doing it on purpose costs an afternoon. Meeting them for the first time inside a real
+  project costs considerably more, and you will not have the luxury of knowing that a bug is
+  what you are looking for.</p>
+</div>
+
+<h2 class="nobreak"><span class="part-kicker">Assess</span>Checkpoint</h2>
+
+<ul class="checklist">
+  <li>Name the five tensor attributes that account for most runtime errors.</li>
+  <li>Explain what <code>requires_grad</code> does and why you never set it on activations.</li>
+  <li>Say what a <code>grad_fn</code> is, in terms of Part VII's <code>Value</code> class.</li>
+  <li>Explain the difference between a leaf and a non-leaf, and why only leaves get a gradient.</li>
+  <li>Say what <code>backward()</code> frees, and why calling it twice raises.</li>
+  <li>Explain why a forward pass must save activations, using one specific operation.</li>
+  <li>State how activation memory scales, and name the cheapest lever against it.</li>
+  <li>Distinguish <code>no_grad()</code>, <code>detach()</code> and <code>requires_grad_(False)</code> by scope.</li>
+  <li>Explain why in-place operations are detected rather than forbidden.</li>
+  <li>Say what <code>nn.Module</code> assignment does that ordinary assignment does not.</li>
+  <li>Explain what <code>parameters()</code> is for and what breaks without it.</li>
+  <li>Distinguish a parameter from a buffer, with an example.</li>
+  <li>Explain why <code>nn.Linear</code> stores its weight transposed.</li>
+  <li>Say what the default initialisation is and when it is wrong.</li>
+  <li>Explain what <code>shuffle=True</code> implements, in terms of Part II §17.</li>
+  <li>State why the model moves to a device once and the data every batch.</li>
+  <li>Write the five statements of the training loop, in order, and say what each omission causes.</li>
+  <li>Explain gradient accumulation and why the loss must be divided.</li>
+  <li>Say which layers <code>train()</code> and <code>eval()</code> affect, and how.</li>
+  <li>Explain why the missing-<code>eval()</code> bug biases accuracy downward and is unstable.</li>
+  <li>Say why you save a state dict rather than a model, and what else a resume needs.</li>
+  <li>Decode a shape error, a dtype error and a device error from their messages.</li>
+  <li>Give the debugging order for a program that runs and is wrong.</li>
+</ul>
+
+<table class="compact">
+  <thead><tr><th>Score</th><th>Verdict</th></tr></thead>
+  <tbody>
+    <tr><td><b>19–23</b></td><td>Go on. You can read a training script and a traceback.</td></tr>
+    <tr><td><b>15–18</b></td><td>Reread what you missed, then continue.</td></tr>
+    <tr><td><b>11–14</b></td><td>Do the project's Stage 2. Breaking things fixes most of this.</td></tr>
+    <tr><td><b>Under 11</b></td><td>Reread §§4–7. The graph carries this part, and everything else is consequences of it.</td></tr>
+  </tbody>
+</table>
+
+<div class="box intuition">
+  <span class="label">The one thing to carry forward</span>
+  <p><b>The framework records what your code did, and everything else follows from that
+  recording.</b></p>
+  <p>Gradients accumulate because a value used twice must receive both contributions. The
+  graph is freed because holding it costs memory that scales with batch and depth.
+  Activations are saved because local derivatives need forward values. In-place operations
+  are version-counted because sometimes they destroy one of those values and sometimes they
+  do not. Modules exist so that the few tensors worth updating can be found among the
+  millions that are not.</p>
+  <p>Not one of those is an arbitrary API decision. Each is forced by something derived in
+  Parts 0 through III, which is why this part could be short, and why it was worth waiting
+  until now to write it.</p>
+</div>

@@ -1,0 +1,352 @@
+<h2><span class="part-kicker">Part B</span>Distributions</h2>
+
+<h3><span class="num">§4</span> Discrete distributions and the PMF</h3>
+
+<div class="box def">
+  <span class="label">Definition: probability mass function</span>
+  <p>For a discrete random variable $X$, the <b>PMF</b> $P(X = x)$ gives the
+  probability of each possible value. It must satisfy two conditions:</p>
+  <p>$0 \leq P(X = x) \leq 1$ for every $x$, &nbsp; and &nbsp; $\sum_x P(X = x) = 1$.</p>
+</div>
+
+<p>That is the entire definition. Probabilities are never negative, never exceed one,
+and the total across all outcomes is exactly one: the outcome has to be
+<i>something</i>.</p>
+
+<p>Think of a PMF as a fixed budget of probability, one unit in total, distributed
+across the possible outcomes. Giving more to one outcome necessarily takes it from
+another. That conservation is the source of a great deal of intuition later, including
+why softmax behaves the way it does in §20.</p>
+
+<figure>
+  <img src="figures/pr/01-pmf-vs-pdf.svg" alt="A discrete PMF as bars, and a continuous PDF as a curve">
+  <figcaption><b>Figure 1.</b> Left: a fair die's PMF. Six bars, each $1/6$, summing to
+  1. You can point at a bar and read off a probability directly. Right: a continuous
+  density, where probability is the <i>shaded area</i> rather than the height. The
+  distinction between these two pictures is the subject of §5, and it causes more
+  confusion than anything else in the chapter.</figcaption>
+</figure>
+
+<p>Notation gets abbreviated constantly. All of these mean the same thing, and you will
+see all of them:</p>
+
+$$P(X = x) \quad\equiv\quad P(x) \quad\equiv\quad p(x)$$
+
+<p>The shorthand is convenient and occasionally ambiguous: $p(x)$ and $p(y)$ may refer
+to two entirely different functions, distinguished only by the name of their argument.
+This is sloppy but universal, and once you expect it, it stops being a problem.</p>
+
+<h3><span class="num">§5</span> Continuous distributions and the PDF</h3>
+
+<div class="sixty">
+  <span class="label">In 60 seconds</span>
+  <p>For a continuous variable the probability of any <b>exact</b> value is zero, so we
+  ask about intervals instead, and probability becomes <b>area under a curve</b>. The
+  height of that curve is a <i>density</i>, a probability <b>per unit</b>, and it may
+  exceed 1 without contradiction. Only the total area is capped.</p>
+</div>
+
+<p>Now the trap. For a continuous variable, the probability of any <b>exact</b> value is
+zero.</p>
+
+<p>That sounds wrong, so here is why it must be true. Suppose you pick a real number
+uniformly between 0 and 1. There are infinitely many candidates. If each had some
+probability $\epsilon > 0$, the total would be $\epsilon \times \infty = \infty$, which
+violates the requirement that everything sums to 1. The only consistent assignment is
+zero for each individual point.</p>
+
+<p>So we stop asking about points and start asking about <b>intervals</b>.</p>
+
+<div class="box def">
+  <span class="label">Definition: probability density function</span>
+  <p>For a continuous random variable, the <b>PDF</b> $p(x)$ satisfies</p>
+  <p>$p(x) \geq 0$ for every $x$, &nbsp; $\int p(x)\,dx = 1$, &nbsp; and &nbsp;
+  $P(a \leq X \leq b) = \int_a^b p(x)\,dx$.</p>
+</div>
+
+<p>Probability is the <b>area under the curve</b>, never the height of it.</p>
+
+<div class="box pitfall">
+  <span class="label">Pitfall: a density is not a probability, and can exceed 1</span>
+  <p>This is the single most common misconception in the chapter, so it gets its own
+  figure. $p(x) = 2.66$ is a perfectly legal density value. It does not mean "a 266%
+  chance", which would be nonsense; it means the probability is <i>concentrated</i>
+  near $x$, at a rate of 2.66 per unit of $x$.</p>
+  <p>The units are the giveaway. A probability is a pure number. A density is a
+  probability <b>per unit</b>: per metre, per second, per volt. Densities are rates,
+  and rates can be arbitrarily large as long as they act over a small enough
+  interval.</p>
+</div>
+
+<figure>
+  <img src="figures/pr/02-density-above-one.svg" alt="Three Gaussian densities, two with peaks above 1">
+  <figcaption><b>Figure 2.</b> Three Gaussians with shrinking spread. As the
+  distribution concentrates, the peak climbs past 1 and keeps going: the $\sigma =
+  0.15$ curve peaks at 2.66. Every one of these still has total area exactly 1. The
+  cap is on the area, never on the height.</figcaption>
+</figure>
+
+<div class="box intuition">
+  <span class="label">Intuition: the population density analogy</span>
+  <p>Population density in Manhattan is roughly 27,000 people per square kilometre.
+  That number exceeding one is not a paradox, because it is a rate. Ask for the
+  population at a single mathematical <i>point</i> and the answer is zero; points have
+  no area. Ask for the population of a neighbourhood and you multiply density by area
+  and get a real count.</p>
+  <p>Probability density works identically. $p(x)$ is the rate; $p(x)\,dx$ over a
+  region is the probability.</p>
+</div>
+
+<aside class="mnote"><b>Left out on purpose:</b> the measure-theoretic scaffolding
+behind this (measure zero, "almost everywhere", the paradoxical constructions like
+Banach&ndash;Tarski that motivate it) buys rigour a model-builder does not need here; it
+is skipped so this stays about computing, not about set theory.</aside>
+
+<h4>Change of variables</h4>
+
+<p>One consequence of probability being area rather than height is that densities do not
+simply inherit from one another when you transform the variable. Suppose $X$ has density
+$p_X(x)$ and you define $Y = g(X)$ for some invertible, differentiable function $g$.
+What is $p_Y(y)$?</p>
+
+<p>Probability must be conserved: the chance that $X$ falls in a tiny interval
+$[x, x + dx]$ must equal the chance that $Y$ falls in the corresponding interval
+$[y, y + dy]$. That is,</p>
+
+$$p_X(x)\,|dx| = p_Y(y)\,|dy|$$
+
+<p>Dividing through by $|dy|$ and using $x = g^{-1}(y)$ gives the
+<b>change-of-variables formula</b>:</p>
+
+<div class="box def">
+  <span class="label">Change of variables: 1-D</span>
+  <p>If $Y = g(X)$ with $g$ invertible and differentiable, and $x = g^{-1}(y)$, then</p>
+  <p>$$p_Y(y) = p_X\!\left(g^{-1}(y)\right) \left|\frac{dx}{dy}\right|$$</p>
+  <p>The term $|dx/dy|$ is the <b>absolute Jacobian</b>: it accounts for how much a
+  small interval in $y$ stretches or compresses relative to the corresponding interval
+  in $x$. A transformation that stretches space by a factor $c$ squashes the density by
+  the same factor, because the same probability is now spread over a wider region.</p>
+</div>
+
+<p>The multivariate version replaces the scalar derivative with the determinant of the
+Jacobian matrix of the inverse transform:</p>
+
+$$p_Y(\mathbf{y}) = p_X\!\left(g^{-1}(\mathbf{y})\right) \left|\det J_{g^{-1}}(\mathbf{y})\right|$$
+
+<p>where $J_{g^{-1}}$ is the matrix of partial derivatives $\partial x_i / \partial y_j$.
+The intuition is identical: the Jacobian determinant measures how much volume a small
+region in $\mathbf{y}$-space corresponds to in $\mathbf{x}$-space.</p>
+
+<div class="worked">
+  <span class="label">Worked: shifting and scaling a Uniform</span>
+  <p>Let $X \sim \text{Uniform}(0, 1)$, so $p_X(x) = 1$ for $x \in [0, 1]$.
+  Define $Y = 2X + 3$.</p>
+  <p><b>What range does $Y$ take?</b> Since $X \in [0, 1]$, $Y \in [3, 5]$.</p>
+  <p><b>Apply the formula.</b> The inverse is $x = g^{-1}(y) = (y - 3)/2$, so
+  $|dx/dy| = 1/2$.</p>
+  <p>$$p_Y(y) = p_X\!\left(\tfrac{y-3}{2}\right) \cdot \tfrac{1}{2}
+  = 1 \cdot \tfrac{1}{2} = \tfrac{1}{2} \qquad \text{for } y \in [3, 5]$$</p>
+  <p><b>Check the area.</b> $\int_3^5 \tfrac{1}{2}\,dy = \tfrac{1}{2} \times 2 = 1$. ✓</p>
+  <p>The density is halved because the interval $[0, 1]$ was stretched to $[3, 5]$ (twice
+  as wide), so the same probability unit is now spread over twice as much of the $y$-axis.
+  Height times width is conserved: $1 \times 1 = \tfrac{1}{2} \times 2$.</p>
+</div>
+
+<p>This formula is load-bearing later. Normalising flows (Part XVI §21) are exactly
+invertible neural networks whose Jacobian determinant is cheap to compute, allowing them
+to transform a simple density into a complex one while remaining tractable.</p>
+
+<h3><span class="num">§6</span> Joint and marginal</h3>
+
+<p>Real problems involve several uncertain quantities at once. The <b>joint
+distribution</b> $P(X = x, Y = y)$ gives the probability that both hold
+simultaneously; read the comma as "and".</p>
+
+<p>Given a joint distribution, you can always recover the behaviour of one variable
+alone by summing over everything the other could have been:</p>
+
+$$P(X = x) = \sum_y P(X = x, Y = y)$$
+
+<p>This is <b>marginalisation</b>, and the continuous version replaces the sum with an
+integral in the obvious way. The name is delightfully literal: with a joint
+distribution written as a table, you compute these totals and write them in the
+<i>margins</i> of the page.</p>
+
+<figure>
+  <img src="figures/pr/03-joint-marginal.svg" alt="A joint distribution table with its marginals in the margins">
+  <figcaption><b>Figure 3.</b> A joint distribution over two variables with three
+  values each. The nine cells sum to 1. Summing down each column gives $Y$'s marginal
+  (orange, on top); summing across each row gives $X$'s marginal (green, on the right).
+  Marginalising is summing along an axis; in NumPy it is literally
+  <code>J.sum(axis=0)</code>.</figcaption>
+</figure>
+
+<div class="box intuition">
+  <span class="label">Intuition: marginalising is forgetting</span>
+  <p>Marginalising out $Y$ means "I no longer care about $Y$; account for every value it
+  could take and fold them together." You are deliberately discarding information, and
+  the sum is what keeps the total probability at 1 while you do it.</p>
+  <p>This operation is more important than it looks. It is how you handle any variable
+  you cannot observe, which is exactly what latent variables are in §18, and what makes
+  mixture models and variational autoencoders work.</p>
+</div>
+
+<h3><span class="num">§7</span> Conditional probability</h3>
+
+<div class="sixty">
+  <span class="label">In 60 seconds</span>
+  <p>Conditioning is two steps: <b>restrict</b> to the outcomes consistent with what you
+  were told, then <b>renormalise</b> so they sum to 1 again. The denominator in the formula
+  is just the size of the slice you kept. And $P(A \mid B)$ is emphatically not
+  $P(B \mid A)$; confusing them is common enough to have a name, the prosecutor's
+  fallacy.</p>
+</div>
+
+<p>Now the concept that everything else in the chapter is built from.</p>
+
+<div class="box def">
+  <span class="label">Definition: conditional probability</span>
+  <p>$$P(Y = y \mid X = x) = \frac{P(X = x, Y = y)}{P(X = x)}$$
+  read "the probability of $Y = y$ <b>given</b> $X = x$", defined whenever
+  $P(X = x) > 0$.</p>
+</div>
+
+<p>Do not memorise the formula. Understand the two-step operation it performs:</p>
+
+<ol>
+  <li><b>Restrict.</b> Throw away every outcome where $X \neq x$. You have been told
+  those did not happen.</li>
+  <li><b>Renormalise.</b> What is left no longer sums to 1, so divide by its total to
+  make it a proper distribution again.</li>
+</ol>
+
+<p>The denominator $P(X = x)$ is exactly that total. It is not a mysterious correction
+factor; it is the size of the slice you kept.</p>
+
+<figure>
+  <img src="figures/pr/04-conditioning.svg" alt="Conditioning shown as slicing a joint table and renormalising">
+  <figcaption><b>Figure 4.</b> Conditioning, in three steps, using the same joint table
+  as Figure 3. Pick the row you were told you are in. That slice sums to 0.35, not 1,
+  because it is only part of the original space. Divide through by 0.35 and you have a
+  legitimate distribution again. That division <i>is</i> the denominator in the
+  formula.</figcaption>
+</figure>
+
+<div class="box pitfall">
+  <span class="label">Pitfall: $P(A \mid B)$ is not $P(B \mid A)$</span>
+  <p>These are wildly different quantities and confusing them is so common it has a
+  name: the <b>prosecutor's fallacy</b>.</p>
+  <p>$P(\text{has four legs} \mid \text{is a dog})$ is nearly 1. $P(\text{is a dog}
+  \mid \text{has four legs})$ is not; plenty of four-legged things are cats, tables,
+  or horses.</p>
+  <p>The medical version costs real lives: the probability of testing positive given
+  that you are sick is <i>not</i> the probability of being sick given that you tested
+  positive. Section 22 works through exactly how far apart these can be, and the answer
+  is startling. Bayes' rule in §21 is precisely the machinery for converting one into
+  the other.</p>
+</div>
+
+<aside class="mnote"><b>Conditioning is not intervening:</b> $P(Y \mid X = x)$
+describes $Y$ among the cases where $X$ happened to equal $x$; it says nothing about
+what happens if you <i>set</i> $X$ to $x$. The two coincide only under assumptions that
+can fail. That distinction is the whole subject of Part XXII (from §1), and it is easy
+to blur here because the notation looks identical.</aside>
+
+<div class="box try">
+  <span class="label">Try it</span>
+  <p>From the table in Figure 3, the row for $x_2$ is $(0.08, 0.20, 0.07)$. Compute
+  $P(Y = y_2 \mid X = x_2)$.</p>
+</div>
+
+<p><b>Answer.</b> The row sums to $0.08 + 0.20 + 0.07 = 0.35$, which is $P(X = x_2)$.
+So $P(Y = y_2 \mid X = x_2) = 0.20 / 0.35 \approx 0.571$. Note that the joint
+probability was only $0.20$, but conditioning raised it to $0.571$: being told you are
+in row $x_2$ eliminated 65% of the possibility space, and the surviving outcomes absorb
+that freed-up probability.</p>
+
+<h3><span class="num">§8</span> The chain rule</h3>
+
+<p>Rearranging the definition of conditional probability gives</p>
+
+$$P(x, y) = P(y \mid x)\, P(x)$$
+
+<p>and applying that repeatedly factors any joint distribution into a product of
+conditionals:</p>
+
+$$P(x_1, x_2, \dots, x_n) = P(x_1)\, P(x_2 \mid x_1)\, P(x_3 \mid x_1, x_2) \cdots P(x_n \mid x_1, \dots, x_{n-1})$$
+
+<p>This is the <b>chain rule</b>, and it is exact: no assumptions, no approximation.
+Every joint distribution factors this way.</p>
+
+<div class="box why">
+  <span class="label">Why deep learning cares: this is what a language model is</span>
+  <p>Apply the chain rule to a sentence, treating each word as a variable:</p>
+  <p>$P(\text{"the cat sat"}) = P(\text{"the"}) \cdot P(\text{"cat"} \mid \text{"the"})
+  \cdot P(\text{"sat"} \mid \text{"the cat"})$</p>
+  <p>A large language model is a machine that estimates exactly these conditional
+  factors. Generating text means sampling one word at a time from
+  $P(\text{next word} \mid \text{everything so far})$, which is the chain rule read
+  left to right. The entire architecture of autoregressive generation is this identity
+  plus a way to approximate the factors. Part XVI §8 builds this properly, and Part XX
+  is a full study of the language-model case.</p>
+</div>
+
+<h3><span class="num">§9</span> Independence and conditional independence</h3>
+
+<div class="box def">
+  <span class="label">Definition: independence</span>
+  <p>$X$ and $Y$ are <b>independent</b>, written $X \perp Y$, if
+  $$P(x, y) = P(x)\,P(y) \quad \text{for all } x, y$$
+  Equivalently, $P(y \mid x) = P(y)$: knowing $X$ tells you nothing about $Y$.</p>
+</div>
+
+<p>Independence is a strong condition. It must hold for <i>every</i> pair of values, not
+merely on average. Two successive fair coin flips are independent; a person's height and
+weight emphatically are not.</p>
+
+<div class="box def">
+  <span class="label">Definition: conditional independence</span>
+  <p>$X$ and $Y$ are <b>conditionally independent given $Z$</b>, written
+  $X \perp Y \mid Z$, if
+  $$P(x, y \mid z) = P(x \mid z)\,P(y \mid z)$$
+  Once you know $Z$, learning $X$ tells you nothing further about $Y$.</p>
+</div>
+
+<p>This one deserves an example, because it is subtler and more useful than plain
+independence.</p>
+
+<div class="worked">
+  <span class="label">Worked example: ice cream and drowning</span>
+  <p>Ice cream sales and drowning deaths are strongly correlated across the year. They
+  are <b>not</b> independent: a high ice cream day genuinely predicts more drownings.</p>
+  <p>But condition on temperature. Among days that are all 30°C, ice cream sales tell
+  you essentially nothing extra about drownings. Both were being driven by the heat.
+  So they are conditionally independent given temperature, while being dependent
+  overall.</p>
+  <p>This is the structure behind every "correlation is not causation" example. A common
+  cause creates a real statistical dependence between two things that do not influence
+  each other, and conditioning on that cause dissolves it.</p>
+</div>
+
+<div class="box pitfall">
+  <span class="label">Pitfall: neither kind of independence implies the other</span>
+  <p>Conditional independence does <b>not</b> follow from independence, and independence
+  does <b>not</b> follow from conditional independence. The ice cream example shows the
+  first direction. For the second: two independent coin flips become <i>dependent</i>
+  once you condition on their sum: if the total is 1 and you learn the first was heads,
+  you now know the second was tails with certainty. Conditioning can create dependence
+  as easily as it removes it.</p>
+</div>
+
+<div class="box why">
+  <span class="label">Why deep learning cares</span>
+  <p>Independence assumptions are what make large models computationally possible. A
+  joint distribution over 100 binary variables has $2^{100}$ entries, more than there
+  are atoms in the observable universe. Assume enough independence and it factors into
+  something you can actually store and compute with.</p>
+  <p>Naive Bayes assumes all features are conditionally independent given the class,
+  which is almost always false and works surprisingly well anyway. Graphical models,
+  covered in Part XXVIII §3 (directed) and §6 (undirected), are precisely a language for
+  stating <i>which</i> independence assumptions you are making. Every such assumption is
+  a trade: less fidelity, more tractability.</p>
+</div>

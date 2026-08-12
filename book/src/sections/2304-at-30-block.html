@@ -1,0 +1,242 @@
+<h2><span class="part-kicker">Part C</span>The block and the stack</h2>
+
+<h3><span class="num">§14</span> The block</h3>
+
+<p>Attention alone is not a network. It mixes information <b>across</b> positions and does
+almost nothing <i>at</i> a position: strip away the projections and the output is a convex
+combination of values, which is a weighted average and no more. Something has to do the
+per-position computation.</p>
+
+<div class="box def">
+  <span class="label">The transformer block</span>
+  <p>$$\begin{aligned}
+  \mathbf{x} &\leftarrow \mathbf{x} + \text{MHA}\big(\text{LN}(\mathbf{x})\big) \\
+  \mathbf{x} &\leftarrow \mathbf{x} + \text{FF}\big(\text{LN}(\mathbf{x})\big)
+  \end{aligned}$$</p>
+  <p>Two sublayers, each wrapped in a residual connection and a normalisation. The first mixes
+  across positions; the second mixes across features, independently at each position. A
+  transformer is this block, repeated.</p>
+</div>
+
+<div class="box intuition">
+  <span class="label">Intuition: mix across positions, then think</span>
+  <p>The alternation is the whole design and it is worth naming plainly.</p>
+  <p><b>Attention moves information.</b> It decides what each position should know about the
+  rest of the sequence, and gathers it. It is almost linear: the only nonlinearity is in
+  computing the weights.</p>
+  <p><b>The feedforward layer processes it.</b> Same weights at every position, no
+  communication between positions, one hidden layer with a nonlinearity. This is Part X §19's
+  $1\times1$ convolution exactly, a dense layer applied independently everywhere.</p>
+  <p>So a block is <i>gather, then compute</i>, and depth is that alternation repeated. A
+  position's representation after $L$ blocks has been informed by the whole sequence $L$ times
+  over, with $L$ rounds of per-position processing interleaved.</p>
+</div>
+
+<h3><span class="num">§15</span> Where the model actually is</h3>
+
+<p>The feedforward sublayer is usually described in a sentence and then ignored. The parameter
+count says it should not be.</p>
+
+<div class="box def">
+  <span class="label">The feedforward layer</span>
+  <p>$$\text{FF}(\mathbf{x}) = W_2\,\phi\big(W_1\mathbf{x} + \mathbf{b}_1\big) + \mathbf{b}_2$$</p>
+  <p>with $W_1$ of shape $(4d, d)$ and $W_2$ of shape $(d, 4d)$. The expansion factor of four is
+  convention rather than derivation; it has survived a great deal of searching.</p>
+</div>
+
+<figure>
+  <img src="figures/at/06-breakdown.svg" alt="Parameters per block split between attention and feedforward, across model widths">
+  <figcaption><b>Figure 6.</b> A block's parameters. Attention needs $4d^2$: four projections
+  of $d \times d$. The feedforward layer needs $8d^2$. The split is
+  <b>33.3% attention, 66.7% feedforward, at every width</b>, exactly and independently of $d$.
+  The component the architecture is named after is the minority of it.</figcaption>
+</figure>
+
+<div class="box why">
+  <span class="label">Why two thirds of the model is the part nobody discusses</span>
+  <p>The ratio is exact: $8d^2$ against $4d^2$, with no dependence on $d$. Every transformer
+  ever trained has had twice as many parameters in its feedforward layers as in its attention.</p>
+  <p>Three consequences, and each is somewhere the field spent years learning the hard way.</p>
+  <p><b>Efficiency work aimed at attention addresses a third of the model.</b> §13's crossover
+  said the same thing about compute. This is why mixture-of-experts (§33) targets the
+  feedforward layer: that is where the parameters are, so that is where conditional computation
+  pays.</p>
+  <p><b>It is a plausible site for factual storage.</b> A widely-supported reading treats the
+  feedforward layer as a key–value memory: $W_1$'s rows detect patterns, $W_2$'s columns write
+  associated content. Interventions on these layers can change specific facts a model reports,
+  which is suggestive rather than conclusive, and is where Part XXI's interpretability work
+  starts.</p>
+  <p><b>It is where the nonlinearity lives.</b> Attention's only nonlinearity is the softmax over
+  weights. Remove the feedforward layers and a transformer's per-position computation collapses
+  to something close to linear, which §26's rank collapse makes precise.</p>
+</div>
+
+<h3><span class="num">§16</span> The residual stream</h3>
+
+<p>The residual connections were introduced in Part X §23 as an optimisation device: shorten
+the gradient's path. In a transformer they support a second reading that has become the standard
+way to think about what these models do.</p>
+
+<div class="box intuition">
+  <span class="label">Intuition: a channel every layer reads from and writes to</span>
+  <p>Unroll the block: $\mathbf{x}_{L} = \mathbf{x}_0 + \sum_{\ell} f_\ell(\mathbf{x}_{\ell-1})$.
+  The representation at depth $L$ is the <b>input embedding plus the sum of every sublayer's
+  output</b>.</p>
+  <p>So the residual path is not a shortcut around the computation. It is a running total: a
+  <b>communication channel</b> that every sublayer reads from, computes on, and adds back into.
+  Nothing is ever overwritten; layers only contribute.</p>
+  <p>That reading explains several observations at once. Why layers can often be removed or
+  reordered with surprisingly little damage: they are addends, not stages. Why the norm of the
+  stream grows steadily with depth: you are summing. And why interpretability work talks about
+  what a head <i>writes into</i> the stream rather than what it outputs: the useful question is
+  what a component contributes to a shared total.</p>
+</div>
+
+<h3><span class="num">§17</span> Where the normalisation goes</h3>
+
+<div class="readnow"><span class="label">Go and read</span><p><span class="src">Xiong et al. (2020)</span>, <i>On layer normalization in the transformer architecture</i>. Where pre-norm was analysed rather than merely adopted, with the gradient-scale argument worked through. Read it against Figure 7, which finds the one-line summary of this paper ("pre-norm removes the need for warmup") too strong at aggressive learning rates.</p></div>
+
+<p>The original transformer put the normalisation <b>after</b> the residual addition. Almost
+everything since puts it <b>before</b> the sublayer. The change is two characters of code and it
+decides whether the model trains.</p>
+
+<div class="box def">
+  <span class="label">Post-norm and pre-norm</span>
+  <p><b>Post-norm</b>, the original:</p>
+  <p>$$\mathbf{x} \leftarrow \text{LN}\big(\mathbf{x} + \text{Sublayer}(\mathbf{x})\big)$$</p>
+  <p><b>Pre-norm</b>, the modern default:</p>
+  <p>$$\mathbf{x} \leftarrow \mathbf{x} + \text{Sublayer}\big(\text{LN}(\mathbf{x})\big)$$</p>
+  <p>In pre-norm the residual path is <b>clean</b>: an unmodified identity runs from the
+  embedding to the output, with every sublayer adding to it. In post-norm the normalisation sits
+  <i>on</i> that path, so the identity is rescaled at every block.</p>
+</div>
+
+<figure>
+  <img src="figures/at/07-norm-placement.svg" alt="Gradient norm at the first layer against depth, and four training runs at 16 blocks">
+  <figcaption><b>Figure 7.</b> Left: the gradient reaching the first block's attention weights
+  at initialisation, against depth: post-norm's is larger, by a factor of only <b>1.52</b> at
+  depth 16. Right: four runs at 12 blocks and a deliberately aggressive learning rate of
+  $10^{-2}$. <b>Post-norm reaches chance either way</b> (2.305 without warmup, 2.304 with).
+  Pre-norm also fails cold (2.263) and is <b>rescued by warmup</b> (0.951). At this rate the
+  difference is not that pre-norm needs no warmup; it is that warmup can save it. Trained once,
+  here; the specific losses will drift a few percent on a different seed or machine, the
+  qualitative pattern will not.</figcaption>
+</figure>
+
+<div class="box why">
+  <span class="label">Why the placement matters, and what the measurement actually shows</span>
+  <p>The original transformer required a learning-rate warmup (start near zero, rise over a few
+  thousand steps) and without it training diverged. The standard explanation is that this is a
+  post-norm artefact: with the normalisation <i>on</i> the residual path, the gradient reaching
+  layer $\ell$ is rescaled by every normalisation above it, by factors that depend on
+  activations which at initialisation are arbitrary. Early updates are therefore large and badly
+  proportioned across depth, and one bad first step is unrecoverable.</p>
+  <p>That story is usually compressed to "pre-norm removes the need for warmup". Figure 7 says
+  the compression is too strong.</p>
+  <p>At 12 blocks and a deliberately aggressive rate, <b>pre-norm fails cold too</b>: it
+  reaches 2.263, essentially chance. What distinguishes it is that warmup <b>rescues</b> it, to
+  0.951, while post-norm stays at chance whether warmed up or not. And the gradient-scale gap at
+  initialisation, which is supposed to be the mechanism, is a factor of <b>1.52</b>: real, and
+  far too small to carry the difference in outcomes on its own.</p>
+  <p>So the honest statement is narrower than the folklore and more useful: <b>pre-norm widens
+  the range of learning rates from which training can recover.</b> At moderate rates that shows
+  up as not needing warmup; at aggressive rates it shows up as warmup working at all. Both are
+  the same property, and neither is "warmup is unnecessary".</p>
+  <p>Post-norm is not simply worse. When it trains, it often trains to a slightly better final
+  loss, which is why it persists. It is more fragile, and at scale fragility costs more than the
+  fraction of a point it wins.</p>
+</div>
+
+<h3><span class="num">§18</span> LayerNorm and RMSNorm</h3>
+
+<p>Part X §24 tabulated the normalisation family by which axes they average over. Transformers
+use the one that does not touch the batch.</p>
+
+<div class="box def">
+  <span class="label">Layer normalisation, and the term it drops</span>
+  <p><b>LayerNorm</b> standardises each position's feature vector independently:</p>
+  <p>$$\text{LN}(\mathbf{x}) = \gamma \odot \frac{\mathbf{x} - \mu}{\sqrt{\sigma^2 + \epsilon}} + \beta$$</p>
+  <p>with $\mu$ and $\sigma^2$ over the $d$ features of <i>that</i> position.</p>
+  <p><b>RMSNorm</b> drops the mean subtraction and the offset:</p>
+  <p>$$\text{RMS}(\mathbf{x}) = \gamma \odot \frac{\mathbf{x}}{\sqrt{\frac{1}{d}\sum_i x_i^2 + \epsilon}}$$</p>
+  <p>Cheaper, one fewer pass over the data, and empirically as good, which is the evidence that
+  <b>the re-centring was never the part that mattered</b>. Most recent large models use it.</p>
+</div>
+
+<div class="box why">
+  <span class="label">Why not batch norm</span>
+  <p>Part X §24 gave the reason and it applies with extra force here. Batch norm's statistics come
+  from the batch, so their error falls like $1/\sqrt{N}$, and it makes each example's output
+  depend on the others in its batch, which for autoregressive generation is simply wrong: at
+  inference you have one sequence.</p>
+  <p>LayerNorm's statistics come from within a single position's feature vector. No batch
+  dependence, identical behaviour at train and test time, no running statistics to maintain, and
+  no train/eval mode to forget to set. Part IV §14's silent bug does not exist here.</p>
+</div>
+
+<h3><span class="num">§19</span> The activation function</h3>
+
+<p>Part VII §7 argued for the rectifier. Transformers mostly do not use it, and the reasons are
+worth a paragraph because they are unusually empirical.</p>
+
+<p><b>GELU</b> multiplies the input by the probability that a standard normal falls below it,
+$x\,\Phi(x)$, a smooth gate rather than a hard one. It is a rectifier with the corner rounded
+off and a small negative lobe, and it consistently beats ReLU here by a small margin.</p>
+
+<p><b>SwiGLU</b> is the current default in large models and has a different structure: a
+<b>gated</b> unit, where one linear map produces content and another produces a multiplicative
+gate.</p>
+
+$$\text{SwiGLU}(\mathbf{x}) = \big(W_1\mathbf{x} \odot \sigma(\beta \, W_g\mathbf{x})\big)$$
+
+<div class="box pitfall">
+  <span class="label">Pitfall: the parameter count changes, and comparisons often forget</span>
+  <p>A gated unit needs a <b>third</b> matrix (content, gate, and the output projection)
+  where an ordinary feedforward layer needs two. At the same hidden width, SwiGLU has 1.5× the
+  parameters.</p>
+  <p>The convention is to shrink the hidden width to $\tfrac{2}{3} \times 4d$ so the count
+  matches. A comparison that does not do this is measuring parameters, not architecture: Part X
+  §26's complaint, in the same architecture family, a few years later.</p>
+  <p>The honest summary of §19 is that these are small empirical wins with weak theory. The
+  gating story, that a multiplicative interaction lets the layer express something additive
+  units cannot, is plausible and is not established. Part VII §7's rectifier argument was
+  derived; this is not, and the difference is worth noticing.</p>
+</div>
+
+<h3><span class="num">§20</span> Encoder, decoder, and why one of them won</h3>
+
+<p>Three arrangements exist, and the field converged on the least obvious one.</p>
+
+<div class="box def">
+  <span class="label">The three configurations</span>
+  <p><b>Encoder-only.</b> Bidirectional self-attention, every position sees every other. Good
+  for classification and tagging, where you have the whole input. Cannot generate.</p>
+  <p><b>Encoder–decoder.</b> A bidirectional encoder, a causal decoder, and cross-attention
+  between them. The original transformer, and the natural shape for translation.</p>
+  <p><b>Decoder-only.</b> One stack, causally masked, trained to predict the next token. The
+  input and the output are the same sequence, and because the vocabulary at both ends is
+  identical, most implementations <b>tie</b> the input embedding matrix to the final projection
+  back to logits: one $|V| \times d$ table, read forwards to embed and transposed to predict,
+  rather than two.</p>
+</div>
+
+<div class="box why">
+  <span class="label">Why decoder-only won, and it is not because it is better at translation</span>
+  <p>Four reasons, in rough order of weight.</p>
+  <p><b>One objective, unlimited data.</b> Next-token prediction needs no labels and no pairing.
+  Every text ever written is a training example. Encoder–decoder training wants matched pairs,
+  and pairs are scarce where raw text is not.</p>
+  <p><b>Every task is a sequence.</b> Translation, summarisation, question answering and
+  classification can all be written as "here is some text, continue it". One architecture, one
+  objective, and the task specification moves into the input, which is §38's subject and was
+  not anticipated.</p>
+  <p><b>Simplicity scales.</b> One stack has one set of hyperparameters, one shape, and no
+  cross-attention to place. When you are running experiments that cost a great deal, fewer
+  choices is a real advantage.</p>
+  <p><b>Every position gets a gradient.</b> A causal decoder predicts a token at <i>every</i>
+  position, so a sequence of length $n$ supplies $n$ training signals. An encoder–decoder gets
+  gradient only from the output side.</p>
+  <p>Encoder-only models remain better per parameter at classification, because bidirectional
+  context is genuinely more informative when you have it. They lost anyway, and the reason is
+  the first point rather than the fourth: the winning move was to train on everything.</p>
+</div>

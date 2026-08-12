@@ -1,0 +1,154 @@
+<h2><span class="part-kicker">Part C</span>Filters, phase and the window</h2>
+
+<p class="mvt">What a filter is, which half of a spectrum carries the structure, and the trade that
+makes a spectrogram a compromise rather than a picture. The last of these is a genuine
+impossibility, and it is the reason every audio system has a window length in its configuration.</p>
+
+<h3><span class="num">§17</span> A filter is a convolution</h3>
+
+<div class="box def">
+  <span class="label">One object, two descriptions</span>
+  <p>A linear time-invariant system is completely described by its <b>impulse response</b> (what it
+  outputs when fed a single spike) and its output on any input is that response convolved with the
+  input.</p>
+  <p>By §14 it is equally described by its <b>frequency response</b>, the transform of the impulse
+  response, which says what it does to each frequency: a magnitude that scales and a phase that
+  delays. These are the same object in two bases, and which one to think in is decided entirely by
+  which question is being asked.</p>
+</div>
+
+<h3><span class="num">§18</span> Magnitude and phase</h3>
+
+<figure>
+  <img src="figures/sg/04-phase.svg" alt="Two images, then each reconstructed from one image's Fourier magnitude and the other's phase, then one reconstructed with random phase">
+  <figcaption><b>Figure 4.</b> Two images; then image A's Fourier magnitude recombined with image
+  B's phase, and the reverse. The result looks like whichever image supplied the <b>phase</b>:
+  correlation <b>+0.736</b> with the phase donor against <b>&minus;0.125</b> with the magnitude
+  donor, and symmetrically the other way. Magnitude alone, with random phase, correlates
+  <b>&minus;0.192</b> with its own source: nothing recognisable survives.</figcaption>
+</figure>
+
+<div class="box why">
+  <span class="label">Why the structure is in the phase</span>
+  <p>Magnitude says how much of each frequency is present. Phase says <i>where</i> each one is:
+  where its crests fall. An edge is many frequencies whose crests line up at one place, and it is
+  that alignment, not the amounts, that makes the edge.</p>
+  <p>Which reframes several things at once. It is why §27's power spectrum is nearly the same for
+  all natural images and tells you almost nothing about which image you have. It is why a loss that
+  compares magnitudes only (a spectral loss in an audio model) will happily accept output that
+  sounds wrong. And it is a caution about a whole style of analysis: a magnitude spectrum is a
+  summary that discards the part carrying the content.</p>
+</div>
+
+<h3><span class="num">§19</span> Frequency response, and the four kinds</h3>
+
+<div class="box shapes">
+  <span class="label">Named by what they keep</span>
+  <p><b>Low-pass</b> keeps low frequencies. This is a blur, an average, a smoother, and §6's
+  anti-aliasing filter.</p>
+  <p><b>High-pass</b> keeps high frequencies. A difference, a sharpener. The Laplacian kernel
+  <span class="m">$[1,-2,1]$</span> is high-pass, with its largest response exactly at Nyquist.</p>
+  <p><b>Band-pass</b> keeps a range. A Gabor filter is band-pass and oriented, which is what
+  Part X §31's pitfall box reports emerging in a trained first layer, alongside sparse coding and
+  ICA.</p>
+  <p><b>All-pass</b> changes only phase. It sounds useless and is not: it is how a delay is
+  implemented, and by §18 it can change an image beyond recognition while leaving its power spectrum
+  identical.</p>
+</div>
+
+<div class="box pitfall">
+  <span class="label">Pitfall: the centred difference is not a high-pass filter</span>
+  <p>The symmetric derivative kernel <span class="m">$[-1,0,1]$</span>, which is what sits inside
+  every Sobel operator, has response <span class="m">$|2\sin\theta|$</span>: exactly zero at DC,
+  and <b>exactly zero at Nyquist</b>, peaking halfway between. It is band-pass.</p>
+  <p>So it is blind to precisely the alternating pattern a high-pass filter is supposed to catch:
+  a checkerboard at the sampling limit passes through it untouched. Drill C11 measures this, and it
+  is a good example of a label carried over from intuition that the frequency response contradicts
+  in one line.</p>
+  <p>The binomial kernels of §6 have the mirror-image property: exact zeros at Nyquist, which is
+  precisely what an anti-aliasing filter wants and is why they are the cheap default.</p>
+</div>
+
+<h3><span class="num">§20</span> Two ways to build one</h3>
+
+<div class="box shapes">
+  <span class="label">FIR and IIR</span>
+  <p><b>Finite impulse response.</b> Output is a weighted sum of the last <span class="m">$k$</span>
+  inputs. Always stable, can have exactly linear phase (meaning every frequency is delayed equally,
+  so nothing is smeared relative to anything else) and needs many taps for a sharp cutoff. Every
+  convolutional layer in this book is FIR.</p>
+  <p><b>Infinite impulse response.</b> Output depends on previous <i>outputs</i> as well. Far
+  cheaper for a sharp response, can be unstable, and cannot have linear phase. This is a recurrence,
+  and a linear recurrent layer is an IIR filter, which is the connection Part XI §11's repeated
+  matrix and the state space models of §35 both live on.</p>
+</div>
+
+<h3><span class="num">§21</span> Leakage, and the window</h3>
+
+<div class="box why">
+  <span class="label">The seam, and what to do about it</span>
+  <p>§10's pitfall: the DFT treats your record as one period of a periodic signal, so unless the ends
+  match there is a discontinuity, and a discontinuity spreads energy across every bin. A pure tone
+  that does not complete a whole number of cycles in the record shows up as a peak with skirts
+  (<b>spectral leakage</b>) and the skirts can bury a genuine weak component nearby.</p>
+  <p>The repair is a <b>window</b>: multiply the record by a function tapering to zero at both ends,
+  so there is no seam. Hann, Hamming and Blackman are the usual choices, and they differ in how they
+  trade a wider main lobe against lower skirts. Windowing is not optional in any careful spectral
+  measurement; the unwindowed default is a rectangular window, which is the worst of them.</p>
+</div>
+
+<h3><span class="num">§22</span> The uncertainty principle for signals</h3>
+
+<div class="box def">
+  <span class="label">A limit, not a difficulty</span>
+  <p>A signal cannot be arbitrarily concentrated in time and in frequency at once. Their spreads
+  obey <span class="m">$\Delta t \, \Delta f \ge c$</span> for a constant depending on how spread is
+  defined, with equality for a Gaussian.</p>
+  <p>It is the same mathematical fact as the one in quantum mechanics (position and momentum are a
+  Fourier pair) and it has nothing to do with physics. It is a property of the transform.</p>
+</div>
+
+<figure>
+  <img src="figures/sg/05-window.svg" alt="Three spectrograms of the same signal computed with 64, 256 and 1024 sample windows, annotated with frequency and time resolution">
+  <figcaption><b>Figure 5.</b> One signal (a steady tone with a click in the middle) analysed with
+  three window lengths. The short window locates the click to <b>10.0 ms</b> and smears the tone
+  across <b>187.5 Hz</b>; the long window resolves the tone to <b>11.7 Hz</b> and smears the click
+  over <b>160.0 ms</b>. The product is <b>1.875</b> at all three, and exactly so: Δf scales as
+  <span class="m">$f_s/W$</span> and Δt as <span class="m">$W/f_s$</span>, so the window length
+  cancels. There is no setting that is good at both.</figcaption>
+</figure>
+
+<h3><span class="num">§23</span> The spectrogram, and the mel scale</h3>
+
+<div class="box def">
+  <span class="label">Short-time analysis</span>
+  <p>A <b>spectrogram</b> is the magnitude of the transform of successive overlapping windowed
+  segments, a two-dimensional array indexed by time and frequency. Every one has three parameters:
+  window length, hop, and window function. Figure 5 is what the first of them decides.</p>
+  <p>A <b>mel spectrogram</b> then pools the frequency axis into bands spaced logarithmically at
+  high frequency, following measurements of human pitch discrimination.</p>
+</div>
+
+<div class="box pitfall">
+  <span class="label">Pitfall: a mel spectrogram is a modelling assumption</span>
+  <p>The mel scale is a claim that frequency resolution should degrade with frequency the way human
+  hearing's does. That is right for speech intended for people and wrong the moment the task is not
+  perceptual: machine fault detection, animal vocalisation, radio. It also discards phase entirely,
+  which by §18 is most of the structure, and is why reconstructing audio from a mel spectrogram
+  needs a model to invent the phase back.</p>
+  <p>Two defaults, both inherited without argument, and Part XXX has to unpick them.</p>
+</div>
+
+<h3><span class="num">§24</span> What movement C establishes</h3>
+
+<div class="box intuition">
+  <span class="label">Three things</span>
+  <p><b>A filter is one object with two descriptions</b>, and the frequency one turns "what does this
+  do" into a per-frequency scalar.</p>
+  <p><b>Phase carries the structure.</b> Figure 4 measures a reconstruction correlating +0.736 with
+  its phase donor and &minus;0.125 with its magnitude donor. Any method that keeps magnitude and
+  discards phase has discarded the content.</p>
+  <p><b>Time and frequency resolution cannot both be had.</b> Figure 5 measures the product constant
+  at 1.875 while each factor moves sixteen-fold. A spectrogram is a choice on that curve, not a
+  picture of the signal.</p>
+</div>

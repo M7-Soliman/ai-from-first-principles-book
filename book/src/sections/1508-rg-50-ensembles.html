@@ -1,0 +1,217 @@
+<h2><span class="part-kicker">Part E</span>Ensembles, dropout, adversaries</h2>
+
+<h3><span class="num">§18</span> Bagging, and why averaging works</h3>
+
+<div class="sixty">
+  <span class="label">In 60 seconds</span>
+  <p>Train several models on resampled copies of the data and average their predictions.
+  Variance falls like $1/k$ and bias does not move, so the ensemble is strictly better than
+  its members whenever the members are wrong in <b>different</b> ways. The catch is entirely
+  in that word.</p>
+</div>
+
+<p>The argument is Part V §3's, and it is worth doing because the assumption it needs is
+exactly where the technique fails.</p>
+
+<div class="worked">
+  <span class="label">Worked: where the $1/k$ comes from, and what it assumes</span>
+  <p>Let $k$ models make errors $\epsilon_i$, each with mean zero and variance $v$, and let
+  $c = \mathbb{E}[\epsilon_i \epsilon_j]$ be the average covariance between any two. The ensemble's error is the mean, and its
+  expected squared value is</p>
+  <p>$$\mathbb{E}\Big[\Big(\tfrac1k\sum_i \epsilon_i\Big)^2\Big]
+  = \frac{1}{k}v + \frac{k-1}{k}c$$</p>
+  <p>Read the two extremes.</p>
+  <p><b>Perfectly correlated errors</b> ($c = v$): the expression collapses to $v$. The
+  ensemble is exactly as bad as one member, and you have spent $k$ times the compute for
+  nothing.</p>
+  <p><b>Uncorrelated errors</b> ($c = 0$): it collapses to $v/k$. Error falls in proportion
+  to the ensemble size, with no ceiling.</p>
+  <p>Everything in between interpolates. <b>The benefit is not the averaging; it is the
+  disagreement</b>, and the second term is a floor you cannot get below however many models
+  you add.</p>
+</div>
+
+<figure>
+  <img src="figures/rg/06-bagging.svg" alt="Variance and bias against ensemble size, and one fit versus twenty-five averaged">
+  <figcaption><b>Figure 6.</b> Measured over 250 independent trials at each ensemble size.
+  Left: variance falls from 0.0234 to 0.00059 as $k$ goes 1 to 50, a factor of <b>39</b>
+  against the ideal 50, while <b>bias² stays flat at about $10^{-4}$</b>, which is the
+  claim the decomposition makes. Right: a single degree-6 fit against twenty-five averaged,
+  on the same axes.</figcaption>
+</figure>
+
+<div class="box why">
+  <span class="label">Why this is a variance-only instrument</span>
+  <p>Bagging is the one technique in this part that does <b>not</b> trade bias for variance.
+  It removes variance and leaves bias alone, which sounds strictly better and comes with a
+  matching restriction.</p>
+  <p>It can only help a model whose problem <i>is</i> variance. Averaging fifty
+  underfitting models gives you one underfitting model, at fifty times the cost: every
+  member is wrong in the same direction, so $c = v$ and the first term never appears.</p>
+  <p>Which makes Part VI §6's diagnosis a prerequisite rather than a nicety. Large gap,
+  averaging helps. Both errors high and close, it does nothing. This is the clearest case
+  in the book of a remedy that requires the diagnosis first.</p>
+</div>
+
+<div class="box pitfall">
+  <span class="label">Pitfall: the bootstrap is not free, and the comparison matters</span>
+  <p>The $1/k$ result compares an ensemble against <b>one of its own members</b>. It does
+  not compare it against a model fitted to all your data, and those are different questions.</p>
+  <p>A bootstrap resample of $n$ points contains only about <b>63%</b> unique ones (the
+  rest are duplicates), so every member is trained on materially less information than you
+  have. Measured on the same degree-6 fit setup, over 300 independent training sets: a
+  single full-data fit had variance <b>0.0232</b>, a single bootstrap member <b>0.1839</b>,
+  and a 20-member bootstrap ensemble <b>0.0362</b>. These numbers are computed by the
+  generator.</p>
+  <p>Read those three numbers carefully. Averaging did exactly what the algebra promised:
+  it cut variance <b>five-fold</b> relative to its members. And the ensemble still did not
+  beat the single full-data fit, because the resampling had cost more than the averaging
+  recovered.</p>
+  <p>So bagging is a genuine win when the members are unstable <i>for reasons other than
+  having too little data</i> (deep trees, high-degree fits on plentiful data) and can lose
+  outright on small samples. When the data is scarce, ensembling over random seeds or
+  initialisations, with every member seeing all of it, is usually the better trade.</p>
+</div>
+
+<h4>The capacity-raising cousin</h4>
+
+<p>Bagging is worth contrasting with the ensemble method it is usually taught alongside,
+because the two point in opposite directions. <b>Boosting</b> builds its members
+sequentially rather than independently: each new member is trained to correct the errors the
+ensemble so far still makes, typically starting from members too weak to fit much of
+anything on their own. Where a bagged ensemble's capacity is $k$ copies of one model's
+capacity, a boosted ensemble's capacity <i>grows</i> with every member added, since each one
+targets whatever the combination has not yet explained.</p>
+
+<p>That makes boosting the wrong entry for this part: it is closer to a way of buying
+capacity a member at a time than to a preference among equally-good fits, and by §1's
+definition a technique that reduces training error without the generalisation trade is not
+a regulariser at all. It shares a form with bagging (many models, one prediction) and almost
+nothing else, which is worth naming precisely because the shared form invites treating them
+as two flavours of the same idea, and they are not.</p>
+
+<h3><span class="num">§19</span> Dropout</h3>
+
+<div class="sixty">
+  <span class="label">In 60 seconds</span>
+  <p>During training, delete each unit independently with probability $p$ and rescale what
+  survives. At test time keep everything. It is bagging over $2^n$ networks that share
+  weights, done at the cost of one, and it also stops units relying on each other, which
+  may matter more.</p>
+</div>
+
+<div class="readnow"><span class="label">Go and read</span><p><span class="src">Srivastava et al. (2014)</span>, <i>Dropout: a simple way to prevent neural networks from overfitting</i>. The paper that made dropout standard. Read it for the ensemble argument, and notice how much of the case is empirical: the method was adopted on evidence, and the theoretical account has been argued over ever since without the practice changing. That pattern recurs often enough in this field to be worth naming.</p></div>
+
+<p>The procedure is one line and its two explanations are quite different.</p>
+
+<figure>
+  <img src="figures/rg/07-dropout.svg" alt="Training and test error with and without dropout, and a sweep over the dropout probability">
+  <figcaption><b>Figure 7.</b> A real network on a noisy-label problem. Left: dropout
+  <b>raises training error</b> (0.044 → 0.100) and <b>lowers test error</b> (0.247 → 0.214),
+  which is §1's definition of regularization made visible. Right: sweeping $p$ over three
+  seeds gives the expected U, best at $p \approx 0.4$, with test error climbing again
+  beyond it as the model starts to underfit. (The no-dropout test error is 0.247 here, this
+  panel's single run; the right panel's three-seed average at $p=0$ is 0.243: the two
+  numbers measure the same setting over a different number of seeds.)</figcaption>
+</figure>
+
+<h4>Explanation one: an ensemble you get for free</h4>
+
+<p>Each training step deletes a random subset of units, so each step trains a
+<i>different</i> subnetwork. With $n$ units there are $2^n$ possible subnetworks, and over
+a long run you have trained an enormous number of them; a hundred units gives more
+subnetworks than there are atoms in the observable universe.</p>
+
+<p>Bagging with $2^{100}$ members is not otherwise available. Dropout gets it because the
+members <b>share their weights</b>: a weight trained inside one subnetwork is the same
+weight another subnetwork uses. The models are not independent, which by §18 means the
+variance reduction is less than $1/k$, but $k$ is astronomically large, and the ensemble
+is free.</p>
+
+<div class="box def">
+  <span class="label">Why the rescaling</span>
+  <p>A unit that survives with probability $1-p$ contributes, on average, $(1-p)$ times what
+  it would contribute undropped. If nothing corrected for that, the sums arriving at the
+  next layer would be systematically small during training and systematically large at test
+  time, when nothing is dropped.</p>
+  <p><b>Inverted dropout</b> (the standard) divides the surviving activations by $1-p$
+  during training, so the expected input to the next layer is unchanged and test time needs
+  no adjustment at all. That is why <code>model.eval()</code> can simply switch dropout off
+  rather than rescaling anything, and it is the arrangement Part IV §14 measured.</p>
+</div>
+
+<h4>Explanation two: no unit may rely on any other</h4>
+
+<p>The second account may matter more in practice and is easier to state.</p>
+
+<p>Without dropout, units can <b>co-adapt</b>: unit A learns to produce a broken feature
+that unit B learns to correct, and the pair is useful only together. That is a fragile
+arrangement and it is exactly the kind of thing that fits noise.</p>
+
+<p>With dropout, B might be absent on any given step, so A cannot count on it. Every unit
+must be independently useful. The resulting features are more redundant and more robust,
+which is a preference in §1's sense, and a different one from "weights should be small".</p>
+
+<div class="box pitfall">
+  <span class="label">Pitfall: three ways dropout is misapplied</span>
+  <p><b>Left on at evaluation.</b> Part IV §14's silent bug: accuracy is depressed and
+  irreproducible, and nothing raises. Figure 4 of that part measured it.</p>
+  <p><b>Applied to a small model.</b> Dropout removes capacity, so a model that was already
+  underfitting gets worse. The right panel above shows the far side of the U; a model with
+  too little capacity starts there.</p>
+  <p><b>Stacked on everything else.</b> Dropout, weight decay, augmentation and early
+  stopping all at their usual defaults is a large total: see §12's Try it. Underfitting from
+  accumulated regularization is common and looks like a model that "just is not learning".</p>
+</div>
+
+<h3><span class="num">§20</span> Adversarial training</h3>
+
+<div class="readnow"><span class="label">Go and read</span><p><span class="src">Goodfellow, Shlens &amp; Szegedy (2015)</span>, <i>Explaining and harnessing adversarial examples</i>. The paper that reframed the phenomenon: adversarial examples come from <b>linearity in high dimensions</b>, not from anything exotic about depth, which is the argument the intuition box below reproduces, and which the linear classifier in Figure 8 is enough to demonstrate. It also introduces the fast gradient sign method that figure uses.</p></div>
+
+<p>The last technique starts from an unsettling observation rather than a preference.</p>
+
+<p>Take a trained classifier and an input it gets right. Compute the gradient of the loss
+with respect to the <b>input</b> (not the weights) and take a small step in the direction
+that increases the loss. The perturbation can be far too small to matter, and the classifier
+is now confidently wrong.</p>
+
+<figure>
+  <img src="figures/rg/08-adversarial.svg" alt="Accuracy against perturbation size for gradient-chosen and random perturbations">
+  <figcaption><b>Figure 8.</b> A real classifier at 100% clean accuracy, attacked two ways.
+  Pink: each input pushed along the sign of its loss gradient. Grey: pushed by the same
+  amount in a <b>random</b> direction. At a perturbation of 0.10 per coordinate the gradient
+  attack has driven accuracy to chance while random noise of identical size leaves
+  <b>98.5%</b> intact. The model is not fragile in general; it is fragile in one specific
+  direction, and the gradient finds it.</figcaption>
+</figure>
+
+<div class="box intuition">
+  <span class="label">Intuition: why a linear model is enough to see it</span>
+  <p>The figure uses a <i>linear</i> classifier, which is worth noticing: adversarial
+  examples are often presented as a mystery about deep networks, and the core of the effect
+  needs no depth at all.</p>
+  <p>The output is $\mathbf{w}^\top\mathbf{x}$. Perturb the input by $\boldsymbol{\eta}$ and
+  the output moves by $\mathbf{w}^\top\boldsymbol{\eta}$. Choose $\boldsymbol{\eta} =
+  \epsilon\,\text{sign}(\mathbf{w})$ and every coordinate contributes with the same sign, so
+  the total change is $\epsilon\|\mathbf{w}\|_1$, which grows with the <b>dimension</b>
+  even though each coordinate moved by only $\epsilon$.</p>
+  <p>That is the whole phenomenon. In high dimensions, many individually negligible changes
+  aligned with the weights add up to something decisive, while the same changes in random
+  directions cancel (Part V §3's $\sqrt{n}$ against the alignment's $n$). It is a fact about
+  dimension, not about depth.</p>
+</div>
+
+<p><b>Adversarial training</b> generates such perturbed examples during training and
+includes them, which is augmentation from §10 with the transformations chosen by the model's
+own weaknesses rather than by domain knowledge. It improves robustness measurably. It is
+also expensive (each step needs an extra forward and backward pass to build the attack)
+and it typically costs a little clean accuracy, which is §1's trade appearing yet again.</p>
+
+<p>A variant worth naming ties this section back to §17. <b>Virtual adversarial
+training</b> needs no label at all: instead of perturbing toward the direction that
+increases the loss against the true $y$, it perturbs toward the direction that changes the
+model's own <i>predicted</i> distribution the most, then trains the model to agree with
+itself across that perturbation. Nothing in that recipe uses a label, so it runs on
+unlabelled data exactly where §17's argument lives, and it is the same trade seen once more
+under a new name: a local-smoothness preference, this time bought with a gradient rather
+than with domain knowledge or a cluster assumption.</p>

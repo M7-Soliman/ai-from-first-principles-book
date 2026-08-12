@@ -1,0 +1,149 @@
+<h2><span class="part-kicker">Part A</span>When the output is not a label</h2>
+
+<p class="mvt">Classification hands back one number per image and is scored by whether it is right.
+Every task in this part hands back a variable-length structured object, and scoring one requires
+deciding what counts as a match, a decision that turns out to move the answer more than most
+architectural choices do.</p>
+
+<h3><span class="num">§1</span> The output is not a label</h3>
+
+<div class="box why">
+  <span class="label">Three things that change at once</span>
+  <p><b>The output has variable length.</b> An image contains an unknown number of objects, so the
+  network cannot have a fixed output shape and the loss cannot be a per-slot comparison without
+  first deciding which prediction corresponds to which object.</p>
+  <p><b>The output is unordered.</b> Two predictions listing the same objects in a different order
+  are the same answer, which is Part XXVI's permutation problem arriving in a new place.</p>
+  <p><b>Correctness is graded.</b> A box that is nearly right is nearly useful, and any metric has
+  to decide where "nearly" stops. Classification never had to.</p>
+</div>
+
+<h3><span class="num">§2</span> Three output spaces</h3>
+
+<div class="box shapes">
+  <span class="label">And what each commits you to</span>
+  <p><b>Sparse and structured</b>: detection, keypoints, tracks. A small set of objects, each with
+  attributes. Matching is required before a loss can be computed.</p>
+  <p><b>Dense</b>: segmentation, depth, flow, occupancy. One prediction per pixel, so the output
+  shape is fixed and matching is trivial. The difficulty moves to resolution and to boundaries.</p>
+  <p><b>Geometric</b>: pose, 3-D position, camera parameters. Constrained by the projection
+  equations rather than only by the data, which means some errors are impossible to fix by
+  training and some are impossible to make.</p>
+  <p>Most real systems produce all three and the interesting failures are at the joins.</p>
+</div>
+
+<div class="box def">
+  <span class="label">Keypoints and pose, briefly</span>
+  <p>A keypoint model predicts a fixed, named set of points per instance (joints for a human
+  body, corners for a vehicle), each with a location and usually a visibility flag for the ones
+  occlusion has hidden. Regressing the coordinates directly performs badly for the same reason a
+  squared error on box coordinates does (§14): the loss has no spatial structure to exploit. The
+  fix that works is a <b>heatmap</b> per keypoint: a per-pixel probability of "the joint is here",
+  trained with a per-pixel loss in the same spirit as §17's and read off afterwards by an argmax or
+  a soft-argmax. The keypoint problem is a detection problem wearing a dense-prediction solution.</p>
+  <p>Multiple instances bring back §1's matching problem in a new shape: a <b>top-down</b>
+  pipeline detects each instance first and predicts keypoints inside its box, inheriting
+  detection's failure modes; a <b>bottom-up</b> pipeline predicts every keypoint in the image at
+  once and then solves an association problem to group them into people, inheriting §34's. Neither
+  side is free of the other movement's difficulty, which is why pose estimation is usually built on
+  top of a detector or a tracker rather than replacing one.</p>
+  <p>The metric, <b>PCK</b> (percentage of correct keypoints), matches §4's move exactly: a
+  predicted point counts as correct within a threshold measured as a <i>fraction of a reference
+  length</i> (head or torso size) rather than a fixed pixel count, because a fixed threshold
+  would score a close-up face and a distant pedestrian on different effective scales. This part does
+  not carry keypoints further than this: the detection and dense-prediction machinery of movements
+  B and C is what a pose head is built from, and nothing about it is geometry-limited the way
+  movement D's tasks are.</p>
+</div>
+
+<h3><span class="num">§3</span> Boxes, and what they cannot say</h3>
+
+<div class="box pitfall">
+  <span class="label">Pitfall: the representation is a choice with consequences</span>
+  <p>An axis-aligned rectangle is cheap, easy to annotate and easy to score, and it cannot represent
+  a diagonal object without including mostly background, cannot represent an occluded object's
+  extent, cannot say which pixels belong to it, and has no orientation.</p>
+  <p>For a car directly ahead it is nearly exact. For a car at 45° it is a poor description of the
+  same object, and a metric built on box overlap will score the second worse for reasons that have
+  nothing to do with whether the car was found. Rotated boxes, masks and 3-D cuboids each fix part
+  of this and each cost annotation.</p>
+</div>
+
+<h3><span class="num">§4</span> The metric is a threshold</h3>
+
+<div class="box def">
+  <span class="label">Intersection over union, and the decision it forces</span>
+  <p class="m">$$\mathrm{IoU}(A, B) \;=\; \frac{|A \cap B|}{|A \cup B|}$$</p>
+  <p>Scale-invariant, bounded, and zero for any pair that does not overlap, which is the property
+  that makes it useless as a loss and fine as a metric.</p>
+  <p>Turning it into a score requires a <b>threshold</b>: above it a prediction is a true positive,
+  below it a false positive <i>and</i> the object counts as missed. <b>Average precision</b> then
+  ranks predictions by confidence and integrates precision over recall. Every number reported in
+  this field is AP at some threshold, and the threshold is a modelling decision that is usually
+  inherited rather than chosen.</p>
+</div>
+
+<h3><span class="num">§5</span> Measured</h3>
+
+<figure>
+  <img src="figures/vs/01-iou.svg" alt="Left: average precision against IoU threshold for two levels of localisation noise. Right: two detectors whose ordering reverses with the threshold">
+  <figcaption><b>Figure 1.</b> Synthetic scenes with exact ground truth, so the only error is the
+  localisation noise that was put in. <b>Left:</b> the same detector scored at different thresholds.
+  With 2 px of localisation noise AP falls from <b>1.000</b> at IoU 0.5 to <b>0.116</b> at 0.9; with
+  6 px it falls from <b>0.818</b> to <b>0.003</b>. <b>Right:</b> a detector that localises precisely
+  and finds half the objects, against one that finds everything loosely. The second is ahead by
+  <b>0.460</b> at IoU 0.5 and behind by <b>0.070</b> at 0.95: the same two systems, opposite
+  conclusions.</figcaption>
+</figure>
+
+<div class="box why">
+  <span class="label">What to take from the right-hand panel, and what not to</span>
+  <p>The crossing is a demonstration that the ordering <i>can</i> reverse, and the pair was chosen
+  from the arithmetic to make it visible: a detector with recall capped at <span class="m">$r$</span>
+  scores about <span class="m">$r$</span> at every threshold, while a noisy-but-complete detector
+  falls with the threshold, so the two cross wherever <span class="m">$r$</span> lies between the
+  noisy detector's loose and strict scores.</p>
+  <p>It is not a measurement of how often this happens in practice, and the figure does not claim
+  to be. What it does establish is that <b>"which detector is better" is not a well-posed question
+  without the threshold</b>, and that reporting a single AP conceals the answer to it.</p>
+</div>
+
+<h3><span class="num">§6</span> What AP does not measure</h3>
+
+<div class="box shapes">
+  <span class="label">Five things, each of which has cost somebody a deployment</span>
+  <p><b>Calibration.</b> AP is a ranking metric, so monotonically rescaling every confidence changes
+  nothing. A detector with perfect AP can have confidences that mean nothing, and Part XIV §5's
+  reliability check is what catches it.</p>
+  <p><b>Which objects were missed.</b> Averaging over instances hides that the misses are
+  systematically the small, the distant and the occluded, the ones that matter.</p>
+  <p><b>Temporal consistency.</b> A detector that flickers between frames and one that is stable
+  score identically on a per-frame metric, and only one is usable downstream.</p>
+  <p><b>The cost asymmetry.</b> A missed pedestrian and a spurious traffic cone count the same.
+  Part XXIV §33's threshold argument is what converts a ranking into a decision.</p>
+  <p><b>Whether the box was the right shape of answer at all</b>, which is §3.</p>
+</div>
+
+<h3><span class="num">§7</span> Class imbalance is structural here</h3>
+
+<div class="box why">
+  <span class="label">Not a property of the dataset</span>
+  <p>In classification, imbalance is something a dataset happens to have. In detection it is
+  guaranteed by the geometry: an image has millions of positions and a handful of objects, so
+  whatever the model considers, almost all of it is background.</p>
+  <p>That single fact drives the design of the loss, the sampling strategy and the training
+  schedule, and §13 measures how extreme it is. It also gets worse with resolution, which is the
+  opposite of what one would want.</p>
+</div>
+
+<h3><span class="num">§8</span> What movement A establishes</h3>
+
+<div class="box intuition">
+  <span class="label">Three things</span>
+  <p><b>A structured output needs a matching rule before it needs a loss</b>, and the matching rule
+  is a modelling decision.</p>
+  <p><b>The metric contains a threshold, and the threshold moves the answer.</b> Figure 1 measures
+  AP falling from 1.000 to 0.116 on one detector, and two detectors changing places.</p>
+  <p><b>Background dominates by construction.</b> Not a dataset artefact, and worse at higher
+  resolution.</p>
+</div>

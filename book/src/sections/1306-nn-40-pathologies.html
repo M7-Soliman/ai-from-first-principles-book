@@ -1,0 +1,306 @@
+<h2><span class="part-kicker">Part E</span>What goes wrong</h2>
+
+<h3><span class="num">§18</span> Vanishing and exploding gradients</h3>
+
+<div class="sixty">
+  <span class="label">In 60 seconds</span>
+  <p>Equation 2 of §14 multiplies the gradient by one factor per layer. Products of many
+  factors do not stay put: if they are consistently below 1 the gradient <b>vanishes</b>
+  exponentially with depth, and if above 1 it <b>explodes</b>. This was the practical reason
+  deep networks were untrainable for two decades.</p>
+</div>
+
+<div class="readnow"><span class="label">Go and read</span><p><span class="src">He, Zhang, Ren &amp; Sun (2016)</span>, <i>Deep residual learning for image recognition</i>. One structural change (add the input of a block to its output) and depth stopped being the limiting factor. The paper's most useful observation is the one it opens with, and it is not about accuracy: a 56-layer plain network had <b>higher training error</b> than a 20-layer one, which rules out overfitting and points squarely at this section.</p></div>
+
+<p>Unrolling the backward recursion across $L$ layers gives a product:</p>
+
+$$\frac{\partial L}{\partial \mathbf{z}^{(1)}} \;=\; \prod_{k=2}^{L} \Big( W^{(k)\top} \cdot \operatorname{diag}\big(g'(\mathbf{z}^{(k-1)})\big) \Big) \cdot \boldsymbol{\delta}^{(L)}$$
+
+<p>Part 0 §17 predicted exactly this from the chain rule alone, before any neural network had
+been mentioned. Here it is with numbers.</p>
+
+<figure>
+  <img src="figures/nn/10-vanishing-gradients.svg" alt="Gradient magnitude by layer through 25 layers for sigmoid, tanh and ReLU">
+  <figcaption><b>Figure 10.</b> Measured gradient magnitude reaching each layer of a real
+  25-layer network. With sigmoids the gradient reaching the early layers is smaller by many
+  orders of magnitude: those layers receive essentially nothing and do not learn. tanh is
+  better; ReLU with matched initialisation holds roughly constant all the way
+  down.</figcaption>
+</figure>
+
+<div class="box intuition">
+  <span class="label">Intuition: the 0.25 ceiling, compounded</span>
+  <p>Part 0 §18 computed that the sigmoid's derivative peaks at exactly $0.25$. So every
+  sigmoid layer multiplies the gradient by <b>at most</b> a quarter, and usually much less.</p>
+  <p>Ten layers gives at best $0.25^{10} \approx 10^{-6}$. Twenty gives $10^{-12}$. That is
+  the best case, assuming every unit sits at its most favourable point. The early layers of a
+  deep sigmoid network are, for practical purposes, frozen at their initial values.</p>
+  <p>ReLU's derivative is exactly 1 wherever the unit is active. It neither shrinks nor
+  amplifies, which is the entire reason it replaced the sigmoid, and it is a property of the
+  <i>derivative</i>, not of the function.</p>
+</div>
+
+<h4>The four fixes, and what each attacks</h4>
+
+<table class="compact">
+  <thead><tr><th>Fix</th><th>Attacks</th></tr></thead>
+  <tbody>
+    <tr><td><b>ReLU-family activations</b></td><td>the $g'$ factor: makes it 1 instead of $\leq 0.25$</td></tr>
+    <tr><td><b>Scaled initialisation</b> (§11)</td><td>the $W^\top$ factor: sets its scale to roughly 1</td></tr>
+    <tr><td><b>Normalisation layers</b></td><td>rescales activations mid-network, so drift cannot accumulate</td></tr>
+    <tr><td><b>Residual connections</b></td><td>adds a path that <i>skips</i> the multiplication entirely</td></tr>
+  </tbody>
+</table>
+
+<p>The last is the most direct. If a layer computes $\mathbf{a} + f(\mathbf{a})$ rather than
+$f(\mathbf{a})$, then differentiating gives $1 + f'$, so the gradient has a route through the
+$1$ that is never multiplied down. Very deep networks became trainable largely because of
+this one structural change.</p>
+
+<p>Exploding gradients have a blunter remedy: <b>clipping</b>, from Part I §15. Rescale the
+gradient whenever its norm exceeds a threshold. It is inelegant and it works, and it is close
+to mandatory for recurrent architectures.</p>
+
+<h3><span class="num">§19</span> Dead units and other pathologies</h3>
+
+<p>ReLU solves vanishing gradients and introduces its own failure.</p>
+
+<div class="box def">
+  <span class="label">Dead ReLU</span>
+  <p>If a unit's pre-activation is negative for <b>every</b> input in the dataset, its output
+  is always zero and its gradient is always zero. It therefore never updates, and it is dead
+  permanently.</p>
+</div>
+
+<figure>
+  <img src="figures/nn/11-dead-relu.svg" alt="Percentage of permanently inactive units rising with learning rate during training">
+  <figcaption><b>Figure 11.</b> A real network trained at three learning rates, counting
+  units that never activate on any input. At a modest rate (0.5) almost none die. At a
+  larger one (5.0) roughly 12% die within the first few steps. At a large one (20.0) over
+  half die within the first dozen steps and stay dead: a single oversized update pushes
+  the bias so negative the unit can never recover.</figcaption>
+</figure>
+
+<p>Remedies: a smaller learning rate, leaky ReLU so the gradient is never exactly zero, or a
+small positive initial bias so units start active.</p>
+
+<h4>The other failures worth recognising</h4>
+
+<dl>
+  <dt>Saturation</dt>
+  <dd>Sigmoid or tanh units pushed far from zero, where the derivative is negligible. The
+  unit is not dead, but it learns very slowly.</dd>
+
+  <dt>Exploding loss, then <code>nan</code></dt>
+  <dd>Almost always the learning rate. Part III §9 gave the stability bound; exceeding it
+  diverges, and after a few steps the values exceed float range. Lower the rate before
+  investigating anything else.</dd>
+
+  <dt>Loss stuck exactly flat from step one</dt>
+  <dd>Usually a broken gradient path: a detached tensor, a missing connection, or a layer
+  whose output the loss does not depend on. Check that the gradient is non-zero before
+  concluding anything about optimisation.</dd>
+
+  <dt>Loss decreasing then plateauing far above zero</dt>
+  <dd>Either genuine underfitting, or the irreducible error of Part V §20. The learning
+  curve of Part VI §6 distinguishes them.</dd>
+</dl>
+
+<h3><span class="num">§20</span> Diagnosing a training run</h3>
+
+<figure>
+  <img src="figures/nn/12-training-curves.svg" alt="Training loss curves for healthy, too-large and too-small learning rates">
+  <figcaption><b>Figure 12.</b> One network, three learning rates, real runs. Healthy: steady
+  decrease, flattening. Too large: rises and then leaves the representable range. Too small:
+  decreasing so slowly it appears flat, which is the case most often mistaken for a broken
+  model.</figcaption>
+</figure>
+
+<div class="box def">
+  <span class="label">The diagnostic order</span>
+  <ol class="tight">
+    <li><b>Can it overfit a tiny sample?</b> Take ten examples and train until the loss is
+    near zero. If it cannot, the bug is in the model or the gradient, not in
+    generalisation. This is the single most useful test available and almost nobody runs
+    it first.</li>
+    <li><b>Is the gradient finite and non-zero?</b> Print its norm. Zero means a broken path;
+    <code>nan</code> means an overflow upstream.</li>
+    <li><b>Does a gradient check pass?</b> Part 0's drill C16, layer by layer. This finds
+    hand-written backward passes that are subtly wrong.</li>
+    <li><b>Sweep the learning rate</b> over orders of magnitude. Figure 12 is what you are
+    looking for.</li>
+    <li><b>Only then</b> consider architecture, regularization or data.</li>
+  </ol>
+</div>
+
+<div class="box why">
+  <span class="label">Why this order</span>
+  <p>Because the failures are ordered by how cheap they are to rule out, and because a bug
+  masquerading as an optimisation problem will absorb days.</p>
+  <p>Step 1 is decisive. A network that cannot memorise ten examples has something
+  structurally wrong (a shape error, a detached gradient, a label misalignment) and no
+  amount of tuning will help. A network that <i>can</i> memorise ten and fails on ten
+  thousand has a genuine learning problem, and Part V §20's diagnosis applies.</p>
+</div>
+
+<h2><span class="part-kicker">Part F</span>The payoff</h2>
+
+<h3><span class="num">§21</span> The autograd engine</h3>
+
+<p class="lede">Everything in this part converges here. An automatic differentiation engine is
+about two hundred lines, and writing one is the point at which neural networks stop being
+something you use and become something you understand.</p>
+
+<p>The idea, in full:</p>
+
+<ol>
+  <li>Wrap every value in an object that records <b>what produced it</b>.</li>
+  <li>Each operation, when it runs, stores a small function saying how to send a gradient
+  backward through itself.</li>
+  <li>Calling <code>backward()</code> on the final scalar walks the graph in reverse,
+  accumulating gradients into every value that contributed.</li>
+</ol>
+
+<pre><code><span class="k">class</span> Value:
+    <span class="k">def</span> __init__(self, data, parents=()):
+        self.data = data
+        self.grad = <span class="n">0.0</span>
+        self._parents = parents
+        self._backward = <span class="k">lambda</span>: <span class="k">None</span>   <span class="c"># set by whichever op made this</span>
+
+    <span class="k">def</span> __mul__(self, other):
+        out = Value(self.data * other.data, (self, other))
+        <span class="k">def</span> _backward():
+            <span class="c"># local derivative of a product, times the incoming gradient</span>
+            self.grad  += other.data * out.grad
+            other.grad += self.data  * out.grad
+        out._backward = _backward
+        <span class="k">return</span> out
+
+    <span class="k">def</span> backward(self):
+        order, seen = [], set()
+        <span class="k">def</span> build(v):                      <span class="c"># topological sort</span>
+            <span class="k">if</span> id(v) <span class="k">in</span> seen: <span class="k">return</span>
+            seen.add(id(v))
+            <span class="k">for</span> p <span class="k">in</span> v._parents: build(p)
+            order.append(v)
+        build(self)
+        self.grad = <span class="n">1.0</span>                     <span class="c"># dL/dL</span>
+        <span class="k">for</span> v <span class="k">in</span> reversed(order):
+            v._backward()
+</code></pre>
+
+<div class="box intuition">
+  <span class="label">Intuition: why the topological sort</span>
+  <p>A node's gradient is only complete once <b>every</b> consumer of it has contributed. If
+  a value feeds two later operations, both must run before its gradient is final.</p>
+  <p>Sorting the graph topologically and walking it in reverse guarantees exactly that. It is
+  also why gradients are <i>accumulated</i> with <code>+=</code> rather than assigned: a
+  value used twice receives two contributions, and both belong in the total.</p>
+  <p>This is the one part of the implementation people get wrong, and its symptom is a
+  gradient check that fails only on graphs with reuse.</p>
+</div>
+
+<div class="box why">
+  <span class="label">Why building this matters</span>
+  <p>After writing it, several things that felt like framework magic become obvious:</p>
+  <ul class="tight">
+    <li>Why gradients must be zeroed between steps: because <code>+=</code> accumulates.</li>
+    <li>Why the graph must be retained until <code>backward()</code>: §17.</li>
+    <li>Why detaching a tensor stops gradient flow: it severs the parent link.</li>
+    <li>Why in-place operations can corrupt a backward pass: they overwrite a value some
+    <code>_backward</code> still needs.</li>
+    <li>Why a custom layer needs a custom backward: nothing else knows its local
+    derivative.</li>
+  </ul>
+  <p>None of these are memorised facts once you have written the twenty lines they follow
+  from.</p>
+</div>
+
+<div class="box try">
+  <span class="label">Try it: the last one</span>
+  <p>In the engine above, why is <code>self.grad += ...</code> an addition rather than an
+  assignment? Construct an expression where using <code>=</code> gives the wrong
+  answer.</p>
+</div>
+
+<p><b>Answer.</b> Because a value can feed more than one operation, and each consumer
+contributes a separate term to its gradient.</p>
+<p>Take $y = x \cdot x$. The single node $x$ appears twice as a parent, so
+<code>_backward</code> fires twice (once for each slot), each contributing
+$x \cdot \bar{y}$. Accumulating gives $2x$, which is correct.</p>
+<p>With assignment, the second write overwrites the first and you get $x$: exactly half the
+true gradient. The bug is invisible on expressions where nothing is reused, and appears the
+moment anything shares a value, which in a real network is constantly. This is precisely
+what a gradient check catches, and why Part 0 made you build one before you needed it.</p>
+
+<div class="box fw">
+  <span class="label">In the framework: your <code>Value</code> class, at industrial scale</span>
+  <p>PyTorch's autograd is the engine you have just written. Not something like it, but the same
+  three ideas, with a great deal of engineering on top. Every piece has a counterpart:</p>
+  <table class="compact">
+    <thead><tr><th>Your engine</th><th>PyTorch</th><th>What it does</th></tr></thead>
+    <tbody>
+      <tr><td><code>Value</code></td><td><code>Tensor</code></td><td>holds data and a gradient, and remembers its parents</td></tr>
+      <tr><td><code>self.grad</code></td><td><code>t.grad</code></td><td>accumulated, with <code>+=</code>, for the reason just given</td></tr>
+      <tr><td><code>self._parents</code></td><td><code>t.grad_fn</code></td><td>the node that produced this value</td></tr>
+      <tr><td><code>self._backward</code></td><td>the <code>grad_fn</code>'s method</td><td>one local derivative</td></tr>
+      <tr><td><code>backward()</code></td><td><code>t.backward()</code></td><td>topological sort, then reverse walk</td></tr>
+    </tbody>
+  </table>
+<pre><code><span class="k">import</span> torch
+
+a = torch.tensor(<span class="n">2.0</span>, requires_grad=<span class="k">True</span>)
+b = a * <span class="n">3</span>
+print(type(b.grad_fn).__name__)      <span class="o">### MulBackward0</span>
+</code></pre>
+  <p>That name is your <code>_backward</code> closure for multiplication, with a class
+  instead of a lambda. The <code>0</code> is just an index over overloads. When you read a
+  stack trace full of <code>AddmmBackward</code> and <code>ReluBackward</code>, you are
+  reading the list of local derivatives the graph recorded on the way forward.</p>
+
+  <h4>The reuse case, checked</h4>
+<pre><code>x = torch.tensor(<span class="n">3.0</span>, requires_grad=<span class="k">True</span>)
+y = x * x
+y.backward()
+print(x.grad.item())                 <span class="o">### 6.0   -- not 3.0</span>
+</code></pre>
+  <p>Exactly the expression from the answer above, and exactly the result the accumulation
+  produces. Had PyTorch used <code>=</code> instead of <code>+=</code> it would print 3.0,
+  and every network in the world would train at half the correct gradient on any shared
+  value.</p>
+
+  <h4>The five consequences, now with names</h4>
+  <p>The "why building this matters" box listed five things that stop being magic. Here is
+  what each is called:</p>
+  <ul class="tight">
+    <li><b>Zeroing gradients</b>: <code>opt.zero_grad()</code>. Because <code>+=</code>.</li>
+    <li><b>Retaining the graph</b>: a second <code>backward()</code> raises an error unless
+    you pass <code>retain_graph=True</code>, because the buffers were freed. §17's memory
+    argument is why they are freed by default.</li>
+    <li><b>Detaching</b>: <code>x.detach()</code> returns a tensor with the parent link cut;
+    <code>requires_grad</code> becomes <code>False</code> and the gradient stops there. This
+    is how you freeze part of a model, or stop a recurrent network backpropagating through
+    all of history.</li>
+    <li><b>In-place operations</b>: anything ending in an underscore, like
+    <code>x.add_(1)</code>, overwrites storage some <code>_backward</code> may still need.
+    PyTorch detects this with a version counter and raises rather than returning a wrong
+    answer, which is a kindness your own engine does not extend to you.</li>
+    <li><b>Custom backward</b>: subclass <code>torch.autograd.Function</code> and write
+    <code>forward</code> and <code>backward</code> yourself. That is your
+    <code>_backward</code>, with a form to fill in.</li>
+  </ul>
+
+  <h4>And the project's deliverable is a built-in</h4>
+<pre><code>torch.autograd.gradcheck(f, (x,))    <span class="o">### True</span>
+</code></pre>
+  <p>It compares the analytic gradient against numerical differentiation, exactly as Stage 1
+  of the project asks, and it requires <code>float64</code> inputs, for the reason Part III
+  §3 gives: the central difference loses digits to cancellation, and float32 does not have
+  enough of them to spare. That constraint is not arbitrary; it is a numerical fact you have
+  already derived, showing up as an argument requirement.</p>
+  <p>TensorFlow records the same graph with explicit scoping
+  (<code>with tf.GradientTape() as tape: ...</code> then <code>tape.gradient(loss, vars)</code>),
+  which makes the recording visible rather than implicit. Same engine, same topological
+  reverse walk, different opinion about whether you should have to say when it starts.</p>
+</div>

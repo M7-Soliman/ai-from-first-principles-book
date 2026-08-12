@@ -1,0 +1,209 @@
+<h2><span class="part-kicker">Build</span>The project</h2>
+
+<p class="lede">Twelve to sixteen hours. You build the audio pipeline from the transform upward,
+measure what each stage discards, and then join it to a second modality, finding out where the
+representation stops being able to express what you want.</p>
+
+<h3><span class="num">P.1</span> What you are building</h3>
+
+<p><b><code>hearsay</code></b>: a short-time transform with an exact inverse, a mel filterbank,
+phase estimation, a CTC implementation checked against enumeration, a residual vector quantiser,
+and a two-tower contrastive trainer with the diagnostics this part says it needs.</p>
+
+<p>The rule: <b>numpy only, and every signal synthetic</b>. Synthetic means you know the true
+alignment, the true phase and the true pairing, none of which you have on real audio, and all of
+which are what make the checks possible.</p>
+
+<h3><span class="num">P.2</span> Stage 1: the representation</h3>
+
+<ol>
+  <li>Implement the short-time transform and its inverse. Verify the round trip on the interior,
+  then look at what the boundary does and say why.</li>
+  <li>Build a mel filterbank. Check the bands sum to about one per bin.</li>
+  <li>Measure how many FFT bins each band pools, and how many bands a fixed hertz separation spans
+  across the range.</li>
+  <li>Sweep the band count and watch the crossover move.</li>
+</ol>
+
+<p><b>Deliverable:</b> Figure 1 reproduced, plus your own band count. Step three is the one to
+measure as bands spanned rather than by counting peaks: peak counting is not monotone, and it will
+tell you the tones resolve again at high frequency.</p>
+
+<h3><span class="num">P.3</span> Stage 2: phase</h3>
+
+<ol>
+  <li>Reconstruct with the true phase and confirm it is exact.</li>
+  <li>Reconstruct with random phase. Confirm the magnitude spectrogram is identical.</li>
+  <li>Implement iterative phase estimation and track <b>both</b> the spectrogram error and the
+  waveform error at every iteration.</li>
+  <li>Plot them together.</li>
+</ol>
+
+<p><b>Deliverable:</b> the two curves on one axis. Tracking only the first is how you conclude the
+method works; the gap between them is what a vocoder is for.</p>
+
+<h3><span class="num">P.4</span> Stage 3: alignment</h3>
+
+<ol>
+  <li>Implement the collapse rule and enumerate every frame sequence mapping to a target.</li>
+  <li>Implement the forward recursion and check it against that enumeration.</li>
+  <li>Count alignments by the same recursion with probabilities set to one, verify against
+  enumeration, then extend far past where enumeration is possible.</li>
+  <li>Optimise the per-frame logits toward an equal mixture of two sequences and record the best
+  achievable split.</li>
+  <li>Then optimise toward putting everything on one of them, and record that too.</li>
+</ol>
+
+<p><b>Deliverable:</b> the exactness check, the count curve, and the two optimisation results side
+by side. Step five is what makes step four a statement about the factorisation rather than about
+your optimiser.</p>
+
+<h3><span class="num">P.5</span> Stage 4: quantisation</h3>
+
+<ol>
+  <li>Implement k-means and scalar quantisation at matched bitrate.</li>
+  <li>Compare them across correlations, including zero.</li>
+  <li>Implement residual quantisation and compare against a full codebook.</li>
+  <li>Count how many codebook entries are ever used.</li>
+</ol>
+
+<p><b>Deliverable:</b> the rate–distortion table with the zero-correlation row, and the usage count.
+If your vector quantiser does not beat scalar at zero correlation, your bit accounting is wrong.</p>
+
+<h3><span class="num">P.6</span> Stage 5: two towers</h3>
+
+<ol>
+  <li>Write down your predictions first, in a file, before running anything.</li>
+  <li>Implement the symmetrised contrastive loss.</li>
+  <li>Compute the effective number of negatives across temperature.</li>
+  <li>Find the batch size at which extra negatives stop changing it, at two temperatures.</li>
+  <li>Construct a batch with a duplicated pair and observe what the loss does to it.</li>
+  <li>Sweep gallery size and fit the recall slope per decade.</li>
+  <li>Measure within-modality, across-modality and matched-pair similarity at every checkpoint.</li>
+  <li>Score your predictions.</li>
+</ol>
+
+<p><b>Deliverable:</b> the temperature curve, the recall sweep with its slope, the three similarity
+traces, and the scored predictions. Step seven is the one whose result you should not assume before
+running it.</p>
+
+<h3><span class="num">P.7</span> Stage 6: the evaluation</h3>
+
+<ol>
+  <li>Split your data by speaker and at random, and compare.</li>
+  <li>Resample a signal with and without an anti-aliasing filter and measure the spectrum.</li>
+  <li>Score a reconstruction by spectral distance and by waveform error, and find a case where they
+  disagree.</li>
+  <li>Report every retrieval number with its gallery size.</li>
+</ol>
+
+<p><b>Deliverable:</b> the two split results and the disagreeing pair of metrics. Step three is the
+one that explains why a magnitude-only loss can be optimised to a good number and a bad
+result.</p>
+
+<h3><span class="num">P.8</span> Stretch</h3>
+
+<ul>
+  <li><b>A CTC recogniser</b> on synthetic audio with known alignments.</li>
+  <li><b>A transducer</b>, compared against it on constructed ambiguity rather than on error rate.</li>
+  <li><b>A neural codec</b>, with the used-codebook count reported beside the rate.</li>
+  <li><b>A language model over codec tokens</b>.</li>
+  <li><b>A learned front end</b>, with the filters it converges to plotted.</li>
+  <li><b>An audit</b> of an audio system you actually run.</li>
+</ul>
+
+<h3><span class="num">P.9</span> Done when</h3>
+
+<ul class="checklist">
+  <li>Your round trip is exact on the interior and you can explain the boundary.</li>
+  <li>Your filterbank sums to about one per bin.</li>
+  <li>You measured band separation in bands, not by counting peaks.</li>
+  <li>You have the spectrogram error and the waveform error on one plot.</li>
+  <li>Your forward recursion matches enumeration to machine precision.</li>
+  <li>You counted alignments beyond where enumeration can reach.</li>
+  <li>You have both CTC optimisation results, the even split and the confident one.</li>
+  <li>Your vector quantiser beats scalar at zero correlation.</li>
+  <li>You know how many of your codebook entries are dead.</li>
+  <li>You know the effective negative count at your temperature.</li>
+  <li>You have found the batch size at which more negatives stop helping.</li>
+  <li>Every retrieval number you report has a gallery size beside it.</li>
+  <li>You have the three similarity traces and have looked at them.</li>
+  <li>You have a speaker-disjoint split and a random one, and the gap between them.</li>
+  <li>You wrote predictions down before Stage 5 and scored them afterwards.</li>
+</ul>
+
+<div class="box why">
+  <span class="label">Why this project</span>
+  <p>Audio is the modality where the standard pipeline is most obviously a set of decisions and
+  least often examined as one. Building it makes the decisions visible: a window length that is a
+  guess about speech, a scale that is a claim about hearing, and a deletion that requires an entire
+  second model to undo.</p>
+  <p>Stage 4 step five is the one to keep. Showing that CTC <i>can</i> put everything on one
+  sequence is what turns "it cannot represent an even split" from a claim about your optimiser into
+  a claim about the family; and that distinction is the whole method of this book in one
+  experiment.</p>
+</div>
+
+<h2 class="nobreak"><span class="part-kicker">Assess</span>Checkpoint</h2>
+
+<ul class="checklist">
+  <li>Give four numbers that characterise an audio signal and what each decides.</li>
+  <li>Give three reasons models rarely read raw samples.</li>
+  <li>Name the three parameters of a spectrogram and what the first one trades.</li>
+  <li>State the mel scale as a modelling assumption and say when it is wrong.</li>
+  <li>Give Figure 1's pooling ratio and the frequency at which a 200 Hz gap fits in one band.</li>
+  <li>Say why band separation should be measured in bands rather than by counting peaks.</li>
+  <li>Say what a mel spectrogram deletes and what Part XXVII measured about it.</li>
+  <li>Explain what a cepstrum separates and why it faded.</li>
+  <li>Give Figure 2's three correlations: true phase, random phase, estimated phase.</li>
+  <li>Say what iterative phase estimation converges in, and what it does not.</li>
+  <li>Explain what a neural vocoder does that classical estimation does not.</li>
+  <li>Say why recognition is an alignment problem.</li>
+  <li>Explain why the hybrid stack persisted after end-to-end systems were competitive.</li>
+  <li>State CTC's collapse rule and say why the blank exists.</li>
+  <li>Give Figure 3's agreement between the recursion and enumeration.</li>
+  <li>Say how alignment counts can be computed past where enumeration stops.</li>
+  <li>State CTC's conditional independence assumption precisely.</li>
+  <li>Give Figure 4's numbers and say why sharper per-frame predictions do not help.</li>
+  <li>Say where the leaked probability goes, and why not to "aa".</li>
+  <li>Explain what an external language model is doing for a CTC recogniser.</li>
+  <li>Distinguish a transducer from an attention decoder, and give what each assumes.</li>
+  <li>Give the two-stage split in text to speech and why it is a split.</li>
+  <li>Explain the repeating-syllable failure and what removes it.</li>
+  <li>Name four generations of vocoder and what each traded.</li>
+  <li>Distinguish scalar, vector and residual quantisation.</li>
+  <li>Give Figure 5's advantage at zero correlation and explain where it comes from.</li>
+  <li>Say what a neural codec is and why its output is called tokens.</li>
+  <li>Say what a learned front end converges to and when it wins.</li>
+  <li>Write the contrastive loss and say where the negatives come from.</li>
+  <li>Explain why batch size is an architectural parameter here.</li>
+  <li>Give Figure 6's effective negative counts across temperature.</li>
+  <li>Say what the temperature actually controls and one consequence.</li>
+  <li>Explain what zero-shot classification is and what it is sensitive to.</li>
+  <li>Give Figure 7's recall numbers and the slope per decade.</li>
+  <li>Say what a retrieval number without a gallery size tells you.</li>
+  <li>Explain what two towers structurally cannot express, and the standard resolution.</li>
+  <li>Give three places the construction transfers and one where it does not.</li>
+  <li>Give three ways to get a second modality into a language model.</li>
+  <li>Say why a high-resolution image is expensive in tokens.</li>
+  <li>Say what follows for cross-modal thresholds if the two modalities are separated.</li>
+  <li>Distinguish early from late fusion and name what early fusion complicates.</li>
+  <li>Explain why clip-level pairs teach co-occurrence rather than synchrony.</li>
+  <li>Give the control that bounds how much of a multimodal benchmark is the text.</li>
+  <li>Give five questions to ask before choosing an audio representation.</li>
+  <li>Name five failures that repeat in audio pipelines.</li>
+</ul>
+
+<div class="box fw">
+  <span class="label">The framework, and the representation</span>
+  <p>Dataset, model family, loss, optimiser. This part is almost entirely about a fifth thing the
+  framework never named: <b>the representation you convert the data into before any of the four
+  apply</b>.</p>
+  <p>A mel spectrogram is not preprocessing. It is a window length asserting how fast the signal
+  changes, a warping asserting that resolution should degrade like hearing's, and the deletion of
+  the quantity Part XXVII measured as carrying the structure. Every one of those is a modelling
+  decision made before the model exists, none is visible in a loss curve, and each bounds what any
+  amount of capacity can recover. The same is true one level up: two towers fix what a shared
+  embedding can express before a single parameter is trained. <b>Choose the representation with the
+  care you would give the model</b>, because the model cannot recover what it deleted.</p>
+</div>

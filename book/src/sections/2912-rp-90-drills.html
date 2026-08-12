@@ -1,0 +1,463 @@
+<h2><span class="part-kicker">Practice</span>Drills</h2>
+
+<p class="lede">Fifty-three problems. Most of this part is about establishing what a representation
+holds, so most of these build an instrument and then find out what it cannot see.</p>
+
+<h3><span class="num">Tier 0</span> Estimate first</h3>
+
+<div class="drill">
+  <div class="head"><span class="tier est">Estimate</span>E1 &middot; The cost of an index</div>
+  <p>One million embeddings of dimension 768 at float32. Write down the memory, and the multiply&ndash;adds for one exact nearest-neighbour query.</p>
+  <div class="ans"><b>Answer.</b> <b>3.1&nbsp;GB</b> and <b>7.7&times;10<sup>8</sup></b> multiply&ndash;adds per query. Which says why approximate search exists: exact search is a matrix&ndash;vector product against the whole corpus, and at a thousand queries a second that is a teraflop of work for something users expect to be instant. <i>Score yourself: within a factor of two is a pass, and an order of magnitude out is worth understanding before you go on.</i></div>
+</div>
+
+<h3><span class="num">Tier 1</span> Warm-up</h3>
+
+<div class="drill">
+  <div class="head"><span class="tier warm">Warm</span>W1 · Why copying is not enough</div>
+  <p>An autoencoder reaches zero reconstruction error. What have you learned?</p>
+  <div class="ans"><b>Answer.</b> Nothing. It has learned the identity function on the training set.
+  An autoencoder is useful only when it is <b>prevented</b> from copying (by a bottleneck, a
+  penalty, or corrupted input) so that it must choose what to keep.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier warm">Warm</span>W2 · The index-code argument</div>
+  <p>Show that a one-dimensional code can give perfect reconstruction, and say what it proves.</p>
+  <div class="ans"><b>Answer.</b> Let the encoder map example $i$ to the number $i$ and the decoder
+  be a lookup table. Perfect reconstruction, useless representation. It proves that a narrow
+  bottleneck is not sufficient for a useful code: only a bottleneck the encoder is too weak to
+  circumvent is.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier warm">Warm</span>W3 · Distributed against symbolic</div>
+  <p>Why are <i>cat</i> and <i>dog</i> as far apart as <i>cat</i> and <i>Tuesday</i> under one-hot
+  encoding, and what changes with a distributed code?</p>
+  <div class="ans"><b>Answer.</b> Every pair of distinct one-hot vectors is at squared distance 2,
+  so the encoding carries no similarity information at all. A distributed code lets concepts
+  <b>share entries</b>, so what is learned about one transfers to the other. That sharing is the
+  mechanism of generalisation, not a side benefit.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier warm">Warm</span>W4 · The exponent</div>
+  <p>"A distributed representation with $n$ features is exponentially more expressive." State what
+  is wrong with this and give the correct count.</p>
+  <div class="ans"><b>Answer.</b> The number of regions $n$ linear-threshold features carve in
+  $\mathbb{R}^d$ is $\sum_{j=0}^{d}\binom{n}{j} = O(n^d)$: <b>polynomial in $n$</b>, exponential in
+  $d$. The $2^n$ figure counts code configurations, most of which are never realised once $n > d$.
+  The advantage is still enormous: 40 features in 10 dimensions give over a billion regions
+  against 40.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier warm">Warm</span>W5 · The two forces</div>
+  <p>Name them, and say why neither alone is any use.</p>
+  <div class="ans"><b>Answer.</b> Reconstruct the training data, and satisfy the constraint. Alone,
+  the first gives the identity function and the second gives a constant. Together they force the
+  representation to keep exactly the variation needed to reconstruct real data.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier warm">Warm</span>W6 · Score</div>
+  <p>Define the score of a density and say why it can be learned when the density cannot.</p>
+  <div class="ans"><b>Answer.</b> $\nabla_{\mathbf{x}} \log p(\mathbf{x})$. The gradient of a log
+  annihilates any constant factor, so the intractable normalising constant $Z$ never appears.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier warm">Warm</span>W7 · What a denoiser learns</div>
+  <p>Give the identity relating a denoising autoencoder to the score, and name the distribution it
+  actually applies to.</p>
+  <div class="ans"><b>Answer.</b> $(g(f(\mathbf{x})) - \mathbf{x})/\sigma^2 \approx
+  \nabla_{\mathbf{x}} \log p_\sigma(\mathbf{x})$, where $p_\sigma$ is the data density
+  <b>convolved with the corruption noise</b>, not the data density. At fixed $\sigma$ the
+  estimator is inconsistent; it recovers a blurred distribution.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier warm">Warm</span>W8 · Collapse</div>
+  <p>What is the global optimum of "make two views of the same input agree", with no other term?</p>
+  <div class="ans"><b>Answer.</b> Map every input to the same vector. Agreement is perfect and the
+  representation is empty. This is the minimum, not an accident, and something must push
+  outward: negatives, or an asymmetry like a stop-gradient and predictor.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier warm">Warm</span>W9 · What a t-SNE plot supports</div>
+  <p>Two clusters are drawn far apart and one is visibly tighter. What may you conclude?</p>
+  <div class="ans"><b>Answer.</b> Neither. Distances between well-separated clusters are close to
+  arbitrary and relative cluster sizes are not preserved: the algorithm rescales each
+  neighbourhood to a fixed perplexity by construction. You may conclude only that groups exist and
+  roughly which points are near which.</div>
+</div>
+
+<h3><span class="num">Tier 2</span> Core</h3>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C1 · Subspace, not axes</div>
+  <p>Train a linear autoencoder with a $k$-dimensional code and compare it to rank-$k$ PCA two
+  ways: principal angles between the subspaces, and the cosine between each code direction and the
+  matching principal component. Explain the difference.</p>
+  <div class="ans"><b>Answer.</b> Angles near zero, per-axis cosines scattered. For any invertible
+  $R$, $(RW, VR^{-1})$ has identical loss, so the objective determines the code only up to a linear
+  change of basis. PCA's axes come from an extra orthogonality-and-ordering requirement that
+  reconstruction never makes.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C2 · Denoising recovers the score</div>
+  <p>Take a Gaussian mixture whose score you can write in closed form. Train a denoiser with
+  corruption $\sigma$. Compare $(r(\mathbf{x})-\mathbf{x})/\sigma^2$ to the analytic score, both
+  with and without adding $\sigma^2$ to each component's variance. Report cosine and magnitude
+  ratio separately.</p>
+  <div class="ans"><b>Answer.</b> Against the smoothed score, both near 1. Against the unsmoothed
+  score the cosine is still high (direction is barely affected) and the magnitude is
+  substantially too small, because blurring flattens the density. Reporting only cosine would hide
+  the error entirely.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C3 · Sweep the noise level</div>
+  <p>Repeat C2 for $\sigma \in \{0.05, 0.1, 0.2, 0.5, 1.0\}$. Plot the agreement with the
+  <b>unsmoothed</b> score against $\sigma$. What is the tradeoff?</p>
+  <div class="ans"><b>Answer.</b> Large $\sigma$ gives a well-estimated score of a badly blurred
+  density; small $\sigma$ gives the right target and almost no training signal far from the data,
+  because corrupted points never land there. Neither end works alone, which is the argument for
+  using many noise levels at once, Part XVI's opening.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C4 · Tie the weights</div>
+  <p>Implement a contractive autoencoder without tied weights and show the penalty can be driven to
+  zero without learning. Then tie them and show it cannot.</p>
+  <div class="ans"><b>Answer.</b> Untied, scale the encoder by $\epsilon$ and the decoder by
+  $1/\epsilon$: reconstruction is unchanged and $\Omega \to 0$. Tying removes the degree of freedom.
+  The same class of failure as C1: a symmetry of the objective that must be broken by
+  construction.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C5 · InfoNCE, stably</div>
+  <p>Implement it and verify at $\tau = 10^{-3}$ that a naive $\exp$ overflows and log-sum-exp does
+  not. Confirm matched pairs give lower loss than shuffled ones.</p>
+  <div class="ans"><b>Answer.</b> Part III §4's trick, in the loss everyone uses. Subtract the row
+  maximum before exponentiating.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C6 · Alignment and uniformity</div>
+  <p>Implement both and report them for: a well-trained contrastive encoder, a collapsed one, and a
+  random one. Which single number would have failed to distinguish them?</p>
+  <div class="ans"><b>Answer.</b> The collapsed encoder has excellent alignment and terrible
+  uniformity; the random one the reverse. The loss alone conflates them, and reporting the pair
+  explains results that the loss does not.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C7 · Effective rank</div>
+  <p>Implement it and confirm: isotropic Gaussian data in $d$ dimensions returns approximately $d$;
+  data on a line returns approximately 1, whatever the ambient dimension.</p>
+  <div class="ans"><b>Answer.</b> $\exp$ of the entropy of the normalised eigenspectrum. It is the
+  cheapest useful instrument for watching a self-supervised run, and §20 is why.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C8 · Do the two instruments agree</div>
+  <p>Train with positives only. Log effective rank <b>and</b> linear-probe accuracy every few
+  hundred steps. Then repeat on a task made deliberately easy, where the property is linearly
+  readable straight off the raw input. Compare when each instrument notices the collapse.</p>
+  <div class="ans"><b>Answer.</b> On the hard task they fall together. On the easy one the probe
+  lags badly, still reporting near-perfect accuracy on a code of effective rank 1.04, because the
+  tiny surviving directions are enough when the property was nearly free to begin with. So a probe
+  is not a reliable collapse monitor and is not reliably a bad one either: it depends on the task
+  and on the probe's own regularization. Log the rank, which depends on neither.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C9 · The augmentation is the specification</div>
+  <p>Build data from two known factors. Train contrastively three times, varying which factor the
+  two views may disagree on. Probe for both factors each time.</p>
+  <div class="ans"><b>Answer.</b> The varied factor is discarded to near chance and the other is
+  retained. With neither varied, both are kept and the code stays high-rank. The augmentation set
+  is the task definition, written as invariances.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C10 · The control task</div>
+  <p>Assign every example identity a fixed random label. Train a linear probe and an MLP probe on
+  the real task and on this control. Report accuracy and selectivity for both.</p>
+  <div class="ans"><b>Answer.</b> The MLP scores high on the control (it memorises the identity
+  mapping) so its selectivity collapses toward zero and its accuracy on the real task establishes
+  nothing. Selectivity, not accuracy, is the quantity that carries a claim.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C11 · Hubness</div>
+  <p>Sample Gaussian points in $d \in \{2, 10, 100, 500\}$. Report the skew of $N_{10}$, the largest
+  hub, and the fraction of points that are nobody's neighbour. Then correlate hub-ness with
+  distance from the centroid.</p>
+  <div class="ans"><b>Answer.</b> Skew and hub size grow sharply; a large fraction become
+  unreachable. The correlation with centrality is strong and is the mechanism: a point nearer the
+  centre is nearer to everything, and that small advantage applies to every query.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C12 · Fixing hubness</div>
+  <p>Take the $d=100$ case and apply, separately: centring, and the mutual-$k$NN graph. Measure the
+  hub statistics again.</p>
+  <div class="ans"><b>Answer.</b> Both reduce it, for different reasons: centring removes the
+  shared component that creates the advantage, mutual-$k$NN discards one-directional hub edges by
+  construction. Note what mutual-$k$NN costs: some points end up with no neighbours at all.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C13 · Anisotropy</div>
+  <p>Measure the mean cosine between random pairs of embeddings from any trained encoder. Then
+  centre and measure again. Report both, and the effect on retrieval accuracy.</p>
+  <div class="ans"><b>Answer.</b> The raw value is typically far above zero; centring removes most
+  of it. Retrieval usually improves or is unchanged, and the reason to measure first is that a
+  compressed similarity distribution is a diagnosis, not a mystery.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C14 · What t-SNE destroys</div>
+  <p>Construct clusters with known, deliberately different spreads and separations. Run t-SNE at
+  three perplexities. Report the ratio of cluster spreads and of gaps, before and after.</p>
+  <div class="ans"><b>Answer.</b> Both ratios collapse toward 1 and the result changes with
+  perplexity. This is the algorithm working as defined: its objective contains no term preserving
+  either ratio.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C15 · Superposition</div>
+  <p>Train the toy model: $n$ features, $m < n$ dimensions, output
+  $\text{ReLU}(W^{\top}W\mathbf{h} + \mathbf{b})$, with importance decaying across features. Sweep
+  the feature sparsity and count how many features are stored.</p>
+  <div class="ans"><b>Answer.</b> With dense features exactly $m$ are stored, orthogonally, and the
+  rest are dropped. As sparsity rises the count climbs well past $m$: features share directions
+  because they rarely co-occur, so the collision rarely costs anything.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C16 · Interference</div>
+  <p>For the same runs, measure the mean absolute off-diagonal of the normalised Gram matrix. Relate
+  it to the number of features stored.</p>
+  <div class="ans"><b>Answer.</b> Storing more than $m$ features forces non-zero interference:
+  there are not enough orthogonal directions. Superposition is a bet that the crosstalk is rarely
+  paid, and the interference number is the size of the bet.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C17 · Sparse coding by ISTA</div>
+  <p>Implement soft-thresholding and ISTA. Recover a known sparse code from a known dictionary, and
+  confirm that raising $\lambda$ monotonically reduces the number of non-zeros.</p>
+  <div class="ans"><b>Answer.</b> The step size $1/\|DD^{\top}\|_2$ is the largest one guaranteed to
+  converge. Note that the encoder here is an <b>optimisation</b>, not a function, which is the
+  difference between sparse coding and a sparse autoencoder, and the reason the latter is fast.
+  <b>Predictive sparse decomposition</b> is the historical bridge: train a fast feed-forward encoder
+  alongside the slow ISTA solve, penalised by the gap between the two, so inference becomes a
+  function call once the encoder has learned to approximate the optimum. It is the amortised-vs-
+  iterative distinction made into a training method.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C18 · Dictionary recovery</div>
+  <p>Learn a dictionary from data generated by a known one. Match learned atoms to true atoms by
+  absolute cosine. Why absolute, and why matching rather than comparing in order?</p>
+  <div class="ans"><b>Answer.</b> Atoms are identified only up to sign and permutation: flipping an
+  atom's sign and its coefficients' signs changes nothing. The same degeneracy as C1, and the reason
+  every comparison in this area is up to a group.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C19 · Probe the layers</div>
+  <p>Take any pretrained network and probe every few layers for two properties: one the training
+  task needed, one it did not. Plot accuracy against depth for both.</p>
+  <div class="ans"><b>Answer.</b> The task-relevant property rises toward the top. The irrelevant
+  one usually peaks in the middle and <b>falls</b>, because later layers were rewarded for
+  discarding it. This is why "use the penultimate layer" is bad default advice.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C20 · Probe against fine-tune</div>
+  <p>At label budgets spanning three orders of magnitude, compare a frozen encoder with a linear
+  probe against full fine-tuning. Evaluate both in-distribution and on a shifted test set.</p>
+  <div class="ans"><b>Answer.</b> Fine-tuning wins in-distribution with enough labels and can lose
+  out-of-distribution, especially with few labels. Probing first and then unfreezing recovers most
+  of the gap.</div>
+</div>
+
+<h3><span class="num">Tier 3</span> Stretch</h3>
+
+<div class="drill">
+  <div class="head"><span class="tier stretch">Stretch</span>S1 · A denoiser at many noise levels</div>
+  <p>Train a single network conditioned on $\sigma$, on a schedule of noise levels. Verify it
+  recovers the score at each. Then use it: start from noise and follow the field, annealing $\sigma$
+  downward. You have built a sampler.</p>
+  <div class="ans"><b>Answer.</b> This is diffusion, and it is a short step from C2. Part XVI
+  derives it properly, including why the annealing schedule is the whole difficulty.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier stretch">Stretch</span>S2 · Stop-gradient</div>
+  <p>Implement the no-negatives objective three ways: plain, with a predictor, and with a predictor
+  <b>and</b> a stop-gradient on the target branch. Track effective rank for each.</p>
+  <div class="ans"><b>Answer.</b> Only the third avoids collapse. Removing either the predictor or
+  the stop-gradient collapses it. The asymmetry is what prevents the trivial solution, and no term
+  in the loss pushes anything apart.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier stretch">Stretch</span>S3 · A sparse autoencoder on activations</div>
+  <p>Take a trained network. Collect activations from one layer. Train an overcomplete sparse
+  autoencoder on them. Inspect the top-activating inputs for individual learned features and judge
+  whether they are more interpretable than the raw neurons.</p>
+  <div class="ans"><b>Answer.</b> Usually yes, and the reason is C15: the raw neurons are in
+  superposition, so each responds to several unrelated things. The sparse autoencoder is looking for
+  the overcomplete basis the superposition was built from. Report the reconstruction error and the
+  fraction of features that are dead; both are commonly omitted.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier stretch">Stretch</span>S4 · Analogies, honestly</div>
+  <p>Reproduce $\text{king} - \text{man} + \text{woman}$ on public word vectors. Report accuracy
+  with and without excluding the three query words from the candidate set, and break the result down
+  by relation type.</p>
+  <div class="ans"><b>Answer.</b> Excluding the inputs raises the number substantially: without it
+  the nearest vector is very often one of the inputs. And accuracy varies enormously by relation.
+  The aggregate number is real and is doing more averaging than its fame suggests.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier stretch">Stretch</span>S5 · Unidentifiability, constructed</div>
+  <p>Take two independent latent factors. Construct an invertible map to two <b>different</b>
+  independent factors that induces the identical distribution over observations. Confirm no
+  data-derived objective can distinguish them.</p>
+  <div class="ans"><b>Answer.</b> A rotation of independent Gaussians is the easy case, and the
+  result holds far more generally. This is why unsupervised disentanglement is impossible without
+  extra information, and why weak supervision, temporal structure or interventions are what restore
+  identifiability.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier stretch">Stretch</span>S6 · Retrieval, end to end</div>
+  <p>Build an index over at least $10^5$ embeddings. Measure recall@10 against exact search, then
+  separately measure how good exact search itself is on your task. Diagnose which component is
+  costing you.</p>
+  <div class="ans"><b>Answer.</b> The two losses are independent and are routinely conflated. If
+  exact search is also poor, the index is innocent. Apply centring and re-measure both: §26 is why
+  the encoder is guilty more often than teams expect.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier stretch">Stretch</span>S7 · An augmentation that destroys your task</div>
+  <p>Pick a task where a standard augmentation removes the signal: colour for bird species, rotation
+  for digits, cropping for counting. Pretrain with and without it and measure the damage.</p>
+  <div class="ans"><b>Answer.</b> Large and entirely predictable from §19. Worth doing once, because
+  it converts "choose good augmentations" from advice into a measurement you know how to make.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier stretch">Stretch</span>S8 · The modality gap</div>
+  <p>Train a two-tower contrastive model on paired data. Then measure the mean embedding of each
+  modality and the distance between them. Are matched pairs closer to each other than to the other
+  modality's centre?</p>
+  <div class="ans"><b>Answer.</b> The two modalities typically occupy separate cones with a
+  substantial gap, despite the objective aligning matched pairs. Contrastive training aligns
+  <b>relative</b> similarities, and nothing in it requires the two clouds to coincide, so cross-modal
+  absolute distances are not comparable to within-modal ones.</div>
+</div>
+
+<h3><span class="num">Movement G</span> Learning as compression</h3>
+
+<div class="drill">
+  <div class="head"><span class="tier est">Estimate</span>E2 &middot; What a bit of rate buys</div>
+  <p>A Gaussian source, squared-error distortion. Before computing: how much does the distortion fall per extra bit per sample? Then estimate the total rate to reach a signal-to-noise ratio of 40&nbsp;dB.</p>
+  <div class="ans"><b>Answer.</b> <span class="m">$R(D)=\frac12\log_2(\sigma^2/D)$</span>, so each bit <b>quarters</b> the distortion: 6&nbsp;dB per bit. Forty decibels needs about <b>6.7 bits</b> per sample, plus the quarter-bit overhead any one-sample-at-a-time quantiser pays. <i>Score yourself: within a factor of two is a pass.</i></div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier warm">Warm</span>W10 &middot; Whose property is $R(D)$</div>
+  <p>Is the rate&ndash;distortion function a property of the codec or of the source?</p>
+  <div class="ans"><b>Answer.</b> Of the source and the distortion measure. It is the boundary of what any codec could achieve, which is why every measured quantiser sits above it and why the interesting number is the gap rather than the rate.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier warm">Warm</span>W11 &middot; The two parts</div>
+  <p>What are the two terms of a two-part code, and why does their sum have an interior minimum?</p>
+  <div class="ans"><b>Answer.</b> Bits for the model and bits for the residuals under it. The first rises with complexity and the second falls, so the sum dips. Noise is incompressible, so paying parameters to encode it is a bad trade, which is why the minimum is near the true complexity.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier warm">Warm</span>W12 &middot; Two kinds of compression</div>
+  <p>Why are an autoencoder's code and a classifier's penultimate layer not interchangeable?</p>
+  <div class="ans"><b>Answer.</b> One compresses for reconstruction and keeps what is large; the other compresses for prediction and keeps what is relevant. A direction can carry most of the variance and none of the signal, and Figure 13 measures the two rules differing by nearly a factor of two at the same rate.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C21 &middot; Measure the gap to the bound</div>
+  <p>Quantise a Gaussian sample with a uniform quantiser at several step sizes, entropy-code the output, and plot the excess rate over <span class="m">$R(D)$</span>.</p>
+  <div class="ans"><b>Answer.</b> It converges to <span class="m">$\frac12\log_2(\pi e/6)\approx0.2546$</span> bits. Charge the <i>entropy</i> of the output rather than <span class="m">$\log_2 k$</span>: billing a fixed-rate code for its unequal cell probabilities measures the code rather than the quantiser, and the constant will not appear.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C22 &middot; Optimal under which constraint</div>
+  <p>Compare Lloyd&ndash;Max against a uniform quantiser, both entropy-coded, at matched rates.</p>
+  <div class="ans"><b>Answer.</b> Lloyd&ndash;Max is <i>worse</i>, about 0.14 bits, despite being optimal at a fixed number of levels. Density-adapted cells minimise distortion per level and cost entropy; uniform cells are the right answer once the output is entropy-coded. A method optimal under one accounting can lose under another, and which one you are paying is the first question.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C23 &middot; Quantise two dimensions at once</div>
+  <p>Implement a hexagonal lattice quantiser and measure its gap against the uniform scalar one.</p>
+  <div class="ans"><b>Answer.</b> About <b>0.022 bits</b> better, against a theoretical 0.028. Do not round coordinates independently in a skewed basis: that finds the nearest point of a <i>parallelogram</i> tiling, whose second moment is worse than the hexagon's, and reports the gain with the wrong sign. Quantise to two rectangular sublattices and keep the closer.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C24 &middot; Select a model with no validation set</div>
+  <p>Fit polynomials of increasing degree, compute the two-part code length, and pick the minimum. Compare against held-out selection over many datasets.</p>
+  <div class="ans"><b>Answer.</b> The two agree on the mean curve and on a majority of individual datasets, 63% in Figure 12, and MDL finds the true degree about 80% of the time. Report the per-dataset agreement, not just the agreement of the averages: they are very different numbers and only one of them is a claim about your next dataset.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C25 &middot; The code you choose is a prior</div>
+  <p>Redo C24 with a cruder parameter code (a fixed number of bits per parameter) and see how the selected degree moves.</p>
+  <div class="ans"><b>Answer.</b> A more expensive parameter code biases selection toward simpler models. MDL is not parameter-free; it relocates the arbitrariness from a regularisation constant to a coding scheme, where at least it has an interpretation you can argue about.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C26 &middot; Trace a bottleneck frontier</div>
+  <p>On a small discrete joint distribution, iterate the information bottleneck at several values of <span class="m">$\beta$</span> and plot <span class="m">$I(Z;Y)$</span> against <span class="m">$I(X;Z)$</span>.</p>
+  <div class="ans"><b>Answer.</b> A concave frontier that saturates at <span class="m">$I(X;Y)$</span>. Construct the distribution so that the most probable structure and the predictive structure differ: otherwise every compression rule agrees and the figure shows nothing.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C27 &middot; The reconstruction-first control</div>
+  <p>Add the rule "keep the most probable symbols" at matched rates and plot it against the bottleneck.</p>
+  <div class="ans"><b>Answer.</b> It retains far less about the label, 0.746 bits against 1.373 in Figure 13. This control is what turns "the bottleneck finds relevant structure" from an assertion into a measurement, and it is cheap.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C28 &middot; Compression against generalisation</div>
+  <p>For two model families, plot test error against description length. Then repeat using residual bits only.</p>
+  <div class="ans"><b>Answer.</b> With the full two-part code the two track each other tightly, within families and across them. On residual bits alone the criterion picks a more complex model with worse test error, degree 7 against degree 3 in Figure 14. The model's own cost is what makes compression a selection criterion rather than a fitting criterion.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier stretch">Stretch</span>S9 &middot; A tokenizer on a rate&ndash;distortion curve</div>
+  <p>Train BPE at several vocabulary sizes and plot bits per character against the vocabulary's own description cost. Find the interior optimum of the total.</p>
+  <div class="ans"><b>Answer.</b> Larger vocabularies shorten sequences and cost more to specify, so the total has a minimum, which is why the right vocabulary size is an interior optimum rather than as large as you can afford. This is Part XX &sect;1&ndash;&sect;8's choice restated in bits, and the restatement is what makes it a calculation.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier stretch">Stretch</span>S10 &middot; A scaling law is a compression curve</div>
+  <p>Take a loss-against-compute fit in nats per token, convert to bits, and express it as bits of the corpus bought per unit of computation. Interpret the irreducible term.</p>
+  <div class="ans"><b>Answer.</b> Cross-entropy <i>is</i> a code length, so the curve says how many bits of the corpus a given amount of computation buys. The irreducible term is the corpus's own entropy (the part no model compresses because there is nothing there to compress), which is why fits that omit it extrapolate to impossible losses.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier stretch">Stretch</span>S11 &middot; Compress the training set verbatim</div>
+  <p>Build a "model" that memorises the training set exactly, and compute its two-part description length honestly. Compare against a fitted polynomial.</p>
+  <div class="ans"><b>Answer.</b> Zero residual bits and an enormous model cost, so the total is far worse. This is the sanity check behind every claim of the form "system A compresses the data better than system B": ask what was billed and to whom, because a compression ratio quoted without its decompressor is not a measurement.</div>
+</div>

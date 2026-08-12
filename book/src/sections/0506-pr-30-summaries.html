@@ -1,0 +1,217 @@
+<h2><span class="part-kicker">Part C</span>Summarising</h2>
+
+<p class="lede">A full distribution is a lot of information. Often you want a couple of
+numbers that capture the gist: where it sits and how far it spreads. That is what this
+part is for.</p>
+
+<h3><span class="num">§10</span> Expectation</h3>
+
+<div class="readnow"><span class="label">Go and read</span><p><span class="src">Metropolis &amp; Ulam (1949)</span>, <i>The Monte Carlo method</i>. Estimating an expectation by sampling from it, stated by the people who named the technique, and who needed it because the integrals arising from neutron diffusion had no closed form. Every minibatch you will ever compute is an instance of this paper.</p></div>
+
+<div class="box def">
+  <span class="label">Definition: expectation</span>
+  <p>The <b>expected value</b> of a function $f$ under a distribution is the average of
+  $f$, weighted by how likely each outcome is:</p>
+  <p>$$\mathbb{E}_{x \sim P}[f(x)] = \sum_x P(x) f(x) \qquad \text{or} \qquad \int p(x) f(x)\,dx$$</p>
+</div>
+
+<p>The subscript $x \sim P$ reads "$x$ drawn from $P$", and it names which distribution
+the averaging happens under. When it is obvious, people drop it and write
+$\mathbb{E}[X]$.</p>
+
+<p>Taking $f(x) = x$ gives the <b>mean</b>, the ordinary notion of average, but
+weighted by probability rather than treating every outcome as equally likely.</p>
+
+<figure>
+  <img src="figures/pr/05-expectation-variance.svg" alt="Expectation as a balance point, and variance as spread">
+  <figcaption><b>Figure 5.</b> Left: expectation is the <b>balance point</b>. Cut the
+  distribution out of cardboard and it balances on a pin placed at
+  $\mathbb{E}[X]$, here 3.40. Note that no single outcome equals 3.40; the expectation
+  need not be a value the variable can actually take. Right: variance controls
+  width.</figcaption>
+</figure>
+
+<div class="box intuition">
+  <span class="label">Intuition: expectation is a weighted centre of mass</span>
+  <p>This is not a metaphor; it is literally the physics formula for centre of mass with
+  probability playing the role of mass. That is why an expectation can fall where no
+  outcome lives, in the same way a doughnut's centre of mass sits in the hole. "The
+  average family has 1.9 children" is not a claim about any family.</p>
+</div>
+
+<h4>Linearity, the property that does all the work</h4>
+
+$$\mathbb{E}[aX + bY] = a\,\mathbb{E}[X] + b\,\mathbb{E}[Y]$$
+
+<p>This holds <b>always</b>, for any random variables, dependent or not, related or
+not. It is the most useful identity in the chapter, and it makes many otherwise
+difficult calculations collapse into arithmetic.</p>
+
+<p>The "dependent or not" is the surprising part and worth dwelling on, because almost
+nothing else in probability is so forgiving. $X$ and $Y$ may be entangled in any way you
+like ($Y$ could be $X$ itself, or $-X$, or some baroque function of it) and the identity
+does not care. Expectations add. Always.</p>
+
+<p>The reason is that expectation never looks at the two variables separately. It is a
+single weighted sum over the joint outcomes, and in each outcome $X$ and $Y$ take definite
+values whose sum is just a number. You are adding up $(x + y)$ across outcomes, and any
+sum can be split into $\sum x$ plus $\sum y$ by regrouping the terms, which is
+rearrangement, not an assumption. Dependence would matter if we needed to know how $X$ and
+$Y$ vary <i>together</i>, and for a plain sum we never do.</p>
+
+<div class="box why">
+  <span class="label">Why deep learning cares: this is why minibatches work</span>
+  <p>Linearity is what licenses nearly every "average over the batch" step you will ever
+  write. A loss over $m$ examples is a sum, so its expectation is the sum of the individual
+  expectations, so the average gradient over a random minibatch is an <b>unbiased
+  estimate</b> of the gradient over the whole dataset. That single fact is what makes
+  stochastic gradient descent legitimate rather than a hopeful approximation, and Part III
+  §14 leans on it entirely.</p>
+  <p>Note what is <i>not</i> being claimed. The minibatch gradient is correct on average;
+  it is not close to the true gradient on any particular step, and how far it strays is a
+  variance question rather than a mean one. Linearity gives you the first for free and
+  says nothing at all about the second.</p>
+</div>
+
+<div class="box pitfall">
+  <span class="label">Pitfall: linearity does not extend to products or functions</span>
+  <p>$\mathbb{E}[XY] \neq \mathbb{E}[X]\,\mathbb{E}[Y]$ in general; equality requires
+  independence, and §12 measures exactly how far apart the two sides are.</p>
+  <p>More broadly, $\mathbb{E}[f(X)] \neq f(\mathbb{E}[X])$ for nonlinear $f$. The
+  average of the squares is not the square of the average. This gap is not a technicality:
+  it is precisely what variance measures in §11, and forgetting it produces a large
+  fraction of all wrong probability arguments.</p>
+</div>
+
+<h3><span class="num">§11</span> Variance and standard deviation</h3>
+
+<div class="box def">
+  <span class="label">Definition: variance</span>
+  <p>$$\text{Var}(X) = \mathbb{E}\big[(X - \mathbb{E}[X])^2\big]$$
+  the average squared distance from the mean. Its square root,
+  $\sigma = \sqrt{\text{Var}(X)}$, is the <b>standard deviation</b>.</p>
+</div>
+
+<p>Why squared? Two reasons, and both matter. Without squaring, the deviations above and
+below the mean cancel exactly, giving zero every time: useless. Squaring also punishes
+large deviations disproportionately, which is usually what you want when you care about
+outliers. Absolute value would fix the cancellation too, but as Part I §14 noted, it
+is not differentiable at zero and is much less pleasant to optimise.</p>
+
+<p>A computational identity worth knowing, since it lets you compute variance in a
+single pass over data:</p>
+
+$$\text{Var}(X) = \mathbb{E}[X^2] - \big(\mathbb{E}[X]\big)^2$$
+
+<p>"The mean of the square minus the square of the mean", which is exactly the gap the
+pitfall above warned about, now given a name.</p>
+
+<div class="box pitfall">
+  <span class="label">Pitfall: that identity is numerically dangerous</span>
+  <p>When the mean is large and the variance small, $\mathbb{E}[X^2]$ and
+  $(\mathbb{E}[X])^2$ are two big, nearly equal numbers, and subtracting them destroys
+  precision, a phenomenon called catastrophic cancellation. It can even return a small
+  negative variance, which is mathematically impossible.</p>
+  <p>It is fine on paper and risky in code. Prefer <code>np.var</code>, which uses a
+  numerically stable algorithm. This is the same lesson as Part I's §13: an identity
+  being true does not make it safe to compute.</p>
+</div>
+
+<p>Standard deviation is usually the more interpretable of the two, because it carries
+the <b>same units</b> as $X$. If heights are in centimetres, the variance is in
+centimetres <i>squared</i> (which is not a quantity anyone has intuition about) while
+the standard deviation is in centimetres and can be compared directly against a
+height.</p>
+
+<h3><span class="num">§12</span> Covariance, correlation, and a myth</h3>
+
+<div class="box def">
+  <span class="label">Definition: covariance</span>
+  <p>$$\text{Cov}(X, Y) = \mathbb{E}\big[(X - \mathbb{E}[X])(Y - \mathbb{E}[Y])\big]$$</p>
+</div>
+
+<p>Read the sign, which is where the meaning is. When $X$ is above its mean, is $Y$
+usually above its mean too? Then the product of deviations is usually positive, and so
+is the covariance. If $Y$ tends to be below its mean when $X$ is above, the products are
+negative and so is the covariance.</p>
+
+<ul class="tight">
+  <li><b>Positive</b>: they tend to move together.</li>
+  <li><b>Negative</b>: they tend to move oppositely.</li>
+  <li><b>Zero</b>: no <i>linear</i> relationship. Note that word carefully.</li>
+</ul>
+
+<p>The magnitude is hard to interpret because it depends on the units of both variables.
+Dividing it out gives the <b>correlation</b>, which always lands in $[-1, 1]$:</p>
+
+$$\rho(X,Y) = \frac{\text{Cov}(X,Y)}{\sigma_X \sigma_Y}$$
+
+<figure>
+  <img src="figures/pr/06-covariance.svg" alt="Four scatter plots showing positive, negative, zero, and zero-but-dependent covariance">
+  <figcaption><b>Figure 6.</b> The first three panels behave as expected. The fourth is
+  the important one: points on a ring have covariance essentially zero, yet $X$ and $Y$
+  are <b>completely dependent</b>: knowing $X$ pins $Y$ down to two possible values.
+  Covariance sees only straight-line structure and is blind to everything
+  else.</figcaption>
+</figure>
+
+<div class="box pitfall">
+  <span class="label">Pitfall, the myth: "zero covariance means independent"</span>
+  <p>This is false, and the fourth panel of Figure 6 is the counterexample. Independence
+  is a much stronger claim than zero covariance.</p>
+  <p>The implication runs one way only:</p>
+  <p style="text-align:center"><b>independent $\Rightarrow$ zero covariance</b>,
+  &nbsp; but &nbsp; <b>zero covariance $\not\Rightarrow$ independent</b></p>
+  <p>Covariance detects linear association. A relationship that is curved, cyclic, or
+  otherwise symmetric can be perfectly deterministic and still register zero. The one
+  important exception: for <i>jointly Gaussian</i> variables the two notions do coincide,
+  which is a special property of the Gaussian and not a general fact.</p>
+</div>
+
+<h3><span class="num">§13</span> The covariance matrix</h3>
+<aside class="mnote"><b>Symmetric and PSD</b> is exactly the hypothesis of the spectral theorem (I §17). That is not a coincidence; it is why PCA exists.</aside>
+
+<p>With many variables at once, collect all the pairwise covariances into a matrix:</p>
+
+$$\Sigma_{i,j} = \text{Cov}(X_i, X_j)$$
+
+<p>The diagonal holds each variable's own variance, since $\text{Cov}(X_i, X_i) =
+\text{Var}(X_i)$. The off-diagonal entries hold the pairwise relationships.</p>
+
+<p>Two structural facts follow immediately, and both connect back to Part I:</p>
+
+<ul>
+  <li>It is <b>symmetric</b>, because $\text{Cov}(X,Y) = \text{Cov}(Y,X)$: the
+  definition is unchanged by swapping the two factors.</li>
+  <li>It is <b>positive semidefinite</b>. Intuitively: any weighted combination of the
+  variables has a variance, and variances cannot be negative. That is precisely the
+  condition $\mathbf{a}^\top \Sigma \mathbf{a} \geq 0$ from Part I §18.</li>
+</ul>
+
+<div class="box why">
+  <span class="label">Why deep learning cares: this is where Part I pays off</span>
+  <p>Symmetric and positive semidefinite is exactly the hypothesis of the spectral
+  theorem. So a covariance matrix always has real eigenvalues and perpendicular
+  eigenvectors, which is what made PCA work in Part I §23.</p>
+  <p>Read across the two chapters: the eigenvectors of $\Sigma$ are the directions the
+  data varies along, and the eigenvalues are how much variance sits in each. PCA is the
+  eigendecomposition of this object. Part I gave you the machinery; Part II tells
+  you what the matrix being decomposed actually <i>means</i>.</p>
+</div>
+
+<div class="box try">
+  <span class="label">Try it</span>
+  <p>You have three features. What shape is the covariance matrix, how many
+  <i>distinct</i> numbers does it contain, and what sits on its diagonal?</p>
+</div>
+
+<p><b>Answer.</b> Shape $3 \times 3$, so nine entries, but symmetry means
+$\Sigma_{1,2} = \Sigma_{2,1}$ and so on, leaving only 6 distinct values: the 3 diagonal
+entries plus 3 independent off-diagonal ones. In general an $n \times n$ covariance
+matrix has $n(n+1)/2$ free parameters. The diagonal holds the three individual
+variances.</p>
+
+<p>That parameter count is not trivia. A full covariance matrix over 1,000 features
+needs about 500,000 numbers to estimate, which requires an enormous amount of data,
+which is exactly why models frequently assume a diagonal covariance and accept the loss
+of fidelity. You will meet that trade in §16.</p>

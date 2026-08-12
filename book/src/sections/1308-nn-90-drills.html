@@ -1,0 +1,289 @@
+<h2><span class="part-kicker">Practice</span>Drills</h2>
+
+<p class="lede">Thirty-two problems. The Tier 2 set builds a working network from nothing
+(forward pass, backward pass, training loop), and every piece is checkable against a gradient
+check you already own.</p>
+
+<h3><span class="num">Tier 0</span> Estimate first</h3>
+
+<div class="drill">
+  <div class="head"><span class="tier est">Estimate</span>E1 &middot; Parameters in an MLP</div>
+  <p>An MLP with layers 784 &rarr; 512 &rarr; 512 &rarr; 10, with biases. Write down the parameter count before adding it up.</p>
+  <div class="ans"><b>Answer.</b> <b>669,706</b>. Note where it lives: 401,408 in the first layer and 262,144 in the second, so 99% of the model is the two big matrices and the biases are rounding error. That distribution is the reason bias terms are the first thing anyone stops worrying about. <i>Score yourself: within a factor of two is a pass, and an order of magnitude out is worth understanding before you go on.</i></div>
+</div>
+
+<h3><span class="num">Tier 1</span> Warm-up</h3>
+
+<div class="drill">
+  <div class="head"><span class="tier warm">Warm</span>W1 · Why XOR fails</div>
+  <p>In one sentence, why can no linear model represent XOR?</p>
+  <div class="ans"><b>Answer.</b> The two positive points lie on opposite corners, so any line
+  separating them puts a negative point on the same side as a positive one. The classes are
+  not linearly separable.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier warm">Warm</span>W2 · Depth without nonlinearity</div>
+  <p>What function does a 10-layer network with identity activations compute?</p>
+  <div class="ans"><b>Answer.</b> A linear one. The product of ten matrices is one matrix, so
+  it is exactly equivalent to a single layer. Part I's associativity, with consequences.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier warm">Warm</span>W3 · Output units</div>
+  <p>Choose the output activation and loss for: (a) house price (b) spam or not (c) one of 10
+  digits (d) a predicted variance.</p>
+  <div class="ans"><b>Answer.</b> (a) linear, squared error. (b) sigmoid, cross-entropy.
+  (c) softmax over 10, cross-entropy. (d) softplus, since a variance must be positive.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier warm">Warm</span>W4 · The 0.25 ceiling</div>
+  <p>The sigmoid's derivative peaks at 0.25. What is the best-case gradient scale after 15
+  sigmoid layers?</p>
+  <div class="ans"><b>Answer.</b> $0.25^{15} \approx 10^{-9}$, and that assumes every unit
+  sits at its most favourable point. In practice far smaller. The early layers do not
+  learn.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier warm">Warm</span>W5 · Why not zero</div>
+  <p>Why can weights not be initialised to zero?</p>
+  <div class="ans"><b>Answer.</b> Every unit in a layer would compute the same thing, receive
+  the same gradient, and update identically, forever. The layer collapses to one unit.
+  Biases may be zero; weights need randomness only to break symmetry.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier warm">Warm</span>W6 · Which mode</div>
+  <p>A function has $10^6$ inputs and 1 output. Forward or reverse mode, and how many passes
+  each?</p>
+  <div class="ans"><b>Answer.</b> Reverse: one pass. Forward would need $10^6$. Count the
+  narrow end: many inputs, one output, go backward.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier warm">Warm</span>W7 · Shape of a gradient</div>
+  <p>$W^{(2)}$ is $64 \times 10$. What shape is $\partial L / \partial W^{(2)}$?</p>
+  <div class="ans"><b>Answer.</b> $64 \times 10$. A gradient always has the shape of the thing
+  it differentiates with respect to, the invariant that catches most backprop bugs.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier warm">Warm</span>W8 · Dead unit</div>
+  <p>A ReLU unit outputs zero for every training example. Will it recover?</p>
+  <div class="ans"><b>Answer.</b> No. Output zero means gradient zero, so its weights never
+  update, so it outputs zero forever. Prevent it with a smaller learning rate or leaky
+  ReLU.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier warm">Warm</span>W9 · Loss goes nan</div>
+  <p>Loss becomes <code>nan</code> at step 5. First thing to try?</p>
+  <div class="ans"><b>Answer.</b> Lower the learning rate. It is the cause by a wide margin:
+  Part III §9's stability bound was exceeded, values diverged, and overflow followed.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier warm">Warm</span>W10 · Memory</div>
+  <p>Why does the backward pass need more memory than the forward pass alone?</p>
+  <div class="ans"><b>Answer.</b> Because §14's equations use the forward activations, so
+  every intermediate value must be kept alive until its gradient is computed. Memory scales
+  with depth × batch × width.</div>
+</div>
+
+<h3><span class="num">Tier 2</span> Core: build the network</h3>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C1 · Solve XOR by hand</div>
+  <p>Find weights for a 2-unit hidden layer that solve XOR. Do not train; construct them.</p>
+  <div class="ans"><b>Answer.</b> One workable construction: let one unit detect "at least one
+  input on" and the other "both on", then take the difference. With ReLU,
+  $h_1 = \text{ReLU}(x_1 + x_2)$, $h_2 = \text{ReLU}(x_1 + x_2 - 1)$, output
+  $h_1 - 2h_2$. Verify all four rows.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C2 · Forward pass</div>
+  <p>Implement a two-layer network's forward pass with explicit shapes at every step. Assert
+  each shape.</p>
+  <div class="ans"><b>Answer.</b> $X$ is $(n, d_0)$; $W_1$ is $(d_0, d_1)$; $Z_1 = XW_1 + b_1$
+  is $(n, d_1)$. The assertions cost nothing and catch transposed weights immediately.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C3 · Derive $\delta$ at the output</div>
+  <p>Show that with softmax output and cross-entropy loss,
+  $\partial L/\partial \mathbf{z} = \hat{\mathbf{y}} - \mathbf{y}$.</p>
+  <div class="ans"><b>Answer.</b> Write out $L = -\sum_i y_i \log \hat y_i$ with
+  $\hat y_i = e^{z_i}/\sum_j e^{z_j}$. Differentiating, the softmax Jacobian's structure
+  collapses against the one-hot target, leaving $\hat y_k - y_k$. The simplicity is the whole
+  argument for the pairing.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C4 · Backward pass by hand</div>
+  <p>Implement §14's four equations for a two-layer network. Verify against your Part 0
+  gradient checker.</p>
+  <div class="ans"><b>Answer.</b> Check <b>layer by layer</b>, not just the total: an
+  aggregate number tells you something is wrong but not where. A relative error below
+  $10^{-6}$ is agreement.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C5 · Train on XOR</div>
+  <p>Put C2 and C4 together and train until the loss is near zero. Then try with 1 hidden
+  unit.</p>
+  <div class="ans"><b>Answer.</b> Two hidden units suffice and one does not: with one, the
+  hidden layer is a scalar and the composition is still effectively a single boundary. Also
+  try several seeds: some initialisations fail to converge, which is the non-convexity from
+  Part VI.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C6 · Cross-entropy versus squared error</div>
+  <p>Train the same classifier with both losses from a badly wrong initialisation. Plot the
+  loss curves.</p>
+  <div class="ans"><b>Answer.</b> Squared error stalls, because the $\sigma'$ factor kills the
+  gradient exactly where the model is most wrong (Figure 6). Cross-entropy corrects
+  immediately. This is the most convincing demonstration in the part.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C7 · Initialisation sweep</div>
+  <p>Push a signal through 30 layers at $\sigma \in \{0.01, 0.1, \sqrt{2/n}, 0.5\}$ and plot
+  the activation standard deviation by layer.</p>
+  <div class="ans"><b>Answer.</b> Figure 7. Only the scaled version holds constant. Then repeat
+  for the backward pass and confirm the same three fates, the problem being symmetric.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C8 · Measure vanishing gradients</div>
+  <p>Build a 25-layer network with sigmoid, tanh and ReLU. Measure the gradient magnitude
+  reaching each layer.</p>
+  <div class="ans"><b>Answer.</b> Figure 10. Sigmoid loses many orders of magnitude by the
+  early layers; ReLU with matched initialisation holds roughly flat. Historically this is
+  the measurement that explains two decades of failure.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C9 · Residual connection</div>
+  <p>Add $\mathbf{a} + f(\mathbf{a})$ skip connections to C8's sigmoid network. Re-measure.</p>
+  <div class="ans"><b>Answer.</b> The gradient survives far deeper, because differentiating
+  $\mathbf{a} + f(\mathbf{a})$ gives $1 + f'$, a path that is never multiplied down. One
+  structural change, and very deep networks become trainable.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C10 · Count dead units</div>
+  <p>Train at several learning rates and count units that never activate.</p>
+  <div class="ans"><b>Answer.</b> Figure 11. At a large rate a substantial fraction die in the
+  first few dozen steps. Swap in leaky ReLU and watch the count fall to zero.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C11 · Overfit ten examples</div>
+  <p>Take 10 training points and drive the loss to near zero. Then deliberately break
+  something (transpose a weight, detach a gradient) and confirm it can no longer.</p>
+  <div class="ans"><b>Answer.</b> This is §20's step 1 and the most valuable habit in the
+  part. A network that cannot memorise ten examples has a bug, not a learning problem, and
+  the test takes seconds.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C12 · Build the autograd engine</div>
+  <p>Implement <code>Value</code> with <code>+</code>, <code>*</code>, <code>tanh</code> and
+  <code>backward()</code>. Verify against numerical gradients.</p>
+  <div class="ans"><b>Answer.</b> The two things to get right are the topological sort and
+  accumulating with <code>+=</code>. Test on an expression that reuses a value, for instance
+  $y = x \cdot x + x$, since that is exactly where assignment silently fails.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C13 · MLP on your engine</div>
+  <p>Build a multi-layer network out of your <code>Value</code> class and train it on XOR.</p>
+  <div class="ans"><b>Answer.</b> Painfully slow (one Python object per scalar) and
+  completely correct. That contrast is the point: frameworks are this, with arrays instead of
+  scalars and fused kernels instead of interpreted loops.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C14 · Find the bug</div>
+  <p>This backward pass runs and gives wrong gradients. Two faults.</p>
+  <pre><code>dZ2 = P - Y
+dW2 = A1.T @ dZ2
+dA1 = dZ2 @ W2.T
+dZ1 = dA1
+dW1 = X.T @ dZ1</code></pre>
+  <div class="ans"><b>Answer.</b> (1) No division by batch size: the loss is a <i>mean</i>,
+  so <code>dZ2</code> should be <code>(P - Y) / n</code>. Gradients are $n$ times too large,
+  which looks like a learning rate problem. (2) The activation derivative is missing:
+  <code>dZ1 = dA1 * (Z1 &gt; 0)</code> for ReLU. Without it the gradient ignores the
+  nonlinearity entirely.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C15 · Learning rate sweep</div>
+  <p>Train the same network across six orders of magnitude of learning rate. Plot final
+  loss.</p>
+  <div class="ans"><b>Answer.</b> A U with a cliff on the right (Figure 12). The usable range
+  is often narrower than one order of magnitude, which is why this sweep is the first thing to
+  run on a new problem.</div>
+</div>
+
+<h3><span class="num">Tier 3</span> Stretch</h3>
+
+<div class="drill">
+  <div class="head"><span class="tier stretch">Stretch</span>S1 · Depth versus width, measured</div>
+  <p>Fix a parameter budget. Train networks of equal size at several depths on a problem
+  needing many boundaries. Compare.</p>
+  <div class="ans"><b>Answer.</b> Deeper wins on representational capacity up to the point
+  where gradient flow fails, then loses. The crossover moves with better initialisation and
+  residual connections, which is the empirical history of the field in one plot.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier stretch">Stretch</span>S2 · Batch normalisation</div>
+  <p>Implement it, including its backward pass. Measure the effect on gradient flow in C8's
+  network.</p>
+  <div class="ans"><b>Answer.</b> The backward pass is genuinely fiddly, because the
+  normalisation statistics depend on every example in the batch; so the gradient of one
+  example's output involves all of them. Deriving it carefully is the best exercise in this
+  part.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier stretch">Stretch</span>S3 · Gradient checkpointing</div>
+  <p>Implement it: store every $k$-th activation and recompute the rest. Measure peak memory
+  and time.</p>
+  <div class="ans"><b>Answer.</b> Memory falls roughly as $O(L/k + k)$, minimised near
+  $k = \sqrt{L}$, at the cost of about one extra forward pass. §17, made concrete.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier stretch">Stretch</span>S4 · Fit random labels</div>
+  <p>Train a network to fit randomly assigned labels on real inputs. Can it? What does that
+  imply?</p>
+  <div class="ans"><b>Answer.</b> It can, to near-zero training error: there is no structure
+  to find, so it memorises. This means capacity alone cannot explain why networks generalise
+  on real labels, which is the puzzle the 2017 paper in the reading list made explicit and
+  which remains open.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier stretch">Stretch</span>S5 · Forward-mode AD</div>
+  <p>Implement forward mode using dual numbers. Compare its cost against reverse mode as the
+  parameter count grows.</p>
+  <div class="ans"><b>Answer.</b> Forward mode is simpler to implement (no graph, no
+  topological sort), and its cost grows linearly with the number of inputs. Figure 9. It is
+  the right choice when the input is low-dimensional, which for training it never is.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier stretch">Stretch</span>S6 · Beat your own engine</div>
+  <p>Rewrite C12 to operate on arrays rather than scalars. Measure the speedup on the same
+  problem.</p>
+  <div class="ans"><b>Answer.</b> Typically two to three orders of magnitude, from
+  vectorisation alone, before any GPU. This is why frameworks are built on array operations,
+  and it makes Part I §5's remark about hardware concrete.</div>
+</div>

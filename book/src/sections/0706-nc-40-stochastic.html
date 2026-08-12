@@ -1,0 +1,416 @@
+<h2><span class="part-kicker">Part D</span>Stochastic methods</h2>
+
+<h3><span class="num">§14</span> Stochastic gradient descent</h3>
+
+<div class="sixty">
+  <span class="label">In 60 seconds</span>
+  <p>The loss is an average over the whole dataset, so its exact gradient costs a full pass
+  through the data, for one step. Instead, estimate the gradient from a small random
+  sample. The estimate is <b>unbiased but noisy</b>. You trade accuracy per step for
+  enormously more steps per second, and that trade is overwhelmingly worth making.</p>
+</div>
+
+<div class="readnow"><span class="label">Go and read</span><p><span class="src">Robbins &amp; Monro (1951)</span>, <i>A stochastic approximation method</i>. The ancestor of every optimiser in this book, written for a problem in sequential experimentation with no connection to learning whatever. The step-size conditions it proves convergence under are the reason your learning rate schedule decays; see the history box below, then read the paper and notice how little it needed to assume.</p></div>
+
+<p>The objective in supervised learning is an average over examples:</p>
+
+$$f(\boldsymbol{\theta}) = \frac{1}{m}\sum_{i=1}^{m} L\big(\mathbf{x}^{(i)}, y^{(i)}; \boldsymbol{\theta}\big)$$
+
+<p>Its gradient is therefore also an average, over $m$ terms. With $m$ in the millions,
+computing it exactly to take <i>one</i> step is absurd; you would spend an entire pass over
+the data to move once.</p>
+
+<p>But an average is exactly the thing that can be estimated by sampling. Draw a minibatch
+$\mathcal{B}$ of size $b$ and compute</p>
+
+$$\hat{\mathbf{g}} = \frac{1}{b}\sum_{i \in \mathcal{B}} \nabla L\big(\mathbf{x}^{(i)}, y^{(i)}; \boldsymbol{\theta}\big)$$
+
+<p>By Part II §10, $\mathbb{E}[\hat{\mathbf{g}}] = \nabla f$: the estimate is
+<b>unbiased</b>. It points in the right direction on average, and its cost is independent
+of dataset size.</p>
+
+<figure>
+  <img src="figures/nc/07-sgd-noise.svg" alt="Optimisation trajectories at batch size 1, 16 and full batch">
+  <figcaption><b>Figure 7.</b> The same regression problem optimised at three batch sizes,
+  real trajectories on the true loss contours. Batch size 1 wanders substantially but still
+  gets there. Sixteen is visibly steadier. The full batch is smooth, and it cost 400 times
+  more per step than the first. Noise falls as $1/\sqrt{b}$; cost rises as $b$.</figcaption>
+</figure>
+
+<div class="box intuition">
+  <span class="label">Intuition: the accuracy you are buying is wasted</span>
+  <p>Part II's Monte Carlo result says the standard error of an average falls like
+  $1/\sqrt{b}$. So going from a batch of 100 to a batch of 10,000 costs 100 times the
+  computation and buys a tenfold reduction in gradient noise.</p>
+  <p>That would be a bad trade even if the extra precision were useful, and it mostly is
+  not. You are about to take a small step and recompute anyway. A roughly correct direction
+  now beats a precisely correct direction a hundred times later, which is why essentially
+  all large-scale training is stochastic.</p>
+</div>
+
+<div class="box why">
+  <span class="label">Why this matters: the noise is not purely a cost</span>
+  <p>Gradient noise turns out to help in two ways nobody designed for.</p>
+  <p>It lets the optimiser <b>escape saddle points</b>. Exact gradient descent that lands
+  on a saddle stops there, since the gradient is zero; a noisy step is knocked off and
+  continues downhill. Given §18, this matters a great deal.</p>
+  <p>And it appears to <b>improve generalisation</b>. Small-batch training reliably finds
+  solutions that perform better on unseen data than large-batch training of the same model,
+  an effect usually attributed to noise preferring wide flat minima over narrow sharp ones.
+  The full explanation is still contested, but the effect is robust enough that batch size
+  is treated as a regularization knob rather than purely a throughput one.</p>
+</div>
+
+<div class="box history">
+  <span class="label">History: invented for a problem that had nothing to do with learning</span>
+  <p>In <span class="year">1951</span> Herbert Robbins and Sutton Monro published a method
+  for a problem in sequential experimentation: find the input at which an unknown function
+  crosses zero, when every measurement of that function is corrupted by noise.</p>
+  <p>Their insight was that you do not need accurate measurements if you take enough
+  cheap ones and shrink your step sizes appropriately. They proved convergence under
+  conditions on the step sequence: that the steps must sum to infinity so you can still
+  travel any distance, while their squares must sum to something finite so the noise
+  eventually settles. Those two conditions are why learning rate schedules decay, and
+  §17 is their descendant.</p>
+  <p>The paper never mentions machine learning, which did not meaningfully exist. It is
+  about stochastic approximation as a general technique, and it is the direct ancestor of
+  the optimiser used to train every large model in existence.</p>
+</div>
+
+<h3><span class="num">§15</span> Momentum</h3>
+
+<div class="sixty">
+  <span class="label">In 60 seconds</span>
+  <p>Keep a <b>running velocity</b> rather than stepping along the raw gradient each time.
+  Successive gradients in the same direction accumulate; successive gradients that
+  alternate in sign cancel. The result damps oscillation across narrow valleys and builds
+  speed along the valley floor. At $\beta = 0.9$ the effective step along a consistent
+  direction is $1/(1-\beta) = 10$ times a single gradient step, close to free
+  improvement, which is why momentum is on by default in essentially every modern
+  optimiser.</p>
+</div>
+
+<div class="readnow"><span class="label">Go and read</span><p><span class="src">Polyak (1964)</span>, <i>Some methods of speeding up the convergence of iteration methods</i>. Momentum, in four pages. Then <span class="src">Nesterov (1983)</span> for the accelerated variant and its $O(1/k^2)$ guarantee, a rate that Part IX §15 will show does not survive contact with stochastic gradients, which is worth knowing before you read the theorem.</p></div>
+
+<p>Section 9 diagnosed the narrow valley: the gradient points mostly across it, so descent
+oscillates while creeping along the useful direction. Momentum attacks that oscillation
+directly.</p>
+
+<div class="box def">
+  <span class="label">Momentum</span>
+  <p>$$\mathbf{v} \leftarrow \beta\mathbf{v} + \nabla f(\boldsymbol{\theta}), \qquad
+     \boldsymbol{\theta} \leftarrow \boldsymbol{\theta} - \alpha\mathbf{v}$$</p>
+  <p>Keep a running velocity rather than stepping along the raw gradient. Typically
+  $\beta \approx 0.9$.</p>
+</div>
+
+<figure>
+  <img src="figures/nc/06-momentum.svg" alt="Plain descent oscillating across a valley versus momentum damping it">
+  <figcaption><b>Figure 8.</b> Curvature ratio 22:1, identical step size ($\alpha=0.05$), 60
+  iterations each. The step size exceeds $1/\lambda_{\max}$ so plain descent oscillates
+  across the valley on every step (the y-component flips sign each iteration) while
+  inching along it. With momentum ($\beta=0.8$) the across-valley oscillations are damped
+  and the useful direction accumulates, ending roughly 38 times closer (distance 0.003
+  versus 0.111) at no extra gradient evaluation.</figcaption>
+</figure>
+
+<div class="box intuition">
+  <span class="label">Intuition: averaging cancels what alternates</span>
+  <p>Across the valley, successive gradients point in <i>opposite</i> directions:
+  left, right, left. Accumulating them makes those contributions cancel.</p>
+  <p>Along the valley, successive gradients point the <i>same</i> way every time.
+  Accumulating them makes those contributions add, building up speed.</p>
+  <p>So momentum is a filter that suppresses whatever alternates and amplifies whatever
+  persists. The physical picture (a heavy ball rolling down the valley rather than a
+  particle teleporting to wherever the local slope points) is the standard one and is
+  reasonably faithful.</p>
+</div>
+
+<p>The effective step along a consistent direction is roughly $1/(1-\beta)$ times a single
+gradient step, so $\beta = 0.9$ multiplies progress along the valley floor by about ten.
+That factor is why momentum is close to free improvement, and why it is on by default
+almost everywhere.</p>
+
+<p>That factor is worth deriving rather than accepting, because it is one line and it makes
+the choice of $\beta$ stop being a mystery. Suppose the gradient is the same vector
+$\mathbf{g}$ every step, which is the situation along the valley floor. The velocity settles
+at whatever value reproduces itself:</p>
+
+$$\mathbf{v} = \beta\mathbf{v} + \mathbf{g} \quad\Longrightarrow\quad
+\mathbf{v}(1-\beta) = \mathbf{g} \quad\Longrightarrow\quad \mathbf{v} = \frac{\mathbf{g}}{1-\beta}$$
+
+<p>Equivalently, unrolling the recursion gives $\mathbf{g} + \beta\mathbf{g} +
+\beta^2\mathbf{g} + \cdots$, a geometric series summing to $\mathbf{g}/(1-\beta)$. At
+$\beta = 0.9$ that is $10\mathbf{g}$; at $\beta = 0.99$ it is $100\mathbf{g}$.</p>
+
+<p>The same number has a second reading that is more useful in practice. The velocity is a
+weighted average of past gradients with weights $1, \beta, \beta^2, \dots$, so it is
+effectively averaging over <b>roughly the last $1/(1-\beta)$ gradients</b>. That is the
+sentence to carry: $\beta = 0.9$ remembers about ten steps, $\beta = 0.99$ about a hundred.
+Both facts about $\beta$ (how much it amplifies a persistent direction and how long it
+remembers) are the same quantity, which is why raising it helps and hurts at the same
+time.</p>
+
+<h3><span class="num">§16</span> Adaptive methods</h3>
+
+<div class="sixty">
+  <span class="label">In 60 seconds</span>
+  <p>Give <b>each parameter its own step size</b>, scaled by the size of the gradients that
+  parameter has been receiving. Parameters with consistently large gradients get small
+  steps; rarely-updated ones get large steps. This is a cheap diagonal stand-in for the
+  curvature rescaling that Newton's method does exactly, at $O(n)$ instead of $O(n^3)$.
+  AdaGrad introduced the idea; RMSProp fixed its fatal flaw (a step size that only ever
+  shrinks); Adam combined per-parameter scaling with momentum and became the default
+  optimiser for deep learning.</p>
+</div>
+
+<div class="readnow"><span class="label">Go and read</span><p><span class="src">Duchi, Hazan &amp; Singer (2011)</span>, <i>Adaptive subgradient methods</i>. AdaGrad, and the convex analysis that motivated the per-parameter scaling. Then <span class="src">Kingma &amp; Ba (2015)</span> for Adam, which is unusually readable for an optimisation paper; and then <span class="src">Reddi, Kale &amp; Kumar (2018)</span>, which finds the error in Adam's proof and builds a convex problem where it fails outright. Read the three in that order. The sequence is a better education in how this field works than any commentary on it, including the history box below.</p></div>
+
+<p>Three methods in a line of descent, each fixing the previous one's flaw.</p>
+
+<h4>AdaGrad</h4>
+
+<p>Accumulate the squared gradients seen so far, and divide by the square root:</p>
+
+$$\mathbf{s} \leftarrow \mathbf{s} + \mathbf{g}^2, \qquad
+  \boldsymbol{\theta} \leftarrow \boldsymbol{\theta} - \frac{\alpha}{\sqrt{\mathbf{s}} + \epsilon}\,\mathbf{g}$$
+
+<p>All operations elementwise. Excellent for sparse features; a parameter that is rarely
+active keeps a small $\mathbf{s}$ and so retains a large step. Its flaw is structural:
+$\mathbf{s}$ only ever grows, so the effective learning rate decays monotonically toward
+zero and training eventually stalls whether or not it has converged.</p>
+
+<div class="box intuition">
+  <span class="label">Intuition: why the square root, and why squares in the first place</span>
+  <p>Both choices in that formula look arbitrary and neither is.</p>
+  <p><b>Why accumulate squares.</b> You want to know how <i>large</i> this parameter's
+  gradients have been, not which way they pointed. Accumulating $\mathbf{g}$ itself would
+  cancel: a parameter oscillating between $+5$ and $-5$ would register as quiet when it is
+  the noisiest one you have. Squaring discards the sign and keeps the magnitude, exactly as
+  it does for variance in Part II §11.</p>
+  <p><b>Why the square root.</b> For RMSProp (just below), $\mathbf{s}$ is a running
+  <i>average</i> of $g^2$, so $\sqrt{\mathbf{s}}$ is a root-mean-square gradient, a
+  quantity in the <i>same units</i> as $\mathbf{g}$. The ratio $\mathbf{g}/\sqrt{\mathbf{s}}$
+  is therefore unit-free: it says "how many typical gradients is this one", and it lands near
+  $\pm 1$ for every parameter no matter what scale that parameter's gradients live on. That
+  is the whole point: every coordinate is put on a common footing so that a single global
+  $\alpha$ can serve all of them. For AdaGrad, $\mathbf{s}$ is a running <i>sum</i> that
+  only ever grows, so $\sqrt{\mathbf{s}}$ grows like $\sqrt{t}$ and the effective step
+  shrinks toward zero, which is the structural flaw that RMSProp fixes.</p>
+  <p>Dividing by $\mathbf{s}$ instead would be a genuine bug, not a variant. The update
+  would scale like $g/g^2 = 1/g$, which <i>grows</i> as gradients shrink, so the closer you
+  got to a minimum, the more violently you would step. The square root is what keeps the
+  rescaling a normalisation rather than an inversion.</p>
+</div>
+
+<h4>RMSProp</h4>
+
+<p>Replace the running sum with a running <i>average</i>, which forgets:</p>
+
+$$\mathbf{s} \leftarrow \rho\,\mathbf{s} + (1-\rho)\,\mathbf{g}^2$$
+
+<p>Now $\mathbf{s}$ tracks the recent gradient scale rather than the whole history, so the
+step size can recover when curvature changes. This one fix makes the method work on
+non-convex problems, where the landscape genuinely differs between regions.</p>
+
+<h4>Adam</h4>
+
+<p>Combine RMSProp's per-parameter scaling with momentum's velocity, and correct both for
+the fact that they start at zero:</p>
+
+$$\mathbf{v} \leftarrow \beta_1\mathbf{v} + (1-\beta_1)\mathbf{g}, \qquad
+  \mathbf{s} \leftarrow \beta_2\mathbf{s} + (1-\beta_2)\mathbf{g}^2$$
+$$\hat{\mathbf{v}} = \frac{\mathbf{v}}{1-\beta_1^t}, \qquad
+  \hat{\mathbf{s}} = \frac{\mathbf{s}}{1-\beta_2^t}, \qquad
+  \boldsymbol{\theta} \leftarrow \boldsymbol{\theta} - \frac{\alpha\,\hat{\mathbf{v}}}{\sqrt{\hat{\mathbf{s}}} + \epsilon}$$
+
+<p>The bias correction matters more than it looks. Both accumulators are initialised to
+zero, so early on they badly underestimate their targets; dividing by $1 - \beta^t$
+compensates exactly, and without it the first several hundred steps are far too
+small.</p>
+
+<figure>
+  <img src="figures/nc/08-adaptive.svg" alt="Objective versus iteration for gradient descent, RMSProp and Adam">
+  <figcaption><b>Figure 9.</b> A curvature ratio of 75:1. Plain descent is capped by the
+  steep direction and crawls along the flat one. RMSProp and Adam rescale each coordinate
+  by its own gradient history and descend orders of magnitude further in the same number of
+  iterations. Real runs on the same objective from the same start.</figcaption>
+</figure>
+
+<div class="box history">
+  <span class="label">History: the proof was wrong, and it did not matter much</span>
+  <p>Adam was published in <span class="year">2015</span> with a convergence proof and
+  became the default optimiser for deep learning within about two years.</p>
+  <p>In <span class="year">2018</span> a paper titled <i>On the Convergence of Adam and
+  Beyond</i> showed the proof contained an error, and (worse) constructed a simple convex
+  problem on which Adam provably fails to converge at all. The paper won a best-paper award
+  at ICLR that year.</p>
+  <p>What happened next is the interesting part: essentially nothing. Adam remained the
+  default, because the counterexamples were not representative of the problems people
+  actually train on, and no proposed replacement was reliably better in practice. The
+  field's response to "your theoretical justification is invalid" was, in effect, "the
+  method still works."</p>
+  <p>That is worth sitting with. It is a real and uncomfortable feature of this field:
+  practice frequently runs ahead of theory, sometimes for years, and the empirical evidence
+  is often stronger than the proofs. Part 0 §14 made the same observation about calculus
+  operating for 150 years without rigorous foundations.</p>
+</div>
+
+<div class="box pitfall">
+  <span class="label">Pitfall: adaptive does not mean automatic</span>
+  <p>Adam still has a learning rate, and it still matters. The adaptivity rescales
+  <i>relative</i> step sizes across parameters; the global scale is yours to choose.</p>
+  <p>There is also persistent evidence that well-tuned plain SGD with momentum generalises
+  better than Adam on some problems, particularly in vision. Adam converges faster in
+  training loss; that is not the same as ending up at a better solution.</p>
+</div>
+
+<h3><span class="num">§17</span> Learning rate schedules</h3>
+
+<div class="readnow"><span class="label">Go and read</span><p><span class="src">Loshchilov &amp; Hutter (2019)</span>, <i>Decoupled weight decay regularization</i>. Why <code>Adam(weight_decay=λ)</code> and <code>AdamW(weight_decay=λ)</code> do different things, worked out precisely. The framework box at the end of this section states the conclusion; the paper is where the argument is, and it is short.</p></div>
+
+<p>Robbins and Monro's conditions from §14 imply that a constant step size cannot converge
+in the presence of noise; it can only reach a neighbourhood of the optimum and then rattle
+around inside it, at a radius set by the noise and the step size.</p>
+
+<p>The fix is to shrink the step over time.</p>
+
+<figure>
+  <img src="figures/nc/09-schedules.svg" alt="Three learning rate schedules and their effect on a noisy objective">
+  <figcaption><b>Figure 10.</b> Left: constant, step decay, and cosine schedules. Right:
+  each run on the same noisy quadratic. The constant rate plateaus at a noise floor and
+  stays there. Decaying schedules keep descending, because shrinking the step shrinks the
+  neighbourhood the noise can hold you in.</figcaption>
+</figure>
+
+<table class="compact">
+  <thead><tr><th>Schedule</th><th>Behaviour</th></tr></thead>
+  <tbody>
+    <tr><td><b>Constant</b></td><td>Simple; plateaus at a noise floor.</td></tr>
+    <tr><td><b>Step decay</b></td><td>Multiply by a factor every $k$ epochs. Crude, effective, and visible as steps in the loss curve.</td></tr>
+    <tr><td><b>Cosine</b></td><td>Smoothly anneal to near zero over the run. Common in modern practice.</td></tr>
+    <tr><td><b>Warmup</b></td><td>Start small and <i>increase</i> for the first few hundred steps. Prevents early instability when gradients are large and adaptive estimates are still unreliable.</td></tr>
+  </tbody>
+</table>
+
+<div class="box fw">
+  <span class="label">In the framework: every symbol in §§14–17 is a keyword argument</span>
+  <p>The formulas of this part are not implemented by users. They are constructor arguments,
+  and the names map one-to-one onto the mathematics:</p>
+<pre><code><span class="k">import</span> torch
+
+opt = torch.optim.SGD(model.parameters(), lr=<span class="n">0.1</span>, momentum=<span class="n">0.9</span>)
+<span class="c">#                                          alpha        beta   (section 15)</span>
+
+opt = torch.optim.Adam(model.parameters(), lr=<span class="n">1e-3</span>,
+                       betas=(<span class="n">0.9</span>, <span class="n">0.999</span>),   <span class="c"># beta_1 and beta_2 from section 16</span>
+                       eps=<span class="n">1e-8</span>)              <span class="c"># the epsilon in the denominator</span>
+
+sched = torch.optim.lr_scheduler.CosineAnnealingLR(opt, T_max=n_steps)
+</code></pre>
+  <p>Adam's defaults ($\beta_1 = 0.9$, $\beta_2 = 0.999$, $\epsilon = 10^{-8}$) are the
+  values from the original paper and are almost never changed. Read them through §15's
+  memory formula and they say something concrete: the velocity averages over roughly the last
+  $1/(1-0.9) = 10$ gradients and the squared-gradient estimate over the last
+  $1/(1-0.999) = 1000$. The scale estimate is deliberately far more sluggish than the
+  direction estimate, because a per-parameter scale should reflect the terrain rather than
+  the last few steps.</p>
+
+  <h4>The loop, and the one line that surprises everybody</h4>
+<pre><code><span class="k">for</span> x, y <span class="k">in</span> loader:
+    opt.zero_grad()            <span class="c"># <-- this one</span>
+    loss = F.cross_entropy(model(x), y)
+    loss.backward()
+    torch.nn.utils.clip_grad_norm_(model.parameters(), <span class="n">1.0</span>)   <span class="c"># Part I section 15</span>
+    opt.step()
+    sched.step()
+</code></pre>
+  <p><code>zero_grad()</code> exists because <b>gradients accumulate rather than
+  overwrite</b>. Autograd adds each new gradient into <code>.grad</code> with <code>+=</code>,
+  so without clearing it you are stepping on the sum of every batch so far. The symptom is a
+  loss that diverges after a few dozen steps for no visible reason.</p>
+  <p>Part VII §21 explains why the <code>+=</code> is not a design mistake but a necessity: a
+  value used twice in a computation must receive both contributions. The framework cannot
+  distinguish "this value was reused within one backward pass" from "this is a new backward
+  pass", so it accumulates always and leaves the clearing to you. One line of inconvenience
+  bought by a correctness requirement three parts away.</p>
+  <p><b>Note also that the optimiser is an object, not a function.</b> It has to be: momentum
+  and the squared-gradient average are <i>state</i>, carried between steps. That is why
+  <code>opt.step()</code> takes no arguments; everything it needs, including the gradients
+  autograd deposited, it already holds.</p>
+
+  <h4>Adam versus AdamW, which is not a cosmetic difference</h4>
+  <p>Both take a <code>weight_decay</code> argument and they do different things with it,
+  and this catches experienced people.</p>
+  <p><code>Adam(weight_decay=λ)</code> adds $\lambda\mathbf{w}$ to the <i>gradient</i>, which
+  then passes through the $1/\sqrt{\mathbf{s}}$ rescaling like everything else. So the
+  effective penalty on each weight is divided by that weight's recent gradient magnitude;
+  parameters with large gradients get weakly regularized and quiet ones get hammered. That is
+  not $L^2$ regularization, and it is not the Gaussian prior of Part V §18 either.</p>
+  <p><code>AdamW(weight_decay=λ)</code> applies the decay directly to the weights, outside
+  the adaptive rescaling, which is what the derivation in Part V §18 actually says to do.
+  It is the reason the variant exists and the reason its default is $0.01$ where Adam's is
+  $0$. <b>If you want weight decay with an adaptive optimiser, use AdamW.</b></p>
+  <p>Keras spells all of this the same way:
+  <code>tf.keras.optimizers.Adam(learning_rate=1e-3, beta_1=0.9, beta_2=0.999)</code>, and
+  hides the zeroing inside <code>model.fit</code>, which is convenient until you write a
+  custom loop with <code>tf.GradientTape</code> and have to know it was there.</p>
+</div>
+
+<h3><span class="num">§18</span> Saddle points and high dimensions</h3>
+
+<p>Folklore says optimisation of non-convex functions fails because it gets stuck in bad
+local minima. In high dimensions this appears to be substantially wrong, and the reason is
+a counting argument.</p>
+
+<p>A critical point is a minimum only if the Hessian's curvature is positive in
+<i>every</i> direction. For $n$ parameters that is $n$ eigenvalues that must all be
+positive. If each sign were independent and equally likely, the probability is $2^{-n}$,
+which for any realistic $n$ is indistinguishable from zero.</p>
+
+<figure>
+  <img src="figures/nc/12-saddles.svg" alt="Probability that all curvatures agree in sign, and a simulation">
+  <figcaption><b>Figure 11.</b> Left: the naive counting bound, $2^{-n}$. Right: a
+  simulation: random symmetric matrices tested for positive definiteness, 400 trials per
+  dimension. Both collapse fast. Past about twenty dimensions a randomly encountered
+  critical point is essentially never a minimum. It is a saddle.</figcaption>
+</figure>
+
+<div class="box why">
+  <span class="label">Why this matters: it reframes the whole difficulty</span>
+  <p>If saddles dominate, then the problem is not escaping bad minima but escaping
+  <b>plateaus</b>. Near a saddle the gradient is small in every direction, so progress
+  stalls even though a descent direction exists.</p>
+  <p>This explains several things at once. It explains why training loss curves plateau and
+  then resume. It explains why gradient <i>noise</i> helps rather than merely being tolerated;
+  noise knocks the iterate off the saddle. And it explains why Newton's method is
+  actively unsuitable here, as §12 noted: it is attracted to critical points of any kind,
+  and most of them are exactly the ones you want to leave.</p>
+</div>
+
+<div class="box try">
+  <span class="label">Try it</span>
+  <p>Momentum with $\beta = 0.99$ instead of $0.9$. What happens to the effective step
+  along a consistent direction, and what is the risk?</p>
+</div>
+
+<p><b>Answer.</b> The amplification is $1/(1-\beta) = 100$, against 10 at $\beta = 0.9$,
+a tenfold larger effective step along any persistent direction.</p>
+<p>Two risks follow, and it matters which one is real. The velocity now averages over
+roughly the last hundred gradients, so it responds sluggishly when the right direction
+changes, and it will overshoot a minimum it arrives at with speed; that risk is real.
+What is <i>not</i> true is that raising $\beta$ tightens the deterministic stability limit
+from §9. Working through the heavy-ball recursion
+$\mathbf{v}\leftarrow\beta\mathbf{v}+\nabla f$, $\boldsymbol{\theta}\leftarrow
+\boldsymbol{\theta}-\alpha\mathbf{v}$ on the same quadratic gives a divergence threshold
+of $\alpha < 2(1+\beta)/\lambda_{\max}$, <i>looser</i> as $\beta$ grows, from
+$2/\lambda_{\max}$ at $\beta=0$ toward $4/\lambda_{\max}$ as $\beta\to1$. A learning rate
+that is stable at $\beta=0.9$ ($\alpha<3.8/\lambda_{\max}$) is still stable at $\beta=0.99$
+($\alpha<3.98/\lambda_{\max}$) on this deterministic problem; it does not "diverge
+outright." The runs that do blow up at high momentum are explained by something this
+deterministic analysis does not model: a stochastic gradient's <i>noise</i> is amplified
+by the same $1/(1-\beta)$ factor that amplifies its signal, and a large, badly-timed
+overshoot compounds across the hundred-gradient memory window before it damps out. High
+momentum and high learning rate is still a common and puzzling way to blow up a training
+run: the mechanism is noise amplification and transient overshoot, not a tighter
+deterministic limit.</p>

@@ -1,0 +1,122 @@
+<h2><span class="part-kicker">Part E</span>Beyond the weights</h2>
+
+<p class="lede">Everything so far changes the model. This movement changes what the model has access
+to at the moment it answers, which is usually cheaper, always more current, and increasingly where
+the capability actually comes from.</p>
+
+<h3><span class="num">§34</span> Retrieval</h3>
+
+<div class="readnow"><span class="label">Go and read</span><p><span class="src">Lewis et al. (2020)</span>, <i>Retrieval-augmented generation</i>. The construction, and the argument for keeping knowledge in a document store rather than in weights: current, attributable, editable and access-controlled. All four are properties a fine-tune cannot have.</p></div>
+
+<div class="box def">
+  <span class="label">The construction</span>
+  <p>Embed a corpus (Part XV), index it (Part XV §29), retrieve passages relevant to the query, and
+  put them in the context. The model then answers from text in front of it rather than from its
+  weights.</p>
+  <p>What this buys is specific: knowledge that is <b>current</b>, <b>attributable</b> to a source,
+  <b>correctable</b> by editing a document rather than retraining, and <b>access-controlled</b> per
+  user. None of those is available from a fine-tune, and all of them are what most deployments
+  actually need.</p>
+</div>
+
+<div class="box pitfall">
+  <span class="label">Pitfall: the failure is usually retrieval, and it is usually blamed on the model</span>
+  <p>A retrieval system has two independent failure points and Part XV §29's separation applies: run
+  exact search on a sample. If exact search does not surface the right passage, the encoder is at
+  fault and no amount of prompting fixes it.</p>
+  <p>Then the second failure, which is specific to this setting: the model receives a retrieved
+  passage and must decide whether to use it. Given an <b>irrelevant</b> passage it will often use it
+  anyway; given a passage that <b>contradicts</b> its weights it may follow either. Both are
+  measurable by construction (inject a known-irrelevant or known-wrong passage and count), and both
+  are worth measuring before deployment rather than after.</p>
+</div>
+
+<h3><span class="num">§35</span> Tools</h3>
+
+<div class="box def">
+  <span class="label">Emitting a call instead of an answer</span>
+  <p>Give the model a description of available functions and let it emit a structured call; run it;
+  put the result back in the context. A calculator removes §4's arithmetic problem outright. Code
+  execution replaces a guess with a computation. Search replaces recall with retrieval.</p>
+  <p>The pattern is worth naming: <b>the model decides what to do and something else does it</b>. It
+  is the same division as Part XVIII §42's verifiable rewards, and it is reliable for the same
+  reason: the hard part is delegated to something that is actually correct.</p>
+</div>
+
+<h3><span class="num">§36</span> Agents</h3>
+
+<div class="box def">
+  <span class="label">The loop, and where it breaks</span>
+  <p>Let the model call tools, observe results, and decide what to do next, repeatedly. That is the
+  whole idea, and it turns a single prediction into a sequential decision problem: Part XVIII's
+  setting, with a policy that was never trained by Part XVIII's methods.</p>
+  <p>The failure modes are therefore the ones Part XVIII predicts. <b>Compounding error</b>: at 95%
+  per step, twenty steps is 36%. <b>No credit assignment</b>: a failure at step 20 gives no signal
+  about the mistake at step 3. <b>Distribution shift</b>: after a few steps the context is the
+  model's own output, which is Part XVI §12's exposure bias over a much longer horizon.</p>
+  <p>What makes agents work in practice is mostly the same as what makes reinforcement learning
+  work: <b>verifiable intermediate steps</b>. An agent that can run tests, check a compiler, or
+  query a database gets a correction signal per step. One that cannot is a twenty-step open-loop
+  plan, and the arithmetic above is what happens to it.</p>
+</div>
+
+<h3><span class="num">§37</span> Test-time compute</h3>
+
+<div class="box def">
+  <span class="label">Spending more at inference instead of at training</span>
+  <p>Several mechanisms, in rough order of sophistication. <b>Sampling several answers</b> and
+  taking the most common, which works when errors are uncorrelated. <b>Best-of-$n$ against a
+  verifier</b>, which works exactly as well as the verifier does. <b>Longer chains of reasoning</b>,
+  which §22 measures. And <b>models trained to use that budget</b>: Part XVIII §42's reasoning
+  training, where the policy learns to search rather than being prompted to.</p>
+  <p>The reframing this produced is genuine: performance is a function of <b>training</b> compute
+  and <b>inference</b> compute, and the second can be traded against the first. A smaller model
+  thinking longer can beat a larger one answering immediately, which changes Part XVII §14's
+  lifetime-cost arithmetic substantially.</p>
+</div>
+
+<div class="box pitfall">
+  <span class="label">Pitfall: best-of-$n$ is Part XIV §20 with extra steps</span>
+  <p>Generating $n$ candidates and selecting the best by a scorer is selection on a noisy
+  measurement, and the winner's score is biased upward exactly as Part XIV §20 measured. If the
+  scorer is a learned reward model, large $n$ finds its errors, Part XVIII §41 again.</p>
+  <p>So report $n$, and evaluate the selected answer against something the selector did not see.
+  A best-of-64 result compared against a single-sample baseline is not a comparison of models.</p>
+</div>
+
+<h3><span class="num">§38</span> Context engineering</h3>
+
+<div class="box def">
+  <span class="label">What actually goes in the window</span>
+  <p>In a deployed system the context is assembled: a system prompt, tool definitions, retrieved
+  passages, conversation history, and the request. That assembly is a design problem with its own
+  failure modes.</p>
+  <p>Three worth knowing. §12's <b>position effect</b> means where you put something changes whether
+  it is used, so the important material goes at the edges. <b>Instruction dilution</b>: a system
+  prompt competing with thousands of tokens of retrieved text loses. And <b>everything in the
+  context is trusted</b> by default, which is the mechanism behind prompt injection: a retrieved
+  document containing instructions is, to the model, indistinguishable from instructions.</p>
+  <p>That last one is a security property rather than a quality one, and it does not have a clean
+  fix: the model has no channel that separates data from instructions, so the separation must be
+  enforced outside it.</p>
+</div>
+
+<h3><span class="num">§39</span> What these buy over fine-tuning</h3>
+
+<div class="box def">
+  <span class="label">The decision, made once</span>
+  <table class="compact">
+    <thead><tr><th>If the gap is…</th><th>Use</th><th>Because</th></tr></thead>
+    <tbody>
+      <tr><td>knowledge, changing</td><td>retrieval</td><td>current, attributable, editable</td></tr>
+      <tr><td>a computation</td><td>a tool</td><td>correct rather than likely</td></tr>
+      <tr><td>format or style</td><td>prompting, then LoRA</td><td>Part XIX §37's ordering</td></tr>
+      <tr><td>a multi-step task</td><td>an agent with verification</td><td>per-step correction</td></tr>
+      <tr><td>hard problems, rarely</td><td>test-time compute</td><td>pay per query, not per model</td></tr>
+      <tr><td>behaviour, everywhere</td><td>fine-tuning</td><td>nothing else changes defaults</td></tr>
+    </tbody>
+  </table>
+  <p>The common error is reaching for the last row first. Part XIV's discipline applies: establish
+  what the cheap option achieves before paying for the expensive one, and most of these rows are
+  cheaper than the last by orders of magnitude.</p>
+</div>

@@ -1,0 +1,219 @@
+<h2><span class="part-kicker">Build</span>The project</h2>
+
+<p class="lede">Fourteen to eighteen hours. You build a control stack on plants you wrote down
+(feedback, optimal control, an estimator, a planner) and then compute what it would take to claim
+the result is safe.</p>
+
+<h3><span class="num">P.1</span> What you are building</h3>
+
+<p><b><code>actuate</code></b>: PID with lag and delay, a Riccati solver, receding-horizon control
+with constraints, rigid transforms and a two-link arm, a sampling planner, and the validation
+arithmetic of movement F.</p>
+
+<p>The rule: <b>numpy only, and every plant written down</b>. Knowing the dynamics means the optimal
+controller is computable, so each controller you build can be compared against the best one rather
+than against your last attempt.</p>
+
+<h3><span class="num">P.2</span> Stage 1: feedback</h3>
+
+<ol>
+  <li>Simulate a first-order plant open loop with a mis-estimated gain. Confirm the error tracks the
+  model error.</li>
+  <li>Close the loop and sweep the gain. Verify the residual offset against
+  <span class="m">$1/(1+k_p g)$</span> rather than assuming it.</li>
+  <li>Find the gain below which feedback is worse than open loop, for a given model error.</li>
+  <li>Add integral action and confirm the offset goes to zero.</li>
+  <li>Add an actuator lag, then a measurement delay, and find the gain at which each destabilises.</li>
+</ol>
+
+<p><b>Deliverable:</b> the crossing from step three and the two stability thresholds. Then convert
+your own perception latency into loop delay and read off what gain you are allowed.</p>
+
+<h3><span class="num">P.3</span> Stage 2: optimal control</h3>
+
+<ol>
+  <li>Implement the Riccati recursion. Check the closed-loop poles are inside the unit circle.</li>
+  <li>Perturb the LQR gain randomly and confirm nothing costs less.</li>
+  <li>Search hand-tuned PD gains on chains of two to five integrators and record the ratio.</li>
+  <li>Then tune along the LQR direction instead, and notice the comparison becomes vacuous.</li>
+  <li>Write the Kalman recursion beside the LQR one.</li>
+</ol>
+
+<p><b>Deliverable:</b> the ratio table and the two recursions side by side. Step four is a trap
+worth falling into once: a baseline that can recover the thing it is compared against measures
+nothing.</p>
+
+<h3><span class="num">P.4</span> Stage 3: constraints</h3>
+
+<ol>
+  <li>Implement receding-horizon control: optimise over a horizon, apply one step, re-solve.</li>
+  <li>Fix the plan instead of re-solving, and measure what the model error costs.</li>
+  <li>Add an input limit and compare against clipping an unconstrained controller.</li>
+  <li>Add a state limit and find a plant where clipping cannot respect it.</li>
+  <li>Shorten the horizon until the controller commits to a trajectory it cannot exit.</li>
+</ol>
+
+<p><b>Deliverable:</b> the horizon at which step five happens, related to how fast your plant can
+stop. Step two is where you find out that the feedback is in the re-solving.</p>
+
+<h3><span class="num">P.5</span> Stage 4: a body</h3>
+
+<ol>
+  <li>Implement rigid transforms and their inverses. Confirm the inverse is not the transpose.</li>
+  <li>Convert between Euler angles, matrices and quaternions, and find gimbal lock.</li>
+  <li>Build a two-link arm, compute its Jacobian, and command a motion at full extension.</li>
+  <li>Add damping and measure the trade between bounded joint velocity and tracking error.</li>
+  <li>Add gravity compensation and compare the gains you need with and without it.</li>
+</ol>
+
+<p><b>Deliverable:</b> the singularity plot and the two gain sets. Step five is the highest-value
+single term in the dynamics and takes ten lines.</p>
+
+<h3><span class="num">P.6</span> Stage 5: state and planning</h3>
+
+<ol>
+  <li>Integrate a biased, noisy velocity and plot error against time. Separate the
+  <span class="m">$t$</span> and <span class="m">$\sqrt{t}$</span> components.</li>
+  <li>Fuse two sensors in a filter and watch the covariance when one drops out.</li>
+  <li>Count grid cells against degrees of freedom.</li>
+  <li>Implement a sampling planner and measure samples to solution against dimension.</li>
+  <li>Look at the path it returns, and smooth it.</li>
+</ol>
+
+<p><b>Deliverable:</b> the two scaling curves and a before-and-after path. Step five is where you
+learn that feasibility and quality are separate problems.</p>
+
+<h3><span class="num">P.7</span> Stage 6: learning, and its horizon</h3>
+
+<ol>
+  <li>Write down your predictions first, in a file, before running anything.</li>
+  <li>Clone a policy from an expert's states and roll it out. Measure deviation against horizon.</li>
+  <li>Relabel the states the learner reached and retrain. Measure again.</li>
+  <li>Add the same volume of extra expert data instead, and compare: the improvement should come
+  from the new states, not the new data.</li>
+  <li>Perturb a known linear system's gain and measure <b>absolute</b> rollout divergence on stable,
+  marginal and unstable plants.</li>
+  <li>Score your predictions.</li>
+</ol>
+
+<p><b>Deliverable:</b> the three divergence curves and the scored predictions. Step five must use
+absolute divergence: the relative version is scale-free and puts all three curves on top of each
+other.</p>
+
+<h3><span class="num">P.8</span> Stage 7: the claim</h3>
+
+<ol>
+  <li>Derive the rule of three.</li>
+  <li>Compute the evidence needed to bound a rate you choose, and to estimate it.</li>
+  <li>Express both as vehicle-years for a fleet size you choose.</li>
+  <li>Write a one-page claim: the domain, the failure, the rate, the confidence, and the assumption
+  each piece of evidence rests on.</li>
+</ol>
+
+<p><b>Deliverable:</b> the one-page claim. It is the only deliverable in this book that is a piece
+of writing rather than a measurement, and it is the one a deployment turns on.</p>
+
+<h3><span class="num">P.9</span> Stretch</h3>
+
+<ul>
+  <li><b>Iterative LQR</b> on a pendulum swing-up, with the local optima it finds.</li>
+  <li><b>Sampling-based MPC</b>, with the weighting temperature swept.</li>
+  <li><b>A shield</b>: a verified fallback and the region it recovers from.</li>
+  <li><b>Self-play</b>, evaluated against frozen ancestors.</li>
+  <li><b>A pose graph</b>, with a false loop closure introduced deliberately.</li>
+  <li><b>An audit</b> of something you deploy that takes actions.</li>
+</ul>
+
+<h3><span class="num">P.10</span> Done when</h3>
+
+<ul class="checklist">
+  <li>Your measured offset matches 1/(1+k<sub>p</sub>g).</li>
+  <li>You have found a gain at which feedback is worse than none.</li>
+  <li>You have two stability thresholds, one from lag and one from delay.</li>
+  <li>Your LQR's closed-loop poles are inside the unit circle.</li>
+  <li>No perturbation of your LQR gain costs less than it does.</li>
+  <li>You know the ratio a hand-tuned PD achieves at two states and at five.</li>
+  <li>You have seen a baseline that can recover the thing it is compared against.</li>
+  <li>You have measured what happens when the plan is not re-solved.</li>
+  <li>You have a state limit that clipping cannot respect.</li>
+  <li>Your transform inverse is not the transpose, and you have checked.</li>
+  <li>You have found gimbal lock.</li>
+  <li>You have the joint velocity at a singularity, damped and undamped.</li>
+  <li>You have separated the t and √t components of dead-reckoning error.</li>
+  <li>Your rollout divergence is absolute, and the three plants separate.</li>
+  <li>You wrote predictions down before Stage 6 and scored them afterwards.</li>
+  <li>You have a one-page safety claim with its assumptions named.</li>
+</ul>
+
+<div class="box why">
+  <span class="label">Why this project</span>
+  <p>Every other project in this book ends with a measurement. This one ends with an argument,
+  because a system that acts is not deployed on a number; it is deployed on a case, and the case
+  has parts a metric cannot supply.</p>
+  <p>Stage 7 step three is the one that changes people's estimates. Converting a target failure rate
+  into vehicle-years makes the arithmetic of movement F concrete in a way the miles alone do not,
+  and it is usually the first time the number feels real.</p>
+</div>
+
+<h2 class="nobreak"><span class="part-kicker">Assess</span>Checkpoint</h2>
+
+<ul class="checklist">
+  <li>Name three things that change when a model's output acts on the world.</li>
+  <li>Say why open-loop control fails, in two ways.</li>
+  <li>Write the closed-loop gain and say why the plant's own gain nearly disappears from it.</li>
+  <li>Give Figure 1's numbers and say when feedback is worse than none.</li>
+  <li>Explain why a proportional loop leaves an offset, and give its size.</li>
+  <li>Say why integral action removes it exactly rather than reducing it.</li>
+  <li>Give Figure 2's divergence threshold and say what creates the margin.</li>
+  <li>Explain why inference latency is a stability question.</li>
+  <li>State the optimal control problem and say what distinguishes it from reinforcement learning.</li>
+  <li>Write the Riccati recursion and say what it produces.</li>
+  <li>Give Figure 3's ratios at two, three and five integrators.</li>
+  <li>Name LQR's four assumptions and what each buys.</li>
+  <li>Explain why clipping is not a constraint, especially for a state limit.</li>
+  <li>Describe receding-horizon control and say where the feedback is.</li>
+  <li>Give three approaches to nonlinear trajectory optimisation.</li>
+  <li>Name three things you could learn instead of the dynamics, and what each needs.</li>
+  <li>Explain why a cloned policy drifts, and what does and does not fix it.</li>
+  <li>Say why an intervention log is worth more than ordinary driving data.</li>
+  <li>State why inverse reinforcement learning is ill-posed.</li>
+  <li>Give Figure 6's growth rates on a stable and an unstable plant.</li>
+  <li>Say what sets a learned model's usable horizon, and what follows.</li>
+  <li>Describe offline reinforcement learning's characteristic failure.</li>
+  <li>Give four ways across the simulation gap and what each assumes.</li>
+  <li>Say why composing transforms in the wrong order is hard to detect.</li>
+  <li>Give three rotation representations and the defect of each.</li>
+  <li>Distinguish forward from inverse kinematics and say what a Jacobian is for.</li>
+  <li>Explain what happens near a singularity and what damping trades.</li>
+  <li>Write the manipulator dynamics and name its most valuable term.</li>
+  <li>Say why nobody measures the state, and what a covariance supplies.</li>
+  <li>Give Figure 7's scaling for grid and sampling planners.</li>
+  <li>Name three things a sampling planner gives up.</li>
+  <li>Describe SLAM as a pose graph and say what the hard part is.</li>
+  <li>Give the four layers of a stack and say why their rates differ.</li>
+  <li>Explain why a long horizon with terminal reward is hard, and three responses.</li>
+  <li>Say why other adapting agents are not merely a harder environment.</li>
+  <li>Give three approaches to safety and say which yields a guarantee.</li>
+  <li>Explain in what sense a tool-using language model is a control loop.</li>
+  <li>Name four things an agent needs that a model does not.</li>
+  <li>Give the argument for and against end-to-end, and what neither side disputes.</li>
+  <li>Say why a test set is not enough for a system that acts.</li>
+  <li>Name the three things a safety claim must contain.</li>
+  <li>Derive the rule of three.</li>
+  <li>Give Figure 8's numbers for bounding and estimating a rate of 10⁻⁸.</li>
+  <li>Say what a million failure-free miles establishes.</li>
+  <li>Explain what decomposing a safety case requires, and what it assumes.</li>
+</ul>
+
+<div class="box fw">
+  <span class="label">The framework, and the loop</span>
+  <p>Dataset, model family, loss, optimiser. Every part until now has fitted a function to data that
+  existed before the model did. This part breaks that: <b>the policy determines the data</b>, so
+  there is no fixed distribution to fit and no test set that means what it usually means.</p>
+  <p>What replaces it is older than the framework. Feedback substitutes for knowledge, so the model
+  matters less than the loop it sits in. The plant's stability, not the model's accuracy, sets how
+  far ahead anything can be trusted. And the evidence a deployment turns on is not a metric at all
+  but an argument, with named assumptions and an arithmetic that is unforgiving: a million clean
+  miles bounds a failure rate only below one in three hundred thousand. <b>Building the system is
+  the smaller half of the work.</b></p>
+</div>

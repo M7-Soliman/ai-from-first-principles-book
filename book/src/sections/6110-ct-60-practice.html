@@ -1,0 +1,116 @@
+<h2><span class="part-kicker">Part F</span>Validation, and practice</h2>
+
+<p class="mvt">A system that acts can hurt someone, which changes what counts as evidence. This
+movement is the arithmetic of establishing that a rare failure is rare, and it is unforgiving in a
+way no accuracy metric prepares you for.</p>
+
+<h3><span class="num">§40</span> Why a test set is not enough</h3>
+
+<div class="box why">
+  <span class="label">Three reasons the usual evidence does not transfer</span>
+  <p><b>The failures are rare.</b> A metric averaged over a test set is dominated by the common
+  case, and the question is about the tail.</p>
+  <p><b>The distribution is yours.</b> A policy's own actions determine what it encounters, so an
+  evaluation on logged data from a different policy is answering a different question: Part XXII's
+  estimand problem, with consequences.</p>
+  <p><b>The events are correlated.</b> Failures cluster by weather, location and time, so a thousand
+  miles in one city is not a thousand independent trials.</p>
+</div>
+
+<h3><span class="num">§41</span> Stating the requirement</h3>
+
+<div class="box def">
+  <span class="label">Three things a claim must contain</span>
+  <p><b>The operational design domain.</b> Where, when and under what conditions the claim applies.
+  A claim without one is not falsifiable.</p>
+  <p><b>The failure being bounded.</b> A collision, an injury, a disengagement, a departure from the
+  lane, these differ by orders of magnitude in rate and are routinely conflated.</p>
+  <p><b>The rate and the confidence.</b> "Fewer than one per <span class="m">$N$</span>, with 95%
+  confidence" is a statement; "safer than a human" is not, until each of the three is filled in.</p>
+</div>
+
+<h3><span class="num">§42</span> What that costs, measured</h3>
+
+<figure>
+  <img src="figures/ct/08-validation.svg" alt="Left: miles of evidence needed against the target failure rate, for bounding and for estimating. Right: the 95% upper bound established by zero failures against miles driven">
+  <figcaption><b>Figure 8.</b> <b>Left:</b> the evidence a claim requires. Bounding a rate of one
+  failure per 10<sup>8</sup> miles at 95% confidence, seeing none, takes <b>3.0&times;10<sup>8</sup></b>
+  miles; <i>estimating</i> it to within 20% takes <b>9.6&times;10<sup>9</sup></b>. For scale, all
+  driving in the United States is about 3&times;10<sup>12</sup> miles a year. <b>Right:</b> what
+  zero failures actually establishes. A million miles with none bounds the rate only below <b>one
+  per 3&times;10<sup>5</sup> miles</b>, three hundred times weaker than the million might
+  suggest.</figcaption>
+</figure>
+
+<div class="box why">
+  <span class="label">The rule of three, and why it surprises people</span>
+  <p>With zero events in <span class="m">$n$</span> trials the 95% upper bound on the rate is
+  <span class="m">$3/n$</span>. That is the whole calculation, and its consequence is that a clean
+  record is weak evidence: to bound a rate you must drive several times the reciprocal of it.</p>
+  <p>The alternative is to model the tail (fit a distribution to near-misses and extrapolate), which
+  gives a far tighter bound at the cost of an assumption about the tail shape that the data
+  cannot check. That is a real trade and not a trick, and the honest form of the argument states
+  which assumption is carrying the conclusion.</p>
+</div>
+
+<h3><span class="num">§43</span> The safety case</h3>
+
+<div class="box shapes">
+  <span class="label">What an argument has to contain</span>
+  <p>A structured claim, the evidence for each part, and the assumptions each piece of evidence
+  rests on. Distance driven is one input among several, and on its own it is the weakest.</p>
+  <p><b>Decomposition</b> is what makes it tractable: bound the perception failure rate, the
+  planner's failure rate given correct perception, and the controller's given a correct plan, then
+  compose. That composition is only valid if the failures are independent, which they usually are
+  not, and stating that dependence is where an honest case does its work.</p>
+  <p>Note what this requires: <b>intermediate representations</b>, so that the pieces can be bounded
+  separately. Which is §38's argument arriving as a regulatory constraint rather than an engineering
+  preference.</p>
+</div>
+
+<h3><span class="num">§44</span> What is unsolved</h3>
+
+<div class="box why">
+  <span class="label">Four, distinguished by kind</span>
+  <p><b>Not yet measured.</b> How much a stabilising inner loop is worth to a learned outer one.
+  §21 and §23 both say it should be substantial and neither is a measurement of a deployed system.</p>
+  <p><b>Not currently measurable.</b> Whether a policy will fail on a situation nobody has thought
+  of. Every evaluation is on scenarios someone assembled.</p>
+  <p><b>Genuinely open.</b> Validating a system whose components cannot be bounded separately. This
+  is not a question about accuracy but about whether the argument of §43 can be made at all.</p>
+  <p><b>Not empirical.</b> What risk is acceptable, and to whom. Part XXI's subject, and no
+  measurement in this part touches it.</p>
+</div>
+
+<h3><span class="num">§45</span> What to carry forward</h3>
+
+<div class="box intuition">
+  <span class="label">Five things</span>
+  <p><b>Feedback substitutes for knowledge and buys robustness rather than accuracy.</b> Figure 1
+  measures a 20% model error becoming 4% at high gain, and a cautious gain being worse than no
+  feedback at all.</p>
+  <p><b>If you know the dynamics, solve rather than learn.</b> Figure 3 measures hand tuning within
+  0.1% on two states, 78&times; worse on three, and unable to stabilise five.</p>
+  <p><b>A learned model's usable horizon is set by the plant, not the model.</b> Figure 6 measures
+  error compounding at 1.0667&times; per step on an unstable system and <i>shrinking</i> at
+  0.9651&times; on a stable one, so stabilise before you learn.</p>
+  <p><b>Exhaustive planning stops at about six degrees of freedom.</b> Figure 7 measures 12&times;
+  per joint against 1.32&times;.</p>
+  <p><b>A clean record is weak evidence.</b> Figure 8 measures a million failure-free miles bounding
+  the rate only below one per three hundred thousand, and a claim at one per 10<sup>8</sup> needing
+  of order 10<sup>8</sup> miles.</p>
+</div>
+
+<div class="sixty">
+  <span class="label">Sixty seconds</span>
+  <p>Perception ends with a belief; everything after it is deciding what to do, and the field that
+  has been answering that since the 1940s starts from a different place than machine learning does.
+  Its central discovery is that you do not need an accurate model to act accurately: measure the
+  error and correct it, and the system's own parameters stop mattering. Where you do know the
+  dynamics, solving for the controller beats tuning one, and beats it by more the more states there
+  are. Where you do not, you can learn the expert's behaviour and drift off its distribution, or
+  learn the dynamics and find your horizon set by the plant's own stability rather than by your
+  model's accuracy. And a system that acts has to be shown safe, which is arithmetic rather than
+  engineering: a million miles without a failure bounds the failure rate only below one in three
+  hundred thousand, and no amount of good driving changes that.</p>
+</div>

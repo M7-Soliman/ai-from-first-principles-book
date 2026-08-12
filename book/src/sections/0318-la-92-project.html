@@ -1,0 +1,174 @@
+<h2><span class="part-kicker">Build</span>The project</h2>
+
+<p class="lede">Drills prove you can do the steps. A project proves you can hold the
+whole thing in your head at once. This one takes most people six to ten hours, and it is
+the difference between having read Part I and owning it.</p>
+
+<h3><span class="num">P.1</span> What you are building</h3>
+
+<p><b><code>tinylinalg</code></b>, a small linear algebra library written from scratch,
+then used to compress real images.</p>
+
+<p>The rule that makes this worth doing: <b>you may use NumPy for array storage,
+indexing, and elementwise arithmetic only.</b> No <code>@</code>, no
+<code>np.dot</code>, no <code>np.linalg</code> anything, until the final verification
+step where you compare against them. If a function you want already exists in
+<code>np.linalg</code>, that is precisely the function you have to write.</p>
+
+<h3><span class="num">P.2</span> Stage 1: the core operations</h3>
+
+<p>Implement, in <code>tinylinalg/core.py</code>:</p>
+
+<table class="compact">
+  <thead><tr><th>Function</th><th>Notes</th></tr></thead>
+  <tbody>
+    <tr><td><code>matmul(A, B)</code></td><td>Explicit loops. Raise <code>ValueError</code> with a message naming both shapes on mismatch.</td></tr>
+    <tr><td><code>matvec(A, x)</code></td><td>Write it twice (once row-wise, once column-wise) and assert they agree. This is §4 made executable.</td></tr>
+    <tr><td><code>transpose(A)</code></td><td>Without <code>.T</code>.</td></tr>
+    <tr><td><code>norm(x, p)</code></td><td>Support $p = 1, 2, \infty$ and <code>'fro'</code>.</td></tr>
+    <tr><td><code>outer(u, v)</code></td><td>Should return a rank-1 matrix. Verify that it does.</td></tr>
+  </tbody>
+</table>
+
+<p><b>Deliverable:</b> every function agrees with its NumPy counterpart to within
+<code>np.allclose</code> tolerance on 100 random inputs of assorted shapes, including
+non-square and degenerate ones.</p>
+
+<h3><span class="num">P.3</span> Stage 2: solving</h3>
+
+<p>In <code>tinylinalg/solve.py</code>:</p>
+
+<ul>
+  <li><code>gaussian_elimination(A, b)</code>: solve $A\mathbf{x} = \mathbf{b}$ with
+  <b>partial pivoting</b> (at each step, swap in the row with the largest pivot). Write
+  it first without pivoting, find an input that breaks it, then add pivoting and watch
+  that input start working. Keep both versions; the comparison is the lesson.</li>
+  <li><code>rank(A)</code>: via row reduction, with a tolerance parameter. Explain in a
+  comment why an exact <code>== 0</code> test is wrong here.</li>
+  <li><code>inverse(A)</code>: by solving $A\mathbf{x} = \mathbf{e}_i$ for each basis
+  vector. Then write a docstring explaining why nobody should call this function
+  (§13).</li>
+</ul>
+
+<p><b>Deliverable:</b> a short write-up of the input that broke your unpivoted solver,
+and an explanation of why pivoting fixes it.</p>
+
+<h3><span class="num">P.4</span> Stage 3: eigenvalues</h3>
+
+<p>In <code>tinylinalg/eigen.py</code>:</p>
+
+<ul>
+  <li><code>power_iteration(A, iters)</code>: the largest eigenvalue and its
+  eigenvector, using only <code>matvec</code> and <code>norm</code>. Return the
+  convergence history.</li>
+  <li><code>deflate(A, lam, v)</code>: remove a known eigenpair via $A - \lambda
+  \mathbf{v}\mathbf{v}^\top$, so power iteration can find the next one.</li>
+  <li><code>top_k_eigen(A, k)</code>: the two combined.</li>
+</ul>
+
+<p><b>Deliverable:</b> a plot of convergence rate for matrices with eigenvalue ratios
+$\lambda_2/\lambda_1$ of $0.1$, $0.5$, and $0.99$. Your plot should visibly confirm the
+prediction from drill S1: convergence speed is governed by that ratio, and the $0.99$
+case should be painfully slow.</p>
+
+<h3><span class="num">P.5</span> Stage 4: the application</h3>
+
+<p>Now use what you built. In <code>compress.py</code>:</p>
+
+<ol>
+  <li>Load a greyscale image as a matrix (any photo; larger than 256×256).</li>
+  <li>Compute its top $k$ principal components using <b>your own</b> eigen code.</li>
+  <li>Reconstruct from $k \in \{1, 5, 10, 25, 50, 100\}$.</li>
+  <li>Produce a single figure: original plus all six reconstructions, each labelled with
+  its compression ratio and reconstruction error.</li>
+  <li>Plot explained variance against $k$ and mark where it crosses 90%, 95%, 99%.</li>
+</ol>
+
+<p><b>Deliverable:</b> the figure, and a paragraph answering: at what $k$ does the image
+become visually acceptable to you, and how does that compare to where the variance curve
+flattens? They usually do not match, and thinking about why is the point.</p>
+
+<h3><span class="num">P.6</span> Stretch goals</h3>
+
+<ul>
+  <li><b>QR via Gram–Schmidt</b>, then use it for a more stable least squares than the
+  normal equations. Compare on an ill-conditioned system.</li>
+  <li><b>Jacobi eigenvalue algorithm</b> for symmetric matrices; it finds all eigenpairs
+  at once, and is genuinely elegant.</li>
+  <li><b>Benchmark</b> your <code>matmul</code> against NumPy's. Expect to be 100–1000×
+  slower, then find out why: BLAS, cache blocking, SIMD. This is a worthwhile detour into
+  why the same mathematics can differ by three orders of magnitude in speed.</li>
+  <li><b>Eigenfaces</b>: run your PCA on a face dataset and visualise the top
+  components. They look unsettling and are historically important.</li>
+</ul>
+
+<h3><span class="num">P.7</span> How to know you are done</h3>
+
+<ul class="checklist">
+  <li>Every function is tested against NumPy on random inputs, including edge cases.</li>
+  <li>Shape mismatches raise clear errors naming both shapes, not <code>IndexError</code>.</li>
+  <li>The pivoting write-up identifies a concrete failing input.</li>
+  <li>The convergence plot shows the predicted dependence on eigenvalue ratio.</li>
+  <li>The compression figure is labelled well enough that someone else could read it
+  without your explanation.</li>
+  <li>Your README explains what you built and one thing that surprised you.</li>
+</ul>
+
+<div class="box why">
+  <span class="label">Why this project and not another</span>
+  <p>Every stage forces a concept from the chapter to become concrete. Writing
+  <code>matmul</code> twice makes the row and column views of §4 into two pieces of
+  working code that must agree. Breaking your own solver teaches conditioning (§13) in a
+  way no amount of reading does. Power iteration makes eigenvectors mechanical rather
+  than mystical. And image compression makes low-rank approximation something you can
+  <i>look at</i>: the moment a photograph reappears from 25 numbers per row is when the
+  SVD stops being notation.</p>
+</div>
+
+<h2 class="nobreak"><span class="part-kicker">Assess</span>Checkpoint</h2>
+
+<p class="lede">Part II (probability) does not lean on Part I too heavily, but
+Parts III and IV, and everything after do. Be honest here; a gap you patch now costs an
+hour; the same gap found in Part VIII costs a week.</p>
+
+<h3>Can you do these without notes?</h3>
+
+<ul class="checklist">
+  <li>Given any two shapes, say instantly whether they can be multiplied and what the result's shape is.</li>
+  <li>Explain $A\mathbf{x}$ in all three views of §4, and say which is best for reasoning about solvability.</li>
+  <li>Compute a $2\times2$ or $3\times3$ matrix-vector product by hand, correctly, first time.</li>
+  <li>Say what rank means without using the word "independent", then again using it.</li>
+  <li>Explain why $A\mathbf{x} = \mathbf{b}$ might have no solution, using the column space.</li>
+  <li>State why the count of solutions is always 0, 1, or infinity.</li>
+  <li>Define $L^1$, $L^2$, $L^\infty$ and explain why $L^1$ produces sparsity.</li>
+  <li>Explain why deep learning prefers $\|\mathbf{x}\|_2^2$ over $\|\mathbf{x}\|_2$.</li>
+  <li>State what makes a matrix orthogonal and give the two consequences that follow.</li>
+  <li>Define an eigenvector without writing the equation (in words).</li>
+  <li>Explain what $A = Q\Lambda Q^\top$ does, factor by factor.</li>
+  <li>Connect positive definiteness to the shape of a surface, and to minima.</li>
+  <li>Say what the SVD does geometrically, in one sentence.</li>
+  <li>Explain why $\det(A) = 0$ means non-invertible, using the volume picture.</li>
+  <li>Derive PCA: from "find the direction of maximum variance" to "top eigenvector of the covariance".</li>
+</ul>
+
+<h3>Scoring, honestly</h3>
+
+<table class="compact">
+  <thead><tr><th>Score</th><th>Verdict</th></tr></thead>
+  <tbody>
+    <tr><td><b>13–15</b></td><td>Go to Part II. You are in good shape.</td></tr>
+    <tr><td><b>10–12</b></td><td>Reread the specific sections you missed, then move on. Do not restart the chapter.</td></tr>
+    <tr><td><b>7–9</b></td><td>Do the Tier 2 drills before continuing. The gaps will compound otherwise.</td></tr>
+    <tr><td><b>Under 7</b></td><td>Reread Parts A–C and do the project's Stage 1. That is the load-bearing material, and everything later assumes it.</td></tr>
+  </tbody>
+</table>
+
+<div class="box intuition">
+  <span class="label">If you scored low, read this</span>
+  <p>A low score here is not a verdict on whether you can do this. It means the material
+  needs another pass, which is the ordinary experience of nearly everyone who learns
+  linear algebra properly, including the people who now find it obvious. The reason to
+  measure is that the alternative is discovering the gap in Part VIII, when it is
+  tangled up with optimization and much harder to isolate. Finding it here is the good
+  outcome.</p>
+</div>

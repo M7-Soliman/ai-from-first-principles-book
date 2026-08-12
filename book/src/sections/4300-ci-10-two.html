@@ -1,0 +1,227 @@
+<h2><span class="part-kicker">Part A</span>Two different questions</h2>
+
+<p class="mvt">A model that predicts perfectly can still be useless for deciding what to do,
+and the reason is not statistical noise or insufficient data. It is that prediction and
+intervention are different quantities, computed from different distributions. This movement
+establishes the difference and measures how large it gets.</p>
+
+<h3><span class="num">§1</span> The question a predictor cannot answer</h3>
+
+<div class="box intuition">
+  <span class="label">Two sentences that sound the same and are not</span>
+  <p><b>"Patients given this drug recover more often."</b> A statement about the world as it is, about the joint distribution you sampled. A predictor estimates it, and Part VI's whole
+  machinery applies.</p>
+  <p><b>"Giving this drug makes patients recover more often."</b> A statement about a world you
+  have not sampled: the one where the drug is assigned rather than chosen. No amount of data from
+  the first world determines the second, and no amount of predictive accuracy closes the gap.</p>
+</div>
+
+<p>Every part of this book before this one has been about the first sentence. Part VI §3 stated
+the learning problem as estimating <span class="m">$p(y \mid \mathbf{x})$</span>; Parts VII to XX
+built increasingly effective ways to do it; Part XIV measured how well it was done. That is a
+complete and useful programme, and it answers the wrong question whenever the point of the model
+is to decide something.</p>
+
+<div class="box why">
+  <span class="label">Why this is not a corner case</span>
+  <p>Almost every deployed model is used to make a decision. A model that predicts which customers
+  will churn is used to decide who to call. A model that predicts which patients will deteriorate
+  is used to decide who to treat. A model that predicts loan default is used to decide who gets a
+  loan.</p>
+  <p>In each case the model was fitted on data generated under one policy and is being used to
+  change the policy. The quantity that governs the outcome is the causal effect of the action, and
+  the quantity the model estimates is an association under the old regime. When those differ, the
+  model is confidently answering a question nobody asked.</p>
+  <p>Part XVIII saw the same problem from the other side and called it what it is: <b>you caused
+  your own data</b>. Reinforcement learning solves it by acting, which is expensive. This part is
+  about what you can recover without acting, and what it costs.</p>
+</div>
+
+<h3><span class="num">§2</span> Three rungs</h3>
+
+<div class="box def">
+  <span class="label">A hierarchy, and it does not collapse</span>
+  <p><b>Association.</b> <span class="m">$p(y \mid x)$</span>: what I see when I observe
+  <span class="m">$x$</span>. Estimable from data alone. Everything in Parts VI to XX.</p>
+  <p><b>Intervention.</b> <span class="m">$p(y \mid \mathrm{do}(x))$</span>: what I see when I
+  <i>set</i> <span class="m">$x$</span>. Estimable from observational data only under assumptions,
+  and §12 gives the exact ones.</p>
+  <p><b>Counterfactual.</b> <span class="m">$p(y_{x'} \mid x, y)$</span>: what would have happened
+  to <i>this</i> unit had it been treated differently, given what actually happened to it.
+  Requires more than the interventional distribution: a fully specified SCM, so that the unit's
+  own noise terms can be inferred from what actually happened to it (abduction), the equation for
+  <span class="m">$x$</span> replaced by the counterfactual value (action), and the outcome
+  recomputed from the updated model (prediction). This part does not derive that machinery in
+  full: §37's counterfactual fairness criterion is the one place rung three is put to use.</p>
+  <p>The hierarchy is strict: knowing every quantity on a rung does not determine the rung above.
+  Two systems can agree on every observable association and disagree about every intervention.</p>
+</div>
+
+<div class="box try">
+  <span class="label">The test to apply to any claim</span>
+  <p>Ask which rung it lives on, and which rung the evidence supports. A great deal of published
+  work, in machine learning especially, estimates rung one and writes its conclusions in the
+  language of rung two. The word to watch is any verb that implies action: <i>improves</i>,
+  <i>increases</i>, <i>causes</i>, <i>leads to</i>, <i>drives</i>. If the study observed rather
+  than assigned, those verbs are unlicensed.</p>
+</div>
+
+<h3><span class="num">§3</span> Confounding, measured</h3>
+
+<figure>
+  <img src="figures/ci/01-confounding.svg" alt="Naive and adjusted estimates of a causal effect against confounding strength, and the same data stratified">
+  <figcaption><b>Figure 1.</b> Data generated from a system whose true causal effect is
+  <b>+1.00</b> by construction. As a common cause of both treatment and outcome grows stronger,
+  the naive regression falls from +1.001 to <b>−0.476</b>: the plotted (sampled) curve first
+  reads negative at a confounding strength of 2.25, against an analytic zero-crossing of 2.03, and
+  it reports the opposite sign of the truth. Adjusting for the confounder
+  returns +0.997 throughout. Right: the same data. Within every stratum of the confounder the
+  slope is positive; pooled, it is negative.</figcaption>
+</figure>
+
+<div class="box def">
+  <span class="label">Confounding</span>
+  <p>A <b>confounder</b> is a common cause of the treatment and the outcome. It creates an
+  association between them that is not an effect of one on the other, and no amount of data
+  reduces it: Figure 1's naive estimate is computed on forty thousand points and is wrong by
+  more than the effect itself.</p>
+  <p>This is the first thing to understand about causal inference: the error is not variance. It
+  does not shrink with <span class="m">$n$</span>, it is not visible in a confidence interval, and
+  a model with excellent held-out accuracy has it in full.</p>
+</div>
+
+<div class="box why">
+  <span class="label">Why the right panel is the one to remember</span>
+  <p>Both slopes in the right panel are computed correctly from the same data. The stratified
+  slopes answer "among people alike in <span class="m">$U$</span>, how does
+  <span class="m">$Y$</span> vary with <span class="m">$X$</span>", which is the causal question
+  when <span class="m">$U$</span> is the only confounder. The pooled slope answers "across everyone,
+  how does <span class="m">$Y$</span> vary with <span class="m">$X$</span>", which mixes the effect
+  with the confounding path.</p>
+  <p>When these two disagree in sign the pattern has a name, <b>Simpson's paradox</b>, and the
+  name has done damage, because it suggests a paradox. There is none. The two numbers are answers
+  to two different questions, and which one you want is not a statistical question at all. It is
+  determined by what you intend to do next.</p>
+</div>
+
+<h3><span class="num">§4</span> The collider, and why more controls is not safer</h3>
+
+<p>The lesson people take from §3 is usually "adjust for everything you can measure." That is
+exactly wrong, and this section is the reason.</p>
+
+<figure>
+  <img src="figures/ci/02-collider.svg" alt="Scatter of two independent variables with the selected subset showing induced correlation, and induced correlation against collider strength">
+  <figcaption><b>Figure 2.</b> <span class="m">$X$</span> and <span class="m">$Y$</span> are drawn
+  independently: there is no association between them, by construction, and the measured
+  correlation is <b>−0.003</b>. Both influence a third variable <span class="m">$C$</span>.
+  Conditioning on <span class="m">$C$</span> (here, keeping the top 30%) produces a correlation
+  of <b>−0.519</b>, and it grows with how strongly the two drive the collider. The association is
+  entirely manufactured by the act of conditioning.</figcaption>
+</figure>
+
+<div class="box def">
+  <span class="label">Collider</span>
+  <p>A <b>collider</b> is a common effect of two variables. Conditioning on it (by adjusting for
+  it, stratifying on it, or simply by having sampled on it) makes its causes dependent.</p>
+  <p>The intuition is elimination. If a high value of <span class="m">$C$</span> requires
+  <span class="m">$X$</span> or <span class="m">$Y$</span> to be large, then among units with high
+  <span class="m">$C$</span>, learning that <span class="m">$X$</span> was small tells you
+  <span class="m">$Y$</span> must have been large. Nothing causal has happened. You conditioned on
+  the outcome of a race and discovered that the runners' speeds are negatively related.</p>
+</div>
+
+<div class="box pitfall">
+  <span class="label">Pitfall: "control for everything available"</span>
+  <p>Adding a variable to a regression is not a neutral act with a small cost. If it is a
+  confounder, adding it removes bias. If it is a collider, adding it <i>creates</i> bias. If it
+  is a mediator, adding it removes part of the effect you were trying to measure (§5).</p>
+  <p>Which one it is cannot be determined from the data. Confounders, colliders and mediators
+  produce the same correlational signatures; they differ in what causes what, and that is
+  information you bring to the analysis rather than extract from it. This is the single most
+  important practical consequence of the whole part, and it is why §8's graphs are a working tool
+  rather than notation.</p>
+</div>
+
+<div class="box history">
+  <span class="label">Where this has bitten, repeatedly</span>
+  <p>Selection into a study is conditioning on a collider whenever the selection depends on more
+  than one cause. Hospital-based studies condition on being hospitalised; a study of two conditions
+  among inpatients finds them negatively associated because either one alone was enough to get
+  admitted. This is <span class="src">Berkson (1946)</span>, and it is still being rediscovered.</p>
+  <p>The machine-learning version: any dataset assembled by filtering on a quality score that
+  depends on several attributes has colliders built into it by construction. Part XIII §17's
+  filtering and §7's selection bias are this mechanism, and this part supplies the account of why
+  they distort what they distort.</p>
+</div>
+
+<h3><span class="num">§5</span> Mediators, and the effect you did not mean to remove</h3>
+
+<div class="box def">
+  <span class="label">Mediator</span>
+  <p>A <b>mediator</b> lies on the causal path from treatment to outcome:
+  <span class="m">$X \rightarrow M \rightarrow Y$</span>. Adjusting for it removes the part of the
+  effect that travels through it, leaving the <b>direct</b> effect rather than the
+  <b>total</b> effect.</p>
+  <p>That is sometimes exactly what you want and usually not. If a drug works by lowering blood
+  pressure, adjusting for blood pressure will show the drug does nothing, which is true of its
+  direct effect and false as a summary of whether the drug works.</p>
+</div>
+
+<div class="box shapes">
+  <span class="label">Three variables, three opposite prescriptions</span>
+  <p><b>Confounder</b> (<span class="m">$X \leftarrow U \rightarrow Y$</span>): <b>adjust</b>.
+  Not adjusting leaves bias.</p>
+  <p><b>Collider</b> (<span class="m">$X \rightarrow C \leftarrow Y$</span>): <b>do not
+  adjust</b>. Adjusting creates bias.</p>
+  <p><b>Mediator</b> (<span class="m">$X \rightarrow M \rightarrow Y$</span>): <b>depends on the
+  question</b>. Adjust for the direct effect, do not for the total effect.</p>
+  <p>Three structures, three different actions, and no way to tell them apart by looking at the
+  correlations. The structure has to come from knowledge of the domain, and stating it explicitly
+  is what §9's graphs are for.</p>
+</div>
+
+<h3><span class="num">§6</span> Selection, and the sample you actually have</h3>
+
+<p>Part XIII §7 named selection bias and described its effects. With colliders in hand it can be
+stated exactly: <b>selection is conditioning</b>, and it carries the same consequences.</p>
+
+<div class="box why">
+  <span class="label">Three ways a sample gets selected, and what each does</span>
+  <p><b>Selection on the treatment.</b> Harmless for estimating the effect: you have fewer units
+  in one arm, and precision suffers, but nothing is biased.</p>
+  <p><b>Selection on the outcome.</b> Biases everything. You are conditioning on a descendant of
+  the thing you are trying to explain.</p>
+  <p><b>Selection on a collider of the two.</b> The dangerous one, because it looks like neither.
+  Recruiting participants in a way that depends on both treatment and outcome induces an
+  association with no causal content, exactly as in Figure 2.</p>
+  <p>Note that a model trained on such a sample will have excellent held-out accuracy <i>on that
+  sample</i>. Part XIV's entire diagnostic apparatus is silent here, because nothing is
+  overfitting and nothing is miscalibrated. The sample is a faithful record of a population that
+  was assembled by conditioning.</p>
+</div>
+
+<h3><span class="num">§7</span> What movement A establishes</h3>
+
+<div class="box intuition">
+  <span class="label">Three things</span>
+  <p><b>Prediction and intervention are different quantities</b>, and no accuracy on the first
+  bounds the error on the second. Figure 1's naive estimate is computed correctly on forty
+  thousand points and reports the wrong sign.</p>
+  <p><b>The error does not shrink with data.</b> Confounding is bias, not variance. It is invisible
+  to every diagnostic in Part XIV, because nothing has gone wrong with the estimation: the
+  estimand was wrong.</p>
+  <p><b>Adjusting for more variables is not safer.</b> Figure 2 manufactures a correlation of
+  −0.519 between two independent variables purely by conditioning. Whether to adjust for something
+  depends on its causal role, which is not recoverable from the data, which is why the next
+  movement builds the language for saying it out loud.</p>
+</div>
+
+<div class="sixty">
+  <span class="label">Sixty seconds</span>
+  <p>Data tells you what goes with what. Deciding requires knowing what changes what. The gap
+  between them is not noise and does not close with more data: it is a matter of which
+  distribution your estimate refers to. A common cause makes an association that is not an effect;
+  a common effect makes one appear where none exists when you condition on it. Which variables to
+  control for is a question about causal structure, and causal structure is something you assert
+  and defend, not something you fit.</p>
+</div>

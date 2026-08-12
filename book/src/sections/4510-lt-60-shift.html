@@ -1,0 +1,159 @@
+<h2><span class="part-kicker">Part F</span>Distribution shift</h2>
+
+<p class="mvt">The assumption every guarantee in this part rests on, train and test drawn from the
+same distribution, is the one that fails first in deployment. This movement classifies the ways it
+fails, measures when the standard correction helps and when it does nothing, and ends on the
+quantity that matters when the average stops being the right summary.</p>
+
+<h3><span class="num">§39</span> Three shifts, and why the distinction is operational</h3>
+
+<div class="box def">
+  <span class="label">What moved</span>
+  <p><b>Covariate shift.</b> <span class="m">$p(x)$</span> changes,
+  <span class="m">$p(y \mid x)$</span> does not. The same rule, applied to different inputs.</p>
+  <p><b>Label shift.</b> <span class="m">$p(y)$</span> changes,
+  <span class="m">$p(x \mid y)$</span> does not. Same classes, different prevalence: a disease
+  becomes rarer, the symptoms it causes are unchanged.</p>
+  <p><b>Concept shift.</b> <span class="m">$p(y \mid x)$</span> itself changes. The rule is
+  different now. Nothing is recoverable from unlabelled data, because the thing that moved is
+  precisely the thing you would need labels to see.</p>
+  <p>The distinction is operational because the first two are correctable using <b>unlabelled</b>
+  test data and the third is not. Which you face determines whether monitoring can help before
+  anyone hand-labels anything.</p>
+</div>
+
+<h3><span class="num">§40</span> Importance weighting</h3>
+
+<div class="box def">
+  <span class="label">The correction, and its condition</span>
+  <p>Under covariate shift, reweight each training point by
+  <span class="m">$w(x) = q(x) / p(x)$</span>:</p>
+  <p class="m">$$\mathbb{E}_q[\ell] = \mathbb{E}_p\!\left[\frac{q(x)}{p(x)} \ell\right]$$</p>
+  <p>The same identity as Part XXII §32's off-policy evaluation and Part XXII §19's inverse-probability
+  weighting, and it carries the same requirement: the ratio must be finite, so the training
+  distribution must cover the test one. Positivity, arriving for the third time.</p>
+</div>
+
+<figure>
+  <img src="figures/lt/06-covariate-shift.svg" alt="Test error against shift magnitude, weighted and unweighted, for a well-specified and a misspecified model">
+  <figcaption><b>Figure 6.</b> The same correction under two conditions. Left, where the model can
+  represent the truth: weighting does <b>nothing</b>, 0.090 unweighted against 0.091 weighted at a
+  shift of 0.94, and costs a little variance for it. Right, where the model cannot: unweighted
+  error climbs to <b>10.154</b> while weighted stays at <b>1.003</b>. The textbook prescription is
+  conditional on misspecification, and under a correctly specified model there is nothing for it to
+  fix.</figcaption>
+</figure>
+
+<div class="box why">
+  <span class="label">Why misspecification is the whole story</span>
+  <p>If the model can represent <span class="m">$p(y \mid x)$</span> exactly, then fitting it
+  anywhere recovers it everywhere: the conditional is the same by assumption, and where you
+  sampled the inputs does not matter asymptotically.</p>
+  <p>When the model cannot, fitting is a compromise: it approximates well where the training data
+  is dense and poorly elsewhere. Move the test distribution into the poorly-approximated region and
+  the error rises. Weighting relocates the compromise to where the test data will be.</p>
+  <p>Since every real model is misspecified, this reads as an argument for always weighting. The
+  left panel is the counterargument: weights inflate variance, and when the shift is small or the
+  model is good, that cost is paid for nothing. Estimate the shift before correcting for it.</p>
+</div>
+
+<h3><span class="num">§41</span> Label shift, which is easier</h3>
+
+<div class="box intuition">
+  <span class="label">Correctable from unlabelled data alone</span>
+  <p>With <span class="m">$p(x \mid y)$</span> fixed, the correction is a reweighting by the ratio
+  of class priors, a vector of <span class="m">$K$</span> numbers rather than a function of
+  <span class="m">$x$</span>. The new priors are estimable from unlabelled test data by inverting
+  the confusion matrix of a classifier trained on the source.</p>
+  <p>This is the most tractable shift and among the most common: class prevalence moves constantly
+  in fraud, disease, moderation and demand. It is worth recognising, because the fix is cheap and
+  the alternative, retraining, is not.</p>
+</div>
+
+<h3><span class="num">§42</span> Distributionally robust optimisation</h3>
+
+<div class="box def">
+  <span class="label">Optimising for the worst nearby distribution</span>
+  <p>Rather than correcting for a shift you have measured, minimise the worst-case risk over a set
+  of distributions near the training one:</p>
+  <p class="m">$$\min_{h} \; \max_{q \in \mathcal{U}} \; \mathbb{E}_{q}[\ell(h)]$$</p>
+  <p>The uncertainty set <span class="m">$\mathcal{U}$</span> is the design choice, and it decides
+  everything. Too large and the solution is uselessly conservative: the worst case includes
+  distributions nobody will face. Too small and it protects against nothing.</p>
+  <p>Defining <span class="m">$\mathcal{U}$</span> by <b>groups</b> rather than by a divergence
+  ball turns out to be the version that works, because groups are the shifts people actually care
+  about.</p>
+</div>
+
+<h3><span class="num">§43</span> Worst-group risk</h3>
+
+<figure>
+  <img src="figures/lt/07-worst-group.svg" alt="Test accuracy overall and by group for average-minimising and worst-group-minimising training">
+  <figcaption><b>Figure 7.</b> A spurious feature agrees with the label for 95% of training points
+  and is balanced at test. Minimising the average gives <b>0.994</b> where the shortcut holds and
+  <b>0.215</b> where it does not: below chance, so the model is reliably wrong on that group.
+  Minimising the worst group gives 0.822 and <b>0.795</b>. Note the overall accuracy also improves,
+  from 0.600 to <b>0.808</b>: the average-minimising objective was not even winning on its own
+  terms once the groups were balanced.</figcaption>
+</figure>
+
+<div class="box why">
+  <span class="label">Two things in that figure worth separating</span>
+  <p><b>Below chance is not a bad score, it is a signature.</b> A model at 0.5 on the conflicting
+  group would be uninformative. At 0.215 it is systematically inverted: it learned the shortcut so
+  thoroughly that where the shortcut misleads, it is confidently wrong. Part XXII Figure 6 is the
+  same phenomenon in its causal form.</p>
+  <p><b>The average was misleading in both directions.</b> The overall figure of 0.600 concealed a
+  group at 0.215, and it was also worse than the robust model's 0.808, because "average" was
+  computed on a training distribution whose group balance did not survive to test. Optimising the
+  average optimises for the group mixture you happened to sample.</p>
+</div>
+
+<div class="box pitfall">
+  <span class="label">Pitfall: you need the group labels</span>
+  <p>Group-robust training requires knowing which group each training point is in. When the groups
+  are unknown (which is the usual case, because the spurious feature is usually the one nobody
+  identified), the method is unavailable.</p>
+  <p>Methods that infer groups from the model's own errors exist and are considerably less reliable.
+  The honest summary is that the technique works when you already know what you are worried about,
+  and the failures that matter most are the ones you do not.</p>
+</div>
+
+<h3><span class="num">§44</span> Detecting shift, and what detection is worth</h3>
+
+<div class="box shapes">
+  <span class="label">What can be seen without labels</span>
+  <p><b>Input distribution tests.</b> Two-sample tests on features or embeddings. Detect covariate
+  shift; say nothing about whether it matters.</p>
+  <p><b>Confidence and calibration drift.</b> Cheap, and Part XIV §5's calibration is the
+  instrument. A drop in confidence is evidence of shift; stable confidence is not evidence of
+  none, because a model can be confidently wrong.</p>
+  <p><b>Output distribution monitoring.</b> The prediction mix moving is often the earliest signal
+  and the easiest to compute.</p>
+  <p><b>Nothing detects concept shift without labels.</b> The conditional changed; only labels can
+  see it. This is the case for the sampled human review of Part XXI §35, and it is not
+  substitutable.</p>
+</div>
+
+<h3><span class="num">§45</span> What movements A to F establish</h3>
+
+<div class="box intuition">
+  <span class="label">Five things</span>
+  <p><b>Generalisation has a theory, and it is exact for what it covers.</b> Finite VC dimension is
+  necessary and sufficient for PAC learning, with matching bounds. Figure 2 measures the dimension
+  of a linear classifier by enumeration and gets exactly <span class="m">$d+1$</span>.</p>
+  <p><b>That theory is numerically vacuous at modern scale, provably.</b> Figure 3 reads 1.1 to
+  10.0 where an error rate cannot exceed 1, and because networks can fit random labels, no
+  distribution-free repair is available.</p>
+  <p><b>Past the interpolation threshold the question changes.</b> Figure 4's error peaks at 4.708
+  where the fit becomes exact and then falls to 0.224, better than any underparameterised model,
+  because what matters becomes which exact fit the algorithm selects.</p>
+  <p><b>The algorithm is doing the regularising.</b> Figure 5's four solutions all fit exactly and
+  differ in test error by a factor of eighteen; gradient descent finds the minimum-norm one to
+  fifteen digits. This is the right shape for an explanation, and for deep networks the contents
+  are missing.</p>
+  <p><b>Every guarantee here assumes a fixed distribution, and deployment breaks it.</b> The
+  correction for covariate shift does nothing when the model is well specified (Figure 6) and the
+  average conceals a group at 0.215 (Figure 7). Know which assumption you are relying on and
+  measure whether it holds.</p>
+</div>

@@ -1,0 +1,113 @@
+<h2><span class="part-kicker">Part F</span>Practice</h2>
+
+<p class="mvt">What to check before choosing a representation, how to evaluate systems whose metrics
+depend on the evaluation set's size, and which of this part's problems are architectural.</p>
+
+<h3><span class="num">§40</span> Choosing a representation</h3>
+
+<div class="box try">
+  <span class="label">Five questions, in order</span>
+  <p><b>Is the signal speech, and is it for people?</b> If both, the mel spectrogram's assumption is
+  right and the default pipeline is a good default. If either is no, §4's fourteen-fold pooling is
+  discarding something and a linear or learned filterbank deserves a comparison.</p>
+  <p><b>Do you need to reconstruct?</b> If yes, phase is on your critical path and §7 is the cost.
+  If you only need to classify, the magnitude may genuinely be enough.</p>
+  <p><b>How fast does the signal change?</b> This sets the window, and the 25 ms default is a guess
+  about speech.</p>
+  <p><b>Do you need timing?</b> A clip-level embedding cannot supply it, however good it is.</p>
+  <p><b>Will the output feed a language model?</b> Then you need tokens, and §22's codec is the
+  interface.</p>
+</div>
+
+<h3><span class="num">§41</span> Evaluating audio and multimodal systems</h3>
+
+<div class="box shapes">
+  <span class="label">Six things</span>
+  <p><b>Report the gallery size</b> with every retrieval number. Figure 7 is why.</p>
+  <p><b>Report the prompts</b> for a zero-shot number, since the wording moves it by points.</p>
+  <p><b>Report the text-only control</b> for any multimodal benchmark.</p>
+  <p><b>Report word error rate with the language model separated</b>, because a CTC system's score
+  is partly the external model's: Figure 4 says how much of the work it is doing.</p>
+  <p><b>Evaluate vocoders on something other than spectral distance</b>, which is exactly the metric
+  Figure 2 shows a phase-blind method optimising while sounding wrong.</p>
+  <p><b>Split by speaker, by recording session and by source</b>, not at random. The same voice in
+  train and test is the audio version of the leak Part XXV §36 measures.</p>
+</div>
+
+<h3><span class="num">§42</span> The failures that repeat</h3>
+
+<div class="box pitfall">
+  <span class="label">Five, in the order they are usually discovered</span>
+  <p><b>A resampling with no filter.</b> Part XXVII §3, and it is everywhere in audio pipelines
+  because changing sample rate is a one-line call in every library.</p>
+  <p><b>Train and test sharing a speaker.</b> Reported accuracy that does not survive a new
+  voice.</p>
+  <p><b>A magnitude-only loss</b> that scores well and sounds wrong.</p>
+  <p><b>A retrieval number from a small gallery</b>, compared against one from a large one.</p>
+  <p><b>A multimodal benchmark answered from the text.</b> No control was run, so nobody knows.</p>
+</div>
+
+<h3><span class="num">§43</span> Where this connects</h3>
+
+<div class="box shapes">
+  <span class="label">Six places</span>
+  <p><b>Part XXVII §2, §21, §23.</b> Sampling, windows and the short-time transform are used here
+  rather than re-derived; this part is what that one was built for.</p>
+  <p><b>Part XXVII §18.</b> The phase result, in audio: Figure 2 is its counterpart.</p>
+  <p><b>Part XXVIII §12.</b> CTC's forward recursion is the HMM's, for the same reason and with the
+  same exactness check.</p>
+  <p><b>Part XV §17.</b> The contrastive loss is that one with the two views taken from different
+  modalities.</p>
+  <p><b>Part XX.</b> Once audio is tokens, every technique there applies unchanged, which is the
+  whole point of §22.</p>
+  <p><b>Part XXIX §15.</b> The visual-token budget of §34 is the pyramid question in another
+  currency.</p>
+</div>
+
+<h3><span class="num">§44</span> What is unsolved</h3>
+
+<div class="box why">
+  <span class="label">Four, distinguished by kind</span>
+  <p><b>Not yet measured.</b> How much of a learned front end's occasional advantage is the
+  learning and how much is the extra compute. The comparison at matched compute is rare.</p>
+  <p><b>Not currently measurable.</b> Whether a multimodal model has understood a scene or matched a
+  caption pattern. Every benchmark we have is answerable to some degree from priors, and the
+  text-only control bounds the problem without solving it.</p>
+  <p><b>Genuinely open.</b> Representing time and identity together: who spoke, when, in overlapping
+  speech. Separation, diarisation and recognition are still largely separate systems, and the joint
+  problem is not solved.</p>
+  <p><b>Not empirical.</b> Whether a synthesised voice may resemble a person who did not consent.
+  That is Part XXI's subject and no audio metric touches it.</p>
+</div>
+
+<h3><span class="num">§45</span> What to carry forward</h3>
+
+<div class="box intuition">
+  <span class="label">Five things</span>
+  <p><b>The standard audio representation is two assumptions and a deletion.</b> A window length
+  guessing how fast speech changes, a mel scale claiming resolution should degrade like hearing's
+  (Figure 1 measures fourteen-fold pooling at the top) and phase discarded entirely.</p>
+  <p><b>So the pipeline needs a model to invent phase back.</b> Figure 2 measures classical
+  estimation converging in spectrogram space to a waveform correlation of 0.53.</p>
+  <p><b>CTC's independence assumption costs half the probability mass</b> on a genuinely ambiguous
+  input, at every length, unfixable by sharper predictions, which is why an external language model
+  is restoring something rather than refining it.</p>
+  <p><b>The contrastive temperature selects how many negatives you train against.</b> Figure 6
+  measures 1.1 of 512 at a low setting.</p>
+  <p><b>A retrieval number is a property of the gallery</b>, and a shared embedding space need not be
+  shared, so cross-modal thresholds must be calibrated on cross-modal pairs.</p>
+</div>
+
+<div class="sixty">
+  <span class="label">Sixty seconds</span>
+  <p>Audio is too long and too phase-variable to feed a model raw, so everything runs on a
+  spectrogram, which builds in a guess about how fast the signal changes, a claim that frequency
+  resolution should degrade the way human hearing's does, and the deletion of the half of the signal
+  that carries its structure. That last one is why generating audio needs a second model just to put
+  phase back. Recognition is an alignment problem solved by summing over alignments, and the cheapest
+  way of doing that assumes the output symbols are independent given the audio, which costs half the
+  probability mass whenever the audio is genuinely ambiguous. And joining two modalities with a
+  contrastive loss gives you retrieval, a temperature that quietly decides how many negatives you
+  are training against, a score that means different things in different directions, and no ability
+  to say when anything happened.</p>
+</div>

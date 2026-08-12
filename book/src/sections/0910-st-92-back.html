@@ -1,0 +1,162 @@
+<h2><span class="part-kicker">Build</span>The project</h2>
+
+<p class="lede">Six to nine hours. You build the tools for honest measurement, then turn
+them on a claim and find out whether it survives.</p>
+
+<h3><span class="num">P.1</span> What you are building</h3>
+
+<p><b><code>tinystat</code></b>: an estimation and evaluation toolkit, then an audit that
+uses it to test whether a reported improvement is real.</p>
+
+<p>The rule: <b>NumPy only.</b> No <code>scipy.stats</code>, no <code>statsmodels</code>,
+no <code>sklearn.metrics</code>. If a library provides it, you are writing it.</p>
+
+<h3><span class="num">P.2</span> Stage 1: estimators and their properties</h3>
+
+<table class="compact">
+  <thead><tr><th>Function</th><th>Notes</th></tr></thead>
+  <tbody>
+    <tr><td><code>sampling_distribution(estimator, sampler, n, reps)</code></td><td>The workhorse. Draw <code>reps</code> samples of size <code>n</code>, apply the estimator, return the array of estimates.</td></tr>
+    <tr><td><code>bias_variance_mse(estimates, truth)</code></td><td>All three, and assert the identity holds.</td></tr>
+    <tr><td><code>standard_error(estimates)</code></td><td>Spread of the estimator, not of the data.</td></tr>
+  </tbody>
+</table>
+
+<p><b>Deliverable:</b> a log-log plot of measured standard error against $n$ for three
+different source distributions: Gaussian, heavy-tailed, and skewed. All three should sit on
+a $1/\sqrt{n}$ line. Then find a distribution for which they <i>do not</i>, and explain it.
+(Hint: the central limit theorem requires finite variance.)</p>
+
+<h3><span class="num">P.3</span> Stage 2: intervals</h3>
+
+<ul>
+  <li><code>normal_ci(data, alpha)</code>: the textbook interval.</li>
+  <li><code>bootstrap_ci(data, stat, n_boot, alpha)</code>: percentile bootstrap, working
+  for any statistic passed in.</li>
+  <li><code>coverage_test(ci_fn, sampler, truth, reps)</code>: the honest check: build
+  many intervals and count how often they contain the truth.</li>
+</ul>
+
+<p><b>Deliverable:</b> a coverage table for both interval methods at
+$n \in \{5, 10, 30, 100\}$ across three source distributions. A 95% interval should cover
+95% of the time; report where each method falls short and by how much. This is the stage
+that teaches you to distrust intervals you did not check.</p>
+
+<h3><span class="num">P.4</span> Stage 3: comparison machinery</h3>
+
+<ul>
+  <li><code>permutation_test(a, b, stat)</code>: the assumption-free test: if the labels are
+  meaningless, shuffling them should not change the statistic.</li>
+  <li><code>paired_bootstrap(a_correct, b_correct)</code>: interval on the <i>difference</i>
+  between two models evaluated on the same examples.</li>
+  <li><code>power_curve(effect_sizes, n, reps)</code></li>
+  <li><code>bonferroni</code> and <code>benjamini_hochberg</code></li>
+</ul>
+
+<p><b>Deliverable:</b> confirm your permutation test produces uniform p-values under the
+null. If the histogram is not flat, the test is wrong; this is the sharpest check
+available and it catches real bugs.</p>
+
+<h3><span class="num">P.5</span> Stage 4: the audit</h3>
+
+<p>Now use the toolkit on a claim. Construct a scenario in which two models genuinely differ
+by a small amount, then answer:</p>
+
+<ol>
+  <li><b>How much test data</b> is needed to detect a 0.5 percentage point difference with
+  80% power? Compute it, then verify by simulation.</li>
+  <li><b>How much does pairing buy?</b> Compare interval widths on the difference, paired and
+  unpaired, from identical data.</li>
+  <li><b>What does search cost?</b> Simulate $k$ identical models, report the best, and plot
+  optimism against $k$.</li>
+  <li><b>What does test-set reuse cost?</b> Simulate the adaptive researcher of drill S2 and
+  plot reported against true accuracy over 200 rounds.</li>
+  <li><b>Reproduce double descent.</b> Sweep capacity past the interpolation threshold;
+  note what happens with <code>pinv</code>'s default <code>rcond</code> versus
+  <code>1e-15</code>.</li>
+</ol>
+
+<h3><span class="num">P.6</span> Stretch</h3>
+
+<ul>
+  <li><b>Nested cross-validation</b>: separate selection from evaluation, and measure the
+  bias you remove.</li>
+  <li><b>Bayesian coin</b>: full posterior with a conjugate prior; compare credible and
+  confidence intervals as $n$ grows.</li>
+  <li><b>The bootstrap's failure modes</b>: the maximum, and a statistic near a boundary.</li>
+  <li><b>Audit a real paper.</b> Take a published result with reported numbers, and work out
+  what interval those numbers actually support. This is the most useful thing in the
+  project.</li>
+</ul>
+
+<h3><span class="num">P.7</span> Done when</h3>
+
+<ul class="checklist">
+  <li>Your MSE identity check passes for several deliberately biased estimators.</li>
+  <li>Coverage tables exist for both interval methods, and you can say where each fails.</li>
+  <li>Your permutation test gives a flat p-value histogram under the null.</li>
+  <li>You can state the test-set size needed to detect a given difference.</li>
+  <li>Your double descent sweep shows the peak at the interpolation threshold.</li>
+  <li>Your README names one claim you previously believed that this project made you
+  retract.</li>
+</ul>
+
+<div class="box why">
+  <span class="label">Why this project</span>
+  <p>Everything here is a tool you will use for the rest of your working life, and almost
+  none of it is standard practice. Reporting an interval on a metric takes ten lines and
+  changes what you can honestly claim. A permutation test needs no distributional assumptions
+  and settles most "is this real?" questions in a few seconds of compute.</p>
+  <p>The audit stage is the point. Once you have measured how much optimism a hyperparameter
+  search injects, you will not report a search-selected number as an estimate again; and
+  that single habit puts you ahead of a great deal of published work.</p>
+</div>
+
+<h2 class="nobreak"><span class="part-kicker">Assess</span>Checkpoint</h2>
+
+<p class="lede">Part VI builds the theory of learning directly on §20. Be honest.</p>
+
+<ul class="checklist">
+  <li>Explain why an estimator is a random variable.</li>
+  <li>Define bias, and give an estimator that is unbiased and useless.</li>
+  <li>Explain why the sample variance divides by $n-1$.</li>
+  <li>Distinguish the standard deviation of the data from the standard error of an estimate.</li>
+  <li>State the $1/\sqrt{n}$ law and what it costs to halve an error bar.</li>
+  <li>Derive $\text{MSE} = \text{Var} + \text{Bias}^2$.</li>
+  <li>Explain why a biased estimator can beat an unbiased one.</li>
+  <li>Say what the central limit theorem buys you when the data is not Gaussian.</li>
+  <li>State what a 95% confidence interval means, and what it does <b>not</b> mean.</li>
+  <li>Explain how the bootstrap works and why it needs no formula.</li>
+  <li>Define a p-value precisely, in one sentence, with every clause.</li>
+  <li>Give three wrong interpretations of $p = 0.03$.</li>
+  <li>Explain what power is and why an underpowered null result says nothing.</li>
+  <li>Compute the chance of a false positive across 20 tests.</li>
+  <li>Explain why reporting the best of 40 configurations is biased upward.</li>
+  <li>Explain what repeated test-set use does to a reported number.</li>
+  <li>Say why a paired comparison is tighter than an unpaired one.</li>
+  <li>Show that a Gaussian prior gives $L^2$ regularization.</li>
+  <li>State the three terms of the bias–variance decomposition and what each means.</li>
+  <li>Diagnose bias versus variance from training and test error, and say what to do.</li>
+  <li>Say what double descent is and why it does not contradict the decomposition.</li>
+</ul>
+
+<table class="compact">
+  <thead><tr><th>Score</th><th>Verdict</th></tr></thead>
+  <tbody>
+    <tr><td><b>18–21</b></td><td>Go on. You are in good shape.</td></tr>
+    <tr><td><b>14–17</b></td><td>Reread the sections you missed, then continue.</td></tr>
+    <tr><td><b>10–13</b></td><td>Work drills C1–C10 first.</td></tr>
+    <tr><td><b>Under 10</b></td><td>Reread §§1–5 and §20. Estimators and the decomposition carry this part.</td></tr>
+  </tbody>
+</table>
+
+<div class="box intuition">
+  <span class="label">The one thing to carry forward</span>
+  <p><b>Every number you report is a random variable.</b></p>
+  <p>An accuracy, a loss, a benchmark score, a claimed improvement: each is one draw from a
+  distribution you did not see. The question is never "what did I measure?" but "how much
+  would this move if I ran it again?"</p>
+  <p>Most of the errors in this part are the same error: treating a draw as though it were
+  the truth. Once you are in the habit of asking for the spread before believing the number,
+  the rest is technique.</p>
+</div>

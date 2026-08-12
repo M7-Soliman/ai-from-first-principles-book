@@ -1,0 +1,249 @@
+<h2><span class="part-kicker">Part E</span>Functions that keep appearing</h2>
+
+<p class="lede">Two small functions turn up so often that a reference gives them their own
+section. Both solve the same problem: a neural network produces arbitrary real numbers,
+but a probability has to live in a specific range and sum to one.</p>
+
+<h3><span class="num">§19</span> Sigmoid and softplus</h3>
+
+<h4>The logistic sigmoid</h4>
+
+$$\sigma(x) = \frac{1}{1 + e^{-x}}$$
+
+<p>It maps the entire real line into $(0,1)$, smoothly and monotonically. Feed it
+$-\infty$ and you get 0; feed it $+\infty$ and you get 1; feed it 0 and you get exactly
+$0.5$.</p>
+
+<p>Which raises a question most treatments skip. Plenty of functions squash the real line
+into $(0,1)$: you could rescale an arctangent, or use $x/(1+|x|)$ shifted and scaled, or
+invent a dozen others. Why <i>this</i> one, with its slightly ungainly formula? It is not
+convention and it is not aesthetics. The sigmoid is forced, and Part 0 already derived
+the thing that forces it without saying so.</p>
+
+<h4>Where the sigmoid comes from</h4>
+
+<p>Start from the problem rather than the answer. A network's final layer produces an
+unbounded real number, and you need a probability. Instead of asking "what function
+squashes", ask the better question: <b>what unbounded quantity is a probability naturally
+equivalent to?</b> If such a thing exists, the network should be producing that, and
+converting back should be a translation rather than a squashing.</p>
+
+<p>It exists. Take a probability $p$ and form the <b>odds</b>, $p/(1-p)$, the familiar
+gambling ratio, three-to-one and so on. Odds run from 0 to $\infty$ as $p$ runs from 0 to
+1, which removes the upper bound but leaves a floor at zero and, worse, is wildly
+asymmetric: $p = 0.9$ gives odds of 9, while the equally lopsided $p = 0.1$ gives $0.111$.
+Now take the log:</p>
+
+$$\text{logit}(p) = \log\frac{p}{1-p}$$
+
+<p>The floor is gone and the asymmetry with it. This quantity (the <b>log-odds</b>, or
+logit) runs over the entire real line, is 0 at $p = 0.5$, and is symmetric: $p = 0.9$
+gives $+2.197$ and $p = 0.1$ gives $-2.197$. It is the natural unbounded coordinate for a
+probability.</p>
+
+<p>And the sigmoid is exactly its inverse. Part 0 §5 solved $y = 1/(1+e^{-x})$ for $x$
+and arrived at $\log\!\big(y/(1-y)\big)$, the same expression, obtained as a routine
+algebra exercise long before probability had been mentioned. Undoing that step is what
+$\sigma$ does.</p>
+
+<div class="box intuition">
+  <span class="label">Intuition: a network predicts evidence, not probability</span>
+  <p>This is why the raw output of a classifier is called a <b>logit</b>. The name is not
+  decoration; it says what the number is.</p>
+  <p>Read the network as accumulating <i>evidence</i>. Each layer contributes an amount
+  for or against; the contributions add, because that is what a linear layer does. Adding
+  is the right operation in log-odds space; this is precisely Turing's weight of evidence
+  from §21, measured in bans, which accumulated by addition as each new intercept arrived.
+  Evidence does not add in probability space, where you are penned into $[0,1]$ and would
+  keep running into the walls.</p>
+  <p>So the network works in the coordinate where its natural operation is correct, and
+  the sigmoid converts back at the very end. A logit of 0 is no evidence either way,
+  giving $p = 0.5$. A logit of $+2.2$ is odds of about 9 to 1, giving $p = 0.9$. Every
+  logit you ever print is a quantity of evidence.</p>
+</div>
+
+<p>That framing also explains the flatness in Figure 12 that the caption flags as a
+problem. Moving from $p = 0.99$ to $p = 0.999$ requires the logit to travel from about
+$4.6$ to about $6.9$, a long way in evidence for a small way in probability. The
+function is flat out there because the probability scale is running out of room while the
+evidence scale is not, and a flat function is one with a vanishing derivative.</p>
+
+<figure>
+  <img src="figures/pr/12-sigmoid-softplus.svg" alt="The sigmoid and softplus functions">
+  <figcaption><b>Figure 12.</b> Left: the sigmoid, squashing $\mathbb{R}$ into $(0,1)$.
+  Note how flat it becomes at both ends; that flatness is the saturation problem
+  discussed below. Right: softplus, a smooth version of ReLU that is always strictly
+  positive.</figcaption>
+</figure>
+
+<p>Two identities you will need constantly:</p>
+
+$$\sigma(-x) = 1 - \sigma(x), \qquad \frac{d}{dx}\sigma(x) = \sigma(x)\big(1 - \sigma(x)\big)$$
+
+<p>The derivative is remarkable; it is expressible entirely in terms of the function's
+own output. During backpropagation you have already computed $\sigma(x)$ on the forward
+pass, so the gradient costs one multiplication and no new evaluation. That efficiency is
+part of why the sigmoid dominated early neural networks.</p>
+
+<div class="box why">
+  <span class="label">Why deep learning cares, and why it fell out of favour</span>
+  <p>The sigmoid is exactly the function that converts a network's unbounded output into
+  a Bernoulli parameter, which is why it terminates every binary classifier.</p>
+  <p>But look again at that derivative. It is largest at $x = 0$, where it equals
+  $0.25$, and it collapses toward zero at both extremes. So when a unit is confidently
+  saturated, its gradient nearly vanishes and it learns almost nothing, the
+  <b>vanishing gradient</b> problem. Stack many sigmoid layers and gradients get
+  multiplied by numbers below $0.25$ repeatedly, decaying exponentially with depth. This
+  is the single biggest reason ReLU replaced the sigmoid in hidden layers, and it is a
+  central story in Part VII §18 and Part IX §10.</p>
+</div>
+
+<h4>Softplus</h4>
+
+$$\zeta(x) = \log\big(1 + e^{x}\big)$$
+
+<p>A smooth approximation to $\max(0, x)$, always strictly positive. Its main use is
+producing parameters that are required to be positive: a variance, for instance, must
+never be negative, so a network predicts an unconstrained number and passes it through
+softplus.</p>
+
+<p>The two functions are closely related: the derivative of softplus is exactly the
+sigmoid.</p>
+
+<div class="box pitfall">
+  <span class="label">Pitfall: softplus overflows to a wrong answer; sigmoid only warns</span>
+  <p>The two naive formulas fail differently, and it matters which. For large positive
+  $x$, <code>np.exp(x)</code> genuinely overflows (around $x = 710$ in float64), so
+  <code>np.log(1+np.exp(x))</code> comes back <code>inf</code>: a corrupted value that
+  will turn the next gradient into <code>nan</code> and quietly poison a training
+  run.</p>
+  <p>The sigmoid is milder than it looks. For very negative $x$ (again around $x =
+  -710$), <code>np.exp(-x)</code> overflows and NumPy raises a <code>RuntimeWarning</code>,
+  but <code>1/(1+np.exp(-x))</code> still evaluates to $1/\infty = 0.0$, which is
+  the correct limit of the sigmoid, not a corrupted one. The warning is worth silencing
+  (it will drown out warnings that do matter), but the number underneath it is right.</p>
+  <p>The fixes are standard regardless: use <code>scipy.special.expit</code> for the
+  sigmoid, which suppresses the spurious warning without changing the answer, and
+  compute softplus as <code>np.log1p(np.exp(-abs(x))) + np.maximum(x, 0)</code>, which
+  is algebraically identical but never exponentiates a large positive number, so it never
+  produces the genuine <code>inf</code>. This is the same defensive habit as the stable
+  softmax in Part I's drill W6, and it is why frameworks provide fused implementations
+  rather than letting you compose these yourself.</p>
+</div>
+
+<h3><span class="num">§20</span> Softmax</h3>
+
+<p>The multi-class counterpart. Given a vector $\mathbf{z}$ of $k$ arbitrary real
+numbers, usually called <b>logits</b>, softmax produces a valid categorical
+distribution:</p>
+
+$$\text{softmax}(\mathbf{z})_i = \frac{e^{z_i}}{\sum_{j=1}^{k} e^{z_j}}$$
+
+<p>Two steps, each doing one job. <b>Exponentiate</b>, which forces everything positive,
+since $e^{z}$ is positive for every real $z$. Then <b>divide by the total</b>, which
+forces the entries to sum to 1. The output is a legitimate probability vector by
+construction.</p>
+
+<p>The same question arises as for the sigmoid, and it has the same answer. Squaring
+would also force everything positive, and so would taking absolute values, and both are
+cheaper. The exponential is not chosen for its range.</p>
+
+<p>It is chosen because <b>the logits are log-probabilities</b>, and the exponential is
+what undoes a logarithm. That is the entire content of the operation: the network reports
+each class's score on a log scale, where evidence adds, and softmax converts those scores
+back to probabilities and renormalises because the network's scores carry no commitment
+to summing to anything.</p>
+
+<p>You can watch it work. Take genuine probabilities $(0.2, 0.3, 0.5)$, take their logs
+to get $(-1.609, -1.204, -0.693)$, and push those through softmax. You get $(0.2, 0.3,
+0.5)$ back, exactly. Softmax is not imposing a shape on arbitrary numbers; it is
+inverting a log, and it returns the original distribution untouched when the input really
+was a set of log-probabilities.</p>
+
+<p>Squaring would have no such property. It would produce a valid probability vector and
+a meaningless one, because nothing about the network's training would make the squares
+mean anything. The exponential is the only choice under which the additive structure of
+the layers before it corresponds to multiplying probabilities, which, by §8, is what
+combining independent evidence actually does.</p>
+
+<div class="box intuition">
+  <span class="label">Intuition: softmax is the sigmoid, generalised</span>
+  <p>The two functions are the same function. With exactly two classes, divide numerator
+  and denominator by $e^{z_1}$:</p>
+  <p>$$\text{softmax}(\mathbf{z})_1 = \frac{e^{z_1}}{e^{z_1} + e^{z_2}}
+  = \frac{1}{1 + e^{-(z_1 - z_2)}} = \sigma(z_1 - z_2)$$</p>
+  <p>Softmax over two classes <i>is</i> a sigmoid applied to the difference of the logits,
+  and that difference is the log-odds from §19, since it is the log of one class's score
+  divided by the other's. Two sections, one function.</p>
+  <p>This also explains a practical fact: a binary classifier can be built either with one
+  output and a sigmoid, or with two outputs and a softmax, and the two are equivalent.
+  The two-output version simply carries a redundant parameter, which is the
+  non-identifiability noted below.</p>
+</div>
+
+<div class="box intuition">
+  <span class="label">Intuition: "soft" argmax, not "soft" max</span>
+  <p>The name is a historical misnomer worth untangling. Softmax is a smoothed version
+  of <b>argmax</b>, not of max. A hard argmax would return $(0,0,1,0)$: all the weight
+  on the winner. Softmax returns something like $(0.02, 0.05, 0.88, 0.05)$: the winner
+  dominates but the others keep a share.</p>
+  <p>The exponential is what makes the winner dominate. Because $e^z$ grows so fast,
+  modest differences in logits become large differences in probability. Logits
+  $(1, 2, 3)$ give roughly $(0.09, 0.24, 0.67)$: a gap of 2 in the logits became a
+  factor of 7 in probability.</p>
+</div>
+
+<h4>The shift-invariance property</h4>
+
+<p>Softmax is unchanged by adding any constant to every logit:</p>
+
+$$\text{softmax}(\mathbf{z} + c)_i = \text{softmax}(\mathbf{z})_i$$
+
+<p>The factor $e^c$ appears in both numerator and denominator and cancels exactly. Two
+consequences follow, and both matter.</p>
+
+<p><b>It is the basis of the numerically stable implementation.</b> Subtract the maximum
+logit before exponentiating and the largest exponent becomes $e^0 = 1$, so nothing can
+overflow, while the result is provably identical.</p>
+
+<pre><code><span class="k">def</span> softmax(z):
+    <span class="s">"""Stable softmax. The shift changes nothing mathematically."""</span>
+    z = z - np.max(z)            <span class="c"># now max(z) == 0, so exp() is safe</span>
+    e = np.exp(z)
+    <span class="k">return</span> e / e.sum()
+
+<span class="c"># naive version dies here; this one does not</span>
+print(softmax(np.array([<span class="n">1000.</span>, <span class="n">1001.</span>, <span class="n">1002.</span>])))
+<span class="o">### [0.09003057 0.24472847 0.66524096]</span>
+</code></pre>
+
+<p><b>It means the logits are not unique.</b> A network can add 5 to every logit and
+produce identical predictions, so the parameters are only determined up to that shift.
+This is a mild non-identifiability that occasionally surfaces when comparing models.</p>
+
+<div class="box pitfall">
+  <span class="label">Pitfall: do not chain softmax into a "softmax loss"</span>
+  <p>Frameworks provide functions with names like
+  <code>softmax_cross_entropy_with_logits</code>, and they expect <b>raw logits</b>, not
+  softmax output. Applying softmax yourself and then passing the result is a genuine
+  bug: it applies the operation twice, flattening your distribution toward uniform.</p>
+  <p>The fused versions exist because computing $\log(\text{softmax}(\mathbf{z}))$
+  directly is far more numerically stable than taking a log of a softmax that may
+  contain values rounded to exactly zero, and $\log 0$ is $-\infty$. Section 25 shows
+  why the log and the softmax belong together.</p>
+</div>
+
+<div class="box try">
+  <span class="label">Try it</span>
+  <p>Compute $\text{softmax}((0, 0, 0))$ and $\text{softmax}((0, 0, 10))$ without a
+  calculator, approximately is fine. What does the comparison tell you?</p>
+</div>
+
+<p><b>Answer.</b> For $(0,0,0)$, all three exponentials equal 1, so the result is
+$(1/3, 1/3, 1/3)$: equal logits mean maximum uncertainty. For $(0,0,10)$, the third
+exponential is $e^{10} \approx 22{,}026$ against two 1s, so the total is about 22,028
+and the result is roughly $(0.00005, 0.00005, 0.9999)$.</p>
+<p>A logit gap of 10 produces near-certainty. That sensitivity is why models can become
+badly overconfident, and why calibration (making a model's stated 90% confidence
+correspond to actually being right 90% of the time) is a real research problem rather
+than an automatic property.</p>

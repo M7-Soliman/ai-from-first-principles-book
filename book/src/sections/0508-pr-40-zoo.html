@@ -1,0 +1,289 @@
+<h2><span class="part-kicker">Part D</span>The distribution zoo</h2>
+
+<p class="lede">A handful of named distributions cover most of what you will meet. Each
+one is a shape plus a story about when that shape arises. Learn the stories; the
+formulas follow.</p>
+
+<h3><span class="num">§14</span> Bernoulli and categorical</h3>
+
+<h4>Bernoulli: one binary event</h4>
+
+<p>A single trial with two outcomes, governed by one parameter $\phi \in [0,1]$:</p>
+
+$$P(X = 1) = \phi, \qquad P(X = 0) = 1 - \phi$$
+
+<p>Both cases fold into one expression, which is a trick worth noticing because it
+reappears throughout machine learning:</p>
+
+$$P(X = x) = \phi^x (1-\phi)^{1-x}$$
+
+<p>When $x = 1$ the second factor becomes $(1-\phi)^0 = 1$ and vanishes; when $x = 0$
+the first does. Exponents used as switches like this show up constantly in likelihood
+expressions, and recognising the pattern saves you a lot of case analysis.</p>
+
+<p>Its mean is $\phi$ and its variance is $\phi(1-\phi)$, which peaks at $\phi = 0.5$
+and vanishes at 0 or 1, matching the obvious intuition that a certain outcome has no
+variability.</p>
+
+<div class="box why">
+  <span class="label">Why deep learning cares</span>
+  <p>Every binary classifier outputs a Bernoulli. "Spam or not", "fraud or not", "cat or
+  not": the model's job is to produce the single parameter $\phi$ for each input.
+  That is what the sigmoid in §19 is for: it converts an unbounded network output into
+  a legal $\phi$.</p>
+</div>
+
+<h4>Categorical: one event with $k$ outcomes</h4>
+
+<p>The generalisation to $k$ possibilities, with a probability vector
+$\boldsymbol{\phi}$ whose entries are non-negative and sum to 1. The book calls this the
+<i>multinoulli</i>; most other sources call it categorical.</p>
+
+<p>This is the distribution over class labels in every multi-class classification
+problem. A 1,000-class image classifier outputs a categorical distribution with 1,000
+parameters, and the softmax of §20 is what produces it.</p>
+
+<h3><span class="num">§15</span> The Gaussian, and why it is everywhere</h3>
+
+<div class="sixty">
+  <span class="label">In 60 seconds</span>
+  <p>Two knobs (mean and variance) and three separate reasons it dominates: sums of many
+  independent things converge to it (the central limit theorem), it is the
+  <b>maximum-entropy</b> distribution for a given variance so it assumes the least, and it
+  is mathematically convenient in ways that make derivations close in closed form.</p>
+</div>
+
+<div class="readnow"><span class="label">Go and read</span><p><span class="src">Jaynes (1957)</span>, <i>Information theory and statistical mechanics</i>. The maximum-entropy argument for the Gaussian, the second of the three justifications below, made properly. Jaynes's claim is stronger than it first appears: the Gaussian is not merely convenient, it is the distribution that assumes least given what you know.</p></div>
+
+<div class="box history">
+  <span class="label">History: named after the wrong person, which is the rule not the exception</span>
+  <p>Abraham de Moivre derived the bell curve in <span class="year">1733</span>, as an
+  approximation to binomial probabilities for large numbers of coin flips. He published it
+  in an appendix, in Latin, and it attracted almost no attention.</p>
+  <p>Laplace developed it substantially and proved an early form of the central limit
+  theorem. Gauss used it in <span class="year">1809</span> for the distribution of errors
+  in astronomical observation (the same Ceres work described in Part I §13) and made it
+  indispensable.</p>
+  <p>The name that stuck was Gauss's, roughly seventy-five years after de Moivre had the
+  result. This is Stigler's Law of Eponymy again, met in Part I §9: <b>no scientific
+  discovery is named after its original discoverer.</b></p>
+  <p>The alternative name, "normal distribution", carries its own problem. Pearson
+  popularised it and later regretted doing so, on the grounds that it invites people to
+  believe other distributions are somehow abnormal. Plenty of real quantities are not
+  Gaussian at all, and the pitfall below is about what happens when you forget that.</p>
+</div>
+
+<div class="box def">
+  <span class="label">Definition: the Gaussian (normal) distribution</span>
+  <p>$$\mathcal{N}(x; \mu, \sigma^2) = \frac{1}{\sqrt{2\pi\sigma^2}} \exp\!\left(-\frac{(x-\mu)^2}{2\sigma^2}\right)$$
+  with mean $\mu$ and variance $\sigma^2$.</p>
+</div>
+
+<p>The formula looks worse than it is. Read it in three pieces:</p>
+
+<ul>
+  <li>$(x - \mu)^2$: squared distance from the centre. This is the only place $x$
+  appears, so the curve is symmetric about $\mu$.</li>
+  <li>$\exp(-\,\cdot\,)$: turns "far from centre" into "small probability", and does so
+  <i>very</i> quickly, since the exponential of a large negative number is minuscule.</li>
+  <li>$1/\sqrt{2\pi\sigma^2}$: a constant chosen purely so the area comes out to 1. It
+  carries no meaning; it is bookkeeping.</li>
+</ul>
+
+<figure>
+  <img src="figures/pr/07-gaussian-family.svg" alt="Gaussian curves with varying mean and variance">
+  <figcaption><b>Figure 7.</b> Two knobs and nothing else. $\mu$ slides the curve along
+  the axis without changing its shape; $\sigma$ widens it, and because the total area is
+  pinned at 1, widening necessarily flattens.</figcaption>
+</figure>
+
+<h4>Why this distribution and not another</h4>
+
+<p>Three genuinely distinct reasons, and it is worth knowing all three because they get
+invoked in different contexts:</p>
+
+<p><b>1. The central limit theorem.</b> Add up many independent random contributions
+(of almost any shape) and the sum tends toward a Gaussian. Since a great many real
+quantities are sums of many small influences (height, measurement error, noise in a
+sensor), Gaussians appear constantly in nature without anyone arranging it.</p>
+
+<figure>
+  <img src="figures/pr/08-clt.svg" alt="Averages of uniform samples converging to a bell curve">
+  <figcaption><b>Figure 8.</b> The central limit theorem, simulated with 40,000 trials
+  per panel. We start with a <i>uniform</i> distribution, perfectly flat, nothing
+  bell-shaped about it. Averaging just two samples already produces a triangle; by
+  thirty the histogram is visually indistinguishable from the Gaussian drawn over it.
+  Nothing about the starting distribution mattered.</figcaption>
+</figure>
+
+<p><b>2. Maximum entropy.</b> Among all distributions with a given variance, the
+Gaussian is the one that assumes the least; it is maximally noncommittal about
+everything except spread. Section 23 makes "assumes the least" precise, though it does
+so for a discrete variable; here $X$ is continuous, and the entropy of a continuous
+variable has its own name, <b>differential entropy</b> (replace the sum with an
+integral). It behaves less politely than the discrete kind (it can be negative), but
+the "assumes the least" reading still holds. If all you honestly know is a mean and a
+variance, choosing anything else means smuggling in assumptions you cannot justify.</p>
+
+<p><b>3. It is mathematically convenient.</b> Less noble but perfectly real. Gaussians
+are closed under many operations (sums of Gaussians are Gaussian, marginals of
+Gaussians are Gaussian, conditionals of Gaussians are Gaussian), and this closure makes
+otherwise intractable derivations work out in closed form.</p>
+
+<div class="box pitfall">
+  <span class="label">Pitfall: assuming Gaussian when the data is not</span>
+  <p>The Gaussian's tails decay extremely fast, which means it treats far-out values as
+  essentially impossible. Many real quantities have much heavier tails: financial
+  returns, city sizes, word frequencies, network traffic. Modelling those as Gaussian
+  will make you systematically underestimate the chance of extreme events, and the
+  failure is silent until an extreme event arrives.</p>
+  <p>Also worth remembering: the central limit theorem is about <b>sums</b>. It says
+  nothing about individual measurements, and it requires finite variance, which some
+  real distributions do not have.</p>
+</div>
+
+<h3><span class="num">§16</span> The multivariate Gaussian</h3>
+
+<p>The generalisation to a vector-valued variable replaces the mean with a vector and
+the variance with a covariance matrix:</p>
+
+$$\mathcal{N}(\mathbf{x}; \boldsymbol{\mu}, \Sigma) = \frac{1}{\sqrt{(2\pi)^n \det(\Sigma)}} \exp\!\left(-\tfrac{1}{2}(\mathbf{x}-\boldsymbol{\mu})^\top \Sigma^{-1} (\mathbf{x}-\boldsymbol{\mu})\right)$$
+
+<p>Structurally it is identical to the scalar version. The squared distance
+$(x-\mu)^2$ has become the quadratic form $(\mathbf{x}-\boldsymbol{\mu})^\top \Sigma^{-1}
+(\mathbf{x}-\boldsymbol{\mu})$ from Part I §18, and division by $\sigma^2$ has become
+multiplication by $\Sigma^{-1}$. Same shape, more dimensions.</p>
+
+<p>Some sources parametrise the univariate Gaussian with <b>precision</b>
+$\beta = 1/\sigma^2$ rather than variance, and the multivariate version with the
+<b>precision matrix</b> $\Lambda = \Sigma^{-1}$ rather than the covariance. The density
+then reads $\mathcal{N}(x; \mu, \beta^{-1}) \propto \exp\!\left(-\tfrac{\beta}{2}(x-\mu)^2\right)$. The choice is
+algebraic convenience: precision appears directly in the exponent and eliminates a
+matrix inversion in log-likelihood calculations.</p>
+
+<p>That quadratic form is a <b>distance measure that accounts for correlation</b>; it
+is called the Mahalanobis distance. A point two units away along a direction the data
+rarely varies in is far more surprising than a point two units along a direction it
+varies in a lot, and $\Sigma^{-1}$ encodes exactly that rescaling.</p>
+
+<figure>
+  <img src="figures/pr/09-multivariate-gaussian.svg" alt="Three multivariate Gaussians with different covariance structures">
+  <figcaption><b>Figure 9.</b> Contours of constant density are ellipses, and the orange
+  arrows are the <b>eigenvectors of $\Sigma$</b>, scaled by the square roots of their
+  eigenvalues. Isotropic: equal variance everywhere, circular. Diagonal: axis-aligned
+  ellipse, no correlation. Full: a tilted ellipse; the tilt <i>is</i> the correlation.
+  This is Part I's eigendecomposition, drawn on real sampled data.</figcaption>
+</figure>
+
+<div class="box why">
+  <span class="label">Why deep learning cares: the cost of a full covariance</span>
+  <p>A full $\Sigma$ over $n$ variables carries $n(n+1)/2$ parameters and requires
+  inverting an $n \times n$ matrix. At $n = 1000$ that is half a million parameters and
+  an expensive, potentially ill-conditioned inverse (Part I §13).</p>
+  <p>So models overwhelmingly assume a <b>diagonal</b> covariance (the middle panel),
+  which costs only $n$ parameters and inverts by reciprocating entries. The price is
+  assuming no correlation between dimensions, which is usually false. Variational
+  autoencoders (Part XVI §14&ndash;20) make exactly this assumption, and knowing it is an
+  approximation rather than a fact is part of reading that movement properly.</p>
+</div>
+
+<h3><span class="num">§17</span> Exponential, Laplace, Dirac, empirical</h3>
+
+<h4>Exponential and Laplace</h4>
+
+<p>The <b>exponential</b> distribution puts all its mass on non-negative values, decaying
+from a peak at zero. It is the natural model for waiting times: how long until the next
+bus, the next request, the next failure.</p>
+
+<p>The <b>Laplace</b> distribution is its two-sided cousin, with a sharp peak at some
+point $\mu$ and exponential decay in both directions.</p>
+
+<figure>
+  <img src="figures/pr/10-laplace-vs-gaussian.svg" alt="Laplace and Gaussian densities with matched variance">
+  <figcaption><b>Figure 10.</b> A Gaussian and a Laplace with the <b>same variance</b>.
+  The Laplace concentrates more mass near its centre and simultaneously carries fatter
+  tails; it expects both more typical values and more extreme ones, and fewer in
+  between.</figcaption>
+</figure>
+
+<div class="box why">
+  <span class="label">Why deep learning cares: this is $L^1$ regularization</span>
+  <p>Part I §15 said that $L^1$ regularization produces sparsity and explained it
+  geometrically, through the corners of the $L^1$ ball. Here is the probabilistic
+  explanation of the same fact.</p>
+  <p>Putting a <b>Laplace prior</b> on the weights and taking the negative log gives a
+  penalty proportional to $\|\mathbf{w}\|_1$: that is $L^1$ regularization. A
+  <b>Gaussian prior</b> gives $\|\mathbf{w}\|_2^2$, which is weight decay. The sharp
+  peak of the Laplace at zero is a statement that weights are <i>a priori</i> likely to
+  be exactly zero, and that belief is what drives them there. Two chapters, two
+  derivations, one phenomenon.</p>
+</div>
+
+<h4>Dirac and empirical distributions</h4>
+
+<p>The <b>Dirac delta</b> $\delta(x - \mu)$ places all probability at a single point.
+It is not a function in the ordinary sense (it is infinitely tall and infinitesimally
+wide, with total area 1), and it is best thought of as the limit of a Gaussian whose
+variance shrinks to zero.</p>
+
+<p>Its real use is assembling the <b>empirical distribution</b>: put a Dirac spike on
+each of your $m$ data points, each with weight $1/m$.</p>
+
+$$\hat{p}(\mathbf{x}) = \frac{1}{m}\sum_{i=1}^{m} \delta(\mathbf{x} - \mathbf{x}^{(i)})$$
+
+<div class="box intuition">
+  <span class="label">Intuition: the empirical distribution is your dataset</span>
+  <p>This formalises something you already do without thinking. Sampling from the
+  empirical distribution means picking a training example uniformly at random, which
+  is exactly what a data loader does every step.</p>
+  <p>It also frames the central problem of the whole field. You have $\hat{p}$, the
+  distribution of the data you collected. You want to do well on $p$, the distribution
+  of data in the world. Those are not the same, and every phrase you have heard about
+  generalisation, overfitting, and distribution shift is a statement about the gap
+  between them. Part V §20 is largely about that gap.</p>
+</div>
+
+<h3><span class="num">§18</span> Mixtures and latent variables</h3>
+
+<p>Combine several distributions by choosing among them at random:</p>
+
+$$P(x) = \sum_{i} P(c = i)\, P(x \mid c = i)$$
+
+<p>Sampling happens in two steps: pick a component $c$ according to its weight, then
+sample from that component. The variable $c$ is <b>latent</b>; it participates in
+generating the data but is never observed.</p>
+
+<figure>
+  <img src="figures/pr/11-mixture.svg" alt="Three weighted Gaussian components summing to a multimodal mixture">
+  <figcaption><b>Figure 11.</b> Three weighted Gaussians (dashed) and their mixture
+  (solid). The result has three peaks, so it is emphatically not a Gaussian; no single
+  Gaussian has more than one mode. Mixtures buy expressiveness cheaply: with enough
+  components you can approximate essentially any density.</figcaption>
+</figure>
+
+<div class="box intuition">
+  <span class="label">Intuition: latent variables are the hidden cause</span>
+  <p>Heights in a population are roughly bimodal, and the reason is that the population
+  contains subgroups with different average heights. If you never record which subgroup
+  someone belongs to, that membership is a latent variable, and the observed
+  distribution is a mixture.</p>
+  <p>Latent variables let a simple model produce complicated behaviour by supposing a
+  hidden structure that explains it. This idea scales all the way up: the "code" in an
+  autoencoder is a latent variable, and so is the noise vector fed to a generative model.
+  Parts XV and XVI are, from one angle, an extended study of what you can do with
+  variables you never get to see.</p>
+</div>
+
+<div class="box try">
+  <span class="label">Try it</span>
+  <p>A mixture has two components: with probability 0.7, $\mathcal{N}(0, 1)$; with
+  probability 0.3, $\mathcal{N}(10, 1)$. What is the mean of the mixture, and would you
+  describe it as a typical value?</p>
+</div>
+
+<p><b>Answer.</b> By linearity of expectation, the mean is
+$0.7 \times 0 + 0.3 \times 10 = 3$. But the mixture has essentially no mass anywhere
+near 3; the samples cluster around 0 and around 10, and a value of 3 would be quite
+unusual. This is Figure 5's warning at full strength: for a multimodal distribution the
+mean can be deeply unrepresentative, and reporting it alone actively misleads. Always
+look at the shape, not just the summary.</p>

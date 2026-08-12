@@ -1,0 +1,266 @@
+<h2><span class="part-kicker">Part G</span>The payoff</h2>
+
+<h3><span class="num">§23</span> Principal components analysis, derived from nothing</h3>
+
+<div class="sixty">
+  <span class="label">In 60 seconds</span>
+  <p>Centre the data, ask which direction it varies along most, and the answer falls out
+  of the spectral theorem: the <b>top eigenvector of the covariance matrix</b>, with the
+  eigenvalue as the variance along it. No optimizer, no training loop; it is a closed form.
+  This is the first real machine learning algorithm in this book, and it is an
+  eigendecomposition asked the right question.</p>
+</div>
+
+<div class="readnow"><span class="label">Go and read</span><p><span class="src">Pearson (1901)</span>, <i>On lines and planes of closest fit to systems of points in space</i>. PCA arriving first as a geometry problem: find the line that fits a cloud of points best, with no covariance matrix in sight. Then <span class="src">Hotelling (1933)</span>, which derives it the way this section does, from the eigenvectors. Two people, thirty years apart, reaching the same object from opposite directions is the strongest evidence that it was worth finding.</p></div>
+
+<p class="lede">Everything in this chapter has been building a toolkit. Here we spend
+it. PCA is the first genuine machine learning algorithm in this book, and it turns out
+to be nothing more than an eigendecomposition asked the right question.</p>
+
+<h4>The problem</h4>
+
+<p>You have $n$ data points, each with $d$ features; say 1,000 images of 784 pixels
+each. That is a lot of numbers, and most of them are redundant: neighbouring pixels are
+nearly identical, and the images occupy a tiny sliver of the space of all possible pixel
+arrangements. You would like to describe each point with far fewer numbers while losing
+as little as possible.</p>
+
+<p>Concretely: <b>find a $k$-dimensional subspace such that projecting the data onto it
+loses the least information.</b> That is the whole problem, and now we will discover that
+linear algebra answers it exactly.</p>
+
+<h4>Step 1: centre the data</h4>
+
+<p>Subtract the mean of each feature, so the cloud sits around the origin:</p>
+
+$$\boldsymbol{\mu} = \frac{1}{n}\sum_{i=1}^{n} \mathbf{x}_i, \qquad \tilde{\mathbf{x}}_i = \mathbf{x}_i - \boldsymbol{\mu}$$
+
+<p>This is not cosmetic. Everything ahead concerns directions <i>through the origin</i>: spans, eigenvectors, subspaces. If the cloud sits far off to one side, the dominant
+direction found will simply be the direction of the mean, which tells you nothing about
+how the data varies. Forgetting to centre is the single most common way to get PCA
+wrong, and the results look plausible enough that the error can go unnoticed.</p>
+
+<h4>Step 2: decide what "information" means</h4>
+
+<p>We need to make "loses the least information" precise. The standard choice is
+<b>variance</b>: a direction along which the data spreads out a lot is informative,
+because points are distinguishable along it; a direction along which every point has
+nearly the same value is not, because it fails to separate anything.</p>
+
+<p>So: find the direction of maximum variance. Let $\mathbf{u}$ be a candidate
+direction, constrained to unit length so the question stays about direction rather than
+scale. The projection of point $\tilde{\mathbf{x}}_i$ onto $\mathbf{u}$ has signed
+length $\mathbf{u}^\top\tilde{\mathbf{x}}_i$, so the variance of the projected data is</p>
+
+$$\text{Var}(\mathbf{u}) = \frac{1}{n}\sum_{i=1}^{n} \left(\mathbf{u}^\top \tilde{\mathbf{x}}_i\right)^2$$
+
+<h4>Step 3: recognise the quadratic form</h4>
+
+<p>Now watch this expression turn into something we already understand. A squared scalar
+equals itself times its own transpose, so $(\mathbf{u}^\top\tilde{\mathbf{x}}_i)^2 =
+\mathbf{u}^\top \tilde{\mathbf{x}}_i \tilde{\mathbf{x}}_i^\top \mathbf{u}$. Since
+$\mathbf{u}$ does not depend on $i$, it slides outside the sum:</p>
+
+$$\text{Var}(\mathbf{u}) = \mathbf{u}^\top \underbrace{\left( \frac{1}{n}\sum_{i=1}^{n} \tilde{\mathbf{x}}_i \tilde{\mathbf{x}}_i^\top \right)}_{C, \text{ the covariance matrix}} \mathbf{u} = \mathbf{u}^\top C \mathbf{u}$$
+
+<p>That is a quadratic form, §18 exactly. And $C$ is symmetric, since each
+$\tilde{\mathbf{x}}_i\tilde{\mathbf{x}}_i^\top$ is symmetric and sums of symmetric
+matrices are symmetric. If the data is stacked as rows of a matrix $\tilde{X} \in
+\mathbb{R}^{n \times d}$, then $C = \frac{1}{n}\tilde{X}^\top\tilde{X}$, which is how
+you compute it.</p>
+
+<div class="box shapes">
+  <span class="label">Watch the shapes</span>
+  <p>$\tilde{X}$ is $n \times d$, so $\tilde{X}^\top\tilde{X}$ is
+  $(d \times \underline{n})(\underline{n} \times d) \to d \times d$. The covariance
+  matrix is <b>feature by feature</b>, not example by example; its size depends on how
+  many features you have, not how much data. Entry $C_{i,j}$ measures how features $i$
+  and $j$ vary together.</p>
+</div>
+
+<h4>Step 4: maximise it</h4>
+
+<p>The problem is now fully stated:</p>
+
+$$\text{maximise } \mathbf{u}^\top C \mathbf{u} \quad \text{subject to } \|\mathbf{u}\|_2 = 1$$
+
+<p>And §17 already solved this, though it did not announce it. Because $C$ is symmetric,
+the spectral theorem gives $C = Q\Lambda Q^\top$ with orthonormal eigenvectors. Write
+$\mathbf{u}$ in that eigenvector basis as $\mathbf{y} = Q^\top\mathbf{u}$, a rotation,
+so $\|\mathbf{y}\|_2 = \|\mathbf{u}\|_2 = 1$ by §16, and the objective becomes the
+weighted sum of squares from §18:</p>
+
+$$\mathbf{u}^\top C \mathbf{u} = \sum_i \lambda_i y_i^2 \quad \text{with} \quad \sum_i y_i^2 = 1$$
+
+<p>You have one unit of weight to distribute across the $y_i^2$, and each unit placed on
+index $i$ pays $\lambda_i$. Obviously you put it all on the largest eigenvalue. That
+means $\mathbf{y} = (1, 0, \dots, 0)$, which back in the original coordinates means
+$\mathbf{u}$ is the eigenvector with the largest eigenvalue.</p>
+
+<div class="box def">
+  <span class="label">The result</span>
+  <p>The direction of maximum variance is the <b>eigenvector of $C$ with the largest
+  eigenvalue</b>, and the variance along it <b>is</b> that eigenvalue. The best
+  $k$-dimensional subspace is spanned by the top $k$ eigenvectors. These are the
+  <b>principal components</b>.</p>
+</div>
+
+<p>That is PCA, derived rather than asserted. No optimizer, no training loop, no
+iteration; a closed-form answer that falls out of the spectral theorem. Notice also
+that the eigenvectors are automatically perpendicular, so each successive component
+captures variation genuinely independent of the earlier ones. We did not have to
+require that; symmetry gave it to us.</p>
+
+<figure>
+  <img src="figures/la/10-pca.svg" alt="PCA on a 2D point cloud with principal axes and projection">
+  <figcaption><b>Figure 11.</b> PCA on a real sample of 260 points. Left: the principal
+  components, drawn with lengths proportional to $\sqrt{\lambda_i}$; PC1 lies along the
+  cloud's long axis, PC2 perpendicular to it. Right: every point projected onto PC1
+  alone, with thin lines showing how far each moved. Two numbers per point became one,
+  and the caption reports how much variance survived. The discarded coordinate was
+  mostly the narrow direction, which is exactly what we wanted to
+  lose.</figcaption>
+</figure>
+
+<h4>Step 5: how much did we keep?</h4>
+
+<p>Each eigenvalue is the variance along its component, so the fraction of total
+variance retained by keeping $k$ components is</p>
+
+$$\text{explained variance} = \frac{\sum_{i=1}^{k} \lambda_i}{\sum_{i=1}^{d} \lambda_i}$$
+
+<p>The denominator is the total variance; by §21 it is also just $\tr(C)$, so you
+can compute it by summing the diagonal without touching an eigenvector. Plotting this
+ratio against $k$ is the standard way to choose how many components to keep: look for
+where the curve flattens.</p>
+
+<h4>The whole algorithm, in code</h4>
+
+<pre><code><span class="k">import</span> numpy <span class="k">as</span> np
+
+<span class="k">def</span> pca(X, k):
+    <span class="s">"""Project X (n samples x d features) onto its top k principal components."""</span>
+    mu = X.mean(axis=<span class="n">0</span>)                     <span class="c"># step 1: centre</span>
+    Xc = X - mu
+
+    C = (Xc.T @ Xc) / len(X)                <span class="c"># step 3: covariance, (d, d)</span>
+
+    w, V = np.linalg.eigh(C)                <span class="c"># step 4: eigh -- C is symmetric</span>
+    order = np.argsort(w)[::<span class="n">-1</span>]            <span class="c"># eigh returns ASCENDING; we want largest first</span>
+    w, V = w[order], V[:, order]
+
+    components = V[:, :k]                   <span class="c"># (d, k) -- the top k directions</span>
+    Z = Xc @ components                     <span class="c"># (n, k) -- the compressed data</span>
+    explained = w[:k].sum() / w.sum()       <span class="c"># step 5</span>
+    <span class="k">return</span> Z, components, mu, explained
+
+
+<span class="c"># a cloud that genuinely lives near a line</span>
+rng = np.random.default_rng(<span class="n">7</span>)
+latent = rng.normal(size=(<span class="n">260</span>, <span class="n">2</span>)) * [<span class="n">1.9</span>, <span class="n">0.42</span>]
+R = np.array([[<span class="n">.857</span>, <span class="n">-.515</span>], [<span class="n">.515</span>, <span class="n">.857</span>]])      <span class="c"># rotate by 31 degrees</span>
+X = latent @ R.T + [<span class="n">3.1</span>, <span class="n">2.0</span>]
+
+Z, comps, mu, explained = pca(X, k=<span class="n">1</span>)
+print(<span class="s">f"kept {explained:.1%} of the variance with 1 of 2 dimensions"</span>)
+<span class="o">### kept 95.5% of the variance with 1 of 2 dimensions</span>
+
+<span class="c"># reconstruct: back-project and re-add the mean</span>
+X_approx = Z @ comps.T + mu
+print(<span class="s">f"mean reconstruction error: {np.abs(X - X_approx).mean():.4f}"</span>)
+<span class="o">### mean reconstruction error: 0.2133</span>
+</code></pre>
+
+<div class="box pitfall">
+  <span class="label">Pitfall: three ways to get PCA wrong</span>
+  <p><b>Forgetting to centre.</b> Without it, the first component points at the mean and
+  the analysis is meaningless. Silent failure: the code runs fine.</p>
+  <p><b>Forgetting to sort.</b> <code>np.linalg.eigh</code> returns eigenvalues in
+  <i>ascending</i> order, so the top components are at the end, not the beginning.
+  Slicing <code>V[:, :k]</code> without sorting gives you the $k$ <i>least</i>
+  informative directions: a bug that produces plausible-looking garbage.</p>
+  <p><b>Not standardising when units differ.</b> If one feature is measured in metres
+  and another in milligrams, the milligram feature has numerically enormous variance and
+  dominates every component. When features are in different units, divide each by its
+  standard deviation before starting.</p>
+</div>
+
+<h4>The SVD route, which is what you should actually use</h4>
+
+<div class="box history">
+  <span class="label">History: from skull measurements to the value of a search engine</span>
+  <p>Karl Pearson introduced the method in <span class="year">1901</span> in a paper about
+  fitting lines and planes to clouds of points. He was working in biometrics, where the
+  data of the era was physical measurement: heights, limb lengths, skull dimensions,
+  and the practical problem was that such measurements are heavily correlated and
+  unmanageably numerous.</p>
+  <p>Harold Hotelling rediscovered and reframed it in <span class="year">1933</span>, gave
+  it the name principal components, and connected it to the eigenvectors of the covariance
+  matrix, which is the derivation in this section.</p>
+  <p>The same mathematics has since had an unusually eventful career. Turn the technique
+  on faces and the components are the famous <i>eigenfaces</i> of early computer vision.
+  Turn it on a matrix of who watched which film and you get the recommender systems that
+  dominated the Netflix Prize. And the ranking algorithm that made Google (PageRank,
+  <span class="year">1998</span>) is at bottom the computation of a single dominant
+  eigenvector of an enormous matrix of links.</p>
+  <p>Pearson was trying to summarise anatomical measurements. The linear algebra did not
+  care what the numbers meant.</p>
+</div>
+
+<p>There is a second path to the same answer that avoids forming $C$ at all. Take the
+SVD of the centred data directly, $\tilde{X} = U\Sigma V^\top$. Then</p>
+
+$$C = \frac{1}{n}\tilde{X}^\top \tilde{X} = \frac{1}{n} V \Sigma^\top U^\top U \Sigma V^\top = V \left(\frac{\Sigma^\top\Sigma}{n}\right) V^\top$$
+
+<p>using $U^\top U = I$ from orthogonality. Compare with $C = Q\Lambda Q^\top$: the
+right singular vectors $V$ <b>are</b> the principal components, and $\lambda_i =
+\sigma_i^2 / n$. Same answer, obtained without ever building the covariance matrix.</p>
+
+<p>This is preferable in practice for two reasons. Forming $\tilde{X}^\top\tilde{X}$
+squares the condition number, which as §13 warned amplifies numerical error. And when
+$d$ is large (784 pixels, or many thousands of features) the $d \times d$ covariance
+matrix may be expensive or impossible to hold, while the SVD can be computed
+directly.</p>
+
+<pre><code><span class="c"># PCA via SVD: fewer steps, better conditioned, and what real libraries do</span>
+Xc = X - X.mean(axis=<span class="n">0</span>)
+U, s, Vt = np.linalg.svd(Xc, full_matrices=<span class="k">False</span>)
+
+components = Vt[:k].T              <span class="c"># already sorted descending -- no argsort needed</span>
+Z = Xc @ components
+explained = (s[:k]**<span class="n">2</span>).sum() / (s**<span class="n">2</span>).sum()
+</code></pre>
+
+<p>Note the small bonus: the SVD returns singular values in descending order already, so
+the sorting pitfall above simply cannot occur.</p>
+
+<div class="box why">
+  <span class="label">Why deep learning cares</span>
+  <p>PCA itself is used constantly: for visualising high-dimensional data in two
+  dimensions, for compression, for removing correlations before training, for detecting
+  outliers. But the deeper reason it opens this book is that it is the simplest complete
+  instance of the pattern the entire field follows: <b>state a goal precisely, express it
+  in linear algebra, and solve.</b></p>
+  <p>PCA is also the honest baseline for representation learning. An autoencoder with
+  linear activations and squared error learns exactly the PCA subspace; it cannot do better.
+  Everything deep learning achieves beyond PCA comes from the nonlinearities, which is
+  why Part XV introduces autoencoders by first explaining what PCA cannot do. You
+  cannot appreciate that argument without this section.</p>
+</div>
+
+<div class="box try">
+  <span class="label">Try it: the last one</span>
+  <p>A dataset has covariance eigenvalues $[12, 6, 1.5, 0.4, 0.1]$. How many components
+  do you need to retain at least 90% of the variance? And what does the shape of this
+  spectrum suggest about the data?</p>
+</div>
+
+<p><b>Answer.</b> Total variance is $12 + 6 + 1.5 + 0.4 + 0.1 = 20$. One component gives
+$12/20 = 60\%$. Two give $18/20 = 90\%$, just reaching the threshold, so <b>two
+components</b> suffice. Three would give $97.5\%$.</p>
+<p>The spectrum drops sharply after the second eigenvalue and then flattens into a small
+tail. That pattern says the data is genuinely close to two-dimensional, with the
+remaining three directions contributing little more than noise. Five features, two real
+degrees of freedom, a 60% reduction at a cost of 10% of the variance. Real datasets
+very often look like this, and that is precisely why dimensionality reduction earns its
+keep.</p>

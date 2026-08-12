@@ -1,0 +1,193 @@
+<h2><span class="part-kicker">Build</span>The project</h2>
+
+<p class="lede">Eight to twelve hours. You take a dataset apart, plant six failures in it, and
+build the instruments that catch each one, then run those instruments on a dataset you did not
+plant anything in.</p>
+
+<h3><span class="num">P.1</span> What you are building</h3>
+
+<p><b><code>datalab</code></b>: a set of measurements that take a dataset and return numbers,
+plus a corpus you have deliberately corrupted in six known ways so you can prove the
+measurements work.</p>
+
+<p>The rule: <b>every instrument must be validated against a planted failure before you trust it
+on real data.</b> A detector that has never caught anything is not evidence.</p>
+
+<h3><span class="num">P.2</span> Stage 1: the instruments</h3>
+
+<p>Build each as a function taking a dataset and returning a number with an interval.</p>
+
+<ol>
+  <li><b>Near-duplicate rate.</b> Shingle, MinHash, LSH banding. Report the rate and the
+  threshold it was measured at.</li>
+  <li><b>Contamination.</b> Exact match and $n$-gram overlap against a held-out set, at several
+  $n$.</li>
+  <li><b>Label accuracy.</b> Sample-and-relabel, with a confidence interval (Part V §8).</li>
+  <li><b>Agreement.</b> Cohen's $\kappa$, overall and <b>per class</b>.</li>
+  <li><b>Coverage.</b> Counts along axes you name in advance, against a target you write down
+  first.</li>
+  <li><b>Diversity.</b> Embedding dispersion or effective rank, with §18's caveat recorded in
+  the output.</li>
+</ol>
+
+<p><b>Deliverable:</b> six functions, each with a docstring naming what it does <i>not</i>
+measure.</p>
+
+<h3><span class="num">P.3</span> Stage 2: plant the failures</h3>
+
+<p>Take a clean dataset you generate and produce six corrupted versions, one per failure, at a
+severity you control:</p>
+
+<ul>
+  <li>A <b>frame gap</b>: one subgroup under-sampled by a known factor.</li>
+  <li><b>Symmetric label noise</b> at a known rate, and <b>asymmetric</b> noise at the same rate.</li>
+  <li><b>Contamination</b>: a known fraction of the test set copied in.</li>
+  <li><b>Duplicates</b>: a subset repeated a known number of times.</li>
+  <li>A <b>shortcut</b>: a feature that predicts the label and will not in deployment.</li>
+  <li><b>Group leakage</b>: records from one unit split across train and test.</li>
+</ul>
+
+<p><b>Deliverable:</b> for each, the answer to two questions. <i>Does the standard metric
+notice?</i>: almost always no. <i>Does your instrument notice, and at what severity does it
+stop noticing?</i> The second number is the instrument's sensitivity, and without it you do not
+know what a clean report means.</p>
+
+<h3><span class="num">P.4</span> Stage 3: the split matters</h3>
+
+<ol>
+  <li>Generate data with nested structure: records within units within sites.</li>
+  <li>Evaluate under a random split, a unit split and a site split.</li>
+  <li>Then break the site correlation deliberately and re-evaluate all three.</li>
+</ol>
+
+<p><b>Deliverable:</b> the three numbers and one paragraph on what each is a measurement
+<i>of</i>. Then state which one you would report to someone deploying at a new site, and why the
+other two would be misleading rather than merely optimistic.</p>
+
+<h3><span class="num">P.5</span> Stage 4: memorisation</h3>
+
+<ol>
+  <li>Insert canaries, random sequences you constructed, at frequencies 1, 2, 4, 8, 16, 32.</li>
+  <li>Train a small model.</li>
+  <li>Attempt extraction by prompting with a prefix, and measure exact reproduction and loss.</li>
+  <li>Deduplicate so every canary appears once, retrain, and measure again.</li>
+</ol>
+
+<p><b>Deliverable:</b> your model's memorisation threshold, as a number of copies. Then the same
+number after deduplication, which is the argument for §21 stated in units you measured
+yourself.</p>
+
+<h3><span class="num">P.6</span> Stage 5: collapse</h3>
+
+<ol>
+  <li>Fit a model to data, sample from it, refit, repeat for twenty generations.</li>
+  <li>Do it three ways: plain, with a filter that keeps the most typical half, and with a model
+  class narrower than the data.</li>
+  <li>Track <b>both</b> the variance and something that sees structure: a mode count, a
+  histogram distance to the original, the effective rank.</li>
+</ol>
+
+<p><b>Deliverable:</b> a demonstration that variance alone fails to detect the mismatch case.
+That is the finding, and it is the reason the standard monitoring does not work.</p>
+
+<h3><span class="num">P.7</span> Stretch</h3>
+
+<ul>
+  <li><b>Run the instruments on a real public dataset</b> you did not construct. Report what you
+  find, including "nothing", and say what your Stage 2 sensitivities imply about how much a null
+  result means.</li>
+  <li><b>Write the dataset document</b> (§19) for it, including the known-gaps section.</li>
+  <li><b>Active learning's blind spot.</b> Implement uncertainty sampling on data with a
+  confidently-wrong category and track whether it is ever selected.</li>
+  <li><b>The curation frontier.</b> Train at matched compute on the full corpus and on a filtered
+  decile, and evaluate on two evaluation sets: one resembling the filter's reference and one
+  not.</li>
+</ul>
+
+<h3><span class="num">P.8</span> Done when</h3>
+
+<ul class="checklist">
+  <li>Six instruments exist, each documenting what it does not measure.</li>
+  <li>Each has been validated against a planted failure, with a measured sensitivity.</li>
+  <li>You have shown a standard metric failing to notice each of the six.</li>
+  <li>The three splits are reported with what each measures.</li>
+  <li>Your memorisation threshold is a number, before and after deduplication.</li>
+  <li>You have demonstrated that variance does not detect collapse under model mismatch.</li>
+  <li>Your README names one thing you assumed about a dataset that the measurements
+  contradicted.</li>
+</ul>
+
+<div class="box why">
+  <span class="label">Why this project</span>
+  <p>Every other project in this book builds something. This one builds the ability to
+  <b>disbelieve a number</b>, which is a different and rarer skill.</p>
+  <p>Stage 2 is the core. Planting a failure and watching every standard metric report success is
+  a specific experience, and it is not replaceable by being told that it happens. Afterwards you
+  will look at a reported score and ask what was planted in it that nobody checked for, which
+  is exactly the disposition Part XIV needs.</p>
+</div>
+
+<h2 class="nobreak"><span class="part-kicker">Assess</span>Checkpoint</h2>
+
+<ul class="checklist">
+  <li>State the i.i.d. assumption and what it licenses.</li>
+  <li>Distinguish population, frame and sample, and say which gap statistics addresses.</li>
+  <li>Explain why more data does not close a frame gap, with the number from Figure 1.</li>
+  <li>Give five axes of a coverage check, and say why filtering belongs on it.</li>
+  <li>Give the three kinds of label noise and which is dangerous.</li>
+  <li>Define Cohen's $\kappa$ and say what high agreement does not establish.</li>
+  <li>Explain why annotator disagreement is information rather than noise.</li>
+  <li>Explain why the labels <i>are</i> the task, with the three-labelling-schemes example.</li>
+  <li>Define a proxy label and say why the substitution is invisible downstream.</li>
+  <li>Give three shapes of selection bias.</li>
+  <li>Explain why the lending example cannot be fixed statistically.</li>
+  <li>Define shortcut learning and give three ways to detect it.</li>
+  <li>Say why held-out data cannot detect a shortcut.</li>
+  <li>State roughly how much symmetric label noise a model tolerates, and what noise destroys
+  instead.</li>
+  <li>Give four fixes for class imbalance and the condition each addresses.</li>
+  <li>Name five kinds of leakage, and say which survives review.</li>
+  <li>Give the correct ordering of splitting and preprocessing.</li>
+  <li>Distinguish the two harms duplicates cause.</li>
+  <li>Explain why the honest score <i>falls</i> as contamination rises.</li>
+  <li>Give three levels of contamination detection and what each misses.</li>
+  <li>Say why contamination cannot be checked for a model whose corpus is not published.</li>
+  <li>Operationalise "data quality" as five measurable properties.</li>
+  <li>Explain why MinHash's match rate estimates the Jaccard index.</li>
+  <li>Say why the MinHash error depends on signature length and not corpus size.</li>
+  <li>Explain what a quality classifier actually learns.</li>
+  <li>Say why every diversity metric is measured through a model, and what that risks.</li>
+  <li>Give the test of whether a dataset document is real.</li>
+  <li>Give the three learning-curve regimes and how to tell them apart.</li>
+  <li>Give three reasons deduplication can improve a model.</li>
+  <li>Say what repetition of data is worth, and when it starts to hurt.</li>
+  <li>Explain how to choose a split, and what the gap between two splits measures.</li>
+  <li>State what synthetic data can and cannot supply, and name the three legitimate
+  transfers.</li>
+  <li>Say what actually causes model collapse, and why variance does not detect it.</li>
+  <li>Explain active learning's blind spot.</li>
+  <li>Distinguish provenance, licence and consent.</li>
+  <li>Give the memorisation threshold and three consequences.</li>
+  <li>Say why data decisions are harder to reverse than any other decision in this book.</li>
+</ul>
+
+<table class="compact">
+  <thead><tr><th>Score</th><th>Verdict</th></tr></thead>
+  <tbody>
+    <tr><td><b>30–37</b></td><td>Go on. You will not take a reported number at face value again.</td></tr>
+    <tr><td><b>23–29</b></td><td>Reread what you missed, then continue.</td></tr>
+    <tr><td><b>16–22</b></td><td>Do the project's Stage 2. Planting the failures fixes most of this.</td></tr>
+    <tr><td><b>Under 16</b></td><td>Reread §§2, 11 and 13. The frame, leakage and contamination carry the part.</td></tr>
+  </tbody>
+</table>
+
+<div class="box intuition">
+  <span class="label">The one thing to carry forward</span>
+  <p><b>Scale improves precision and does nothing for validity.</b></p>
+  <p>Figure 1 is the part in one image: an interval of $\pm 0.003$ around an estimate wrong by
+  0.09. Every failure here has that shape: the number becomes tighter, more confident and more
+  reportable while quietly ceasing to be about the thing you wanted.</p>
+  <p>So the question to carry forward is not "is this number good?" but <b>"what is this number
+  about?"</b>, which frame, which labels, which split, which population. The metric cannot tell
+  you. Part XIV is about asking systematically.</p>
+</div>

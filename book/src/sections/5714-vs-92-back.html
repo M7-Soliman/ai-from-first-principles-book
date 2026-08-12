@@ -1,0 +1,219 @@
+<h2><span class="part-kicker">Build</span>The project</h2>
+
+<p class="lede">Fourteen to eighteen hours. You build a perception stack on synthetic scenes where
+every answer is known exactly (detector, segmenter, stereo, tracker) and measure which of its
+errors a better model could fix and which are geometry.</p>
+
+<h3><span class="num">P.1</span> What you are building</h3>
+
+<p><b><code>seescene</code></b>: a scene generator with exact ground truth, a small anchor-free
+detector with matching loss and suppression, a dense head, a calibrated camera model with
+distortion and triangulation, and a tracker with a Kalman filter and exact assignment.</p>
+
+<p>The rule: <b>numpy only, and every scene synthetic</b>. The point is not to reach a benchmark
+number; it is that you know the true answer, so every error decomposes into a part the model caused
+and a part the geometry did.</p>
+
+<h3><span class="num">P.2</span> Stage 1: the metric before the model</h3>
+
+<ol>
+  <li>Implement IoU, greedy matching and average precision.</li>
+  <li>Generate scenes and displace the boxes by a known amount. Sweep the IoU threshold.</li>
+  <li>Construct two detectors whose ordering reverses with the threshold, from the arithmetic.</li>
+  <li>Rescale every confidence by a monotone function and confirm AP does not move.</li>
+</ol>
+
+<p><b>Deliverable:</b> the threshold sweep and the reversal. Step four is the one to remember: the
+metric you were about to optimise cannot see calibration at all.</p>
+
+<h3><span class="num">P.3</span> Stage 2: a detector</h3>
+
+<ol>
+  <li>Build a dense head predicting centre and extent per position.</li>
+  <li>Count your anchors or positions and compute the imbalance ratio.</li>
+  <li>Train with plain cross-entropy, then with the focal term, and compare the loss contributed by
+  easy negatives in each.</li>
+  <li>Add suppression, sweep its threshold, and reproduce the crowding trade.</li>
+  <li>Replace suppression with a matching loss and re-run the crowded case.</li>
+</ol>
+
+<p><b>Deliverable:</b> the two loss breakdowns and the crowding comparison. Step three is where the
+one-stage accuracy gap actually closed, and doing it by hand makes that concrete.</p>
+
+<h3><span class="num">P.4</span> Stage 3: scale</h3>
+
+<ol>
+  <li>Compute how many feature pixels each object size occupies at each depth.</li>
+  <li>Detect from the deepest level only and measure recall against object size.</li>
+  <li>Add a pyramid and repeat.</li>
+  <li>Write down the assignment of object size to pyramid level, as a table rather than a
+  hyperparameter.</li>
+</ol>
+
+<p><b>Deliverable:</b> recall against object size for both, and the assignment table.</p>
+
+<h3><span class="num">P.5</span> Stage 4: dense prediction</h3>
+
+<ol>
+  <li>Build a segmentation head and compute mean IoU per class and per pixel.</li>
+  <li>Measure accuracy restricted to boundary pixels.</li>
+  <li>Upsample with a transposed convolution whose kernel is not a multiple of the stride, and look
+  at the artefact.</li>
+  <li>Compute the structure tensor for edge, corner and flat patches, and plot the
+  brightness-constancy residual over candidate velocities for each.</li>
+</ol>
+
+<p><b>Deliverable:</b> the three metrics and the aperture plot. Step four should produce a valley of
+exact zeros for the edge; if it produces a shallow minimum instead, your patch has texture in it.</p>
+
+<h3><span class="num">P.6</span> Stage 5: geometry</h3>
+
+<ol>
+  <li>Write down your predictions first, in a file, before running anything.</li>
+  <li>Implement projection, back-projection and intrinsics rescaling. Verify the round trip.</li>
+  <li>Resize an image without rescaling K and measure how far the projection moves.</li>
+  <li>Apply radial distortion and plot reprojection error against radius.</li>
+  <li>Build a stereo pair, triangulate, and measure depth error against range for three baselines.
+  Fit the exponent rather than assuming it.</li>
+  <li>Compute the range at which the error exceeds a tolerance you choose in advance.</li>
+  <li>Score your predictions.</li>
+</ol>
+
+<p><b>Deliverable:</b> the distortion-against-radius curve, the depth-error curve with its fitted
+exponent, and your usable-range number. That last figure is what a sensor suite is designed around
+and it takes ten minutes to compute.</p>
+
+<h3><span class="num">P.7</span> Stage 6: tracking</h3>
+
+<ol>
+  <li>Implement exact assignment and compare against greedy on crossing objects.</li>
+  <li>Track by last-seen position through an occlusion of increasing length.</li>
+  <li>Add a constant-velocity Kalman filter and repeat.</li>
+  <li>Use the filter's covariance as the association gate rather than a constant, and compare.</li>
+  <li>Find the gap length at which the motion model also fails, and relate it to object spacing.</li>
+</ol>
+
+<p><b>Deliverable:</b> misidentification against gap length for all three strategies. Step five's
+number is not a bug: it is the prediction's uncertainty exceeding the spacing, and it tells you when
+you need appearance.</p>
+
+<h3><span class="num">P.8</span> Stage 7: the evaluation</h3>
+
+<ol>
+  <li>Slice every result by range, object size and occlusion.</li>
+  <li>Split your sequences by sequence and by frame, and compare.</li>
+  <li>Check the detector's confidence calibration.</li>
+  <li>Report the rare-event rate with an interval rather than a point.</li>
+</ol>
+
+<p><b>Deliverable:</b> the sliced table and the two split results. If the frame split is not
+noticeably better than the sequence split, your scenes are not correlated enough to be
+video.</p>
+
+<h3><span class="num">P.9</span> Stretch</h3>
+
+<ul>
+  <li><b>Bundle adjustment</b> on a small scene, with the sparsity pattern plotted.</li>
+  <li><b>Outliers</b> added to it, and a robust loss that survives them.</li>
+  <li><b>A flat-world homography</b> to a top-down view, with an object of height on it.</li>
+  <li><b>A real calibration</b> from checkerboard photographs, with the residual against radius.</li>
+  <li><b>Appearance re-identification</b> for the gaps where the motion model failed.</li>
+  <li><b>An audit</b> of a perception system you actually run.</li>
+</ul>
+
+<h3><span class="num">P.10</span> Done when</h3>
+
+<ul class="checklist">
+  <li>Your IoU returns zero rather than a negative number for disjoint boxes.</li>
+  <li>You have watched AP not move when you rescaled every confidence.</li>
+  <li>You have two detectors that change places when the threshold moves.</li>
+  <li>You know your imbalance ratio and have seen the focal term change which examples dominate.</li>
+  <li>You have recall against object size with and without a pyramid.</li>
+  <li>You have a boundary-restricted segmentation number as well as an aggregate.</li>
+  <li>Your aperture plot shows exact zeros along a line for an edge and one point for a corner.</li>
+  <li>Your projection round trip is exact and your resize bug is measured.</li>
+  <li>Your reprojection error is reported against radius, not averaged.</li>
+  <li>You fitted the stereo depth-error exponent and got 2.</li>
+  <li>You have a usable-range number for a tolerance you chose beforehand.</li>
+  <li>Exact assignment beats greedy on your crossing case.</li>
+  <li>You know the gap length at which your motion model fails and why.</li>
+  <li>Every result is sliced, and you have both split results.</li>
+  <li>You wrote predictions down before Stage 5 and scored them afterwards.</li>
+</ul>
+
+<div class="box why">
+  <span class="label">Why this project</span>
+  <p>Perception is the area of this book where it is easiest to spend a year improving a model
+  against an error the model was never going to fix. Synthetic scenes with exact ground truth make
+  the decomposition unavoidable: a distortion error is not a detector problem, a depth error at
+  100 m is not a network problem, and an edge's tangential motion is not anybody's problem because
+  the information is absent.</p>
+  <p>Stage 6 step six is the one to keep. A usable-range number, computed from focal length,
+  baseline and disparity precision before anything is built, decides more about a perception system
+  than any architectural choice in it.</p>
+</div>
+
+<h2 class="nobreak"><span class="part-kicker">Assess</span>Checkpoint</h2>
+
+<ul class="checklist">
+  <li>Name three things that change when the output stops being a label.</li>
+  <li>Give the three output spaces and what each commits you to.</li>
+  <li>Say four things an axis-aligned box cannot represent.</li>
+  <li>Define IoU and say why it is a poor loss and an acceptable metric.</li>
+  <li>Explain what a detection threshold does to both counts.</li>
+  <li>Give Figure 1's AP values at IoU 0.5 and 0.9 for 2 px of localisation noise.</li>
+  <li>Explain how two detectors can change places when the threshold moves.</li>
+  <li>Name five things average precision does not measure.</li>
+  <li>Say why detection's class imbalance is structural rather than a dataset property.</li>
+  <li>Distinguish the two-stage and one-stage designs, and say what actually closed the gap.</li>
+  <li>Explain the rounding problem in region pooling and its fix.</li>
+  <li>Give three ways to propose object locations and the cost of each.</li>
+  <li>Describe non-maximum suppression and say what it cannot distinguish.</li>
+  <li>Give Figure 2's recall and precision at suppression thresholds 0.3 and 0.7.</li>
+  <li>Give the anchor imbalance ratio at 512 px and at 2,048 px.</li>
+  <li>Name four responses to that imbalance and say which one closed the gap.</li>
+  <li>Explain why the focal loss is about easy examples rather than hard ones.</li>
+  <li>Say why a squared error on box coordinates is the wrong loss.</li>
+  <li>Explain why an IoU loss has no gradient on disjoint boxes, and what fixes it.</li>
+  <li>Give how many feature pixels a 16 px object covers after four stride-2 stages.</li>
+  <li>Describe a feature pyramid and the design decision it introduces.</li>
+  <li>Say why mean IoU is averaged over classes rather than pixels.</li>
+  <li>Give three ways to recover resolution in a decoder and the artefact of each.</li>
+  <li>Distinguish semantic, instance and panoptic segmentation, with a case where it matters.</li>
+  <li>Explain why monocular depth is scale-ambiguous and where its scale comes from.</li>
+  <li>Write the brightness-constancy equation and say why it is underdetermined.</li>
+  <li>State the aperture problem and give Figure 5's exact numbers.</li>
+  <li>Say what a network can and cannot supply where the information is absent.</li>
+  <li>Name four things a dense metric hides.</li>
+  <li>Write the pinhole projection and say what the 1/Z causes.</li>
+  <li>Distinguish intrinsics from extrinsics and say which changes per frame.</li>
+  <li>Say what happens if you resize an image without rescaling K.</li>
+  <li>Say where distortion error is zero and how large it gets at the corner.</li>
+  <li>Explain why calibration must be checked against radius rather than averaged.</li>
+  <li>State the epipolar constraint and what rectification buys.</li>
+  <li>Derive the depth error from disparity error and give its exponent.</li>
+  <li>Give the depth error at 100 m for a 12 cm baseline at 0.1 px of disparity error.</li>
+  <li>Say what halving the disparity error is worth, in baseline.</li>
+  <li>Explain bundle adjustment and what it needs from the front end.</li>
+  <li>Give three routes to a bird's-eye view and what each assumes.</li>
+  <li>Name three things video adds and the cost it brings.</li>
+  <li>Explain tracking as assignment and say what the cost is made of.</li>
+  <li>Say what a constant-velocity model buys and where it stops.</li>
+  <li>Give Figure 8's numbers with and without a motion model.</li>
+  <li>Distinguish MOTA, IDF1 and HOTA, and say why there are three.</li>
+  <li>Give the argument for and against an end-to-end stack, and what is not in dispute.</li>
+  <li>Describe the data engine loop and the gap it does not close.</li>
+  <li>Give six things to check when evaluating a perception system.</li>
+</ul>
+
+<div class="box fw">
+  <span class="label">The framework, and what the data cannot supply</span>
+  <p>Dataset, model family, loss, optimiser. Every previous part has been about choosing those
+  well. This part is the first where the binding constraint is frequently none of them.</p>
+  <p>A single view does not contain scale. A local window does not contain motion along an edge. A
+  stereo pair's depth precision falls as the square of range whatever reads it. An uncalibrated lens
+  misplaces the image corner by more than any detector's precision. <b>These are properties of the
+  measurement, not of the model</b>, and the first question about a perception error is which kind
+  it is. Getting that wrong is how a year goes into improving a network against an error that a
+  fifteen-line calibration or a wider baseline would have removed.</p>
+</div>

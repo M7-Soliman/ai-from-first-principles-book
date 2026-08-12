@@ -1,0 +1,84 @@
+<div class="partopen">
+  <div class="pnum">Part Seven</div>
+  <h1>Neural<br>Networks</h1>
+  <p class="tag">A stack of matrix multiplications with a simple nonlinearity between
+  them. Everything else in modern AI is a variation on this.</p>
+  <div class="rule"></div>
+  <div class="contents">
+    <b>1–4</b> Why depth<br>
+    <b>5–8</b> Anatomy of a network<br>
+    <b>9–11</b> The objective, and where to start<br>
+    <b>12–17</b> Backpropagation<br>
+    <b>18–20</b> What goes wrong<br>
+    <b>21</b> The autograd engine<br>
+  </div>
+  <div class="meta">
+    21 sections · 12 figures · 32 drills · 1 project<br>
+    <b>Ends at:</b> an automatic differentiation engine you wrote yourself.
+  </div>
+</div>
+
+<h2 class="nobreak">Before you start</h2>
+
+<p class="lede">Part 0 §1 opened this book by claiming a neural network is a stack of matrix
+multiplications with a simple nonlinear function between them. Six parts later, every symbol
+in that sentence has been defined. This part cashes it in.</p>
+
+<h3><span class="num">§0.1</span> What you already have</h3>
+
+<p>This is the part where the foundations stop being separate subjects. Almost nothing here
+is new mathematics; it is assembly.</p>
+
+<table class="compact">
+  <thead><tr><th>Already built</th><th>Becomes</th></tr></thead>
+  <tbody>
+    <tr><td>Part 0 §17: the chain rule</td><td>Backpropagation. Not analogous to it; §14 shows it <i>is</i> it.</td></tr>
+    <tr><td>Part 0 §24: one gradient step by hand</td><td>§15, at full network scale.</td></tr>
+    <tr><td>Part I §4–5: matrix multiplication</td><td>Every layer, and every forward pass.</td></tr>
+    <tr><td>Part II §20, §25: softmax and cross-entropy</td><td>The output layer and the loss, unchanged.</td></tr>
+    <tr><td>Part III §14–17: stochastic optimisers</td><td>The training loop, unchanged.</td></tr>
+    <tr><td>Part V §20: bias and variance</td><td>The diagnosis in §20.</td></tr>
+    <tr><td>Part VI §20: the four-ingredient recipe</td><td>Only the model family changes.</td></tr>
+  </tbody>
+</table>
+
+<p>That last row is the honest summary of this part. Part VI's table ended with a neural
+network row in which the loss and the optimiser were identical to logistic regression's and
+only the model family differed. <b>This part is that column.</b></p>
+
+<h3><span class="num">§0.2</span> The two things that are genuinely new</h3>
+
+<p><b>Composition as a model family.</b> Part VI §22 argued that smoothness priors need
+exponentially many examples, and that the way out is a prior about <i>compositional
+structure</i>. A feedforward network is that prior made concrete: a function built by
+stacking simple functions, with the intermediate representations learned rather than
+chosen.</p>
+
+<p><b>Differentiating it efficiently.</b> A network has millions of parameters and one scalar
+loss. Computing the gradient naively (perturbing each parameter in turn) would take
+millions of forward passes per step. Backpropagation computes all of them in roughly the cost
+of one. Sections 12 to 17 are about why that is possible, and it is the algorithmic fact on
+which the entire field rests.</p>
+
+<div class="box why">
+  <span class="label">Why this part matters</span>
+  <p>Everything after this is a specialisation. Convolutional networks are feedforward
+  networks with weight sharing and local connectivity. Recurrent networks are feedforward
+  networks unrolled over time. Transformers are feedforward networks with a particular
+  mechanism for deciding which inputs to combine.</p>
+  <p>None of them changes the training loop, the loss, or the differentiation. Understanding
+  this part completely means the later ones are about <i>architecture</i>, which is a much
+  smaller thing to learn than it first appears.</p>
+</div>
+
+<h3><span class="num">§0.3</span> The habit for this part</h3>
+
+<p><b>Know the shape and the gradient of every tensor you create.</b></p>
+
+<p>Part I asked you to write down shapes. Here that discipline doubles: every intermediate
+value in a forward pass has a shape, and a corresponding gradient of exactly the same shape
+flowing the other way. If those two ever disagree, you have a bug, and the shape check will
+find it long before the loss curve does.</p>
+
+<p>This is also the practical content of §15 and §21. Backpropagation is bookkeeping, and
+the bookkeeping is shapes.</p>

@@ -1,0 +1,172 @@
+<h2><span class="part-kicker">Part C</span>Self-supervision</h2>
+
+<p class="lede">Labels are expensive and raw data is not. This movement is about objectives that
+manufacture a supervised problem out of unlabelled data: the idea that failed in 2006, and the
+form of it that worked.</p>
+
+<h3><span class="num">§15</span> The idea, and its first failure</h3>
+
+<div class="box history">
+  <span class="label">Greedy layer-wise unsupervised pretraining</span>
+  <p>The procedure that restarted the field in 2006. Train a single-layer model (a restricted
+  Boltzmann machine, or a shallow autoencoder) on the raw data. Freeze it, feed its output to a
+  second, train that. Repeat. Then stack the layers, add a classifier, and fine-tune the whole
+  thing with labels.</p>
+  <p>Before this, only convolutional networks and recurrent networks were considered trainable at
+  depth. This was the first method that trained a deep <b>fully connected</b> network successfully,
+  and it is the reason the 2006–2012 period happened at all.</p>
+  <p>By 2016 the chapter this part is built on could write that it "has been largely abandoned",
+  having spent twenty pages on it. It is worth being precise about why, because the successor
+  reuses more of it than the obituary suggests.</p>
+</div>
+
+<div class="box why">
+  <span class="label">Why it was abandoned: four reasons, in order of weight</span>
+  <p><b>The problem it solved stopped existing.</b> It was a fix for the difficulty of optimising
+  deep networks. Rectifiers (Part VII §7), better initialisation (Part IX §16), batch
+  normalisation (Part IX §23) and residual connections (Part X §23) solved that directly. A fix
+  for a problem you no longer have is overhead.</p>
+  <p><b>Labels arrived in quantity.</b> On datasets with thousands of labelled examples per class,
+  supervised training with dropout beat it outright. Its advantage was always largest when labels
+  were scarcest, and for a decade labels stopped being scarce in the benchmarks people used.</p>
+  <p><b>Two phases, and no dial.</b> Every other regularizer has a coefficient you can turn. This
+  one is on or off, with a second full set of hyperparameters whose effect cannot be assessed until
+  the supervised phase finishes. Part XIV §17's complaint, in a different costume.</p>
+  <p><b>Greedy is greedy.</b> Each layer is optimised in ignorance of the layers above it, so
+  nothing coordinates them. The lower layers are never revisited in light of what the upper ones
+  needed.</p>
+</div>
+
+<div class="box pitfall">
+  <span class="label">Pitfall: reading the obituary as a verdict on unsupervised learning</span>
+  <p>It was a verdict on <b>greedy layer-wise pretraining as an optimisation aid</b>, and it was
+  correct. It was widely read as a verdict on learning representations without labels, and that
+  reading was wrong within five years.</p>
+  <p>The exception was visible at the time and named in the source: language. Words as one-hot
+  vectors carry no similarity information at all (every pair is equidistant) so the initial
+  representation is as poor as it can be and there is enormous room for pretraining to help.
+  Pretrained word vectors were standard practice throughout the period when pretraining was
+  considered dead everywhere else.</p>
+  <p>The correct generalisation was available: <b>unsupervised pretraining helps most when the
+  starting representation is worst and unlabelled data is most abundant.</b> That is a statement
+  about a ratio, not about images or text, and the ratio moved.</p>
+</div>
+
+<h3><span class="num">§16</span> Pretext tasks</h3>
+
+<div class="box def">
+  <span class="label">Manufacturing a label</span>
+  <p>A <b>pretext task</b> is a supervised problem whose labels are generated from the data itself.
+  Rotate an image by a multiple of 90° and predict which. Cut it into tiles, shuffle them, predict
+  the permutation. Remove the colour and predict it. Cut out a patch and inpaint it.</p>
+  <p>None of these is wanted for its own sake. The bet is that solving them requires knowing what
+  objects look like, and that the representation built along the way is the useful part.</p>
+</div>
+
+<div class="box why">
+  <span class="label">Why this generation of methods plateaued</span>
+  <p>They worked, and not well enough, and the reason is a mismatch that §19 makes precise.</p>
+  <p>A pretext task specifies what must be <b>predicted</b>. What you actually want to specify is
+  what may be <b>ignored</b>. These are not the same, and the gap shows up as shortcuts: a network
+  predicting rotation can read the sky's position rather than learning about objects; one solving
+  jigsaws can match tile edges pixel by pixel. Part XIII §8's shortcut learning, arriving in the
+  objective rather than the dataset.</p>
+  <p>Every pretext task ends up carrying a specific, accidental bias determined by which shortcut
+  happened to be available. The next generation removed the intermediate task and stated the
+  invariance directly.</p>
+</div>
+
+<h3><span class="num">§17</span> Contrastive learning</h3>
+
+<div class="sixty">
+  <span class="label">In 60 seconds</span>
+  <p>Take one example, make two altered <b>views</b> of it, and require their representations to
+  agree. Require the representations of different examples to disagree. There is no reconstruction,
+  no prediction and no label: only a statement about which pairs of things should end up near each
+  other.</p>
+</div>
+
+<div class="box def">
+  <span class="label">InfoNCE</span>
+  <p>For a batch of $N$ examples, form two views of each. Let $\mathbf{z}_i$ and $\mathbf{z}_i^{+}$
+  be the normalised representations of the two views of example $i$. Then</p>
+  <p>$$\mathcal{L} = -\frac{1}{N}\sum_{i=1}^{N} \log
+  \frac{\exp\!\big(\mathbf{z}_i \cdot \mathbf{z}_i^{+} / \tau\big)}
+  {\sum_{j=1}^{N} \exp\!\big(\mathbf{z}_i \cdot \mathbf{z}_j^{+} / \tau\big)}$$</p>
+  <p>This is <b>softmax cross-entropy</b> over the batch, where the correct class is "the other
+  view of me", Part II §25's function with an unusual choice of what counts as a class. The
+  temperature $\tau$ controls how sharply near misses are penalised; small $\tau$ concentrates the
+  gradient on the hardest negatives.</p>
+</div>
+
+<div class="box def">
+  <span class="label">Where the negatives come from</span>
+  <p><b>SimCLR</b> uses the other examples in the batch, which makes the batch size the number of
+  negatives and pushes it into the thousands.</p>
+  <p><b>MoCo</b> decouples the two with a queue of representations from recent batches, encoded by
+  a slowly-updated <b>momentum</b> copy of the encoder. This buys many negatives at a small batch
+  size; the momentum encoder exists because representations from an encoder that has since moved
+  are not comparable to current ones.</p>
+</div>
+
+<h3><span class="num">§18</span> What the negatives are for</h3>
+
+<div class="box why">
+  <span class="label">Why the objective needs a term that pushes outward</span>
+  <p>Consider the objective with the denominator removed: maximise agreement between views and
+  nothing else. It has an exact, trivial, global optimum: <b>map every input to the same
+  vector</b>. Agreement is perfect. The representation contains nothing.</p>
+  <p>This is not a hypothetical failure mode reachable through bad luck. It is the minimum, and
+  gradient descent finds it.</p>
+  <p>The denominator is what prevents it. Pushing different examples apart is a force for
+  <b>uniformity</b> on the sphere, and the numerator is a force for <b>alignment</b> of matched
+  pairs. The two together are the entire mechanism, and they are the same compromise as §14's two
+  forces with the first one restated.</p>
+</div>
+
+<h3><span class="num">§19</span> The augmentation is the specification</h3>
+
+<div class="readnow"><span class="label">Go and read</span><p><span class="src">Chen et al. (2020)</span>, <i>A simple framework for contrastive learning of visual representations</i>. SimCLR. Skip to the augmentation ablation, which is this section's figure run on real images: the <b>composition</b> of augmentations is the design decision, and no single one suffices. Then <span class="src">Wang &amp; Isola (2020)</span>, which decomposes the objective into alignment and uniformity and shows both can be optimised directly.</p></div>
+
+<p>The most consequential design decision in contrastive learning is not the loss, the temperature
+or the architecture. It is the choice of how the two views may differ.</p>
+
+<figure>
+  <img src="figures/rp/04-augmentation.svg" alt="Linear probe accuracy for a wanted factor and an unwanted factor, under three augmentation policies">
+  <figcaption><b>Figure 4.</b> Data built from two known factors, a <b>class</b> and a louder
+  <b>nuisance</b>, observed through a fixed nonlinearity. Three contrastive runs, differing only
+  in which factor the two views were allowed to disagree on. When views differ in the nuisance, the
+  class is decodable at <b>0.995</b> and the nuisance falls to <b>0.140</b> against a chance rate
+  of 0.125, erased. Reverse the augmentation and the outcome reverses exactly.</figcaption>
+</figure>
+
+<div class="box why">
+  <span class="label">Why the augmentation is a specification and not a trick</span>
+  <p>Augmentation is usually introduced as a way to get more data out of what you have. In a
+  contrastive objective it is doing something categorically different, and the figure is the
+  demonstration.</p>
+  <p>Saying "these two views are the same thing" says <b>the factor I varied does not matter</b>.
+  The objective then does exactly that and nothing more: the varied factor is discarded, the rest
+  is kept. Colour jitter says colour is not identity. Cropping says position and scale are not
+  identity. There is no other channel through which the objective learns what to keep.</p>
+  <p>So the augmentation set <b>is</b> the definition of the task, written in a language of
+  invariances instead of labels. This is what §16's pretext tasks could not express directly, and
+  it is why the generation that replaced them worked.</p>
+</div>
+
+<div class="box pitfall">
+  <span class="label">Pitfall: the invariance you declared is the invariance you get</span>
+  <p>The middle bars of the figure are the warning. Augment away the factor you needed and it is
+  gone: class decodability falls to <b>0.193</b>, barely above chance, while the nuisance is
+  retained at 0.999. The objective did precisely what it was told.</p>
+  <p>Colour jitter is standard, and it destroys a representation for bird species identification,
+  where plumage colour is the signal. Aggressive cropping destroys counting and spatial reasoning.
+  Rotation invariance is right for aerial imagery and wrong for handwritten digits, where it merges
+  6 with 9.</p>
+  <p>There is no general-purpose augmentation set, and a pretrained encoder inherits the
+  invariances of whoever trained it, usually undocumented. When a published encoder underperforms
+  on your task, the first question is which of your signal it was trained to ignore.</p>
+  <p>Note also the third pair of bars: with no augmentation the objective keeps <b>everything</b>
+  (0.965 and 0.963, effective rank 31 of 32). It has not been asked to discard anything, so it does
+  not. Invariance is never free and never automatic.</p>
+</div>

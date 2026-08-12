@@ -1,0 +1,162 @@
+<h2><span class="part-kicker">Build</span>The project</h2>
+
+<p class="lede">Six to ten hours. You build an optimiser library from nothing, then use it
+as an instrument to reproduce every claim in this part.</p>
+
+<h3><span class="num">P.1</span> What you are building</h3>
+
+<p><b><code>tinyopt</code></b>: a numerical optimisation toolkit, then a test bench that
+races the methods against each other.</p>
+
+<p>The rule: <b>NumPy for array arithmetic only.</b> No <code>scipy.optimize</code>, no
+autograd, no framework optimisers. If a library provides it, that is the thing you are
+writing.</p>
+
+<h3><span class="num">P.2</span> Stage 1: a stability toolkit</h3>
+
+<table class="compact">
+  <thead><tr><th>Function</th><th>Notes</th></tr></thead>
+  <tbody>
+    <tr><td><code>machine_epsilon(dtype)</code></td><td>Find it by search, not by lookup. Support float32 and float64.</td></tr>
+    <tr><td><code>logsumexp(z)</code></td><td>Must survive $\pm 1000$.</td></tr>
+    <tr><td><code>stable_softmax(z)</code></td><td>And <code>log_softmax</code>, computed directly.</td></tr>
+    <tr><td><code>quadratic_roots(a,b,c)</code></td><td>The rearranged form from §3. Test against $b = 10^{8}$.</td></tr>
+    <tr><td><code>kahan_sum(xs)</code></td><td>Compensated summation. Compare against a naive loop on $10^{6}$ terms.</td></tr>
+    <tr><td><code>welford_var(xs)</code></td><td>Streaming variance in one pass without cancellation.</td></tr>
+  </tbody>
+</table>
+
+<p><b>Deliverable:</b> for each function, an input on which the naive version demonstrably
+fails and yours does not. Report the naive answer, yours, and the truth.</p>
+
+<h3><span class="num">P.3</span> Stage 2: conditioning as an instrument</h3>
+
+<ul>
+  <li><code>make_matrix(m, n, kappa)</code>: build a matrix with a <i>chosen</i> condition
+  number by constructing its SVD directly. This is the workhorse for everything below.</li>
+  <li><code>solve_normal(A, b)</code>, <code>solve_qr(A, b)</code>,
+  <code>solve_svd(A, b)</code>: three least squares solvers. Implement QR by
+  Gram–Schmidt or Householder yourself.</li>
+  <li><code>digits_lost(A)</code>: predict accuracy loss from $\kappa$, then check the
+  prediction.</li>
+</ul>
+
+<p><b>Deliverable:</b> reproduce Figure 13 with your own code. Then answer in a paragraph:
+at what $\kappa$ does each method lose half its digits, and does the normal-equations curve
+have twice the slope on log axes? It should.</p>
+
+<h3><span class="num">P.4</span> Stage 3: optimisers</h3>
+
+<p>Implement each with the same interface, returning the full parameter path:</p>
+
+<ul class="tight">
+  <li><code>gd</code>: plain gradient descent</li>
+  <li><code>gd_momentum</code></li>
+  <li><code>newton</code>: using an exact Hessian you supply</li>
+  <li><code>adagrad</code>, <code>rmsprop</code>, <code>adam</code>: with bias correction</li>
+  <li><code>backtracking_line_search</code>: Armijo condition</li>
+</ul>
+
+<p><b>Deliverable:</b> a single figure with all methods on a quadratic of
+$\kappa = 50$, objective against iteration on log axes. Then the same figure with gradient
+noise added. The ranking should change, and explaining why it changes is the point of the
+exercise.</p>
+
+<h3><span class="num">P.5</span> Stage 4: reproduce the part</h3>
+
+<p>Use your toolkit to verify each claim. One figure and one caption for each.</p>
+
+<ol>
+  <li><b>Stability limit.</b> Sweep the learning rate and locate the divergence cliff.
+  Compare against $2/\lambda_{\max}$.</li>
+  <li><b>Conditioning controls convergence.</b> Iterations to a fixed accuracy against
+  $\kappa$.</li>
+  <li><b>Newton is conditioning-independent.</b> One step on any quadratic, at any
+  $\kappa$.</li>
+  <li><b>Newton finds saddles.</b> Start it near one and watch it converge to the wrong
+  kind of point.</li>
+  <li><b>Batch size and noise.</b> Confirm the $1/\sqrt{b}$ law by direct measurement.</li>
+  <li><b>Schedules beat constants under noise.</b> The noise floor, and its removal.</li>
+  <li><b>Noise escapes saddles.</b> Exact descent stalls; noisy descent does not.</li>
+</ol>
+
+<h3><span class="num">P.6</span> Stretch</h3>
+
+<ul>
+  <li><b>BFGS</b>: build the inverse-Hessian approximation from gradient differences.</li>
+  <li><b>Trust region</b>: solve with $H + \mu I$ and adapt $\mu$ by how well the
+  quadratic model predicted the actual decrease.</li>
+  <li><b>Float32 sweep</b>: rerun Stage 2 in single precision and find where each curve
+  moves.</li>
+  <li><b>A real training run</b>: logistic regression on real data, all six optimisers,
+  same budget. Report both training loss and held-out accuracy, and notice that they do not
+  rank the methods identically.</li>
+</ul>
+
+<h3><span class="num">P.7</span> Done when</h3>
+
+<ul class="checklist">
+  <li>Every stability function has a documented input where the naive version fails.</li>
+  <li>Your three solvers reproduce the shape of Figure 13.</li>
+  <li>Your measured divergence threshold matches $2/\lambda_{\max}$.</li>
+  <li>Newton converges in one step on a quadratic, and to a saddle when started near one.</li>
+  <li>Adam without bias correction is visibly slower for the first fifty steps.</li>
+  <li>Your README names one result you expected to go the other way.</li>
+</ul>
+
+<div class="box why">
+  <span class="label">Why this project</span>
+  <p>Numerical failures are invisible until you build the instrument that makes them
+  visible. Every claim in this part is falsifiable in about thirty lines of code, and
+  checking them yourself is the difference between knowing that ill-conditioning is bad and
+  knowing what it looks like when it happens to you.</p>
+  <p>The optimisers matter for a second reason: you will spend years using them. Having
+  written each one from its update rule means that when a training run misbehaves you will
+  reason about what the optimiser is actually doing rather than swapping names until
+  something works.</p>
+</div>
+
+<h2 class="nobreak"><span class="part-kicker">Assess</span>Checkpoint</h2>
+
+<p class="lede">Part V builds the theory of learning on top of this. Be honest.</p>
+
+<ul class="checklist">
+  <li>Explain why float spacing grows with magnitude.</li>
+  <li>State machine epsilon and what it means operationally.</li>
+  <li>Explain catastrophic cancellation and why it produces no warning.</li>
+  <li>Give the stable form of the quadratic formula and say what it avoids.</li>
+  <li>Define the condition number and convert it to digits lost.</li>
+  <li>Distinguish conditioning from stability, and say which one a better algorithm fixes.</li>
+  <li>Explain why $\kappa(A^\top A) = \kappa(A)^2$ matters.</li>
+  <li>State the stability limit for gradient descent and where it comes from.</li>
+  <li>Explain why conditioning controls the convergence <i>rate</i>, not just stability.</li>
+  <li>Say what the Hessian's eigenvalues and eigenvectors mean geometrically.</li>
+  <li>Derive the Newton update from the quadratic approximation.</li>
+  <li>Give three reasons Newton's method is unusable for large models.</li>
+  <li>Explain why the minibatch gradient is unbiased, and what its noise costs and buys.</li>
+  <li>Explain what momentum cancels and what it accumulates.</li>
+  <li>Say what Adam is approximating, and why bias correction is needed.</li>
+  <li>Explain why a constant learning rate cannot converge under noise.</li>
+  <li>Explain why saddles dominate minima in high dimensions.</li>
+  <li>State the four KKT conditions and interpret complementary slackness.</li>
+  <li>Say why the normal equations are the wrong way to fit least squares.</li>
+</ul>
+
+<table class="compact">
+  <thead><tr><th>Score</th><th>Verdict</th></tr></thead>
+  <tbody>
+    <tr><td><b>17–19</b></td><td>Go on. You are in good shape.</td></tr>
+    <tr><td><b>13–16</b></td><td>Reread the sections you missed, then continue.</td></tr>
+    <tr><td><b>9–12</b></td><td>Work drills C6–C15 first. Those are the core.</td></tr>
+    <tr><td><b>Under 9</b></td><td>Reread §§5–9 and §§14–17. Conditioning and the stochastic methods carry this part.</td></tr>
+  </tbody>
+</table>
+
+<div class="box intuition">
+  <span class="label">The one thing to carry forward</span>
+  <p>If you retain a single idea from this part, make it this: <b>algebraic equivalence
+  does not imply numerical equivalence.</b></p>
+  <p>Two expressions that a proof says are identical can behave completely differently when
+  computed. The formula that is cleanest to derive is frequently the worst one to evaluate.
+  Every time you turn a derivation into code, that gap is the question worth asking; §20 is what it looks like when the answer matters.</p>
+</div>

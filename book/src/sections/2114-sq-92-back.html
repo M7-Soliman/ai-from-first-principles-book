@@ -1,0 +1,190 @@
+<h2><span class="part-kicker">Build</span>The project</h2>
+
+<p class="lede">Eight to twelve hours. You build a recurrent network from nothing, reproduce the
+field's most-cited negative result, discover it does not reproduce as stated, and find out
+which variable it was actually about.</p>
+
+<h3><span class="num">P.1</span> What you are building</h3>
+
+<p><b><code>which-variable</code></b>: a recurrent network in NumPy with hand-written BPTT, an
+LSTM cell built on top of it, and an experimental harness that varies architecture, optimiser,
+clipping and initialisation independently.</p>
+
+<p>The rule: <b>no claim comparing two architectures unless everything else was held fixed and
+you can show it.</b> This part exists partly because that rule was broken for a decade.</p>
+
+<h3><span class="num">P.2</span> Stage 1: the recurrence, forward and backward</h3>
+
+<ol>
+  <li>§4's forward pass, in NumPy, with $\tanh$ and a softmax output.</li>
+  <li>BPTT by hand, unrolled. Remember that $\nabla W$ is a <b>sum over all time steps</b>.</li>
+  <li>Gradient-check $U$, $V$, $W$ and both biases against central differences.</li>
+  <li>Add truncation at $k$ and confirm that $k = \tau$ reproduces the full gradient exactly.</li>
+</ol>
+
+<p><b>Deliverable:</b> gradient checks passing, and Figure 2 reproduced (the relative error and
+the cosine of the truncated gradient against $k$). Note where the two curves separate; the
+direction recovering faster than the magnitude is why truncation is usable.</p>
+
+<h3><span class="num">P.3</span> Stage 2: watch it fail</h3>
+
+<ol>
+  <li>Instrument $\|\partial\mathbf{h}^{(t)}/\partial\mathbf{h}^{(0)}\|$ and log it during
+  training.</li>
+  <li>Sweep the spectral radius of $W$ at initialisation and plot the decay, linear and
+  $\tanh$.</li>
+  <li>Find a configuration where the gradient overflows, and one where it underflows to zero.</li>
+  <li>Build the scalar cliff of Figure 4 and confirm the steepness is exponential in $T$.</li>
+</ol>
+
+<p><b>Deliverable:</b> the measured spectral radius at which your model sits, tracked over
+training. Report whether it moves: §12 predicts that a model learning to remember will move
+<i>toward</i> the vanishing regime, and this is the cheapest way to see that.</p>
+
+<h3><span class="num">P.4</span> Stage 3: the grid</h3>
+
+<p>The centrepiece. On a fixed long-lag task, run every cell of</p>
+
+<p style="text-align:center">
+{vanilla, LSTM, GRU} × {SGD, Adam} × {clipping, none} × {default bias, forget bias 1}
+</p>
+
+<p>at four sequence lengths, five seeds each. Report every cell.</p>
+
+<p><b>Deliverable:</b> an attribution of the variance across the four factors. If the
+architecture is not the largest term, and on this task it is not, say so, and say what is.
+Then find the smallest change that reverses the ranking.</p>
+
+<h3><span class="num">P.5</span> Stage 4: build the cell</h3>
+
+<ol>
+  <li>Implement the LSTM cell of §18 from the equations, forward and backward, by hand.</li>
+  <li>Gradient-check it. The gates are where the errors are.</li>
+  <li>Train it on a long-lag task, then <b>read the gates out</b> and plot them over time.</li>
+  <li>Implement a GRU and confirm the parameter counts differ as §21 says.</li>
+</ol>
+
+<p><b>Deliverable:</b> Figure 7 from your own code, and the retention arithmetic (what weight
+does a value written at step 0 carry at step $\tau$, given your measured mean forget gate, and
+what would a non-gated decay of the same nominal size give?)</p>
+
+<h3><span class="num">P.6</span> Stage 5: hit the bottleneck</h3>
+
+<ol>
+  <li>Build an encoder–decoder with an <b>explicit</b> context width, so it is a variable rather
+  than an implementation detail.</li>
+  <li>Choose a task whose output depends on every input token (reversal, sorting, copying), or
+  you will measure nothing.</li>
+  <li>Sweep input length and context width independently.</li>
+  <li>Then instrument it: for a fixed input, measure how much of the decoder's output depends on
+  each input position. What did the encoder keep?</li>
+</ol>
+
+<p><b>Deliverable:</b> Figure 9 from your own code, plus one paragraph on the last item. The
+useful finding is not that accuracy falls: it is <i>which</i> input positions survive, and that
+the encoder had to choose before knowing the question.</p>
+
+<h3><span class="num">P.7</span> Stretch</h3>
+
+<ul>
+  <li><b>A reservoir.</b> Freeze the recurrence, train a linear readout in closed form, and see
+  how close it gets. Sweep the spectral radius.</li>
+  <li><b>A dependency at exactly 200 steps</b>, trained with truncation at 50, 100 and 400. The
+  first two never learn it, and their loss curves look converged.</li>
+  <li><b>Packing.</b> Measure the cost of not packing, against the variance of your sequence
+  lengths.</li>
+  <li><b>Exposure bias.</b> Train teacher-forced, generate free-running, and measure the drift
+  per step. Then add a stochastic curriculum and measure it again.</li>
+  <li><b>Attention, early.</b> Let the decoder read a weighted average of <i>all</i> encoder
+  states rather than the final one, with weights from a softmax over a learned score. Rerun
+  Stage 5. This is Part XII in twenty lines, and doing it before reading that part is the best
+  possible preparation for it.</li>
+</ul>
+
+<h3><span class="num">P.8</span> Done when</h3>
+
+<ul class="checklist">
+  <li>Hand-written BPTT gradient-checks, including with truncation.</li>
+  <li>You have produced both an overflowing and a vanishing gradient deliberately.</li>
+  <li>The full grid is run and the variance attributed across all four factors.</li>
+  <li>Your LSTM cell gradient-checks, and you have read its gates on a solved task.</li>
+  <li>You know what forget-gate bias your library defaults to, and what it costs.</li>
+  <li>The bottleneck is measured against both input length and context width.</li>
+  <li>Your README names one thing about recurrent networks you believed that the grid
+  contradicted.</li>
+</ul>
+
+<div class="box why">
+  <span class="label">Why this project</span>
+  <p>Stage 3 is the reason this project exists. Every reader has been told that LSTMs solve the
+  long-dependency problem that vanilla RNNs cannot. That claim is defensible and the standard
+  demonstration of it varies four things at once.</p>
+  <p>Running the grid is a small experiment with a large effect on how you read papers
+  afterwards. The specific finding, that an initialisation nobody mentions can reverse the
+  headline, generalises far past recurrent networks, and Part XIV is built on the habit this
+  stage teaches.</p>
+</div>
+
+<h2 class="nobreak"><span class="part-kicker">Assess</span>Checkpoint</h2>
+
+<ul class="checklist">
+  <li>Give two reasons a dense layer cannot be used on sequences, and why the second is worse.</li>
+  <li>Define unfolding and state the two things it buys.</li>
+  <li>Say why the hidden state must be a lossy summary, and when that stops being acceptable.</li>
+  <li>Write the RNN forward equations and name the three weight matrices by what they connect.</li>
+  <li>State the Turing-completeness result and the assumption that makes it inapplicable.</li>
+  <li>Give the three design patterns and say why output recurrence is weaker and used anyway.</li>
+  <li>State the two costs of BPTT and say which more hardware fixes.</li>
+  <li>Explain why truncation is bias rather than noise, and what follows for long dependencies.</li>
+  <li>Compare a joint table, a Markov model and an RNN by parameter count and by what each
+  assumes.</li>
+  <li>Say what an RNN can and cannot represent, given that its dependency graph is complete.</li>
+  <li>State the stationarity assumption and give a case where it fails.</li>
+  <li>Derive teacher forcing from the chain rule of probability.</li>
+  <li>Explain exposure bias and give two mitigations.</li>
+  <li>Give three ways to decide when a generated sequence ends.</li>
+  <li>Show that a linear recurrence multiplies by $\Lambda^t$, and say what that does to
+  gradients.</li>
+  <li>Explain why a bounded nonlinearity does not bound the gradient.</li>
+  <li>Say why recurrence is worse than depth for this, in one sentence about the matrices.</li>
+  <li>State the trade of §12: why stable memory requires vanishing gradients.</li>
+  <li>Explain why an RNN's cliff steepens with the <b>data</b> rather than the model.</li>
+  <li>Give both forms of clipping, say which is preferred and why, and what neither fixes.
+  Name the regularisation alternative from §13 and explain why it did not displace gating.</li>
+  <li>Say what Figure 5 shows about the standard long-dependency comparison.</li>
+  <li>Explain why better optimisers lost to better architectures, and name three instances.</li>
+  <li>Give the leaky-unit update and its effective memory, and name four other uses of the same
+  recurrence.</li>
+  <li>Write the LSTM cell update beside the leaky-unit update and say what changed.</li>
+  <li>Explain why the forget-gate bias default costs accuracy, and give the number.</li>
+  <li>State the three findings from the systematic comparison of gated variants.</li>
+  <li>Say what bidirectional models buy and where they cannot be used.</li>
+  <li>Explain why adding depth inside the recurrence has a cost feedforward depth does not.</li>
+  <li>Give the advantage of a tree over a chain, and why trees did not win.</li>
+  <li>Explain an echo state network as a kernel machine, and how its reservoir is set.</li>
+  <li>Describe soft addressing and say why memory cells hold vectors.</li>
+  <li>State the encoder–decoder bottleneck and why widening the context does not fix it.</li>
+  <li>Give the four limitations of §28, and say which one displaced recurrent models.</li>
+</ul>
+
+<table class="compact">
+  <thead><tr><th>Score</th><th>Verdict</th></tr></thead>
+  <tbody>
+    <tr><td><b>28–34</b></td><td>Go on. You know what the next part has to fix and why.</td></tr>
+    <tr><td><b>22–27</b></td><td>Reread what you missed, then continue.</td></tr>
+    <tr><td><b>15–21</b></td><td>Do the project's Stage 3. Running the grid fixes most of this.</td></tr>
+    <tr><td><b>Under 15</b></td><td>Reread §§3, 11 and 27. Sharing, the power of a matrix, and the bottleneck carry the whole part.</td></tr>
+  </tbody>
+</table>
+
+<div class="box intuition">
+  <span class="label">The one thing to carry forward</span>
+  <p><b>Recurrence shares parameters across time, and pays for it with a path length that grows
+  with the sequence.</b></p>
+  <p>The parameter saving, the generalisation to unseen lengths, the vanishing and the
+  exploding, the trade that makes them inseparable from stable memory, gating as control rather
+  than cure, the fixed-size bottleneck, and the impossibility of training in parallel, all of
+  it follows from that one sentence.</p>
+  <p>Which leaves the question the next part answers: <b>can parameters be shared across
+  positions without the path between them growing?</b></p>
+</div>

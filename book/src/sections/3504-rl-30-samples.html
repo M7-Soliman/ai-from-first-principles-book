@@ -1,0 +1,194 @@
+<h2><span class="part-kicker">Part C</span>Learning from samples</h2>
+
+<p class="lede">Drop the model and the sweep. Learn from transitions as they arrive, which is what
+makes the subject usable, and what costs it every guarantee movement B had.</p>
+
+<h3><span class="num">§15</span> Monte Carlo</h3>
+
+<div class="box def">
+  <span class="label">Average the returns you actually got</span>
+  <p>Run an episode to the end, compute the realised return from each state, and average. No model,
+  no bootstrapping, and the estimate is <b>unbiased</b>: it is a sample mean of the thing being
+  estimated.</p>
+  <p>Two costs. It needs episodes that <b>terminate</b>, so it does not apply to continuing tasks.
+  And the variance is that of a whole return: every random transition and reward along the
+  remaining trajectory contributes.</p>
+</div>
+
+<h3><span class="num">§16</span> Temporal difference</h3>
+
+<div class="box def">
+  <span class="label">Update from one step, using your own estimate</span>
+  <p>$$V(s_t) \leftarrow V(s_t) + \alpha\big[\underbrace{r_t + \gamma V(s_{t+1})}_{\text{target}} - V(s_t)\big]$$</p>
+  <p>The bracket is the <b>TD error</b>. The target uses the current estimate of the next state's
+  value, <b>bootstrapping</b>, so the update is available immediately, works on continuing tasks,
+  and is <b>biased</b> whenever $V$ is wrong, which is always at first.</p>
+  <p>This is Bellman's equation turned into a stochastic update: the operator of §11 applied to one
+  sampled transition instead of to a full expectation.</p>
+</div>
+
+<h3><span class="num">§17</span> The trade, measured</h3>
+
+<figure>
+  <img src="figures/rl/02-td-vs-mc.svg" alt="Root mean squared error against the exact values, and spread across runs, for TD and Monte Carlo">
+  <figcaption><b>Figure 2.</b> Both methods against $V^\pi$ computed exactly by solving the linear
+  system. Monte Carlo's spread across runs is <b>2.6×</b> TD's at ten episodes and stays roughly
+  double throughout. Error is not so one-sided: Monte Carlo's smaller initial bias gives it the
+  lower RMSE at 10, 30 and 100 episodes (<b>2.51</b> against TD's <b>3.76</b> at ten); TD passes it
+  by 300 episodes and finishes lower, <b>0.35</b> against <b>0.90</b> at 1,000. Both plateau,
+  because a constant step size leaves a noise floor.</figcaption>
+</figure>
+
+<div class="box why">
+  <span class="label">Bias against variance, and why the textbook trade is not the whole story</span>
+  <p>The standard statement is that Monte Carlo is unbiased with high variance and TD is biased
+  with low variance, so the choice depends on which you can afford. The figure shows the variance
+  half cleanly. The error half is more interesting than the usual telling: at 10, 30 and 100
+  episodes Monte Carlo's smaller bias keeps its RMSE <i>below</i> TD's (<b>2.51</b> against
+  <b>3.76</b> at ten); TD only overtakes once its bootstrap targets have had enough sweeps to
+  settle, reaching <b>0.35</b> against Monte Carlo's <b>0.90</b> by 1,000 episodes. Both halves of
+  the standard story are true here; they just do not arrive at the same episode count, which is
+  worth explaining rather than glossing.</p>
+  <p>TD's bias vanishes as the estimate improves, so it is a transient. Monte Carlo's variance does
+  not vanish; it is a property of the environment's stochasticity and the horizon. A transient
+  disadvantage generally loses to a permanent one, but "generally" is doing real work: at the
+  smallest budgets here the transient has not yet vanished, and it is Monte Carlo's smaller early
+  bias that wins.</p>
+  <p>The intermediate family is <b>$n$-step</b> returns: bootstrap after $n$ steps rather than one.
+  $n = 1$ is TD, $n = \infty$ is Monte Carlo, and the best $n$ is usually neither. <b>TD($\lambda$)</b>
+  averages over all $n$ with geometrically decaying weights, which is the elegant version, and
+  §29's generalised advantage estimation is the same idea in the policy-gradient family.</p>
+</div>
+
+<h3><span class="num">§18</span> Control: SARSA and Q-learning</h3>
+
+<div class="box def">
+  <span class="label">One symbol apart, and it is the on/off-policy distinction</span>
+  <p><b>SARSA</b>, on-policy: $Q(s,a) \leftarrow Q(s,a) + \alpha[r + \gamma Q(s',a') - Q(s,a)]$,
+  where $a'$ is the action <b>actually taken</b> next.</p>
+  <p><b>Q-learning</b>, off-policy: the same with $\max_{a'} Q(s',a')$, the action the greedy
+  policy <i>would</i> take, whatever was actually done.</p>
+  <p>So Q-learning learns the optimal policy's values while behaving however it likes, which is why
+  it can learn from exploratory, old or someone else's data. SARSA learns the value of the policy it
+  is running, exploration included.</p>
+</div>
+
+<div class="box why">
+  <span class="label">Why the difference is not academic</span>
+  <p>On a cliff-edge task (a shortest path running alongside a catastrophic drop, with
+  $\epsilon$-greedy exploration), Q-learning learns the optimal path along the edge and falls off
+  regularly, because its target assumes the greedy action will be taken and $\epsilon$ of the time
+  it will not. SARSA learns a longer, safer path, because it accounts for its own exploration.</p>
+  <p>Q-learning's policy is better; SARSA's <b>behaviour</b> is better. Which you want depends on
+  whether exploration is going to continue during deployment, and that is a question about your
+  system rather than about the algorithms.</p>
+</div>
+
+<h3><span class="num">§19</span> The maximisation bias</h3>
+
+<div class="readnow"><span class="label">Go and read</span><p><span class="src">van Hasselt, Guez &amp; Silver (2016)</span>, <i>Deep reinforcement learning with double Q-learning</i>. The bias measured on real value estimates rather than argued for, and removed by a restructuring that costs nothing. Read §3 for the demonstration that the learned values on Atari were systematically far above the returns actually achieved.</p></div>
+
+<figure>
+  <img src="figures/rl/03-max-bias.svg" alt="Estimated maximum value against number of actions for a single and a double estimator, and the fraction of a bad action taken over training">
+  <figcaption><b>Figure 3.</b> Every action has true value <b>0</b>. A single estimator's max is
+  biased upward by <b>+0.20</b> with two actions and <b>+0.73</b> with thirty-two; the double
+  estimator stays at zero. Right: in a two-state MDP where the left action is genuinely worse,
+  Q-learning still takes it <b>73.5%</b> of the time after 3,000 episodes, against double
+  Q-learning's <b>7.3%</b> and an optimal 5%.</figcaption>
+</figure>
+
+<div class="box why">
+  <span class="label">Why $\max$ over estimates is not an estimate of the max</span>
+  <p>$\mathbb{E}[\max_a \hat{Q}(a)] \geq \max_a \mathbb{E}[\hat{Q}(a)]$, by Jensen, and the gap
+  grows with both the noise and the number of actions. Q-learning's target contains exactly this
+  max, so its values are systematically optimistic and the optimism <b>propagates</b>: an inflated
+  value at one state becomes the bootstrap target at its predecessors.</p>
+  <p>This is Part V §14's multiple comparisons and Part XIV §20's winner's curse, arriving inside a
+  training loop and being fed back into itself.</p>
+  <p><b>Double Q-learning</b> is the fix and it is one line of restructuring: keep two estimates, use
+  one to <b>select</b> the maximising action and the other to <b>evaluate</b> it. The selection is
+  still noisy; the evaluation is independent of the noise that drove the selection, so the bias
+  disappears. The figure's flat green line is that, measured.</p>
+</div>
+
+<h3><span class="num">§20</span> Function approximation</h3>
+
+<div class="box def">
+  <span class="label">The necessary step, and what it gives up</span>
+  <p>A table with one entry per state does not survive §13. Replace it with
+  $\hat{Q}(s,a;\mathbf{w})$, a network, and everything from Parts VII to IX applies.</p>
+  <p>What is given up is the guarantee. Tabular Q-learning converges to $Q^*$ under standard
+  conditions. With approximation, the update is no longer a contraction in any norm that the
+  argument needs, because the projection onto the representable functions can undo what the Bellman
+  operator did.</p>
+</div>
+
+<h3><span class="num">§21</span> The deadly triad</h3>
+
+<div class="readnow"><span class="label">Go and read</span><p><span class="src">Sutton &amp; Barto (2018)</span>, <i>Reinforcement Learning: An Introduction</i>. §11.3, on the deadly triad, which is the clearest account of it anywhere, including the point that the three ingredients are individually necessary, so the response is to damp the loop rather than to remove one. Chapters 3 to 6 are also the best treatment of this movement and the previous one, and are worth reading rather than consulting.</p></div>
+
+<figure>
+  <img src="figures/rl/04-deadly-triad.svg" alt="Weight norm against update for four conditions on log axes, and final weight norms compared">
+  <figcaption><b>Figure 4.</b> Baird's counterexample. With <b>function approximation,
+  bootstrapping and off-policy sampling</b> together, the weights diverge: $\|\mathbf{w}\|$ goes
+  from 10.3 to <b>1,084</b> in 1,500 updates. Remove <i>any one</i> and it converges: 8.6 without
+  bootstrapping, 9.2 on-policy, 23.1 tabular. The rewards are zero throughout, so the true values
+  are zero.</figcaption>
+</figure>
+
+<div class="box why">
+  <span class="label">Why this is not an instability that tuning fixes</span>
+  <p>Each ingredient is individually reasonable and each is individually necessary in practice.
+  Approximation is required for large state spaces; bootstrapping is what makes TD efficient;
+  off-policy learning is what lets you reuse data.</p>
+  <p>Together they can produce an iteration with <b>no fixed point to converge to</b>. A smaller
+  learning rate slows the divergence and does not prevent it; the figure's orange curve at half the
+  step size still leaves.</p>
+  <p>The mechanism: off-policy sampling weights states by a distribution the Bellman operator was
+  not contracting under, and the projection onto the representable functions can then expand the
+  error that the operator contracted. The composition of the two is not a contraction, and §12's
+  guarantee is precisely a statement about contraction.</p>
+  <p>What is done about it in practice is not to remove an ingredient but to <b>damp the loop</b>:
+  target networks, small step sizes, and large replay buffers all slow the feedback enough that
+  divergence is rare. That is engineering rather than a solution, and it is worth knowing which of
+  the two you have.</p>
+</div>
+
+<h3><span class="num">§22</span> DQN, and what each part is for</h3>
+
+<div class="box def">
+  <span class="label">Four changes, three of them addressing §21</span>
+  <p><b>Experience replay.</b> Store transitions and sample from them. Breaks the correlation
+  between consecutive updates and reuses each transition many times.</p>
+  <p><b>A target network.</b> Compute the bootstrap target from a frozen copy of the network,
+  updated every few thousand steps. This makes the target a <b>fixed</b> quantity for a while, so
+  each phase is closer to ordinary supervised regression than to a moving fixed point.</p>
+  <p><b>Reward clipping</b> to $[-1, 1]$, so one learning rate works across games with wildly
+  different scales, and note that this changes the problem, since a reward of 100 and a reward of 1
+  become the same.</p>
+  <p><b>Convolutional features</b> from raw pixels, and a stack of four frames to restore the Markov
+  property that a single frame lacks (§2).</p>
+</div>
+
+<div class="box why">
+  <span class="label">What it actually established</span>
+  <p>One architecture and one hyperparameter setting, learning dozens of different games from
+  pixels and a score. Not that it was the best method for any of them; it was <b>the same</b>
+  method for all of them, which is what made it convincing.</p>
+  <p>The subsequent additions each fix something specific and are worth knowing by what they
+  address: <b>double DQN</b> for §19's bias, <b>prioritised replay</b> for sampling transitions with
+  large TD error more often, <b>duelling</b> for separating state value from action advantage, and
+  <b>distributional</b> methods for learning the whole return distribution rather than its mean.</p>
+</div>
+
+<h3><span class="num">§23</span> What movement C establishes</h3>
+
+<div class="box intuition">
+  <span class="label">The pattern</span>
+  <p>Every method here estimates the Bellman target from samples, and every failure is a property
+  of that estimate. Monte Carlo's variance is the variance of a return. TD's bias is a wrong
+  bootstrap. Q-learning's optimism is a max over noise. The triad's divergence is a lost
+  contraction.</p>
+  <p>So when a value-based agent misbehaves, the diagnostic question is which term in the target is
+  wrong and why, which is Part XIV's discipline with a specific list of suspects.</p>
+</div>

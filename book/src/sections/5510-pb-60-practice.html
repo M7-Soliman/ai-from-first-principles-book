@@ -1,0 +1,151 @@
+<h2><span class="part-kicker">Part F</span>Transport, and practice</h2>
+
+<p class="mvt">One more way to compare distributions (the one that works when the others return
+infinity), and then how to choose among everything this part has offered.</p>
+
+<h3><span class="num">§40</span> Comparing distributions</h3>
+
+<div class="box shapes">
+  <span class="label">Three families, and what each needs</span>
+  <p><b>Divergences by density ratio.</b> KL and the rest of the <span class="m">$f$</span>-family
+  compare <span class="m">$p(x)$</span> against <span class="m">$q(x)$</span> pointwise. They need
+  the two to overlap, and they say nothing about how far apart the non-overlapping parts are.</p>
+  <p><b>Integral probability metrics.</b> Take the largest difference in expectation over a class of
+  test functions. Maximum mean discrepancy is this with a kernel ball; a discriminator's objective
+  is this with a neural class.</p>
+  <p><b>Transport distances.</b> The cost of moving one distribution onto the other. These use the
+  <i>geometry</i> of the space, which the first family ignores entirely, and that is the whole
+  difference.</p>
+</div>
+
+<h3><span class="num">§41</span> Optimal transport</h3>
+
+<div class="box def">
+  <span class="label">Wasserstein</span>
+  <p class="m">$$W_p(\mu,\nu) \;=\; \left(\inf_{\gamma \in \Pi(\mu,\nu)} \int \lVert x - y \rVert^p \, d\gamma(x,y)\right)^{1/p}$$</p>
+  <p>The infimum is over couplings (joint distributions with the right marginals), so it is the
+  cheapest plan for moving mass from one arrangement to the other. In one dimension it has a closed
+  form: sort both samples and average the differences.</p>
+  <p>The general problem is a linear program and expensive; <b>entropic regularisation</b> adds a
+  penalty on the coupling's entropy, which makes it solvable by alternately rescaling rows and
+  columns of a matrix (Sinkhorn iteration) in a form that is differentiable and runs on a GPU.
+  That practicality is why transport moved from a corner of analysis into machine learning.</p>
+</div>
+
+<figure>
+  <img src="figures/pb/08-transport.svg" alt="Left: KL and 1-Wasserstein against separation for distributions with disjoint supports. Right: the same for overlapping Gaussians">
+  <figcaption><b>Figure 8.</b> <b>Left:</b> two uniform distributions pulled apart. Once their
+  supports separate the KL divergence is <b>infinite</b> and stays infinite however far they move;
+  <span class="m">$W_1$</span> is finite throughout and grows <b>linearly</b>, with a fitted slope of
+  <b>1.0000</b>. A gradient exists on the right-hand quantity and does not on the left.
+  <b>Right:</b> two Gaussians, which always overlap. Both are finite, KL grows quadratically and
+  <span class="m">$W_1$</span> linearly, so the difference is specific to the disjoint case rather
+  than general.</figcaption>
+</figure>
+
+<div class="box why">
+  <span class="label">Where this bites in practice</span>
+  <p>A generative model early in training puts its mass somewhere the data is not. Under a
+  likelihood-ratio objective that is an infinite loss with a useless gradient, which is a large
+  part of why GAN training was unstable and why Wasserstein formulations helped.</p>
+  <p>It is also why transport appears inside diffusion. Flow matching picks the path along which a
+  sample travels from noise to data, and choosing the transport-optimal path makes those paths
+  straight, which is exactly what lets a solver take fewer steps. Part XVI §32's advantage over
+  Part XVI §27 is a transport fact.</p>
+</div>
+
+<h3><span class="num">§42</span> Choosing an inference method</h3>
+
+<div class="box try">
+  <span class="label">In order, and the first question is not about algorithms</span>
+  <p><b>Is it exact?</b> Compute the treewidth. Chains, trees and linear-Gaussian systems admit
+  exact inference, and using an approximation on one of them is a mistake people make because the
+  approximate tools are better advertised.</p>
+  <p><b>Is it conjugate?</b> A surprising number of small models have closed-form posteriors, and
+  the closed form beats every method in this part.</p>
+  <p><b>How much does calibration matter?</b> If a decision hangs on the width of an interval, the
+  overconfidence Figure 4 measures disqualifies mean field, and you want sampling or a
+  full-covariance family.</p>
+  <p><b>How many times will you infer?</b> Once, expensively: sample. Millions of times at serving
+  latency: amortise, and pay §22's gap.</p>
+  <p><b>Can you check?</b> Simulate data from your own model with parameters you chose, and see
+  whether the method recovers them. This is the single most useful thing in the movement and it is
+  routinely skipped.</p>
+</div>
+
+<h3><span class="num">§43</span> What to report, and where this connects</h3>
+
+<div class="box shapes">
+  <span class="label">Six things to report</span>
+  <p><b>Which method, and its family or proposal.</b> "Variational" without the family is not a
+  description.</p>
+  <p><b>Effective sample size</b>, not the number of draws, and the Monte Carlo standard error
+  computed from it.</p>
+  <p><b>How the chains were initialised.</b> Figure 6 is why: R&#770; from chains started together
+  is uninformative.</p>
+  <p><b>A recovery check</b> on simulated data with known parameters.</p>
+  <p><b>For a variational result, that the intervals are lower bounds on the true width.</b></p>
+  <p><b>For a diffusion model, the solver and the step count</b>, since Figure 7 shows those
+  changing the answer.</p>
+</div>
+
+<div class="box shapes">
+  <span class="label">Five connections</span>
+  <p><b>Part XVI §15 and §18.</b> The ELBO and the VAE are §18 and §22.</p>
+  <p><b>Part XVI §23–§32.</b> The whole diffusion movement is movement E's discretisation.</p>
+  <p><b>Part XXII §4.</b> The collider is §4, and Figure 1 measures the damage.</p>
+  <p><b>Part XXIV.</b> Gaussian processes are exact inference in a model with a continuum of latent
+  variables, and the calibration checks there are what movement C's output needs.</p>
+  <p><b>Part XXVI §8.</b> Message passing on a graph is §10's elimination with the sums learned
+  rather than computed, which is why the two have the same name.</p>
+</div>
+
+<h3><span class="num">§44</span> What is unsolved</h3>
+
+<div class="box why">
+  <span class="label">Four, distinguished by kind</span>
+  <p><b>Not yet measured.</b> How large the amortisation gap is in the large models that use one.
+  It is measurable (optimise the variational parameters per point and compare) and is rarely
+  reported.</p>
+  <p><b>Not currently measurable.</b> Whether a sampler has found all the modes of a
+  high-dimensional posterior. Figure 6 shows the diagnostic cannot tell you, and no other statistic
+  can either.</p>
+  <p><b>Genuinely open.</b> Inference in models with discrete latent variables. The
+  reparameterisation trick does not apply, every estimator trades bias against variance badly, and
+  this is why so many models are continuous that would naturally be discrete.</p>
+  <p><b>Not empirical.</b> Whether a prior is right. It is a claim about the world, and no amount of
+  data settles it: only sensitivity analysis, which tells you whether it mattered.</p>
+</div>
+
+<h3><span class="num">§45</span> What to carry forward</h3>
+
+<div class="box intuition">
+  <span class="label">Five things</span>
+  <p><b>A model is a factorisation, and the graph tells you the cost before the data arrives.</b>
+  Treewidth decides whether exact inference exists; everything else in this part is what you do when
+  it does not.</p>
+  <p><b>Conditioning creates dependence as well as destroying it.</b> Figure 1 measures a collider
+  turning +0.004 into &minus;0.758, which is why adjusting for more variables is not safer.</p>
+  <p><b>Variational inference is biased toward confidence, and compute does not fix it.</b>
+  Figure 4 measures a standard deviation of 0.436 against a true 1.000, exactly
+  <span class="m">$\sqrt{1-\rho^2}$</span>, with the optimiser working perfectly.</p>
+  <p><b>Sampling is exact in the limit and silent about whether you are there.</b> Figure 6 measures
+  a perfect R&#770; = 1.0000 on a run that missed half the distribution.</p>
+  <p><b>Diffusion is a stochastic differential equation</b>, its reverse needs only the score, and
+  the same marginals admit a deterministic sampler that is invertible, exactly likelihood-bearing,
+  and, with a first-order solver, measurably less accurate.</p>
+</div>
+
+<div class="sixty">
+  <span class="label">Sixty seconds</span>
+  <p>Writing down a joint distribution is easy and using one is not, because the sums are
+  exponential. Everything here is a way round that. Structure: if the model factorises into small
+  pieces the sums distribute and the posterior is exact, which covers chains, trees and
+  linear-Gaussian systems and nothing much else. Optimisation: pick a family you can compute with
+  and find its closest member, which is fast, is what a VAE does, and is reliably overconfident by
+  an amount you can derive. Sampling: build a random walk whose long-run distribution is the
+  posterior, which is right in the limit and cannot tell you when the limit has arrived. And in
+  continuous time the same machinery becomes the language of diffusion models, where reversing a
+  noising process needs one quantity, the gradient of the log density, and a network is trained to
+  supply it.</p>
+</div>

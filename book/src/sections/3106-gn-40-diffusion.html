@@ -1,0 +1,319 @@
+<h2><span class="part-kicker">Part D</span>Score and diffusion</h2>
+
+<p class="lede">Everything so far has worked around the normalising constant. This movement learns
+an object that never contained it, and then discovers that the object is enough to generate from,
+which nobody expected when it was proposed.</p>
+
+<h3><span class="num">§23</span> Score matching</h3>
+
+<div class="box def">
+  <span class="label">Fit the gradient instead of the density</span>
+  <p>Part XV §12 defined the score, $\nabla_{\mathbf{x}} \log p(\mathbf{x})$. The reason to want it
+  is one line: the normalising constant is a function of $\theta$ and <b>not of $\mathbf{x}$</b>,
+  so</p>
+  <p>$$\nabla_{\mathbf{x}} \log p(\mathbf{x};\theta)
+  = \nabla_{\mathbf{x}} \log \tilde{p}(\mathbf{x};\theta) - \underbrace{\nabla_{\mathbf{x}} \log
+  Z(\theta)}_{= \; 0}$$</p>
+  <p>$Z$ disappears. Not approximated, not bounded: differentiated away. So fit the model's score
+  to the data's:</p>
+  <p>$$J(\theta) = \tfrac{1}{2}\,\mathbb{E}_{p_{\text{data}}}
+  \big\| \nabla_{\mathbf{x}} \log p_{\text{model}}(\mathbf{x};\theta)
+  - \nabla_{\mathbf{x}} \log p_{\text{data}}(\mathbf{x}) \big\|^2$$</p>
+</div>
+
+<div class="box why">
+  <span class="label">Why this is not circular, though it looks it</span>
+  <p>The objective mentions $\nabla_{\mathbf{x}} \log p_{\text{data}}$, which you do not know. The
+  reason it is usable anyway is an integration by parts, and the result is worth stating because it
+  is what makes the whole approach possible:</p>
+  <p>$$J(\theta) = \mathbb{E}_{p_{\text{data}}} \sum_{j=1}^{n}
+  \left[ \frac{\partial^2 \log p_{\text{model}}}{\partial x_j^2}
+  + \frac{1}{2}\left(\frac{\partial \log p_{\text{model}}}{\partial x_j}\right)^{\!2} \right]
+  \;+\; \text{const}$$</p>
+  <p>The unknown data score is gone, absorbed into a constant that does not depend on $\theta$.
+  What remains involves only the model and expectations over the data, both computable.</p>
+  <p>And note what has been avoided: no partition function, no MCMC, no bound, and <b>no samples
+  from the model during training</b>. §7's loop is broken.</p>
+</div>
+
+<div class="box pitfall">
+  <span class="label">Pitfall: the second derivative, and the cost that killed it</span>
+  <p>That objective needs $\partial^2 \log p / \partial x_j^2$ for every dimension: the diagonal of
+  the Hessian with respect to the <b>input</b>. For a network with $n$ inputs that costs $O(n)$
+  backward passes per example.</p>
+  <p>At $n = 2$ this is free. At $n = 196{,}608$ it is fatal. Score matching in its original form
+  is unusable at the scale anyone cares about, and this is why it sat in the literature for over a
+  decade as a technically elegant method with no applications.</p>
+  <p>§25 is the fix, and the fix removes the second derivative entirely.</p>
+</div>
+
+<h3><span class="num">§24</span> Where the score has no signal</h3>
+
+<figure>
+  <img src="figures/gn/03-score-coverage.svg" alt="The data and its density, the regions covered at four noise levels, and the fraction of space each covers">
+  <figcaption><b>Figure 3.</b> The reference mixture, and how much of the space carries any
+  training signal. At $\sigma = 0$ the data occupies <b>16.5%</b> of the plotted region; at
+  $\sigma = 0.8$, 72.7%; at $\sigma = 2$, all of it. A sampler that starts from wide noise starts
+  in the <b>83.5%</b> where the score was never fitted.</figcaption>
+</figure>
+
+<div class="box why">
+  <span class="label">Why this is the more serious problem</span>
+  <p>Score matching's objective is an expectation over $p_{\text{data}}$. Gradient contributions
+  arrive only where there is data. Away from the data the estimated score is whatever the network
+  happened to extrapolate, constrained by nothing.</p>
+  <p>Now suppose you want to <b>generate</b>. The natural method is Langevin dynamics: start
+  somewhere and follow the score uphill, with noise:</p>
+  <p>$$\mathbf{x}_{t+1} = \mathbf{x}_t + \tfrac{\eta}{2}\nabla_{\mathbf{x}}\log p(\mathbf{x}_t)
+  + \sqrt{\eta}\,\boldsymbol{\epsilon}_t$$</p>
+  <p>Started from noise, the very first steps are taken in the region the figure says received no
+  training signal at all. The walk is guided by a field that was never fitted, and it does not find
+  the data.</p>
+  <p>There is a second failure that the figure also explains. Even if the walk reaches the data,
+  the score field between two well-separated modes is near zero, so the chain has no information
+  about their <b>relative weights</b>. Langevin dynamics on an exact score recovers the modes and
+  gets the mixing proportions wrong.</p>
+  <p>Both failures have the same cause and the same cure: the data is too concentrated. Blur it.</p>
+</div>
+
+<h3><span class="num">§25</span> Denoising score matching</h3>
+
+<div class="readnow"><span class="label">Go and read</span><p><span class="src">Vincent (2011)</span>, <i>A connection between score matching and denoising autoencoders</i>. The identity this entire movement turns on, in four pages. Read it before Part XVI's later sections rather than after: once you accept that reconstruction-minus-input is a score, diffusion stops being a recipe and becomes a consequence.</p></div>
+
+<div class="box def">
+  <span class="label">The identity, from Part XV</span>
+  <p>Corrupt the data with Gaussian noise of variance $\sigma^2$ and the score of the <b>smoothed</b>
+  density has an estimator with no second derivative and no unknown constant:</p>
+  <p>$$\nabla_{\tilde{\mathbf{x}}}\log p_\sigma(\tilde{\mathbf{x}})
+  = \mathbb{E}\!\left[\frac{\mathbf{x} - \tilde{\mathbf{x}}}{\sigma^2}
+  \;\Big|\; \tilde{\mathbf{x}}\right]$$</p>
+  <p>which is estimated by training a network to predict the clean point from the corrupted one:
+  a plain regression. Part XV §12 measured this: mean cosine <b>0.9931</b> against the analytic
+  score of the smoothed density.</p>
+  <p>The second-derivative cost is gone. The training signal now reaches wherever the corruption
+  puts mass, which §24's figure says is most of the space. Both of §23's and §24's problems are
+  solved by the same move.</p>
+</div>
+
+<div class="box pitfall">
+  <span class="label">Pitfall: one noise level cannot work</span>
+  <p>A single $\sigma$ forces a choice between two failures, and both are real.</p>
+  <p><b>Small $\sigma$</b>: the target is nearly the true score, and coverage is nearly as bad as
+  §24's, so the sampler still cannot start.</p>
+  <p><b>Large $\sigma$</b>: coverage is excellent and the target is the score of a badly blurred
+  distribution. Part XV §12 measured the distortion: against the unsmoothed score, the magnitude
+  ratio falls to <b>0.609</b>.</p>
+  <p>There is no setting that is right for both. The resolution is the one move that turns this
+  collection of results into a working generative model, and it is simple enough to state in a
+  sentence: <b>use every noise level at once</b>.</p>
+</div>
+
+<h3><span class="num">§26</span> Many noise levels</h3>
+
+<div class="readnow"><span class="label">Go and read</span><p><span class="src">Song &amp; Ermon (2019)</span>, <i>Generative modeling by estimating gradients of the data distribution</i>. The paper that identifies exactly the two failures of §24 (no training signal away from the data, and no information about relative mode weights) and fixes both with a schedule of noise levels. Our Figure 3 is its argument, measured.</p></div>
+
+<div class="box def">
+  <span class="label">One network, conditioned on how noisy the input is</span>
+  <p>Choose a schedule $\sigma_1 < \sigma_2 < \cdots < \sigma_T$, spanning from almost nothing to
+  larger than the data. Train a single network $s_\theta(\mathbf{x}, \sigma)$ on the denoising
+  objective at <b>all</b> levels, sampling a level at random for each example:</p>
+  <p>$$\mathcal{L} = \mathbb{E}_{\sigma}\, \mathbb{E}_{\mathbf{x}}\,
+  \mathbb{E}_{\boldsymbol{\epsilon}}
+  \Big[ \lambda(\sigma) \big\| s_\theta(\mathbf{x} + \sigma\boldsymbol{\epsilon}, \sigma)
+  + \boldsymbol{\epsilon}/\sigma \big\|^2 \Big]$$</p>
+  <p>At the largest $\sigma$ the smoothed distribution is nearly a wide Gaussian, so the score is
+  known almost everywhere, which is exactly where a sampler starts. At the smallest, the score is
+  nearly the true one, which is where it finishes.</p>
+  <p>Then generate by starting at the largest level and walking down: follow the score at
+  $\sigma_T$, then at $\sigma_{T-1}$, and so on. Every step is taken in a region where that level's
+  score was trained, which is the property §24 said was missing.</p>
+</div>
+
+<h3><span class="num">§27</span> The forward process</h3>
+
+<div class="box def">
+  <span class="label">Corruption as a fixed Markov chain</span>
+  <p>The standard formulation writes the corruption as a chain that gradually destroys the data:</p>
+  <p>$$q(\mathbf{x}_t \mid \mathbf{x}_{t-1}) = \mathcal{N}\big(\sqrt{1-\beta_t}\,\mathbf{x}_{t-1},
+  \; \beta_t I\big)$$</p>
+  <p>with a schedule $\beta_1, \ldots, \beta_T$. It has <b>no parameters</b> and nothing is
+  learned about it.</p>
+  <p>Its useful property is that any number of steps composes in closed form. With
+  $\alpha_t = 1-\beta_t$ and $\bar{\alpha}_t = \prod_{s\le t}\alpha_s$,</p>
+  <p>$$\mathbf{x}_t = \sqrt{\bar{\alpha}_t}\,\mathbf{x}_0
+  + \sqrt{1-\bar{\alpha}_t}\,\boldsymbol{\epsilon}$$</p>
+  <p>so training at step $t$ costs one draw, not $t$ of them. The scaling by
+  $\sqrt{\bar{\alpha}_t}$ keeps the variance bounded, so $\mathbf{x}_T$ approaches a standard
+  Gaussian rather than diverging, which is what makes "start from noise" well defined.</p>
+</div>
+
+<h3><span class="num">§28</span> What the network predicts</h3>
+
+<div class="box def">
+  <span class="label">Three equivalent parameterisations</span>
+  <p>The network can be asked for the noise $\boldsymbol{\epsilon}$, the clean point $\mathbf{x}_0$,
+  or the score. They are related by identities and carry the same information:</p>
+  <p>$$\nabla_{\mathbf{x}_t} \log p_t(\mathbf{x}_t)
+  = -\frac{\boldsymbol{\epsilon}_\theta(\mathbf{x}_t, t)}{\sqrt{1-\bar{\alpha}_t}},
+  \qquad
+  \hat{\mathbf{x}}_0 = \frac{\mathbf{x}_t - \sqrt{1-\bar{\alpha}_t}\,
+  \boldsymbol{\epsilon}_\theta}{\sqrt{\bar{\alpha}_t}}$$</p>
+  <p>Predicting $\boldsymbol{\epsilon}$ is the usual choice and it is not arbitrary: it makes the
+  target unit-variance at every noise level, so one loss weighting works across the whole schedule.
+  Predicting $\mathbf{x}_0$ has a target whose difficulty varies enormously with $t$, and the
+  <b>v-parameterisation</b> interpolates between the two and behaves better at the extremes.</p>
+  <p>The training loop is now: draw a data point, draw $t$, draw noise, corrupt, predict the noise,
+  take a squared-error step. There is no adversary, no bound, no sampling from the model and no
+  partition function. It is regression.</p>
+</div>
+
+<h3><span class="num">§29</span> Sampling, and what it recovers</h3>
+
+<figure>
+  <img src="figures/gn/04-diffusion.svg" alt="The reference distribution, samples from the trained diffusion model, and the recovered mixing weights against the true ones">
+  <figcaption><b>Figure 4.</b> A network trained only to predict added noise, sampled by reversing
+  the corruption from pure noise. Recovered mixing weights <b>0.408, 0.348, 0.244</b> against the
+  true <b>0.40, 0.35, 0.25</b>: total variation <b>0.0075</b>, which is <i>smaller than the
+  0.0093 of an independent 4,000-sample draw from the truth itself</i>. Mean cosine with the exact
+  analytic score runs from <b>0.976</b> at low noise to <b>1.0000</b> at high noise.</figcaption>
+</figure>
+
+<div class="box def">
+  <span class="label">Three ways to walk back down</span>
+  <p><b>Ancestral (DDPM).</b> Step through every $t$, sampling from the true reverse posterior:
+  the distribution of $\mathbf{x}_{t-1}$ given both $\mathbf{x}_t$ and $\mathbf{x}_0$, which is
+  Gaussian, with a mean built from the network's noise prediction $\boldsymbol{\epsilon}_\theta$ (via
+  §28's identity for $\hat{\mathbf{x}}_0$) and a variance fixed by the schedule alone:</p>
+  <p>$$q(\mathbf{x}_{t-1}\mid\mathbf{x}_t,\mathbf{x}_0) = \mathcal{N}\!\left(
+  \frac{1}{\sqrt{\alpha_t}}\Big(\mathbf{x}_t - \frac{\beta_t}{\sqrt{1-\bar{\alpha}_t}}
+  \boldsymbol{\epsilon}_\theta\Big),\ \tilde{\beta}_t I\right),
+  \qquad \tilde{\beta}_t = \beta_t\,\frac{1-\bar{\alpha}_{t-1}}{1-\bar{\alpha}_t}$$</p>
+  <p>"The correct amount of fresh noise" means drawing with variance $\tilde{\beta}_t$, not $\beta_t$
+  itself; the posterior is narrower than the forward step because conditioning on $\mathbf{x}_t$
+  already rules out most of what the forward step could have done. This is also where the classic
+  Ho et al. (2020) derivation arrives from a different direction: minimising the ELBO's per-step
+  term $D_{KL}\big(q(\mathbf{x}_{t-1}\mid\mathbf{x}_t,\mathbf{x}_0)\,\|\,p_\theta(\mathbf{x}_{t-1}
+  \mid\mathbf{x}_t)\big)$ reduces to matching this same mean, which is the identical
+  $\boldsymbol{\epsilon}$-regression §28 reached from denoising score matching. Bound and
+  gradient-matching are two routes to one objective, not competing ones. Highest quality, $T$
+  network evaluations, and $T$ is often several hundred.</p>
+  <p><b>Deterministic (DDIM).</b> Drop the injected noise and follow the implied ordinary
+  differential equation. Far fewer steps for similar quality, and, because the map from noise to
+  sample is now deterministic, a latent space you can interpolate in.</p>
+  <p><b>Higher-order solvers.</b> The deterministic view says sampling is an ODE, so any ODE solver
+  applies. This is where the step counts of 20–50 come from, and it was a change of perspective
+  rather than of model. All three views (the discrete chain here, DDIM's ODE and Langevin's SDE
+  of §24) are discretisations of one continuous-time process; Song et al. (2021) write down the
+  SDE itself, with the forward corruption and the reverse sampler as its two time directions, and
+  the ODE above as the special case with the noise term removed.</p>
+</div>
+
+<div class="box why">
+  <span class="label">Why the weights being right is the claim worth making</span>
+  <p>A picture of samples that land on the modes establishes little; §36's GAN does that while
+  omitting modes entirely, and §42 is about how badly visual inspection fails.</p>
+  <p>The mixing weights are the part a mode-seeking method gets wrong, and they are checkable here
+  because the distribution was constructed. Recovering them to within the sampling noise of a real
+  draw of the same size is the statement that the model learned the distribution and not merely its
+  support.</p>
+  <p>Note also the cost structure, against §11. Sampling takes a fixed number of network
+  evaluations set by the <b>schedule</b>, not by the dimension of what is being generated. A
+  million-pixel image takes the same number of steps as a two-dimensional point. That is why this
+  family displaced autoregressive models for images and did not for text.</p>
+</div>
+
+<h3><span class="num">§30</span> Conditioning and guidance</h3>
+
+<div class="readnow"><span class="label">Go and read</span><p><span class="src">Ho &amp; Salimans (2022)</span>, <i>Classifier-free diffusion guidance</i>. One network, label dropout during training, and a weight at sampling time. The paper is explicit that guidance samples from a distribution proportional to $p(\mathbf{x})p(c \mid \mathbf{x})^w$ rather than from the conditional: a point routinely lost in retelling, and the one that explains Figure 5's collapse.</p></div>
+
+<figure>
+  <img src="figures/gn/05-guidance.svg" alt="Fraction of samples in the requested mode against guidance weight, and within-mode spread with mean log-density">
+  <figcaption><b>Figure 5.</b> Classifier-free guidance on the same mixture. Adherence to the
+  requested class rises from <b>33.3%</b>, chance, to <b>100%</b> by $w=1$. Typicality
+  <b>peaks</b> at $w=2$ (mean log-density $-1.784$, above real data's $-1.870$) and then collapses
+  to <b>$-165.5$</b> at $w=8$, while the within-mode spread <i>grows</i> to <b>4.6×</b> the
+  truth's.</figcaption>
+</figure>
+
+<div class="box def">
+  <span class="label">Classifier-free guidance</span>
+  <p>Train one network on both the conditional and unconditional problem, by dropping the
+  condition on some fraction of examples. At sampling time combine them:</p>
+  <p>$$\tilde{\boldsymbol{\epsilon}} = \boldsymbol{\epsilon}_\theta(\mathbf{x}_t, \varnothing)
+  + w\big[\boldsymbol{\epsilon}_\theta(\mathbf{x}_t, c)
+  - \boldsymbol{\epsilon}_\theta(\mathbf{x}_t, \varnothing)\big]$$</p>
+  <p>At $w=1$ this is the conditional model. Above 1 it extrapolates <b>along the direction the
+  condition points</b>, amplifying whatever the condition contributed.</p>
+</div>
+
+<div class="box pitfall">
+  <span class="label">Pitfall: it is not a diversity-for-fidelity trade</span>
+  <p>The standard description is that guidance trades diversity for fidelity, monotonically. The
+  measurement says something different and more useful.</p>
+  <p>Up to $w \approx 2$, both improve: adherence reaches 100%, spread stays near the truth's, and
+  typicality <i>rises</i>. Past the peak, the samples do not become a tighter cluster around the
+  mode; the spread <b>grows</b> while the density collapses by two orders of magnitude. They are
+  being pushed <b>off the distribution</b>, outward past the mode, into a region containing no
+  data.</p>
+  <p>So the failure at high guidance is not over-concentration. It is extrapolation along a
+  direction that was only ever valid locally, and "reduce $w$ if samples look too similar" is
+  advice for a symptom that does not occur. The number to watch is a density or a distance to the
+  data, not a spread.</p>
+  <p>The honest reading of the sampled distribution: guidance does not sample from
+  $p(\mathbf{x} \mid c)$ at all. It samples from something proportional to
+  $p(\mathbf{x})\,p(c \mid \mathbf{x})^w$, which for $w \neq 1$ is a different distribution, one
+  chosen because it looks better, which is §12's overruling of the model, again.</p>
+</div>
+
+<h3><span class="num">§31</span> The schedule</h3>
+
+<div class="box why">
+  <span class="label">Why this is the hyperparameter that matters</span>
+  <p>The schedule decides how much of training is spent at each noise level, and the levels are not
+  equally useful. Very high noise teaches almost nothing: the answer is nearly "predict the
+  input". Very low noise teaches fine detail that barely affects the sample's structure. The
+  informative band is in the middle and it is narrow.</p>
+  <p>A <b>linear</b> schedule spends too many steps at the destructive end. The <b>cosine</b>
+  schedule, used for the figures here, holds more of the trajectory in the informative region, and
+  it improved results across the board on a change that touches no architecture.</p>
+  <p>This is worth flagging as a general pattern rather than a detail. In this family the
+  <b>corruption process is part of the model</b>, and the design decisions that most affect results
+  are decisions about corruption: the schedule, the parameterisation of §28, the loss weighting
+  $\lambda(\sigma)$. A field trained on architecture search found this counterintuitive for
+  several years.</p>
+</div>
+
+<h3><span class="num">§32</span> Flow matching</h3>
+
+<div class="box def">
+  <span class="label">The same destination, reached more directly</span>
+  <p>The deterministic sampler of §29 says generation is following an ODE from noise to data. Flow
+  matching starts there: pick a path from noise to data, the straight line is the usual
+  choice, and train a network to predict the <b>velocity</b> along it:</p>
+  <p>$$\mathbf{x}_t = (1-t)\,\boldsymbol{\epsilon} + t\,\mathbf{x}_0,
+  \qquad \mathcal{L} = \mathbb{E}\big\|v_\theta(\mathbf{x}_t, t)
+  - (\mathbf{x}_0 - \boldsymbol{\epsilon})\big\|^2$$</p>
+  <p>No forward Markov chain, no noise schedule, no variational bound. A regression onto a velocity
+  field, with straight paths that a solver can follow in few steps.</p>
+  <p>The relationship to §26 is close: with particular choices flow matching and diffusion give the
+  same objective. The value is in the framing: the path is now an explicit design choice rather
+  than something inherited from a corruption process. The continuous-time view these paths
+  live in, the reverse-time SDE and the probability-flow ODE that shares its marginals, is developed
+  in Part XXVIII §§36–37.</p>
+</div>
+
+<h3><span class="num">§33</span> What this movement establishes</h3>
+
+<div class="box intuition">
+  <span class="label">Why this is where the field arrived</span>
+  <p>The route ran: eliminate $Z$ by learning a gradient (§23); make that affordable and
+  well-covered by adding noise (§25); repair the resulting bias by using every noise level (§26);
+  and then notice that walking down the levels <b>is</b> a sampler (§29).</p>
+  <p>What arrives has properties no earlier family had together. Training is a stable regression:
+  no adversary, no bound, no samples from the model. Sampling cost is set by a schedule you choose
+  rather than by the dimension of the output. Conditioning is a single extra input. And the whole
+  thing rests on an identity that was published in 2011 and sat unused for a decade because nobody
+  needed it yet.</p>
+  <p>What it does not give you is a likelihood you would want to quote, which is the next movement's
+  problem and the one after that's.</p>
+</div>

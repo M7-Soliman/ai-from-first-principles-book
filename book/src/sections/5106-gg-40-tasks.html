@@ -1,0 +1,104 @@
+<h2><span class="part-kicker">Part D</span>Nodes, links and graphs</h2>
+
+<p class="mvt">Three tasks, three different things that count as a training example, and three
+different ways to split a dataset wrongly. The evaluation problems here are more distinctive than
+the architectures, and they are where graph projects usually go wrong.</p>
+
+<h3><span class="num">§25</span> The three tasks</h3>
+
+<div class="box shapes">
+  <span class="label">What is being predicted, and what an example is</span>
+  <p><b>Node.</b> A label per node: a user's category, a paper's field. Usually one large graph,
+  partly labelled, and every node's prediction depends on its neighbours' features whether or not
+  their labels are known.</p>
+  <p><b>Link.</b> Does an edge exist between two nodes. Many graphs, or one; the examples are pairs,
+  and the negatives have to be constructed.</p>
+  <p><b>Graph.</b> A label per graph: a molecule's property. Many small graphs, and this is the
+  case that most resembles ordinary supervised learning.</p>
+</div>
+
+<h3><span class="num">§26</span> Transductive and inductive</h3>
+
+<div class="box def">
+  <span class="label">A distinction that does not arise elsewhere in this book</span>
+  <p><b>Transductive:</b> the test nodes were present in the graph at training time, with their
+  features and edges, and only their labels were hidden. <b>Inductive:</b> the test nodes were not
+  there at all.</p>
+  <p>These are different problems and the transductive one is easier, because the model has already
+  seen where the test nodes sit. A method that requires the whole graph at training time (anything
+  using the full spectrum, for instance) is transductive by construction and simply cannot be
+  applied to a node that arrives later.</p>
+  <p>Reporting a transductive number for a system that will be used inductively is the most common
+  overstatement in this area, and it is Part XXII §1's estimand problem again: the quantity measured
+  is not the quantity that will be faced.</p>
+</div>
+
+<h3><span class="num">§27</span> Splitting a graph</h3>
+
+<div class="box pitfall">
+  <span class="label">Pitfall: a random node split leaks through the edges</span>
+  <p>Hold out a random 20% of nodes and the remaining graph still contains their edges, so a test
+  node's neighbours are training nodes whose labels the model has seen. On a homophilous graph
+  (where neighbours share labels, which is most of them), that is close to handing over the answer.</p>
+  <p>The repairs depend on what you will face. For an inductive deployment, remove the test nodes and
+  their edges entirely during training. For a temporal graph, split by time, which is Part XXV §36's
+  measurement in a different shape. For link prediction, remove the test edges from the graph the
+  model sees: an obvious point that is got wrong constantly, because the edge being predicted is
+  right there in the adjacency.</p>
+</div>
+
+<h3><span class="num">§28</span> Link prediction, and the negatives</h3>
+
+<div class="box why">
+  <span class="label">The problem is which non-edges you compare against</span>
+  <p>A graph gives you positives. The negatives are chosen, and the choice sets the difficulty:
+  uniformly random pairs are nearly all trivially non-adjacent, so a model that has learned only
+  "these two are in different components" scores well.</p>
+  <p>Harder and more honest negatives come from the same neighbourhood, or from pairs at distance
+  two, the pairs a recommender would actually be deciding between. The reported metric can move by
+  tens of points on this choice alone, so it belongs in the write-up beside the number.</p>
+  <p>And the base rate is extreme: a graph with a million nodes has 10<sup>12</sup> possible pairs
+  and perhaps 10<sup>7</sup> edges. Part XIV §3's threshold placement and Part XXIV §33's cost ratio
+  are what turn a ranking into a decision here.</p>
+</div>
+
+<h3><span class="num">§29</span> Graph-level prediction, and the readout</h3>
+
+<div class="box def">
+  <span class="label">Where the invariance is finally imposed</span>
+  <p>Node representations are equivariant; a graph label must be invariant; so a readout collapses
+  the nodes: §2's sum, mean or max, or an attention-weighted sum.</p>
+  <p>The same trade returns. Sum carries size information, which is right when a bigger molecule
+  genuinely differs and wrong when size is an artefact of how the graph was constructed. Mean
+  discards it. Choosing here is a claim about whether the number of nodes is a fact about the object
+  or about the dataset.</p>
+</div>
+
+<h3><span class="num">§30</span> Knowledge graphs</h3>
+
+<div class="box shapes">
+  <span class="label">A different object with the same word attached</span>
+  <p>A knowledge graph is a set of typed triples (subject, relation, object), and the task is
+  usually to score missing ones. The structure that matters is the <b>relation type</b>, which an
+  untyped message-passing network discards entirely.</p>
+  <p><b>Embedding methods</b> (scoring a triple by a function of learned vectors for the entities
+  and the relation) remain strong baselines and are what most production systems use. <b>Relational
+  message passing</b> keeps a separate transformation per relation type, which is more expressive
+  and costs parameters linear in the number of relations.</p>
+  <p>The evaluation convention here has a well-known defect worth knowing: ranking a true triple
+  against corrupted ones, where some corruptions are also true, penalises a model for being right.
+  The standard correction filters known triples out of the candidate set, and results computed
+  without it are not comparable to results computed with it.</p>
+</div>
+
+<h3><span class="num">§31</span> What movement D establishes</h3>
+
+<div class="box intuition">
+  <span class="label">Three things</span>
+  <p><b>Transductive and inductive are different problems</b>, and the easier one is what gets
+  reported. Which you face is decided by whether new nodes arrive.</p>
+  <p><b>A random split leaks through the edges.</b> The graph structure carries label information
+  between the halves, and on a homophilous graph that is most of the task.</p>
+  <p><b>The negatives are a modelling choice.</b> In link prediction they set the difficulty, and
+  the metric moves by tens of points depending on how they were drawn.</p>
+</div>

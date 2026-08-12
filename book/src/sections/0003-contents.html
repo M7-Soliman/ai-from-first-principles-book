@@ -1,0 +1,1725 @@
+<div class="bookpage">
+  <h2 class="nobreak" style="border:none;margin-bottom:0.15em">Contents</h2>
+  <p class="tocnote">33 parts, 1208 numbered sections, all complete. Each part is
+  built in movements, and carries computed figures, tiered drills with an automated test
+  harness, a substantial project and a checkpoint, listed here in the position they
+  occupy.</p>
+
+  <div class="toc twocol full">
+    <div class="part">Front matter</div>
+    <div class="tocmv">Preface</div>
+    <div class="row plain"><span class="t">The situation</span></div>
+    <div class="row plain"><span class="t">Two failure modes</span></div>
+    <div class="row plain"><span class="t">What this book is</span></div>
+    <div class="row plain"><span class="t">Who it is for</span></div>
+    <div class="row plain"><span class="t">Three commitments</span></div>
+    <div class="row plain"><span class="t">On history</span></div>
+    <div class="row plain"><span class="t">What comes after the mathematics</span></div>
+    <div class="row plain"><span class="t">A closing note</span></div>
+    <div class="tocmv">How to read this book</div>
+    <div class="row plain"><span class="t">In order, and slowly</span></div>
+    <div class="row plain"><span class="t">Do not read passively</span></div>
+    <div class="row plain"><span class="t">The markers</span></div>
+    <div class="row plain"><span class="t">Notation</span></div>
+    <div class="tocmv">The architecture</div>
+    <div class="row plain"><span class="t">The spine</span></div>
+    <div class="row plain"><span class="t">Where each part goes</span></div>
+    <div class="row plain"><span class="t">The five load-bearing ideas</span></div>
+    <div class="row plain"><span class="t">Dependencies</span></div>
+    <div class="row plain"><span class="t">Three routes</span></div>
+    <div class="row plain"><span class="t">Code, and the two kinds of it</span></div>
+    <div class="part">Part 0: Mathematical Foundations</div>
+    <div class="tocmv">Read this first</div>
+    <div class="row"><span class="n">§0.1</span><span class="t">Who this is for</span></div>
+    <div class="row"><span class="n">§0.2</span><span class="t">What is actually required</span></div>
+    <div class="row"><span class="n">§0.3</span><span class="t">How to use it</span></div>
+    <div class="row"><span class="n">§0.4</span><span class="t">The markers</span></div>
+    <div class="row"><span class="n">§0.5</span><span class="t">Map</span></div>
+    <div class="tocmv">A · Reading mathematics</div>
+    <div class="row"><span class="n">§1</span><span class="t">How to read a formula</span></div>
+    <div class="row"><span class="n">§2</span><span class="t">The symbols, decoded</span></div>
+    <div class="tocmv">B · Algebra that must be automatic</div>
+    <div class="row"><span class="n">§3</span><span class="t">Rearranging expressions</span></div>
+    <div class="row"><span class="n">§4</span><span class="t">Powers, roots, and fractions</span></div>
+    <div class="row"><span class="n">§5</span><span class="t">Solving for a variable</span></div>
+    <div class="tocmv">C · Functions</div>
+    <div class="row"><span class="n">§6</span><span class="t">What a function is</span></div>
+    <div class="row"><span class="n">§7</span><span class="t">Composition and inverses</span></div>
+    <div class="row"><span class="n">§8</span><span class="t">Lines, slopes, and polynomials</span></div>
+    <div class="tocmv">D · Exponentials and logarithms</div>
+    <div class="row"><span class="n">§9</span><span class="t">Exponentials and the number e</span></div>
+    <div class="row"><span class="n">§10</span><span class="t">Logarithms</span></div>
+    <div class="row"><span class="n">§11</span><span class="t">Why machine learning lives in log space</span></div>
+    <div class="tocmv">E · Notation you must be able to read</div>
+    <div class="row"><span class="n">§12</span><span class="t">Sigma and Pi</span></div>
+    <div class="row"><span class="n">§13</span><span class="t">The trigonometry you actually need</span></div>
+    <div class="tocmv">F · The derivative</div>
+    <div class="row"><span class="n">§14</span><span class="t">Limits, informally</span></div>
+    <div class="row"><span class="n">§15</span><span class="t">The derivative</span></div>
+    <div class="row"><span class="n">§16</span><span class="t">The rules</span></div>
+    <div class="row"><span class="n">§17</span><span class="t">The chain rule: the important one</span></div>
+    <div class="tocmv">G · The deep learning function zoo</div>
+    <div class="row"><span class="n">§18</span><span class="t">Differentiating the functions you will meet</span></div>
+    <div class="tocmv">H · Optimisation in one variable</div>
+    <div class="row"><span class="n">§19</span><span class="t">Critical points and the second derivative</span></div>
+    <div class="row"><span class="n">§20</span><span class="t">Convexity</span></div>
+    <div class="tocmv">I · Many variables</div>
+    <div class="row"><span class="n">§21</span><span class="t">Functions of several variables</span></div>
+    <div class="row"><span class="n">§22</span><span class="t">Partial derivatives</span></div>
+    <div class="row"><span class="n">§23</span><span class="t">The gradient</span></div>
+    <div class="row"><span class="n">§24</span><span class="t">Gradient descent</span></div>
+    <div class="tocmv">J · Integrals</div>
+    <div class="row"><span class="n">§25</span><span class="t">Enough integration to read Part II</span></div>
+    <div class="tocmv">K · Numbers in a computer</div>
+    <div class="row"><span class="n">§26</span><span class="t">Floating point, overflow, underflow</span></div>
+    <div class="tocmv">Practice · Drills</div>
+    <div class="tocmv">Build · The project</div>
+    <div class="tocmv">Assess · Checkpoint</div>
+    <div class="tocmv">Reference · Formula card</div>
+    <div class="part">Part I: Linear Algebra</div>
+    <div class="tocmv">Before you start</div>
+    <div class="row"><span class="n">§0.1</span><span class="t">Why this part is long</span></div>
+    <div class="row"><span class="n">§0.2</span><span class="t">How to use it</span></div>
+    <div class="row"><span class="n">§0.3</span><span class="t">What you need before page one</span></div>
+    <div class="row"><span class="n">§0.4</span><span class="t">The one habit that matters</span></div>
+    <div class="row"><span class="n">§0.5</span><span class="t">Map of the chapter</span></div>
+    <div class="tocmv">A · The objects</div>
+    <div class="row"><span class="n">§1</span><span class="t">Why linear algebra, in one honest paragraph</span></div>
+    <div class="row"><span class="n">§2</span><span class="t">Scalars, vectors, matrices, tensors</span></div>
+    <div class="row"><span class="n">§3</span><span class="t">Two ways to see a vector</span></div>
+    <div class="tocmv">B · The operations</div>
+    <div class="row"><span class="n">§4</span><span class="t">Matrix times vector: three views of one idea</span></div>
+    <div class="row"><span class="n">§5</span><span class="t">Matrix times matrix</span></div>
+    <div class="row"><span class="n">§6</span><span class="t">Transpose, elementwise products, broadcasting</span></div>
+    <div class="row"><span class="n">§7</span><span class="t">The rules of the algebra (and the one that fails)</span></div>
+    <div class="row"><span class="n">§8</span><span class="t">Worked example: a neural network layer, by hand</span></div>
+    <div class="tocmv">C · Solving</div>
+    <div class="row"><span class="n">§9</span><span class="t">Systems of equations as Ax = b</span></div>
+    <div class="row"><span class="n">§10</span><span class="t">Identity and inverse</span></div>
+    <div class="row"><span class="n">§11</span><span class="t">Span, linear independence, rank</span></div>
+    <div class="row"><span class="n">§12</span><span class="t">When does a solution exist? The complete answer</span></div>
+    <div class="row"><span class="n">§13</span><span class="t">Why nobody actually inverts matrices</span></div>
+    <div class="tocmv">D · Measuring</div>
+    <div class="row"><span class="n">§14</span><span class="t">Norms</span></div>
+    <div class="row"><span class="n">§15</span><span class="t">Norms in practice: regularization and clipping</span></div>
+    <div class="tocmv">E · Special matrices</div>
+    <div class="row"><span class="n">§16</span><span class="t">Diagonal, symmetric, orthogonal</span></div>
+    <div class="tocmv">F · Decompositions</div>
+    <div class="row"><span class="n">§17</span><span class="t">Eigendecomposition</span></div>
+    <div class="row"><span class="n">§18</span><span class="t">Quadratic forms and positive definiteness</span></div>
+    <div class="row"><span class="n">§19</span><span class="t">Singular value decomposition</span></div>
+    <div class="row"><span class="n">§20</span><span class="t">The Moore–Penrose pseudoinverse</span></div>
+    <div class="row"><span class="n">§21</span><span class="t">Trace</span></div>
+    <div class="row"><span class="n">§22</span><span class="t">Determinant</span></div>
+    <div class="tocmv">G · The payoff</div>
+    <div class="row"><span class="n">§23</span><span class="t">Principal components analysis, derived from nothing</span></div>
+    <div class="tocmv">Practice · Drills</div>
+    <div class="tocmv">Build · The project</div>
+    <div class="tocmv">Assess · Checkpoint</div>
+    <div class="tocmv">Reference · Appendices</div>
+    <div class="part">Part II: Probability &amp; Information</div>
+    <div class="tocmv">Before you start</div>
+    <div class="row"><span class="n">§0.1</span><span class="t">The good news, and the catch</span></div>
+    <div class="row"><span class="n">§0.2</span><span class="t">What you need before page one</span></div>
+    <div class="row"><span class="n">§0.3</span><span class="t">The markers</span></div>
+    <div class="row"><span class="n">§0.4</span><span class="t">The habit for this chapter</span></div>
+    <div class="row"><span class="n">§0.5</span><span class="t">Map of the chapter</span></div>
+    <div class="tocmv">A · Why probability</div>
+    <div class="row"><span class="n">§1</span><span class="t">Three kinds of uncertainty</span></div>
+    <div class="row"><span class="n">§2</span><span class="t">Two schools, and why the argument matters</span></div>
+    <div class="row"><span class="n">§3</span><span class="t">Random variables</span></div>
+    <div class="tocmv">B · Distributions</div>
+    <div class="row"><span class="n">§4</span><span class="t">Discrete distributions and the PMF</span></div>
+    <div class="row"><span class="n">§5</span><span class="t">Continuous distributions and the PDF</span></div>
+    <div class="row"><span class="n">§6</span><span class="t">Joint and marginal</span></div>
+    <div class="row"><span class="n">§7</span><span class="t">Conditional probability</span></div>
+    <div class="row"><span class="n">§8</span><span class="t">The chain rule</span></div>
+    <div class="row"><span class="n">§9</span><span class="t">Independence and conditional independence</span></div>
+    <div class="tocmv">C · Summarising</div>
+    <div class="row"><span class="n">§10</span><span class="t">Expectation</span></div>
+    <div class="row"><span class="n">§11</span><span class="t">Variance and standard deviation</span></div>
+    <div class="row"><span class="n">§12</span><span class="t">Covariance, correlation, and a myth</span></div>
+    <div class="row"><span class="n">§13</span><span class="t">The covariance matrix</span></div>
+    <div class="tocmv">D · The distribution zoo</div>
+    <div class="row"><span class="n">§14</span><span class="t">Bernoulli and categorical</span></div>
+    <div class="row"><span class="n">§15</span><span class="t">The Gaussian, and why it is everywhere</span></div>
+    <div class="row"><span class="n">§16</span><span class="t">The multivariate Gaussian</span></div>
+    <div class="row"><span class="n">§17</span><span class="t">Exponential, Laplace, Dirac, empirical</span></div>
+    <div class="row"><span class="n">§18</span><span class="t">Mixtures and latent variables</span></div>
+    <div class="tocmv">E · Functions that keep appearing</div>
+    <div class="row"><span class="n">§19</span><span class="t">Sigmoid and softplus</span></div>
+    <div class="row"><span class="n">§20</span><span class="t">Softmax</span></div>
+    <div class="tocmv">F · Bayes</div>
+    <div class="row"><span class="n">§21</span><span class="t">Bayes' rule</span></div>
+    <div class="row"><span class="n">§22</span><span class="t">The base rate trap</span></div>
+    <div class="tocmv">G · Information theory</div>
+    <div class="row"><span class="n">§23</span><span class="t">Self-information and entropy</span></div>
+    <div class="row"><span class="n">§24</span><span class="t">KL divergence</span></div>
+    <div class="row"><span class="n">§25</span><span class="t">Cross-entropy: your loss function</span></div>
+    <div class="row"><span class="n">§26</span><span class="t">Maximum likelihood, and where the loss came from</span></div>
+    <div class="tocmv">Practice · Drills</div>
+    <div class="tocmv">Build · The project</div>
+    <div class="tocmv">Assess · Checkpoint</div>
+    <div class="tocmv">Reference · Appendices</div>
+    <div class="part">Part III: Numerical Computation</div>
+    <div class="tocmv">A · Precision and its failures</div>
+    <div class="row"><span class="n">§1</span><span class="t">What a floating point number actually is</span></div>
+    <div class="row"><span class="n">§2</span><span class="t">Overflow, underflow, and the operations that break</span></div>
+    <div class="row"><span class="n">§3</span><span class="t">Catastrophic cancellation</span></div>
+    <div class="row"><span class="n">§4</span><span class="t">Writing code that survives</span></div>
+    <div class="tocmv">B · Conditioning</div>
+    <div class="row"><span class="n">§5</span><span class="t">The condition number</span></div>
+    <div class="row"><span class="n">§6</span><span class="t">Conditioning versus stability</span></div>
+    <div class="row"><span class="n">§7</span><span class="t">Where conditioning bites in learning</span></div>
+    <div class="tocmv">C · Optimisation and curvature</div>
+    <div class="row"><span class="n">§8</span><span class="t">The optimisation problem</span></div>
+    <div class="row"><span class="n">§9</span><span class="t">Gradient descent: step size and convergence</span></div>
+    <div class="row"><span class="n">§10</span><span class="t">Curvature and the Hessian</span></div>
+    <div class="row"><span class="n">§11</span><span class="t">Newton's method</span></div>
+    <div class="row"><span class="n">§12</span><span class="t">Why nobody uses Newton at scale</span></div>
+    <div class="row"><span class="n">§13</span><span class="t">Line search</span></div>
+    <div class="tocmv">D · Stochastic methods</div>
+    <div class="row"><span class="n">§14</span><span class="t">Stochastic gradient descent</span></div>
+    <div class="row"><span class="n">§15</span><span class="t">Momentum</span></div>
+    <div class="row"><span class="n">§16</span><span class="t">Adaptive methods</span></div>
+    <div class="row"><span class="n">§17</span><span class="t">Learning rate schedules</span></div>
+    <div class="row"><span class="n">§18</span><span class="t">Saddle points and high dimensions</span></div>
+    <div class="tocmv">E · Constrained optimisation</div>
+    <div class="row"><span class="n">§19</span><span class="t">Lagrange multipliers and KKT</span></div>
+    <div class="tocmv">F · The payoff</div>
+    <div class="row"><span class="n">§20</span><span class="t">Least squares, three ways</span></div>
+    <div class="tocmv">Practice · Drills</div>
+    <div class="tocmv">Build · The project</div>
+    <div class="tocmv">Assess · Checkpoint</div>
+    <div class="part">Part IV: The Framework</div>
+    <div class="tocsub">PyTorch, from the ground up</div>
+    <div class="tocmv">Before you start</div>
+    <div class="row"><span class="n">§0.1</span><span class="t">Why PyTorch</span></div>
+    <div class="tocmv">A · One program, and the object it moves</div>
+    <div class="row"><span class="n">§1</span><span class="t">A complete program, line by line</span></div>
+    <div class="row"><span class="n">§2</span><span class="t">The tensor</span></div>
+    <div class="row"><span class="n">§3</span><span class="t">Getting numbers in and out</span></div>
+    <div class="tocmv">B · The graph</div>
+    <div class="row"><span class="n">§4</span><span class="t">requires_grad, and what it spreads to</span></div>
+    <div class="row"><span class="n">§5</span><span class="t">The graph, seen</span></div>
+    <div class="row"><span class="n">§6</span><span class="t">What backward() does, and what it destroys</span></div>
+    <div class="row"><span class="n">§7</span><span class="t">Stopping the gradient</span></div>
+    <div class="tocmv">C · The model</div>
+    <div class="row"><span class="n">§8</span><span class="t">nn.Module, and what parameters() is</span></div>
+    <div class="row"><span class="n">§9</span><span class="t">Composing, and reading someone else's model</span></div>
+    <div class="row"><span class="n">§10</span><span class="t">Initialisation, which is not decoration</span></div>
+    <div class="tocmv">D · Data, batching, devices</div>
+    <div class="row"><span class="n">§11</span><span class="t">Dataset and DataLoader</span></div>
+    <div class="row"><span class="n">§12</span><span class="t">Devices</span></div>
+    <div class="tocmv">E · The loop</div>
+    <div class="row"><span class="n">§13</span><span class="t">Five statements, in order</span></div>
+    <div class="row"><span class="n">§14</span><span class="t">train() and eval()</span></div>
+    <div class="row"><span class="n">§15</span><span class="t">Saving, loading, resuming</span></div>
+    <div class="tocmv">F · When it breaks</div>
+    <div class="row"><span class="n">§16</span><span class="t">Error messages, decoded</span></div>
+    <div class="row"><span class="n">§17</span><span class="t">The debugging order</span></div>
+    <div class="tocmv">Practice · Drills</div>
+    <div class="tocmv">Build · The project</div>
+    <div class="tocmv">Assess · Checkpoint</div>
+    <div class="part">Part V: Statistics &amp; Estimation</div>
+    <div class="tocmv">A · Estimators</div>
+    <div class="row"><span class="n">§1</span><span class="t">What an estimator is</span></div>
+    <div class="row"><span class="n">§2</span><span class="t">Bias</span></div>
+    <div class="row"><span class="n">§3</span><span class="t">Variance and standard error</span></div>
+    <div class="row"><span class="n">§4</span><span class="t">Mean squared error, and the trade</span></div>
+    <div class="row"><span class="n">§5</span><span class="t">Consistency and efficiency</span></div>
+    <div class="tocmv">B · Sampling distributions</div>
+    <div class="row"><span class="n">§6</span><span class="t">The distribution of a statistic</span></div>
+    <div class="row"><span class="n">§7</span><span class="t">When is unknown</span></div>
+    <div class="tocmv">C · Intervals</div>
+    <div class="row"><span class="n">§8</span><span class="t">Confidence intervals</span></div>
+    <div class="row"><span class="n">§9</span><span class="t">What a confidence interval does not mean</span></div>
+    <div class="row"><span class="n">§10</span><span class="t">The bootstrap</span></div>
+    <div class="tocmv">D · Testing, and how it goes wrong</div>
+    <div class="row"><span class="n">§11</span><span class="t">Hypothesis testing</span></div>
+    <div class="row"><span class="n">§12</span><span class="t">What a p-value is not</span></div>
+    <div class="row"><span class="n">§13</span><span class="t">Power, and the studies that cannot see</span></div>
+    <div class="row"><span class="n">§14</span><span class="t">Multiple comparisons</span></div>
+    <div class="row"><span class="n">§15</span><span class="t">Test set reuse</span></div>
+    <div class="row"><span class="n">§16</span><span class="t">Comparing two models honestly</span></div>
+    <div class="tocmv">E · Bayesian estimation</div>
+    <div class="row"><span class="n">§17</span><span class="t">MAP and MLE</span></div>
+    <div class="row"><span class="n">§18</span><span class="t">Priors are regularization</span></div>
+    <div class="row"><span class="n">§19</span><span class="t">Keeping the whole posterior</span></div>
+    <div class="tocmv">F · The payoff</div>
+    <div class="row"><span class="n">§20</span><span class="t">The bias–variance decomposition</span></div>
+    <div class="tocmv">Practice · Drills</div>
+    <div class="tocmv">Build · The project</div>
+    <div class="tocmv">Assess · Checkpoint</div>
+    <div class="part">Part VI: Machine Learning Basics</div>
+    <div class="tocmv">A · What learning is</div>
+    <div class="row"><span class="n">§1</span><span class="t">Task, experience, performance</span></div>
+    <div class="row"><span class="n">§2</span><span class="t">Supervised, unsupervised, and the boundary between them</span></div>
+    <div class="row"><span class="n">§3</span><span class="t">The learning problem, stated</span></div>
+    <div class="tocmv">B · Generalisation</div>
+    <div class="row"><span class="n">§4</span><span class="t">Training error and generalisation error</span></div>
+    <div class="row"><span class="n">§5</span><span class="t">The assumption everything rests on</span></div>
+    <div class="row"><span class="n">§6</span><span class="t">Capacity</span></div>
+    <div class="row"><span class="n">§7</span><span class="t">No free lunch</span></div>
+    <div class="row"><span class="n">§8</span><span class="t">Regularization</span></div>
+    <div class="tocmv">C · Choosing a model</div>
+    <div class="row"><span class="n">§9</span><span class="t">Hyperparameters and the validation set</span></div>
+    <div class="row"><span class="n">§10</span><span class="t">Cross-validation</span></div>
+    <div class="row"><span class="n">§11</span><span class="t">Reporting a result you can defend</span></div>
+    <div class="tocmv">D · Supervised algorithms</div>
+    <div class="row"><span class="n">§12</span><span class="t">Linear regression</span></div>
+    <div class="row"><span class="n">§13</span><span class="t">Logistic regression</span></div>
+    <div class="row"><span class="n">§14</span><span class="t">Support vector machines</span></div>
+    <div class="row"><span class="n">§15</span><span class="t">Kernels</span></div>
+    <div class="row"><span class="n">§16</span><span class="t">Nearest neighbours and decision trees</span></div>
+    <div class="tocmv">E · Unsupervised algorithms</div>
+    <div class="row"><span class="n">§17</span><span class="t">PCA, as learning</span></div>
+    <div class="row"><span class="n">§18</span><span class="t">k-means clustering</span></div>
+    <div class="tocmv">F · Making it work at scale</div>
+    <div class="row"><span class="n">§19</span><span class="t">Stochastic gradient descent, applied</span></div>
+    <div class="row"><span class="n">§20</span><span class="t">Building a learning algorithm</span></div>
+    <div class="tocmv">G · Why any of this needed deep learning</div>
+    <div class="row"><span class="n">§21</span><span class="t">The curse of dimensionality</span></div>
+    <div class="row"><span class="n">§22</span><span class="t">Local constancy</span></div>
+    <div class="row"><span class="n">§23</span><span class="t">The manifold hypothesis</span></div>
+    <div class="tocmv">Practice · Drills</div>
+    <div class="tocmv">Build · The project</div>
+    <div class="tocmv">Assess · Checkpoint</div>
+    <div class="part">Part VII: Neural Networks</div>
+    <div class="tocmv">A · Why depth</div>
+    <div class="row"><span class="n">§1</span><span class="t">The problem that stopped the field</span></div>
+    <div class="row"><span class="n">§2</span><span class="t">What a hidden layer actually does</span></div>
+    <div class="row"><span class="n">§3</span><span class="t">Universal approximation</span></div>
+    <div class="row"><span class="n">§4</span><span class="t">Why depth rather than width</span></div>
+    <div class="tocmv">B · Anatomy of a network</div>
+    <div class="row"><span class="n">§5</span><span class="t">The feedforward network</span></div>
+    <div class="row"><span class="n">§6</span><span class="t">Output units: match the distribution</span></div>
+    <div class="row"><span class="n">§7</span><span class="t">Hidden units</span></div>
+    <div class="row"><span class="n">§8</span><span class="t">Architecture</span></div>
+    <div class="tocmv">C · The objective, and where to start</div>
+    <div class="row"><span class="n">§9</span><span class="t">The cost function is a log-likelihood</span></div>
+    <div class="row"><span class="n">§10</span><span class="t">Why cross-entropy and not squared error</span></div>
+    <div class="row"><span class="n">§11</span><span class="t">Initialisation</span></div>
+    <div class="tocmv">D · Backpropagation</div>
+    <div class="row"><span class="n">§12</span><span class="t">Computational graphs</span></div>
+    <div class="row"><span class="n">§13</span><span class="t">Forward mode and reverse mode</span></div>
+    <div class="row"><span class="n">§14</span><span class="t">Backpropagation, derived</span></div>
+    <div class="row"><span class="n">§15</span><span class="t">A whole network, by hand</span></div>
+    <div class="row"><span class="n">§16</span><span class="t">What a framework actually does</span></div>
+    <div class="row"><span class="n">§17</span><span class="t">The cost of remembering</span></div>
+    <div class="tocmv">E · What goes wrong</div>
+    <div class="row"><span class="n">§18</span><span class="t">Vanishing and exploding gradients</span></div>
+    <div class="row"><span class="n">§19</span><span class="t">Dead units and other pathologies</span></div>
+    <div class="row"><span class="n">§20</span><span class="t">Diagnosing a training run</span></div>
+    <div class="tocmv">F · The payoff</div>
+    <div class="row"><span class="n">§21</span><span class="t">The autograd engine</span></div>
+    <div class="tocmv">Practice · Drills</div>
+    <div class="tocmv">Build · The project</div>
+    <div class="tocmv">Assess · Checkpoint</div>
+    <div class="part">Part VIII: Regularization</div>
+    <div class="tocsub">buying generalisation with bias</div>
+    <div class="tocmv">A · What regularization is</div>
+    <div class="row"><span class="n">§1</span><span class="t">The definition, and why it is broader than a penalty</span></div>
+    <div class="row"><span class="n">§2</span><span class="t">The five views, reconciled</span></div>
+    <div class="row"><span class="n">§3</span><span class="t">Where the preference comes from</span></div>
+    <div class="tocmv">B · Penalties</div>
+    <div class="row"><span class="n">§4</span><span class="t">What L^2 actually does to the solution</span></div>
+    <div class="row"><span class="n">§5</span><span class="t">L^1, and where sparsity comes from</span></div>
+    <div class="row"><span class="n">§6</span><span class="t">Sparse representations</span></div>
+    <div class="row"><span class="n">§7</span><span class="t">A penalty is a constraint</span></div>
+    <div class="row"><span class="n">§8</span><span class="t">Under-constrained problems</span></div>
+    <div class="tocmv">C · More data, and pretending you have it</div>
+    <div class="row"><span class="n">§9</span><span class="t">The best regulariser is more data</span></div>
+    <div class="row"><span class="n">§10</span><span class="t">Dataset augmentation</span></div>
+    <div class="row"><span class="n">§11</span><span class="t">Encoding an invariance without generating data</span></div>
+    <div class="row"><span class="n">§12</span><span class="t">Noise, and why it is a penalty</span></div>
+    <div class="tocmv">D · Stopping, and sharing</div>
+    <div class="row"><span class="n">§13</span><span class="t">Early stopping</span></div>
+    <div class="row"><span class="n">§14</span><span class="t">Early stopping is weight decay</span></div>
+    <div class="row"><span class="n">§15</span><span class="t">Parameter tying and sharing</span></div>
+    <div class="row"><span class="n">§16</span><span class="t">Multi-task learning</span></div>
+    <div class="row"><span class="n">§17</span><span class="t">Semi-supervised learning</span></div>
+    <div class="tocmv">E · Ensembles, dropout, adversaries</div>
+    <div class="row"><span class="n">§18</span><span class="t">Bagging, and why averaging works</span></div>
+    <div class="row"><span class="n">§19</span><span class="t">Dropout</span></div>
+    <div class="row"><span class="n">§20</span><span class="t">Adversarial training</span></div>
+    <div class="tocmv">F · The payoff</div>
+    <div class="row"><span class="n">§21</span><span class="t">One idea, six costumes</span></div>
+    <div class="row"><span class="n">§22</span><span class="t">Choosing, in practice</span></div>
+    <div class="row"><span class="n">§23</span><span class="t">What regularization cannot do</span></div>
+    <div class="tocmv">Practice · Drills</div>
+    <div class="tocmv">Build · The project</div>
+    <div class="tocmv">Assess · Checkpoint</div>
+    <div class="part">Part IX: Optimization</div>
+    <div class="tocsub">why training is hard, and what to do about it</div>
+    <div class="tocmv">A · What we are actually optimising</div>
+    <div class="row"><span class="n">§1</span><span class="t">Learning is not optimisation</span></div>
+    <div class="row"><span class="n">§2</span><span class="t">Empirical risk minimisation, and why almost nobody does it</span></div>
+    <div class="row"><span class="n">§3</span><span class="t">Surrogate losses, and the bonus nobody expected</span></div>
+    <div class="row"><span class="n">§4</span><span class="t">Why training stops, and why that is not convergence</span></div>
+    <div class="row"><span class="n">§5</span><span class="t">Minibatches: what the batch size actually buys</span></div>
+    <div class="tocmv">B · Everything that goes wrong</div>
+    <div class="row"><span class="n">§6</span><span class="t">Ill-conditioning, and a diagnostic you can actually run</span></div>
+    <div class="row"><span class="n">§7</span><span class="t">Local minima, and why most of them do not matter</span></div>
+    <div class="row"><span class="n">§8</span><span class="t">Saddles, plateaus, and flat regions</span></div>
+    <div class="row"><span class="n">§9</span><span class="t">Cliffs, and what clipping is really for</span></div>
+    <div class="row"><span class="n">§10</span><span class="t">Repeated matrices: the sharper vanishing-gradient problem</span></div>
+    <div class="row"><span class="n">§11</span><span class="t">Inexact gradients</span></div>
+    <div class="row"><span class="n">§12</span><span class="t">Local versus global: the problem nobody has solved</span></div>
+    <div class="tocmv">C · The algorithms, completed</div>
+    <div class="row"><span class="n">§13</span><span class="t">SGD, with the schedule spelled out</span></div>
+    <div class="row"><span class="n">§14</span><span class="t">Momentum, and why the form is forced</span></div>
+    <div class="row"><span class="n">§15</span><span class="t">Nesterov momentum</span></div>
+    <div class="row"><span class="n">§16</span><span class="t">Initialisation: what the scale has to achieve</span></div>
+    <div class="row"><span class="n">§17</span><span class="t">Initialisation: biases, and a protocol that beats searching</span></div>
+    <div class="row"><span class="n">§18</span><span class="t">Adaptive methods: choosing, and the honest answer</span></div>
+    <div class="tocmv">D · Second order, properly</div>
+    <div class="row"><span class="n">§19</span><span class="t">Newton's method, damped</span></div>
+    <div class="row"><span class="n">§20</span><span class="t">Conjugate gradients</span></div>
+    <div class="row"><span class="n">§21</span><span class="t">BFGS and its limited-memory form</span></div>
+    <div class="tocmv">E · Reparametrisation and meta-algorithms</div>
+    <div class="row"><span class="n">§22</span><span class="t">The coordination problem</span></div>
+    <div class="row"><span class="n">§23</span><span class="t">Batch normalisation</span></div>
+    <div class="row"><span class="n">§24</span><span class="t">Coordinate descent</span></div>
+    <div class="row"><span class="n">§25</span><span class="t">Polyak averaging</span></div>
+    <div class="row"><span class="n">§26</span><span class="t">Pretraining, transfer, and hints</span></div>
+    <div class="row"><span class="n">§27</span><span class="t">Designing models to be optimisable</span></div>
+    <div class="row"><span class="n">§28</span><span class="t">Continuation methods and curriculum learning</span></div>
+    <div class="tocmv">F · The payoff</div>
+    <div class="row"><span class="n">§29</span><span class="t">A run that will not train: the ladder</span></div>
+    <div class="row"><span class="n">§30</span><span class="t">The theoretical limits, and what they are worth</span></div>
+    <div class="row"><span class="n">§31</span><span class="t">What optimisation cannot do</span></div>
+    <div class="tocmv">Practice · Drills</div>
+    <div class="tocmv">Build · The project</div>
+    <div class="tocmv">Assess · Checkpoint</div>
+    <div class="part">Part X: Convolutional Models</div>
+    <div class="tocsub">an assumption about space, priced exactly</div>
+    <div class="tocmv">A · The operation</div>
+    <div class="row"><span class="n">§1</span><span class="t">Why a dense layer is the wrong shape for an image</span></div>
+    <div class="row"><span class="n">§2</span><span class="t">Convolution</span></div>
+    <div class="row"><span class="n">§3</span><span class="t">Cross-correlation, and why everyone calls it convolution</span></div>
+    <div class="row"><span class="n">§4</span><span class="t">Convolution is a matrix multiplication</span></div>
+    <div class="row"><span class="n">§5</span><span class="t">Padding, stride, and the arithmetic of size</span></div>
+    <div class="row"><span class="n">§6</span><span class="t">Channels, and the shape bookkeeping</span></div>
+    <div class="tocmv">B · Why it works, measured</div>
+    <div class="row"><span class="n">§7</span><span class="t">Sparse interactions</span></div>
+    <div class="row"><span class="n">§8</span><span class="t">Parameter sharing</span></div>
+    <div class="row"><span class="n">§9</span><span class="t">Equivariance, precisely</span></div>
+    <div class="row"><span class="n">§10</span><span class="t">Receptive fields, and the gap you were not told about</span></div>
+    <div class="row"><span class="n">§11</span><span class="t">An infinitely strong prior</span></div>
+    <div class="tocmv">C · Pooling, and its decline</div>
+    <div class="row"><span class="n">§12</span><span class="t">Pooling</span></div>
+    <div class="row"><span class="n">§13</span><span class="t">Invariance against equivariance</span></div>
+    <div class="row"><span class="n">§14</span><span class="t">Learned invariance</span></div>
+    <div class="row"><span class="n">§15</span><span class="t">Why modern architectures dropped it</span></div>
+    <div class="tocmv">D · Backward, and fast</div>
+    <div class="row"><span class="n">§16</span><span class="t">The backward pass of a convolution is a convolution</span></div>
+    <div class="row"><span class="n">§17</span><span class="t">How it is actually computed</span></div>
+    <div class="row"><span class="n">§18</span><span class="t">Separable kernels, and the other algorithms</span></div>
+    <div class="row"><span class="n">§19</span><span class="t">Depthwise separable convolution</span></div>
+    <div class="tocmv">E · Architectures, and what each one fixed</div>
+    <div class="row"><span class="n">§20</span><span class="t">LeNet to AlexNet</span></div>
+    <div class="row"><span class="n">§21</span><span class="t">VGG, and the argument for small kernels</span></div>
+    <div class="row"><span class="n">§22</span><span class="t">Inception, and the cost of width</span></div>
+    <div class="row"><span class="n">§23</span><span class="t">ResNet</span></div>
+    <div class="row"><span class="n">§24</span><span class="t">Normalisation, and where it goes in an image</span></div>
+    <div class="row"><span class="n">§25</span><span class="t">DenseNet, and scaling three ways at once</span></div>
+    <div class="row"><span class="n">§26</span><span class="t">ConvNeXt, and the experiment that should have been done first</span></div>
+    <div class="tocmv">F · Beyond classification, and the limits</div>
+    <div class="row"><span class="n">§27</span><span class="t">Structured outputs, and the artefact you will recognise</span></div>
+    <div class="row"><span class="n">§28</span><span class="t">Detection, in one section</span></div>
+    <div class="row"><span class="n">§29</span><span class="t">Dilated convolution</span></div>
+    <div class="row"><span class="n">§30</span><span class="t">Data types, and one dimension</span></div>
+    <div class="row"><span class="n">§31</span><span class="t">The neuroscience, and what the analogy buys</span></div>
+    <div class="row"><span class="n">§32</span><span class="t">What convolution cannot do</span></div>
+    <div class="tocmv">Practice · Drills</div>
+    <div class="tocmv">Build · The project</div>
+    <div class="tocmv">Assess · Checkpoint</div>
+    <div class="part">Part XI: Sequence Models</div>
+    <div class="tocsub">sharing across time, and what it costs</div>
+    <div class="tocmv">A · The recurrence</div>
+    <div class="row"><span class="n">§1</span><span class="t">What a sequence needs that a fixed input does not</span></div>
+    <div class="row"><span class="n">§2</span><span class="t">Unfolding</span></div>
+    <div class="row"><span class="n">§3</span><span class="t">What sharing across time buys</span></div>
+    <div class="row"><span class="n">§4</span><span class="t">The recurrent network</span></div>
+    <div class="row"><span class="n">§5</span><span class="t">Three design patterns</span></div>
+    <div class="row"><span class="n">§6</span><span class="t">Backpropagation through time</span></div>
+    <div class="tocmv">B · What it is, probabilistically</div>
+    <div class="row"><span class="n">§7</span><span class="t">The RNN as a graphical model</span></div>
+    <div class="row"><span class="n">§8</span><span class="t">The assumption nobody states</span></div>
+    <div class="row"><span class="n">§9</span><span class="t">Teacher forcing</span></div>
+    <div class="row"><span class="n">§10</span><span class="t">Exposure bias, and how a sequence ends</span></div>
+    <div class="tocmv">C · Why it fails</div>
+    <div class="row"><span class="n">§11</span><span class="t">The same matrix, over and over</span></div>
+    <div class="row"><span class="n">§12</span><span class="t">The trade nobody mentions</span></div>
+    <div class="row"><span class="n">§13</span><span class="t">Cliffs</span></div>
+    <div class="row"><span class="n">§14</span><span class="t">The failure, measured, and what it is actually a failure of</span></div>
+    <div class="row"><span class="n">§15</span><span class="t">Why better optimisers were not the answer</span></div>
+    <div class="tocmv">D · What fixes it</div>
+    <div class="row"><span class="n">§16</span><span class="t">Skip connections through time</span></div>
+    <div class="row"><span class="n">§17</span><span class="t">Leaky units</span></div>
+    <div class="row"><span class="n">§18</span><span class="t">The LSTM</span></div>
+    <div class="row"><span class="n">§19</span><span class="t">What the gates actually do</span></div>
+    <div class="row"><span class="n">§20</span><span class="t">The forget-gate bias</span></div>
+    <div class="row"><span class="n">§21</span><span class="t">GRU, and the honest comparison</span></div>
+    <div class="tocmv">E · Architecture around the recurrence</div>
+    <div class="row"><span class="n">§22</span><span class="t">Bidirectional</span></div>
+    <div class="row"><span class="n">§23</span><span class="t">Depth</span></div>
+    <div class="row"><span class="n">§24</span><span class="t">Trees instead of chains</span></div>
+    <div class="row"><span class="n">§25</span><span class="t">Not training the recurrence at all</span></div>
+    <div class="row"><span class="n">§26</span><span class="t">Explicit memory</span></div>
+    <div class="tocmv">F · The bottleneck</div>
+    <div class="row"><span class="n">§27</span><span class="t">Encoder–decoder</span></div>
+    <div class="row"><span class="n">§28</span><span class="t">What this part could not do</span></div>
+        <div class="tocmv">G · What came after, and what came back</div>
+    <div class="row"><span class="n">§29</span><span class="t">Reading this movement in order</span></div>
+    <div class="row"><span class="n">§30</span><span class="t">The cost, counted properly</span></div>
+    <div class="row"><span class="n">§31</span><span class="t">Removing the softmax</span></div>
+    <div class="row"><span class="n">§32</span><span class="t">What that costs</span></div>
+    <div class="row"><span class="n">§33</span><span class="t">The parallel scan</span></div>
+    <div class="row"><span class="n">§34</span><span class="t">State space models</span></div>
+    <div class="row"><span class="n">§35</span><span class="t">What a fixed state cannot hold</span></div>
+    <div class="row"><span class="n">§36</span><span class="t">Selectivity</span></div>
+    <div class="row"><span class="n">§37</span><span class="t">What practice settled on</span></div>
+    <div class="row"><span class="n">§38</span><span class="t">What to carry forward</span></div>
+<div class="tocmv">Practice · Drills</div>
+    <div class="tocmv">Build · The project</div>
+    <div class="tocmv">Assess · Checkpoint</div>
+    <div class="part">Part XII: Attention and Transformers</div>
+    <div class="tocsub">every position, at once, and what it costs</div>
+    <div class="tocmv">A · From the bottleneck to attention</div>
+    <div class="row"><span class="n">§1</span><span class="t">The problem, restated</span></div>
+    <div class="row"><span class="n">§2</span><span class="t">Attention, derived</span></div>
+    <div class="row"><span class="n">§3</span><span class="t">Queries, keys and values: why three</span></div>
+    <div class="row"><span class="n">§4</span><span class="t">Scaled dot-product, and where the d comes from</span></div>
+    <div class="row"><span class="n">§5</span><span class="t">Two ways to read it</span></div>
+    <div class="row"><span class="n">§6</span><span class="t">Cross-attention, and what it fixed</span></div>
+    <div class="tocmv">B · Self-attention</div>
+    <div class="row"><span class="n">§7</span><span class="t">The same operation, one sequence</span></div>
+    <div class="row"><span class="n">§8</span><span class="t">Path length</span></div>
+    <div class="row"><span class="n">§9</span><span class="t">Permutation equivariance, and why it is a defect here</span></div>
+    <div class="row"><span class="n">§10</span><span class="t">Putting the order back</span></div>
+    <div class="row"><span class="n">§11</span><span class="t">RoPE</span></div>
+    <div class="row"><span class="n">§12</span><span class="t">Multiple heads</span></div>
+    <div class="row"><span class="n">§13</span><span class="t">What it costs</span></div>
+    <div class="tocmv">C · The block and the stack</div>
+    <div class="row"><span class="n">§14</span><span class="t">The block</span></div>
+    <div class="row"><span class="n">§15</span><span class="t">Where the model actually is</span></div>
+    <div class="row"><span class="n">§16</span><span class="t">The residual stream</span></div>
+    <div class="row"><span class="n">§17</span><span class="t">Where the normalisation goes</span></div>
+    <div class="row"><span class="n">§18</span><span class="t">LayerNorm and RMSNorm</span></div>
+    <div class="row"><span class="n">§19</span><span class="t">The activation function</span></div>
+    <div class="row"><span class="n">§20</span><span class="t">Encoder, decoder, and why one of them won</span></div>
+    <div class="tocmv">D · Making it train</div>
+    <div class="row"><span class="n">§21</span><span class="t">Causal masking, and the thing Part XI could not have</span></div>
+    <div class="row"><span class="n">§22</span><span class="t">Initialisation, and what depth does to it</span></div>
+    <div class="row"><span class="n">§23</span><span class="t">The optimiser, and what transfers</span></div>
+    <div class="row"><span class="n">§24</span><span class="t">Regularization, and how little of it there is</span></div>
+    <div class="row"><span class="n">§25</span><span class="t">What breaks</span></div>
+    <div class="row"><span class="n">§26</span><span class="t">Rank collapse, and what the skip connections are really for</span></div>
+    <div class="tocmv">E · Making it fast</div>
+    <div class="row"><span class="n">§27</span><span class="t">Two different problems</span></div>
+    <div class="row"><span class="n">§28</span><span class="t">The KV cache</span></div>
+    <div class="row"><span class="n">§29</span><span class="t">FlashAttention</span></div>
+    <div class="row"><span class="n">§30</span><span class="t">Multi-query and grouped-query attention</span></div>
+    <div class="row"><span class="n">§31</span><span class="t">Sparse and local attention</span></div>
+    <div class="row"><span class="n">§32</span><span class="t">Linear attention</span></div>
+    <div class="row"><span class="n">§33</span><span class="t">Mixture of experts</span></div>
+    <div class="row"><span class="n">§34</span><span class="t">Quantization</span></div>
+    <div class="tocmv">F · What attention is, and is not</div>
+    <div class="row"><span class="n">§35</span><span class="t">Vision transformers, and Part X settled</span></div>
+    <div class="row"><span class="n">§36</span><span class="t">What attention maps do not explain</span></div>
+    <div class="row"><span class="n">§37</span><span class="t">Induction heads</span></div>
+    <div class="row"><span class="n">§38</span><span class="t">In-context learning</span></div>
+    <div class="row"><span class="n">§39</span><span class="t">What actually limits context</span></div>
+    <div class="row"><span class="n">§40</span><span class="t">The convergence</span></div>
+    <div class="tocmv">Practice · Drills</div>
+    <div class="tocmv">Build · The project</div>
+    <div class="tocmv">Assess · Checkpoint</div>
+    <div class="part">Part XIII: Data</div>
+    <div class="tocsub">the input nobody audits</div>
+    <div class="tocmv">A · What a dataset is</div>
+    <div class="row"><span class="n">§1</span><span class="t">The assumption everything so far has rested on</span></div>
+    <div class="row"><span class="n">§2</span><span class="t">Population, sample, and the frame</span></div>
+    <div class="row"><span class="n">§3</span><span class="t">Coverage, and how you would know</span></div>
+    <div class="row"><span class="n">§4</span><span class="t">Labels are measurements</span></div>
+    <div class="row"><span class="n">§5</span><span class="t">Agreement, and what it does not tell you</span></div>
+    <div class="row"><span class="n">§6</span><span class="t">The label defines the task</span></div>
+    <div class="tocmv">B · Getting it wrong</div>
+    <div class="row"><span class="n">§7</span><span class="t">Selection bias</span></div>
+    <div class="row"><span class="n">§8</span><span class="t">Shortcuts</span></div>
+    <div class="row"><span class="n">§9</span><span class="t">Label noise, and how much a model absorbs</span></div>
+    <div class="row"><span class="n">§10</span><span class="t">Imbalance</span></div>
+    <div class="row"><span class="n">§11</span><span class="t">Leakage</span></div>
+    <div class="row"><span class="n">§12</span><span class="t">Duplicates</span></div>
+    <div class="row"><span class="n">§13</span><span class="t">Contamination</span></div>
+    <div class="tocmv">C · Measuring it</div>
+    <div class="row"><span class="n">§14</span><span class="t">Quality has to be operationalised</span></div>
+    <div class="row"><span class="n">§15</span><span class="t">Finding near-duplicates at scale</span></div>
+    <div class="row"><span class="n">§16</span><span class="t">Detecting contamination</span></div>
+    <div class="row"><span class="n">§17</span><span class="t">Filtering</span></div>
+    <div class="row"><span class="n">§18</span><span class="t">Diversity</span></div>
+    <div class="row"><span class="n">§19</span><span class="t">Writing it down</span></div>
+    <div class="tocmv">D · Scale, and what it changes</div>
+    <div class="row"><span class="n">§20</span><span class="t">How much data</span></div>
+    <div class="row"><span class="n">§21</span><span class="t">What deduplication does to training</span></div>
+    <div class="row"><span class="n">§22</span><span class="t">Quality against quantity</span></div>
+    <div class="row"><span class="n">§23</span><span class="t">Repeating data</span></div>
+    <div class="row"><span class="n">§24</span><span class="t">Ordering</span></div>
+    <div class="row"><span class="n">§25</span><span class="t">Splitting, when the data is not i.i.d.</span></div>
+    <div class="tocmv">E · Making data</div>
+    <div class="row"><span class="n">§26</span><span class="t">Augmentation, revisited</span></div>
+    <div class="row"><span class="n">§27</span><span class="t">Synthetic data</span></div>
+    <div class="row"><span class="n">§28</span><span class="t">Model collapse</span></div>
+    <div class="row"><span class="n">§29</span><span class="t">Distillation</span></div>
+    <div class="row"><span class="n">§30</span><span class="t">Active learning</span></div>
+    <div class="row"><span class="n">§31</span><span class="t">Annotation as a system</span></div>
+    <div class="tocmv">F · The parts that are not technical</div>
+    <div class="row"><span class="n">§32</span><span class="t">Provenance, licence and consent</span></div>
+    <div class="row"><span class="n">§33</span><span class="t">Memorisation</span></div>
+    <div class="row"><span class="n">§34</span><span class="t">What a dataset commits you to</span></div>
+    <div class="tocmv">Practice · Drills</div>
+    <div class="tocmv">Build · The project</div>
+    <div class="tocmv">Assess · Checkpoint</div>
+    <div class="part">Part XIV: Practice and Diagnosis</div>
+    <div class="tocsub">deciding what to do next</div>
+    <div class="tocmv">A · Before you train</div>
+    <div class="row"><span class="n">§1</span><span class="t">The loop</span></div>
+    <div class="row"><span class="n">§2</span><span class="t">The metric, and the number that would be good enough</span></div>
+    <div class="row"><span class="n">§3</span><span class="t">Precision, recall, and where the threshold goes</span></div>
+    <div class="row"><span class="n">§4</span><span class="t">Coverage: the option to refuse</span></div>
+    <div class="row"><span class="n">§5</span><span class="t">Calibration</span></div>
+    <div class="row"><span class="n">§6</span><span class="t">The baseline</span></div>
+    <div class="tocmv">B · Diagnosis</div>
+    <div class="row"><span class="n">§7</span><span class="t">Why this is hard</span></div>
+    <div class="row"><span class="n">§8</span><span class="t">Fit a tiny dataset</span></div>
+    <div class="row"><span class="n">§9</span><span class="t">Gradient checking</span></div>
+    <div class="row"><span class="n">§10</span><span class="t">Reading train and test error</span></div>
+    <div class="row"><span class="n">§11</span><span class="t">Look at the worst mistakes</span></div>
+    <div class="row"><span class="n">§12</span><span class="t">Histograms, and the one-percent rule</span></div>
+    <div class="tocmv">C · Deciding what to do next</div>
+    <div class="row"><span class="n">§13</span><span class="t">The decision procedure</span></div>
+    <div class="row"><span class="n">§14</span><span class="t">Learning curves, and how far they extrapolate</span></div>
+    <div class="row"><span class="n">§15</span><span class="t">What each hyperparameter does</span></div>
+    <div class="row"><span class="n">§16</span><span class="t">Grid, random, and why random wins</span></div>
+    <div class="row"><span class="n">§17</span><span class="t">Spending the budget where the evidence is</span></div>
+    <div class="row"><span class="n">§18</span><span class="t">Model-based search, honestly</span></div>
+    <div class="tocmv">D · Measuring honestly</div>
+    <div class="row"><span class="n">§19</span><span class="t">Seed variance</span></div>
+    <div class="row"><span class="n">§20</span><span class="t">The winner of a search is biased upward</span></div>
+    <div class="row"><span class="n">§21</span><span class="t">Ablations that isolate</span></div>
+    <div class="row"><span class="n">§22</span><span class="t">What a benchmark measures now</span></div>
+    <div class="row"><span class="n">§23</span><span class="t">Evaluating output with no right answer</span></div>
+    <div class="row"><span class="n">§24</span><span class="t">Model-as-judge</span></div>
+    <div class="row"><span class="n">§25</span><span class="t">What a leaderboard is</span></div>
+    <div class="tocmv">E · After deployment</div>
+    <div class="row"><span class="n">§26</span><span class="t">The distribution moves</span></div>
+    <div class="row"><span class="n">§27</span><span class="t">Monitoring when you have no labels</span></div>
+    <div class="row"><span class="n">§28</span><span class="t">Feedback loops</span></div>
+    <div class="row"><span class="n">§29</span><span class="t">The long tail</span></div>
+    <div class="row"><span class="n">§30</span><span class="t">Shipping so you can unship</span></div>
+    <div class="row"><span class="n">§31</span><span class="t">What accumulates</span></div>
+    <div class="tocmv">F · The discipline</div>
+    <div class="row"><span class="n">§32</span><span class="t">A case, end to end</span></div>
+    <div class="row"><span class="n">§33</span><span class="t">What the metric cannot tell you</span></div>
+    <div class="row"><span class="n">§34</span><span class="t">The ladder</span></div>
+    <div class="row"><span class="n">§35</span><span class="t">When nothing works</span></div>
+    <div class="row"><span class="n">§36</span><span class="t">The habits</span></div>
+    <div class="tocmv">Practice · Drills</div>
+    <div class="tocmv">Build · The project</div>
+    <div class="tocmv">Assess · Checkpoint</div>
+    <div class="part">Part XV: Representation Learning</div>
+    <div class="tocsub">what the middle of a network holds</div>
+    <div class="tocmv">A · What a representation is</div>
+    <div class="row"><span class="n">§1</span><span class="t">The question</span></div>
+    <div class="row"><span class="n">§2</span><span class="t">Every supervised network is already doing this</span></div>
+    <div class="row"><span class="n">§3</span><span class="t">Three properties, and the fact that they conflict</span></div>
+    <div class="row"><span class="n">§4</span><span class="t">Distributed representations, and the counting argument</span></div>
+    <div class="row"><span class="n">§5</span><span class="t">The manifold assumption</span></div>
+    <div class="row"><span class="n">§6</span><span class="t">Why local methods are not enough</span></div>
+    <div class="tocmv">B · Compression</div>
+    <div class="row"><span class="n">§7</span><span class="t">The encoder–decoder frame</span></div>
+    <div class="row"><span class="n">§8</span><span class="t">Undercomplete, and its exact relationship to PCA</span></div>
+    <div class="row"><span class="n">§9</span><span class="t">Why capacity alone defeats the whole scheme</span></div>
+    <div class="row"><span class="n">§10</span><span class="t">Sparse autoencoders</span></div>
+    <div class="row"><span class="n">§11</span><span class="t">Denoising autoencoders</span></div>
+    <div class="row"><span class="n">§12</span><span class="t">What denoising actually learns</span></div>
+    <div class="row"><span class="n">§13</span><span class="t">Contractive autoencoders</span></div>
+    <div class="row"><span class="n">§14</span><span class="t">The two forces</span></div>
+    <div class="tocmv">C · Self-supervision</div>
+    <div class="row"><span class="n">§15</span><span class="t">The idea, and its first failure</span></div>
+    <div class="row"><span class="n">§16</span><span class="t">Pretext tasks</span></div>
+    <div class="row"><span class="n">§17</span><span class="t">Contrastive learning</span></div>
+    <div class="row"><span class="n">§18</span><span class="t">What the negatives are for</span></div>
+    <div class="row"><span class="n">§19</span><span class="t">The augmentation is the specification</span></div>
+    <div class="row"><span class="n">§20</span><span class="t">Collapse, measured</span></div>
+    <div class="row"><span class="n">§21</span><span class="t">Without negatives</span></div>
+    <div class="row"><span class="n">§22</span><span class="t">Masked modelling</span></div>
+    <div class="row"><span class="n">§23</span><span class="t">What self-supervision buys</span></div>
+    <div class="tocmv">D · The geometry of embeddings</div>
+    <div class="row"><span class="n">§24</span><span class="t">Similarity, and the three measures</span></div>
+    <div class="row"><span class="n">§25</span><span class="t">Anisotropy</span></div>
+    <div class="row"><span class="n">§26</span><span class="t">Hubness</span></div>
+    <div class="row"><span class="n">§27</span><span class="t">The linear representation hypothesis</span></div>
+    <div class="row"><span class="n">§28</span><span class="t">Neighbour embeddings, and what they destroy</span></div>
+    <div class="row"><span class="n">§29</span><span class="t">Retrieval</span></div>
+    <div class="row"><span class="n">§30</span><span class="t">What movement D establishes</span></div>
+    <div class="tocmv">E · Reading a representation</div>
+    <div class="row"><span class="n">§31</span><span class="t">Probing</span></div>
+    <div class="row"><span class="n">§32</span><span class="t">What a probe establishes</span></div>
+    <div class="row"><span class="n">§33</span><span class="t">Superposition</span></div>
+    <div class="row"><span class="n">§34</span><span class="t">Sparse autoencoders, for interpretability</span></div>
+    <div class="row"><span class="n">§35</span><span class="t">What a learned feature is, and is not</span></div>
+    <div class="row"><span class="n">§36</span><span class="t">Multimodal alignment</span></div>
+    <div class="tocmv">F · What transfers</div>
+    <div class="row"><span class="n">§37</span><span class="t">Fine-tuning against linear probing</span></div>
+    <div class="row"><span class="n">§38</span><span class="t">Zero-shot</span></div>
+    <div class="row"><span class="n">§39</span><span class="t">Disentanglement, and what a decade established</span></div>
+    <div class="row"><span class="n">§40</span><span class="t">Does scale improve representations</span></div>
+    <div class="row"><span class="n">§41</span><span class="t">The priors, revisited</span></div>
+    <div class="row"><span class="n">§42</span><span class="t">What to carry forward</span></div>
+    <div class="tocmv">Practice · Drills</div>
+    <div class="tocmv">Build · The project</div>
+    <div class="tocmv">Assess · Checkpoint</div>
+    <div class="part">Part XVI: Generative Models</div>
+    <div class="tocsub">learning a distribution, not a function</div>
+    <div class="tocmv">A · What generating means</div>
+    <div class="row"><span class="n">§1</span><span class="t">A different object</span></div>
+    <div class="row"><span class="n">§2</span><span class="t">The normalising constant</span></div>
+    <div class="row"><span class="n">§3</span><span class="t">Energy-based models</span></div>
+    <div class="row"><span class="n">§4</span><span class="t">Which direction of KL</span></div>
+    <div class="row"><span class="n">§5</span><span class="t">The taxonomy</span></div>
+    <div class="row"><span class="n">§6</span><span class="t">Ancestral sampling</span></div>
+    <div class="row"><span class="n">§7</span><span class="t">MCMC, and why it disappointed</span></div>
+    <div class="tocmv">B · Autoregressive models</div>
+    <div class="row"><span class="n">§8</span><span class="t">The chain rule as a model</span></div>
+    <div class="row"><span class="n">§9</span><span class="t">Ordering</span></div>
+    <div class="row"><span class="n">§10</span><span class="t">Masking, and training in one pass</span></div>
+    <div class="row"><span class="n">§11</span><span class="t">Sampling, and the asymmetry that does not go away</span></div>
+    <div class="row"><span class="n">§12</span><span class="t">Exposure bias</span></div>
+    <div class="row"><span class="n">§13</span><span class="t">What this family is good at</span></div>
+    <div class="tocmv">C · Latent variables and the VAE</div>
+    <div class="row"><span class="n">§14</span><span class="t">The latent variable model</span></div>
+    <div class="row"><span class="n">§15</span><span class="t">The evidence lower bound</span></div>
+    <div class="row"><span class="n">§16</span><span class="t">The reparameterisation trick</span></div>
+    <div class="row"><span class="n">§17</span><span class="t">How loose is the bound</span></div>
+    <div class="row"><span class="n">§18</span><span class="t">The VAE, assembled</span></div>
+    <div class="row"><span class="n">§19</span><span class="t">Posterior collapse</span></div>
+    <div class="row"><span class="n">§20</span><span class="t">Why the samples are blurry</span></div>
+    <div class="row"><span class="n">§21</span><span class="t">Normalising flows, briefly</span></div>
+    <div class="row"><span class="n">§22</span><span class="t">What this movement establishes</span></div>
+    <div class="tocmv">D · Score and diffusion</div>
+    <div class="row"><span class="n">§23</span><span class="t">Score matching</span></div>
+    <div class="row"><span class="n">§24</span><span class="t">Where the score has no signal</span></div>
+    <div class="row"><span class="n">§25</span><span class="t">Denoising score matching</span></div>
+    <div class="row"><span class="n">§26</span><span class="t">Many noise levels</span></div>
+    <div class="row"><span class="n">§27</span><span class="t">The forward process</span></div>
+    <div class="row"><span class="n">§28</span><span class="t">What the network predicts</span></div>
+    <div class="row"><span class="n">§29</span><span class="t">Sampling, and what it recovers</span></div>
+    <div class="row"><span class="n">§30</span><span class="t">Conditioning and guidance</span></div>
+    <div class="row"><span class="n">§31</span><span class="t">The schedule</span></div>
+    <div class="row"><span class="n">§32</span><span class="t">Flow matching</span></div>
+    <div class="row"><span class="n">§33</span><span class="t">What this movement establishes</span></div>
+    <div class="tocmv">E · Implicit models</div>
+    <div class="row"><span class="n">§34</span><span class="t">Generating without a density</span></div>
+    <div class="row"><span class="n">§35</span><span class="t">Why the training is hard</span></div>
+    <div class="row"><span class="n">§36</span><span class="t">Mode collapse, measured</span></div>
+    <div class="row"><span class="n">§37</span><span class="t">What was tried</span></div>
+    <div class="row"><span class="n">§38</span><span class="t">Why GANs lost</span></div>
+    <div class="row"><span class="n">§39</span><span class="t">Boltzmann machines, as history</span></div>
+    <div class="tocmv">F · Evaluation</div>
+    <div class="row"><span class="n">§40</span><span class="t">Why this is unsolved</span></div>
+    <div class="row"><span class="n">§41</span><span class="t">Likelihood, and what it fails to measure</span></div>
+    <div class="row"><span class="n">§42</span><span class="t">Sample quality, and what it fails to measure</span></div>
+    <div class="row"><span class="n">§43</span><span class="t">Automatic sample metrics</span></div>
+    <div class="row"><span class="n">§44</span><span class="t">What to report</span></div>
+    <div class="row"><span class="n">§45</span><span class="t">Choosing a family</span></div>
+    <div class="row"><span class="n">§46</span><span class="t">What to carry forward</span></div>
+    <div class="tocmv">Practice · Drills</div>
+    <div class="tocmv">Build · The project</div>
+    <div class="tocmv">Assess · Checkpoint</div>
+    <div class="part">Part XVII: Scale</div>
+    <div class="tocsub">what happens when you make it bigger</div>
+    <div class="tocmv">A · The empirical laws</div>
+    <div class="row"><span class="n">§1</span><span class="t">The question scale asks</span></div>
+    <div class="row"><span class="n">§2</span><span class="t">Power laws, and how to read them</span></div>
+    <div class="row"><span class="n">§3</span><span class="t">What the irreducible term is</span></div>
+    <div class="row"><span class="n">§4</span><span class="t">Fitting a law honestly</span></div>
+    <div class="row"><span class="n">§5</span><span class="t">The three laws, and their joint form</span></div>
+    <div class="row"><span class="n">§6</span><span class="t">What the laws do not say</span></div>
+    <div class="row"><span class="n">§7</span><span class="t">Emergence, and the measurement artefact</span></div>
+    <div class="row"><span class="n">§8</span><span class="t">Extrapolation, and its limits</span></div>
+    <div class="tocmv">B · Compute-optimal</div>
+    <div class="row"><span class="n">§9</span><span class="t">The allocation question</span></div>
+    <div class="row"><span class="n">§10</span><span class="t">The first answer</span></div>
+    <div class="row"><span class="n">§11</span><span class="t">The error</span></div>
+    <div class="row"><span class="n">§12</span><span class="t">The correction</span></div>
+    <div class="row"><span class="n">§13</span><span class="t">The frontier, and what bounds it</span></div>
+    <div class="row"><span class="n">§14</span><span class="t">Why models are deliberately overtrained</span></div>
+    <div class="row"><span class="n">§15</span><span class="t">What this movement establishes</span></div>
+    <div class="tocmv">C · The memory wall</div>
+    <div class="row"><span class="n">§16</span><span class="t">Where the memory goes</span></div>
+    <div class="row"><span class="n">§17</span><span class="t">Activation recomputation</span></div>
+    <div class="row"><span class="n">§18</span><span class="t">Sharding the states</span></div>
+    <div class="row"><span class="n">§19</span><span class="t">Mixed precision</span></div>
+    <div class="row"><span class="n">§20</span><span class="t">The memory budget, in practice</span></div>
+    <div class="tocmv">D · Parallelism</div>
+    <div class="row"><span class="n">§21</span><span class="t">Data parallelism</span></div>
+    <div class="row"><span class="n">§22</span><span class="t">Why it stops scaling</span></div>
+    <div class="row"><span class="n">§23</span><span class="t">Tensor parallelism</span></div>
+    <div class="row"><span class="n">§24</span><span class="t">Pipeline parallelism</span></div>
+    <div class="row"><span class="n">§25</span><span class="t">Sequence and context parallelism</span></div>
+    <div class="row"><span class="n">§26</span><span class="t">Combining them</span></div>
+    <div class="row"><span class="n">§27</span><span class="t">Asynchronous SGD, and why it lost</span></div>
+    <div class="row"><span class="n">§28</span><span class="t">Failure, and checkpointing</span></div>
+    <div class="tocmv">E · Conditional computation</div>
+    <div class="row"><span class="n">§29</span><span class="t">Not every parameter for every token</span></div>
+    <div class="row"><span class="n">§30</span><span class="t">Mixture of experts</span></div>
+    <div class="row"><span class="n">§31</span><span class="t">Load balancing</span></div>
+    <div class="row"><span class="n">§32</span><span class="t">What it actually buys, and what it costs</span></div>
+    <div class="tocmv">F · Running a large job</div>
+    <div class="row"><span class="n">§33</span><span class="t">Batch size, and the critical batch size</span></div>
+    <div class="row"><span class="n">§34</span><span class="t">Hyperparameter transfer</span></div>
+    <div class="row"><span class="n">§35</span><span class="t">Loss spikes and instability</span></div>
+    <div class="row"><span class="n">§36</span><span class="t">What to log</span></div>
+    <div class="row"><span class="n">§37</span><span class="t">The cost model</span></div>
+    <div class="row"><span class="n">§38</span><span class="t">When scale is the wrong answer</span></div>
+    <div class="row"><span class="n">§39</span><span class="t">What to carry forward</span></div>
+    <div class="tocmv">Practice · Drills</div>
+    <div class="tocmv">Build · The project</div>
+    <div class="tocmv">Assess · Checkpoint</div>
+    <div class="part">Part XVIII: Reinforcement Learning</div>
+    <div class="tocsub">when your actions decide your data</div>
+    <div class="tocmv">A · The setting</div>
+    <div class="row"><span class="n">§1</span><span class="t">What changes</span></div>
+    <div class="row"><span class="n">§2</span><span class="t">The Markov decision process</span></div>
+    <div class="row"><span class="n">§3</span><span class="t">Return, and why it is discounted</span></div>
+    <div class="row"><span class="n">§4</span><span class="t">Policies and value functions</span></div>
+    <div class="row"><span class="n">§5</span><span class="t">The Bellman equations</span></div>
+    <div class="row"><span class="n">§6</span><span class="t">The taxonomy</span></div>
+    <div class="row"><span class="n">§7</span><span class="t">The unit of measurement</span></div>
+    <div class="row"><span class="n">§8</span><span class="t">What this part will and will not cover</span></div>
+    <div class="tocmv">B · Solving it exactly</div>
+    <div class="row"><span class="n">§9</span><span class="t">Policy evaluation</span></div>
+    <div class="row"><span class="n">§10</span><span class="t">Policy iteration</span></div>
+    <div class="row"><span class="n">§11</span><span class="t">Value iteration</span></div>
+    <div class="row"><span class="n">§12</span><span class="t">Why it converges, and how fast</span></div>
+    <div class="row"><span class="n">§13</span><span class="t">Why exact methods do not scale</span></div>
+    <div class="row"><span class="n">§14</span><span class="t">What survives</span></div>
+    <div class="tocmv">C · Learning from samples</div>
+    <div class="row"><span class="n">§15</span><span class="t">Monte Carlo</span></div>
+    <div class="row"><span class="n">§16</span><span class="t">Temporal difference</span></div>
+    <div class="row"><span class="n">§17</span><span class="t">The trade, measured</span></div>
+    <div class="row"><span class="n">§18</span><span class="t">Control: SARSA and Q-learning</span></div>
+    <div class="row"><span class="n">§19</span><span class="t">The maximisation bias</span></div>
+    <div class="row"><span class="n">§20</span><span class="t">Function approximation</span></div>
+    <div class="row"><span class="n">§21</span><span class="t">The deadly triad</span></div>
+    <div class="row"><span class="n">§22</span><span class="t">DQN, and what each part is for</span></div>
+    <div class="row"><span class="n">§23</span><span class="t">What movement C establishes</span></div>
+    <div class="tocmv">D · Policy gradients</div>
+    <div class="row"><span class="n">§24</span><span class="t">Optimising the policy directly</span></div>
+    <div class="row"><span class="n">§25</span><span class="t">The policy gradient theorem</span></div>
+    <div class="row"><span class="n">§26</span><span class="t">REINFORCE</span></div>
+    <div class="row"><span class="n">§27</span><span class="t">Baselines</span></div>
+    <div class="row"><span class="n">§28</span><span class="t">Actor–critic</span></div>
+    <div class="row"><span class="n">§29</span><span class="t">Advantage estimation</span></div>
+    <div class="row"><span class="n">§30</span><span class="t">Why step size is the central difficulty</span></div>
+    <div class="row"><span class="n">§31</span><span class="t">Trust regions, and then clipping</span></div>
+    <div class="row"><span class="n">§32</span><span class="t">Why PPO won</span></div>
+    <div class="tocmv">E · Exploration</div>
+    <div class="row"><span class="n">§33</span><span class="t">The problem</span></div>
+    <div class="row"><span class="n">§34</span><span class="t">The bandit, and why it is the right first case</span></div>
+    <div class="row"><span class="n">§35</span><span class="t">Four strategies, measured</span></div>
+    <div class="row"><span class="n">§36</span><span class="t">Exploration in an MDP</span></div>
+    <div class="row"><span class="n">§37</span><span class="t">What is actually done</span></div>
+    <div class="row"><span class="n">§38</span><span class="t">Why this is unsolved</span></div>
+    <div class="tocmv">F · What it is used for</div>
+    <div class="row"><span class="n">§39</span><span class="t">Reward design</span></div>
+    <div class="row"><span class="n">§40</span><span class="t">Offline reinforcement learning</span></div>
+    <div class="row"><span class="n">§41</span><span class="t">Learning from human feedback</span></div>
+    <div class="row"><span class="n">§42</span><span class="t">Training for reasoning</span></div>
+    <div class="row"><span class="n">§43</span><span class="t">Evaluating a reinforcement learning result</span></div>
+    <div class="row"><span class="n">§44</span><span class="t">When not to use it</span></div>
+    <div class="row"><span class="n">§45</span><span class="t">What to carry forward</span></div>
+    <div class="tocmv">Practice · Drills</div>
+    <div class="tocmv">Build · The project</div>
+    <div class="tocmv">Assess · Checkpoint</div>
+    <div class="part">Part XIX: Efficiency and Deployment</div>
+    <div class="tocsub">making it cheap enough to use</div>
+    <div class="tocmv">A · The inference problem</div>
+    <div class="row"><span class="n">§1</span><span class="t">What changes</span></div>
+    <div class="row"><span class="n">§2</span><span class="t">Two regimes, not one</span></div>
+    <div class="row"><span class="n">§3</span><span class="t">Arithmetic intensity</span></div>
+    <div class="row"><span class="n">§4</span><span class="t">The KV cache</span></div>
+    <div class="row"><span class="n">§5</span><span class="t">Latency against throughput</span></div>
+    <div class="row"><span class="n">§6</span><span class="t">The cost model</span></div>
+    <div class="row"><span class="n">§7</span><span class="t">What follows</span></div>
+    <div class="tocmv">B · Quantization</div>
+    <div class="row"><span class="n">§8</span><span class="t">The idea</span></div>
+    <div class="row"><span class="n">§9</span><span class="t">Granularity, and what it buys</span></div>
+    <div class="row"><span class="n">§10</span><span class="t">Outliers</span></div>
+    <div class="row"><span class="n">§11</span><span class="t">Post-training quantization</span></div>
+    <div class="row"><span class="n">§12</span><span class="t">Quantization-aware training</span></div>
+    <div class="row"><span class="n">§13</span><span class="t">Activations, and why they are harder</span></div>
+    <div class="row"><span class="n">§14</span><span class="t">What it actually costs</span></div>
+    <div class="row"><span class="n">§15</span><span class="t">Where the cliff is</span></div>
+    <div class="row"><span class="n">§16</span><span class="t">Quantizing the cache</span></div>
+    <div class="tocmv">C · Sparsity and pruning</div>
+    <div class="row"><span class="n">§17</span><span class="t">Pruning</span></div>
+    <div class="row"><span class="n">§18</span><span class="t">The lottery ticket</span></div>
+    <div class="row"><span class="n">§19</span><span class="t">Structured against unstructured</span></div>
+    <div class="row"><span class="n">§20</span><span class="t">The pattern that works</span></div>
+    <div class="row"><span class="n">§21</span><span class="t">What to prune</span></div>
+    <div class="row"><span class="n">§22</span><span class="t">Against quantization</span></div>
+    <div class="row"><span class="n">§23</span><span class="t">What survives</span></div>
+    <div class="tocmv">D · Distillation</div>
+    <div class="row"><span class="n">§24</span><span class="t">The idea</span></div>
+    <div class="row"><span class="n">§25</span><span class="t">Why soft targets carry more</span></div>
+    <div class="row"><span class="n">§26</span><span class="t">Temperature</span></div>
+    <div class="row"><span class="n">§27</span><span class="t">What is actually transferred</span></div>
+    <div class="row"><span class="n">§28</span><span class="t">Self-distillation</span></div>
+    <div class="row"><span class="n">§29</span><span class="t">Distilling a sampler</span></div>
+    <div class="row"><span class="n">§30</span><span class="t">When it works</span></div>
+    <div class="tocmv">E · Adaptation</div>
+    <div class="row"><span class="n">§31</span><span class="t">What full fine-tuning costs</span></div>
+    <div class="row"><span class="n">§32</span><span class="t">LoRA</span></div>
+    <div class="row"><span class="n">§33</span><span class="t">Is the update actually low rank</span></div>
+    <div class="row"><span class="n">§34</span><span class="t">The variants</span></div>
+    <div class="row"><span class="n">§35</span><span class="t">The alternatives</span></div>
+    <div class="row"><span class="n">§36</span><span class="t">Serving many adaptations</span></div>
+    <div class="row"><span class="n">§37</span><span class="t">What to choose</span></div>
+    <div class="tocmv">F · Serving</div>
+    <div class="row"><span class="n">§38</span><span class="t">Batching</span></div>
+    <div class="row"><span class="n">§39</span><span class="t">Paged attention</span></div>
+    <div class="row"><span class="n">§40</span><span class="t">Speculative decoding</span></div>
+    <div class="row"><span class="n">§41</span><span class="t">Caching what repeats</span></div>
+    <div class="row"><span class="n">§42</span><span class="t">Distributed inference</span></div>
+    <div class="row"><span class="n">§43</span><span class="t">Measuring a serving system</span></div>
+    <div class="row"><span class="n">§44</span><span class="t">The cost model, end to end</span></div>
+    <div class="row"><span class="n">§45</span><span class="t">What to carry forward</span></div>
+    <div class="tocmv">Practice · Drills</div>
+    <div class="tocmv">Build · The project</div>
+    <div class="tocmv">Assess · Checkpoint</div>
+    <div class="part">Part XX: Language Models</div>
+    <div class="tocsub">what next-token prediction turned into</div>
+    <div class="tocmv">A · Tokenization</div>
+    <div class="row"><span class="n">§1</span><span class="t">A decision images do not require</span></div>
+    <div class="row"><span class="n">§2</span><span class="t">Byte-pair encoding</span></div>
+    <div class="row"><span class="n">§3</span><span class="t">What a tokenizer commits you to</span></div>
+    <div class="row"><span class="n">§4</span><span class="t">Numbers, and the failure everyone has seen</span></div>
+    <div class="row"><span class="n">§5</span><span class="t">Vocabulary size</span></div>
+    <div class="row"><span class="n">§6</span><span class="t">What byte-level would cost</span></div>
+    <div class="row"><span class="n">§7</span><span class="t">The tokenizer is frozen first</span></div>
+    <div class="row"><span class="n">§8</span><span class="t">What movement A establishes</span></div>
+    <div class="tocmv">B · Pretraining</div>
+    <div class="row"><span class="n">§9</span><span class="t">The objective, and why it was enough</span></div>
+    <div class="row"><span class="n">§10</span><span class="t">The recipe</span></div>
+    <div class="row"><span class="n">§11</span><span class="t">The data mixture</span></div>
+    <div class="row"><span class="n">§12</span><span class="t">Context length</span></div>
+    <div class="row"><span class="n">§13</span><span class="t">What is actually learned, and in what order</span></div>
+    <div class="row"><span class="n">§14</span><span class="t">Memorisation</span></div>
+    <div class="row"><span class="n">§15</span><span class="t">The loss curve, and what it hides</span></div>
+    <div class="row"><span class="n">§16</span><span class="t">What pretraining does not give you</span></div>
+    <div class="tocmv">C · In-context learning</div>
+    <div class="row"><span class="n">§17</span><span class="t">The phenomenon</span></div>
+    <div class="row"><span class="n">§18</span><span class="t">Why it is not mysterious</span></div>
+    <div class="row"><span class="n">§19</span><span class="t">What the demonstrations actually supply</span></div>
+    <div class="row"><span class="n">§20</span><span class="t">Prompting</span></div>
+    <div class="row"><span class="n">§21</span><span class="t">Chain of thought</span></div>
+    <div class="row"><span class="n">§22</span><span class="t">The sensitivity problem</span></div>
+    <div class="row"><span class="n">§23</span><span class="t">What prompting cannot fix</span></div>
+    <div class="row"><span class="n">§24</span><span class="t">What movement C establishes</span></div>
+    <div class="tocmv">D · Alignment</div>
+    <div class="row"><span class="n">§25</span><span class="t">The interface problem</span></div>
+    <div class="row"><span class="n">§26</span><span class="t">The pipeline</span></div>
+    <div class="row"><span class="n">§27</span><span class="t">The preference data</span></div>
+    <div class="row"><span class="n">§28</span><span class="t">RLHF, applied</span></div>
+    <div class="row"><span class="n">§29</span><span class="t">The direct methods</span></div>
+    <div class="row"><span class="n">§30</span><span class="t">What alignment changes</span></div>
+    <div class="row"><span class="n">§31</span><span class="t">The measurable failure modes</span></div>
+    <div class="row"><span class="n">§32</span><span class="t">The alignment tax</span></div>
+    <div class="row"><span class="n">§33</span><span class="t">Jailbreaks</span></div>
+    <div class="tocmv">E · Beyond the weights</div>
+    <div class="row"><span class="n">§34</span><span class="t">Retrieval</span></div>
+    <div class="row"><span class="n">§35</span><span class="t">Tools</span></div>
+    <div class="row"><span class="n">§36</span><span class="t">Agents</span></div>
+    <div class="row"><span class="n">§37</span><span class="t">Test-time compute</span></div>
+    <div class="row"><span class="n">§38</span><span class="t">Context engineering</span></div>
+    <div class="row"><span class="n">§39</span><span class="t">What these buy over fine-tuning</span></div>
+    <div class="tocmv">F · Evaluation</div>
+    <div class="row"><span class="n">§40</span><span class="t">Why this is the hardest part</span></div>
+    <div class="row"><span class="n">§41</span><span class="t">Benchmarks, and their decay</span></div>
+    <div class="row"><span class="n">§42</span><span class="t">Model-as-judge, again</span></div>
+    <div class="row"><span class="n">§43</span><span class="t">What cannot currently be measured well</span></div>
+    <div class="row"><span class="n">§44</span><span class="t">Capability against reliability</span></div>
+    <div class="row"><span class="n">§45</span><span class="t">What to carry forward</span></div>
+        <div class="tocmv">G · Keeping and changing what a model knows</div>
+    <div class="row"><span class="n">§46</span><span class="t">The shape of the problem</span></div>
+    <div class="row"><span class="n">§47</span><span class="t">Forgetting</span></div>
+    <div class="row"><span class="n">§48</span><span class="t">Rehearsal</span></div>
+    <div class="row"><span class="n">§49</span><span class="t">Averaging weights</span></div>
+    <div class="row"><span class="n">§50</span><span class="t">Task arithmetic</span></div>
+    <div class="row"><span class="n">§51</span><span class="t">Editing</span></div>
+    <div class="row"><span class="n">§52</span><span class="t">What to do about it</span></div>
+    <div class="row"><span class="n">§53</span><span class="t">What to carry forward</span></div>
+<div class="tocmv">Practice · Drills</div>
+    <div class="tocmv">Build · The project</div>
+    <div class="tocmv">Assess · Checkpoint</div>
+    <div class="part">Part XXI: Alignment, Interpretability and Consequence</div>
+    <div class="tocsub">what we can see, what we can specify, and what we can prove</div>
+    <div class="tocmv">A · Looking inside</div>
+    <div class="row"><span class="n">§1</span><span class="t">What a question about internals means</span></div>
+    <div class="row"><span class="n">§2</span><span class="t">Neurons are not features</span></div>
+    <div class="row"><span class="n">§3</span><span class="t">Superposition, recalled</span></div>
+    <div class="row"><span class="n">§4</span><span class="t">What superposition costs the analyst</span></div>
+    <div class="row"><span class="n">§5</span><span class="t">Dictionary learning</span></div>
+    <div class="row"><span class="n">§6</span><span class="t">What a dictionary actually recovers</span></div>
+    <div class="row"><span class="n">§7</span><span class="t">Probing, revisited</span></div>
+    <div class="row"><span class="n">§8</span><span class="t">What movement A establishes</span></div>
+    <div class="tocmv">B · Causal interpretability</div>
+    <div class="row"><span class="n">§9</span><span class="t">The intervention that makes a claim causal</span></div>
+    <div class="row"><span class="n">§10</span><span class="t">Activation patching</span></div>
+    <div class="row"><span class="n">§11</span><span class="t">Circuits</span></div>
+    <div class="row"><span class="n">§12</span><span class="t">Ablation and its traps</span></div>
+    <div class="row"><span class="n">§13</span><span class="t">Steering</span></div>
+    <div class="row"><span class="n">§14</span><span class="t">Attribution, and why it disappointed</span></div>
+    <div class="row"><span class="n">§15</span><span class="t">Evaluating interpretability itself</span></div>
+    <div class="row"><span class="n">§16</span><span class="t">What movement B establishes</span></div>
+    <div class="tocmv">C · Specification</div>
+    <div class="row"><span class="n">§17</span><span class="t">The problem, stated without metaphor</span></div>
+    <div class="row"><span class="n">§18</span><span class="t">Goodhart, and the condition for it</span></div>
+    <div class="row"><span class="n">§19</span><span class="t">Reward hacking, observed</span></div>
+    <div class="row"><span class="n">§20</span><span class="t">Outer and inner, carefully</span></div>
+    <div class="row"><span class="n">§21</span><span class="t">Scalable oversight</span></div>
+    <div class="row"><span class="n">§22</span><span class="t">Debate, amplification, weak-to-strong</span></div>
+    <div class="row"><span class="n">§23</span><span class="t">What we cannot currently specify</span></div>
+    <div class="row"><span class="n">§24</span><span class="t">What movement C establishes</span></div>
+    <div class="tocmv">D · Measuring harm</div>
+    <div class="row"><span class="n">§25</span><span class="t">Why this is not ordinary evaluation</span></div>
+    <div class="row"><span class="n">§26</span><span class="t">Red-teaming</span></div>
+    <div class="row"><span class="n">§27</span><span class="t">The statistics of rare failures</span></div>
+    <div class="row"><span class="n">§28</span><span class="t">Dangerous capability evaluations</span></div>
+    <div class="row"><span class="n">§29</span><span class="t">Bias and fairness, as measurement</span></div>
+    <div class="row"><span class="n">§30</span><span class="t">Evaluation validity</span></div>
+    <div class="row"><span class="n">§31</span><span class="t">Elicitation, and the lower bound problem</span></div>
+    <div class="row"><span class="n">§32</span><span class="t">Safety cases</span></div>
+    <div class="row"><span class="n">§33</span><span class="t">What movement D establishes</span></div>
+    <div class="tocmv">E · Deployment and consequence</div>
+    <div class="row"><span class="n">§34</span><span class="t">What changes at deployment</span></div>
+    <div class="row"><span class="n">§35</span><span class="t">Monitoring</span></div>
+    <div class="row"><span class="n">§36</span><span class="t">Open weights</span></div>
+    <div class="row"><span class="n">§37</span><span class="t">Concentration</span></div>
+    <div class="row"><span class="n">§38</span><span class="t">Labour</span></div>
+    <div class="row"><span class="n">§39</span><span class="t">Environmental cost</span></div>
+    <div class="row"><span class="n">§40</span><span class="t">The questions this book cannot answer</span></div>
+    <div class="tocmv">F · Closing</div>
+    <div class="row"><span class="n">§41</span><span class="t">What is genuinely unknown</span></div>
+    <div class="row"><span class="n">§42</span><span class="t">How to reason under this uncertainty</span></div>
+    <div class="row"><span class="n">§43</span><span class="t">What to carry forward</span></div>
+    <div class="row"><span class="n">§44</span><span class="t">Where to go next</span></div>
+    <div class="row"><span class="n">§45</span><span class="t">What is left standing</span></div>
+    <div class="tocmv">Practice · Drills</div>
+    <div class="tocmv">Build · The project</div>
+    <div class="tocmv">Assess · Checkpoint</div>
+    <div class="part">Part XXII: Causal Inference</div>
+    <div class="tocsub">the question a predictor cannot answer</div>
+    <div class="tocmv">A · Two different questions</div>
+    <div class="row"><span class="n">§1</span><span class="t">The question a predictor cannot answer</span></div>
+    <div class="row"><span class="n">§2</span><span class="t">Three rungs</span></div>
+    <div class="row"><span class="n">§3</span><span class="t">Confounding, measured</span></div>
+    <div class="row"><span class="n">§4</span><span class="t">The collider, and why more controls is not safer</span></div>
+    <div class="row"><span class="n">§5</span><span class="t">Mediators, and the effect you did not mean to remove</span></div>
+    <div class="row"><span class="n">§6</span><span class="t">Selection, and the sample you actually have</span></div>
+    <div class="row"><span class="n">§7</span><span class="t">What movement A establishes</span></div>
+    <div class="tocmv">B · Structural causal models</div>
+    <div class="row"><span class="n">§8</span><span class="t">A model of the mechanism</span></div>
+    <div class="row"><span class="n">§9</span><span class="t">Graphs, and what an arrow means</span></div>
+    <div class="row"><span class="n">§10</span><span class="t">Reading dependence off the graph</span></div>
+    <div class="row"><span class="n">§11</span><span class="t">The do-operator</span></div>
+    <div class="row"><span class="n">§12</span><span class="t">The backdoor criterion</span></div>
+    <div class="row"><span class="n">§13</span><span class="t">The front-door criterion</span></div>
+    <div class="row"><span class="n">§14</span><span class="t">Identifiability, and when the answer is no</span></div>
+    <div class="row"><span class="n">§15</span><span class="t">What movement B establishes</span></div>
+    <div class="tocmv">C · Estimating an effect</div>
+    <div class="row"><span class="n">§16</span><span class="t">The randomised experiment</span></div>
+    <div class="row"><span class="n">§17</span><span class="t">Adjustment, and the estimator that follows</span></div>
+    <div class="row"><span class="n">§18</span><span class="t">The propensity score</span></div>
+    <div class="row"><span class="n">§19</span><span class="t">Matching, weighting, and what each assumes</span></div>
+    <div class="row"><span class="n">§20</span><span class="t">Overlap, and where adjustment stops working</span></div>
+    <div class="row"><span class="n">§21</span><span class="t">Doubly robust estimation</span></div>
+    <div class="row"><span class="n">§22</span><span class="t">Sensitivity analysis</span></div>
+    <div class="row"><span class="n">§23</span><span class="t">What goes wrong in practice</span></div>
+    <div class="row"><span class="n">§24</span><span class="t">What movement C establishes</span></div>
+    <div class="tocmv">D · When you cannot randomise</div>
+    <div class="row"><span class="n">§25</span><span class="t">Borrowing randomness from the world</span></div>
+    <div class="row"><span class="n">§26</span><span class="t">Instrumental variables</span></div>
+    <div class="row"><span class="n">§27</span><span class="t">Difference-in-differences</span></div>
+    <div class="row"><span class="n">§28</span><span class="t">Regression discontinuity</span></div>
+    <div class="row"><span class="n">§29</span><span class="t">Synthetic controls</span></div>
+    <div class="row"><span class="n">§30</span><span class="t">The four designs, compared</span></div>
+    <div class="row"><span class="n">§31</span><span class="t">What movement D establishes</span></div>
+    <div class="tocmv">E · Causality and machine learning</div>
+    <div class="row"><span class="n">§32</span><span class="t">Evaluating a policy you have not run</span></div>
+    <div class="row"><span class="n">§33</span><span class="t">The average conceals the decision</span></div>
+    <div class="row"><span class="n">§34</span><span class="t">Invariance, and why it transfers</span></div>
+    <div class="row"><span class="n">§35</span><span class="t">Causal discovery</span></div>
+    <div class="row"><span class="n">§36</span><span class="t">What Part XXI's "causal" means, and what it does not</span></div>
+    <div class="row"><span class="n">§37</span><span class="t">Fairness, with the causal versions available</span></div>
+    <div class="row"><span class="n">§38</span><span class="t">What a randomised system gets for free</span></div>
+    <div class="row"><span class="n">§39</span><span class="t">What movement E establishes</span></div>
+    <div class="tocmv">F · Practice</div>
+    <div class="row"><span class="n">§40</span><span class="t">The design comes before the data</span></div>
+    <div class="row"><span class="n">§41</span><span class="t">What a causal claim owes you</span></div>
+    <div class="row"><span class="n">§42</span><span class="t">Reading a causal claim critically</span></div>
+    <div class="row"><span class="n">§43</span><span class="t">Where this changes the rest of the book</span></div>
+    <div class="row"><span class="n">§44</span><span class="t">What is unsolved</span></div>
+    <div class="row"><span class="n">§45</span><span class="t">What to carry forward</span></div>
+    <div class="tocmv">Practice · Drills</div>
+    <div class="tocmv">Build · The project</div>
+    <div class="tocmv">Assess · Checkpoint</div>
+    <div class="part">Part XXIII: Learning Theory</div>
+    <div class="tocsub">why it works, and where the guarantees run out</div>
+    <div class="tocmv">A · Concentration</div>
+    <div class="row"><span class="n">§1</span><span class="t">The question, stated so it can be answered</span></div>
+    <div class="row"><span class="n">§2</span><span class="t">Three bounds, and what each one uses</span></div>
+    <div class="row"><span class="n">§3</span><span class="t">How much the bounds give up</span></div>
+    <div class="row"><span class="n">§4</span><span class="t">The union bound, and the first real theorem</span></div>
+    <div class="row"><span class="n">§5</span><span class="t">What "with high probability" is a statement about</span></div>
+    <div class="row"><span class="n">§6</span><span class="t">What concentration cannot reach</span></div>
+    <div class="row"><span class="n">§7</span><span class="t">What movement A establishes</span></div>
+    <div class="tocmv">B · Uniform convergence</div>
+    <div class="row"><span class="n">§8</span><span class="t">Probably approximately correct</span></div>
+    <div class="row"><span class="n">§9</span><span class="t">Counting labellings instead of functions</span></div>
+    <div class="row"><span class="n">§10</span><span class="t">Shattering, and the VC dimension</span></div>
+    <div class="row"><span class="n">§11</span><span class="t">Sauer's lemma, and why the bound is polynomial</span></div>
+    <div class="row"><span class="n">§12</span><span class="t">The generalisation bound</span></div>
+    <div class="row"><span class="n">§13</span><span class="t">Sample complexity, and the fundamental theorem</span></div>
+    <div class="row"><span class="n">§14</span><span class="t">No free lunch, restated</span></div>
+    <div class="row"><span class="n">§15</span><span class="t">What movement B establishes</span></div>
+    <div class="tocmv">C · Beyond counting</div>
+    <div class="row"><span class="n">§16</span><span class="t">Rademacher complexity</span></div>
+    <div class="row"><span class="n">§17</span><span class="t">Covering numbers</span></div>
+    <div class="row"><span class="n">§18</span><span class="t">Margins</span></div>
+    <div class="row"><span class="n">§19</span><span class="t">Algorithmic stability</span></div>
+    <div class="row"><span class="n">§20</span><span class="t">Structural risk minimisation</span></div>
+    <div class="row"><span class="n">§21</span><span class="t">What all four have in common</span></div>
+    <div class="row"><span class="n">§22</span><span class="t">What movement C establishes</span></div>
+    <div class="tocmv">D · Where the theory broke</div>
+    <div class="row"><span class="n">§23</span><span class="t">The bound against the gap it bounds</span></div>
+    <div class="row"><span class="n">§24</span><span class="t">Interpolation is not overfitting</span></div>
+    <div class="row"><span class="n">§25</span><span class="t">Double descent</span></div>
+    <div class="row"><span class="n">§26</span><span class="t">Benign overfitting</span></div>
+    <div class="row"><span class="n">§27</span><span class="t">What the optimiser chooses</span></div>
+    <div class="row"><span class="n">§28</span><span class="t">Flatness, and the trouble with it</span></div>
+    <div class="row"><span class="n">§29</span><span class="t">Norm-based bounds, and the ones that are not vacuous</span></div>
+    <div class="row"><span class="n">§30</span><span class="t">What movement D establishes</span></div>
+    <div class="tocmv">E · Learning against an adversary</div>
+    <div class="row"><span class="n">§31</span><span class="t">The online protocol</span></div>
+    <div class="row"><span class="n">§32</span><span class="t">Why following the leader fails</span></div>
+    <div class="row"><span class="n">§33</span><span class="t">Online gradient descent</span></div>
+    <div class="row"><span class="n">§34</span><span class="t">Multiplicative weights</span></div>
+    <div class="row"><span class="n">§35</span><span class="t">Bandits, and the cost of not seeing</span></div>
+    <div class="row"><span class="n">§36</span><span class="t">Non-stationarity</span></div>
+    <div class="row"><span class="n">§37</span><span class="t">What the adversarial framing buys and costs</span></div>
+    <div class="row"><span class="n">§38</span><span class="t">What movement E establishes</span></div>
+    <div class="tocmv">F · Distribution shift</div>
+    <div class="row"><span class="n">§39</span><span class="t">Three shifts, and why the distinction is operational</span></div>
+    <div class="row"><span class="n">§40</span><span class="t">Importance weighting</span></div>
+    <div class="row"><span class="n">§41</span><span class="t">Label shift, which is easier</span></div>
+    <div class="row"><span class="n">§42</span><span class="t">Distributionally robust optimisation</span></div>
+    <div class="row"><span class="n">§43</span><span class="t">Worst-group risk</span></div>
+    <div class="row"><span class="n">§44</span><span class="t">Detecting shift, and what detection is worth</span></div>
+    <div class="row"><span class="n">§45</span><span class="t">What to carry forward</span></div>
+        <div class="tocmv">G · Width</div>
+    <div class="row"><span class="n">§46</span><span class="t">A different limit</span></div>
+    <div class="row"><span class="n">§47</span><span class="t">The neural tangent kernel</span></div>
+    <div class="row"><span class="n">§48</span><span class="t">How constant is constant</span></div>
+    <div class="row"><span class="n">§49</span><span class="t">Lazy and rich</span></div>
+    <div class="row"><span class="n">§50</span><span class="t">Three parameterisations</span></div>
+    <div class="row"><span class="n">§51</span><span class="t">The coordinate check</span></div>
+    <div class="row"><span class="n">§52</span><span class="t">Why hyperparameters transfer</span></div>
+    <div class="row"><span class="n">§53</span><span class="t">Depth, and what a random network does to a signal</span></div>
+    <div class="row"><span class="n">§54</span><span class="t">What initialisation is choosing</span></div>
+    <div class="row"><span class="n">§55</span><span class="t">What to carry forward</span></div>
+<div class="tocmv">Practice · Drills</div>
+    <div class="tocmv">Build · The project</div>
+    <div class="tocmv">Assess · Checkpoint</div>
+    <div class="part">Part XXIV: Uncertainty Quantification</div>
+    <div class="tocsub">saying how much you do not know, and being right about it</div>
+    <div class="tocmv">A · Two kinds of not knowing</div>
+    <div class="row"><span class="n">§1</span><span class="t">The promise an interval makes</span></div>
+    <div class="row"><span class="n">§2</span><span class="t">Aleatoric and epistemic</span></div>
+    <div class="row"><span class="n">§3</span><span class="t">Why the distinction is operational</span></div>
+    <div class="row"><span class="n">§4</span><span class="t">Measuring the separation</span></div>
+    <div class="row"><span class="n">§5</span><span class="t">Heteroscedastic prediction</span></div>
+    <div class="row"><span class="n">§6</span><span class="t">What calibration does not give you</span></div>
+    <div class="row"><span class="n">§7</span><span class="t">What movement A establishes</span></div>
+    <div class="tocmv">B · Distributions over functions</div>
+    <div class="row"><span class="n">§8</span><span class="t">A prior over functions</span></div>
+    <div class="row"><span class="n">§9</span><span class="t">The posterior, in closed form</span></div>
+    <div class="row"><span class="n">§10</span><span class="t">What the intervals do</span></div>
+    <div class="row"><span class="n">§11</span><span class="t">Choosing the kernel by marginal likelihood</span></div>
+    <div class="row"><span class="n">§12</span><span class="t">The cost, and what is done about it</span></div>
+    <div class="row"><span class="n">§13</span><span class="t">Bayesian optimisation</span></div>
+    <div class="row"><span class="n">§14</span><span class="t">Where this belongs</span></div>
+    <div class="row"><span class="n">§15</span><span class="t">What movement B establishes</span></div>
+    <div class="tocmv">C · Uncertainty for networks</div>
+    <div class="row"><span class="n">§16</span><span class="t">What a prior over weights means</span></div>
+    <div class="row"><span class="n">§17</span><span class="t">Variational inference</span></div>
+    <div class="row"><span class="n">§18</span><span class="t">The Laplace approximation</span></div>
+    <div class="row"><span class="n">§19</span><span class="t">Dropout and ensembles</span></div>
+    <div class="row"><span class="n">§20</span><span class="t">What each one's intervals contain</span></div>
+    <div class="row"><span class="n">§21</span><span class="t">Why ensembles do well</span></div>
+    <div class="row"><span class="n">§22</span><span class="t">The cost table, honestly</span></div>
+    <div class="row"><span class="n">§23</span><span class="t">What movement C establishes</span></div>
+    <div class="tocmv">D · Coverage without assumptions</div>
+    <div class="row"><span class="n">§24</span><span class="t">The construction</span></div>
+    <div class="row"><span class="n">§25</span><span class="t">The guarantee, measured</span></div>
+    <div class="row"><span class="n">§26</span><span class="t">Marginal, not conditional</span></div>
+    <div class="row"><span class="n">§27</span><span class="t">Making the width adapt</span></div>
+    <div class="row"><span class="n">§28</span><span class="t">Classification, and sets rather than intervals</span></div>
+    <div class="row"><span class="n">§29</span><span class="t">Where the guarantee ends</span></div>
+    <div class="row"><span class="n">§30</span><span class="t">What conformal does not give you</span></div>
+    <div class="row"><span class="n">§31</span><span class="t">What movement D establishes</span></div>
+    <div class="tocmv">E · From a probability to a decision</div>
+    <div class="row"><span class="n">§32</span><span class="t">Utility, and why the loss is not it</span></div>
+    <div class="row"><span class="n">§33</span><span class="t">The optimal threshold</span></div>
+    <div class="row"><span class="n">§34</span><span class="t">What the default costs</span></div>
+    <div class="row"><span class="n">§35</span><span class="t">Risk aversion</span></div>
+    <div class="row"><span class="n">§36</span><span class="t">The value of information</span></div>
+    <div class="row"><span class="n">§37</span><span class="t">Abstention as an action</span></div>
+    <div class="row"><span class="n">§38</span><span class="t">What movement E establishes</span></div>
+    <div class="tocmv">F · Practice</div>
+    <div class="row"><span class="n">§39</span><span class="t">Choosing a method</span></div>
+    <div class="row"><span class="n">§40</span><span class="t">The measurement to run</span></div>
+    <div class="row"><span class="n">§41</span><span class="t">Under shift</span></div>
+    <div class="row"><span class="n">§42</span><span class="t">What to report</span></div>
+    <div class="row"><span class="n">§43</span><span class="t">Communicating it</span></div>
+    <div class="row"><span class="n">§44</span><span class="t">What is unsolved</span></div>
+    <div class="row"><span class="n">§45</span><span class="t">What to carry forward</span></div>
+    <div class="tocmv">Practice · Drills</div>
+    <div class="tocmv">Build · The project</div>
+    <div class="tocmv">Assess · Checkpoint</div>
+    <div class="part">Part XXV: Structured and Tabular Learning</div>
+    <div class="tocsub">the models that win where the data is a table</div>
+    <div class="tocmv">A · One tree</div>
+    <div class="row"><span class="n">§1</span><span class="t">Why a table is not an image</span></div>
+    <div class="row"><span class="n">§2</span><span class="t">The model</span></div>
+    <div class="row"><span class="n">§3</span><span class="t">Choosing a split</span></div>
+    <div class="row"><span class="n">§4</span><span class="t">Finding the threshold</span></div>
+    <div class="row"><span class="n">§5</span><span class="t">Depth, and the curve you can point to</span></div>
+    <div class="row"><span class="n">§6</span><span class="t">Stopping, and pruning</span></div>
+    <div class="row"><span class="n">§7</span><span class="t">What movement A establishes</span></div>
+    <div class="tocmv">B · Averaging</div>
+    <div class="row"><span class="n">§8</span><span class="t">Bagging</span></div>
+    <div class="row"><span class="n">§9</span><span class="t">The identity that governs it</span></div>
+    <div class="row"><span class="n">§10</span><span class="t">Measuring both terms</span></div>
+    <div class="row"><span class="n">§11</span><span class="t">Random forests</span></div>
+    <div class="row"><span class="n">§12</span><span class="t">The trade</span></div>
+    <div class="row"><span class="n">§13</span><span class="t">Out-of-bag estimation</span></div>
+    <div class="row"><span class="n">§14</span><span class="t">Feature importance, and its two traps</span></div>
+    <div class="row"><span class="n">§15</span><span class="t">What movement B establishes</span></div>
+    <div class="tocmv">C · Boosting</div>
+    <div class="row"><span class="n">§16</span><span class="t">Additive modelling</span></div>
+    <div class="row"><span class="n">§17</span><span class="t">Gradient boosting, derived</span></div>
+    <div class="row"><span class="n">§18</span><span class="t">Shrinkage</span></div>
+    <div class="row"><span class="n">§19</span><span class="t">The other regularisers</span></div>
+    <div class="row"><span class="n">§20</span><span class="t">Categorical features</span></div>
+    <div class="row"><span class="n">§21</span><span class="t">Missing values</span></div>
+    <div class="row"><span class="n">§22</span><span class="t">Histogram splitting, measured</span></div>
+    <div class="row"><span class="n">§23</span><span class="t">What the implementations actually differ on</span></div>
+    <div class="row"><span class="n">§24</span><span class="t">What movement C establishes</span></div>
+    <div class="tocmv">D · Tabular practice</div>
+    <div class="row"><span class="n">§25</span><span class="t">Are the scores probabilities</span></div>
+    <div class="row"><span class="n">§26</span><span class="t">Measured</span></div>
+    <div class="row"><span class="n">§27</span><span class="t">The comparison this book has been owing</span></div>
+    <div class="row"><span class="n">§28</span><span class="t">Which family wins, and when</span></div>
+    <div class="row"><span class="n">§29</span><span class="t">Validation, which matters more than the model</span></div>
+    <div class="row"><span class="n">§30</span><span class="t">When to use which</span></div>
+    <div class="row"><span class="n">§31</span><span class="t">What movement D establishes</span></div>
+    <div class="tocmv">E · When the rows are ordered</div>
+    <div class="row"><span class="n">§32</span><span class="t">What a time index changes</span></div>
+    <div class="row"><span class="n">§33</span><span class="t">Stationarity, and what differencing buys</span></div>
+    <div class="row"><span class="n">§34</span><span class="t">Autocorrelation</span></div>
+    <div class="row"><span class="n">§35</span><span class="t">The classical models, and why they are still baselines</span></div>
+    <div class="row"><span class="n">§36</span><span class="t">What a random split is worth</span></div>
+    <div class="row"><span class="n">§37</span><span class="t">Validation that respects the order</span></div>
+    <div class="row"><span class="n">§38</span><span class="t">What movement E establishes</span></div>
+    <div class="tocmv">F · Forecasting</div>
+    <div class="row"><span class="n">§39</span><span class="t">The horizon is part of the question</span></div>
+    <div class="row"><span class="n">§40</span><span class="t">What the intervals do along the horizon</span></div>
+    <div class="row"><span class="n">§41</span><span class="t">Probabilistic forecasts, and how to score them</span></div>
+    <div class="row"><span class="n">§42</span><span class="t">Hierarchies</span></div>
+    <div class="row"><span class="n">§43</span><span class="t">Change points and anomalies</span></div>
+    <div class="row"><span class="n">§44</span><span class="t">When a neural forecaster earns its place</span></div>
+    <div class="row"><span class="n">§45</span><span class="t">What to carry forward</span></div>
+    <div class="tocmv">Practice · Drills</div>
+    <div class="tocmv">Build · The project</div>
+    <div class="tocmv">Assess · Checkpoint</div>
+    <div class="part">Part XXVI: Graph and Geometric Learning</div>
+    <div class="tocsub">architecture as a declaration about symmetry</div>
+    <div class="tocmv">A · The ordering that is not there</div>
+    <div class="row"><span class="n">§1</span><span class="t">The symmetry, and where it comes from</span></div>
+    <div class="row"><span class="n">§2</span><span class="t">Sets first</span></div>
+    <div class="row"><span class="n">§3</span><span class="t">A graph is a set with structure</span></div>
+    <div class="row"><span class="n">§4</span><span class="t">What goes wrong without it</span></div>
+    <div class="row"><span class="n">§5</span><span class="t">Measured</span></div>
+    <div class="row"><span class="n">§6</span><span class="t">Invariant features, and their ceiling</span></div>
+    <div class="row"><span class="n">§7</span><span class="t">What movement A establishes</span></div>
+    <div class="tocmv">B · Message passing</div>
+    <div class="row"><span class="n">§8</span><span class="t">The loop</span></div>
+    <div class="row"><span class="n">§9</span><span class="t">The graph convolutional network</span></div>
+    <div class="row"><span class="n">§10</span><span class="t">Sampling, and why it was needed</span></div>
+    <div class="row"><span class="n">§11</span><span class="t">Attention on a graph</span></div>
+    <div class="row"><span class="n">§12</span><span class="t">What the aggregator decides</span></div>
+    <div class="row"><span class="n">§13</span><span class="t">Depth, which does not mean what it usually means</span></div>
+    <div class="row"><span class="n">§14</span><span class="t">What is done about it</span></div>
+    <div class="row"><span class="n">§15</span><span class="t">What movement B establishes</span></div>
+    <div class="tocmv">C · What message passing cannot do</div>
+    <div class="row"><span class="n">§16</span><span class="t">The colour-refinement algorithm</span></div>
+    <div class="row"><span class="n">§17</span><span class="t">The bound, demonstrated</span></div>
+    <div class="row"><span class="n">§18</span><span class="t">What the limit costs in practice</span></div>
+    <div class="row"><span class="n">§19</span><span class="t">Three ways past it</span></div>
+    <div class="row"><span class="n">§20</span><span class="t">Over-squashing</span></div>
+    <div class="row"><span class="n">§21</span><span class="t">Bottlenecks, and rewiring</span></div>
+    <div class="row"><span class="n">§22</span><span class="t">Graph transformers</span></div>
+    <div class="row"><span class="n">§23</span><span class="t">Which of these you actually have</span></div>
+    <div class="row"><span class="n">§24</span><span class="t">What movement C establishes</span></div>
+    <div class="tocmv">D · Nodes, links and graphs</div>
+    <div class="row"><span class="n">§25</span><span class="t">The three tasks</span></div>
+    <div class="row"><span class="n">§26</span><span class="t">Transductive and inductive</span></div>
+    <div class="row"><span class="n">§27</span><span class="t">Splitting a graph</span></div>
+    <div class="row"><span class="n">§28</span><span class="t">Link prediction, and the negatives</span></div>
+    <div class="row"><span class="n">§29</span><span class="t">Graph-level prediction, and the readout</span></div>
+    <div class="row"><span class="n">§30</span><span class="t">Knowledge graphs</span></div>
+    <div class="row"><span class="n">§31</span><span class="t">What movement D establishes</span></div>
+    <div class="tocmv">E · Geometry</div>
+    <div class="row"><span class="n">§32</span><span class="t">Groups, and what an architecture declares</span></div>
+    <div class="row"><span class="n">§33</span><span class="t">Building invariance from distances</span></div>
+    <div class="row"><span class="n">§34</span><span class="t">What a symmetry is worth</span></div>
+    <div class="row"><span class="n">§35</span><span class="t">Equivariant message passing</span></div>
+    <div class="row"><span class="n">§36</span><span class="t">Higher-order features</span></div>
+    <div class="row"><span class="n">§37</span><span class="t">Where geometry meets graphs</span></div>
+    <div class="row"><span class="n">§38</span><span class="t">What movement E establishes</span></div>
+    <div class="tocmv">F · Practice</div>
+    <div class="row"><span class="n">§39</span><span class="t">Do you have a graph problem</span></div>
+    <div class="row"><span class="n">§40</span><span class="t">The baselines that must be reported</span></div>
+    <div class="row"><span class="n">§41</span><span class="t">The reproducibility problem in this area</span></div>
+    <div class="row"><span class="n">§42</span><span class="t">What to report</span></div>
+    <div class="row"><span class="n">§43</span><span class="t">Where this connects</span></div>
+    <div class="row"><span class="n">§44</span><span class="t">What is unsolved</span></div>
+    <div class="row"><span class="n">§45</span><span class="t">What to carry forward</span></div>
+    <div class="tocmv">Practice · Drills</div>
+    <div class="tocmv">Build · The project</div>
+    <div class="tocmv">Assess · Checkpoint</div>
+    <div class="part">Part XXVII: Signals and Spectra</div>
+    <div class="tocsub">the foundation four earlier parts have been borrowing</div>
+    <div class="tocmv">A · What a sample throws away</div>
+    <div class="row"><span class="n">§1</span><span class="t">Continuous and discrete</span></div>
+    <div class="row"><span class="n">§2</span><span class="t">The sampling theorem</span></div>
+    <div class="row"><span class="n">§3</span><span class="t">Aliasing</span></div>
+    <div class="row"><span class="n">§4</span><span class="t">Where this bites in a network</span></div>
+    <div class="row"><span class="n">§5</span><span class="t">Measured</span></div>
+    <div class="row"><span class="n">§6</span><span class="t">Anti-aliasing, and why it is not free</span></div>
+    <div class="row"><span class="n">§7</span><span class="t">What movement A establishes</span></div>
+    <div class="tocmv">B · The Fourier transform</div>
+    <div class="row"><span class="n">§8</span><span class="t">Frequency as a basis</span></div>
+    <div class="row"><span class="n">§9</span><span class="t">The transform</span></div>
+    <div class="row"><span class="n">§10</span><span class="t">The discrete Fourier transform</span></div>
+    <div class="row"><span class="n">§11</span><span class="t">What the transform preserves</span></div>
+    <div class="row"><span class="n">§12</span><span class="t">The fast algorithm</span></div>
+    <div class="row"><span class="n">§13</span><span class="t">Reading a spectrum</span></div>
+    <div class="row"><span class="n">§14</span><span class="t">The convolution theorem</span></div>
+    <div class="row"><span class="n">§15</span><span class="t">What it costs</span></div>
+    <div class="row"><span class="n">§16</span><span class="t">What movement B establishes</span></div>
+    <div class="tocmv">C · Filters, phase and the window</div>
+    <div class="row"><span class="n">§17</span><span class="t">A filter is a convolution</span></div>
+    <div class="row"><span class="n">§18</span><span class="t">Magnitude and phase</span></div>
+    <div class="row"><span class="n">§19</span><span class="t">Frequency response, and the four kinds</span></div>
+    <div class="row"><span class="n">§20</span><span class="t">Two ways to build one</span></div>
+    <div class="row"><span class="n">§21</span><span class="t">Leakage, and the window</span></div>
+    <div class="row"><span class="n">§22</span><span class="t">The uncertainty principle for signals</span></div>
+    <div class="row"><span class="n">§23</span><span class="t">The spectrogram, and the mel scale</span></div>
+    <div class="row"><span class="n">§24</span><span class="t">What movement C establishes</span></div>
+    <div class="tocmv">D · The spectra of operators and of data</div>
+    <div class="row"><span class="n">§25</span><span class="t">Eigenvalues are frequencies</span></div>
+    <div class="row"><span class="n">§26</span><span class="t">The graph Laplacian</span></div>
+    <div class="row"><span class="n">§27</span><span class="t">The spectrum of natural data</span></div>
+    <div class="row"><span class="n">§28</span><span class="t">What that licenses</span></div>
+    <div class="row"><span class="n">§29</span><span class="t">Spectral bias</span></div>
+    <div class="row"><span class="n">§30</span><span class="t">Why it happens</span></div>
+    <div class="row"><span class="n">§31</span><span class="t">What follows for training</span></div>
+    <div class="row"><span class="n">§32</span><span class="t">What movement D establishes</span></div>
+    <div class="tocmv">E · Frequency in modern architectures</div>
+    <div class="row"><span class="n">§33</span><span class="t">Positional encoding is a frequency basis</span></div>
+    <div class="row"><span class="n">§34</span><span class="t">Rotary embeddings</span></div>
+    <div class="row"><span class="n">§35</span><span class="t">Extending context by changing frequencies</span></div>
+    <div class="row"><span class="n">§36</span><span class="t">Fourier features</span></div>
+    <div class="row"><span class="n">§37</span><span class="t">What the first layer learns</span></div>
+    <div class="row"><span class="n">§38</span><span class="t">Where the frequency view misleads</span></div>
+    <div class="row"><span class="n">§39</span><span class="t">What movement E establishes</span></div>
+    <div class="tocmv">F · Practice</div>
+    <div class="row"><span class="n">§40</span><span class="t">When to reach for the frequency domain</span></div>
+    <div class="row"><span class="n">§41</span><span class="t">The checks that catch a signals bug</span></div>
+    <div class="row"><span class="n">§42</span><span class="t">What to report</span></div>
+    <div class="row"><span class="n">§43</span><span class="t">Where this connects</span></div>
+    <div class="row"><span class="n">§44</span><span class="t">What is unsolved</span></div>
+    <div class="row"><span class="n">§45</span><span class="t">What to carry forward</span></div>
+    <div class="tocmv">Practice · Drills</div>
+    <div class="tocmv">Build · The project</div>
+    <div class="tocmv">Assess · Checkpoint</div>
+    <div class="part">Part XXVIII: Probabilistic Models and Inference</div>
+    <div class="tocsub">what you can compute once you have written down a joint distribution</div>
+    <div class="tocmv">A · What a joint distribution factorises into</div>
+    <div class="row"><span class="n">§1</span><span class="t">The object, and why it is intractable</span></div>
+    <div class="row"><span class="n">§2</span><span class="t">Factorisation is the whole idea</span></div>
+    <div class="row"><span class="n">§3</span><span class="t">Directed models</span></div>
+    <div class="row"><span class="n">§4</span><span class="t">Conditional independence, read off the graph</span></div>
+    <div class="row"><span class="n">§5</span><span class="t">Measured</span></div>
+    <div class="row"><span class="n">§6</span><span class="t">Undirected models, and what they buy</span></div>
+    <div class="row"><span class="n">§7</span><span class="t">Plates, and the models you already know</span></div>
+    <div class="row"><span class="n">§8</span><span class="t">What movement A establishes</span></div>
+    <div class="tocmv">B · Exact inference, and the models that permit it</div>
+    <div class="row"><span class="n">§9</span><span class="t">The query, and the three kinds</span></div>
+    <div class="row"><span class="n">§10</span><span class="t">Variable elimination</span></div>
+    <div class="row"><span class="n">§11</span><span class="t">Treewidth, and the wall</span></div>
+    <div class="row"><span class="n">§12</span><span class="t">Sequences: the forward–backward algorithm</span></div>
+    <div class="row"><span class="n">§13</span><span class="t">Linear-Gaussian: the Kalman filter</span></div>
+    <div class="row"><span class="n">§14</span><span class="t">Learning with hidden variables</span></div>
+    <div class="row"><span class="n">§15</span><span class="t">EM, and what it guarantees</span></div>
+    <div class="row"><span class="n">§16</span><span class="t">What movement B establishes</span></div>
+    <div class="tocmv">C · Turning inference into optimisation</div>
+    <div class="row"><span class="n">§17</span><span class="t">The idea</span></div>
+    <div class="row"><span class="n">§18</span><span class="t">The evidence lower bound</span></div>
+    <div class="row"><span class="n">§19</span><span class="t">Mean field</span></div>
+    <div class="row"><span class="n">§20</span><span class="t">What it gets wrong</span></div>
+    <div class="row"><span class="n">§21</span><span class="t">The direction of the KL</span></div>
+    <div class="row"><span class="n">§22</span><span class="t">Amortisation, and the VAE recalled</span></div>
+    <div class="row"><span class="n">§23</span><span class="t">Beyond mean field</span></div>
+    <div class="row"><span class="n">§24</span><span class="t">What movement C establishes</span></div>
+    <div class="tocmv">D · Turning inference into sampling</div>
+    <div class="row"><span class="n">§25</span><span class="t">Estimating an expectation</span></div>
+    <div class="row"><span class="n">§26</span><span class="t">Importance sampling, and when it dies</span></div>
+    <div class="row"><span class="n">§27</span><span class="t">Markov chains</span></div>
+    <div class="row"><span class="n">§28</span><span class="t">Metropolis–Hastings and Gibbs</span></div>
+    <div class="row"><span class="n">§29</span><span class="t">Using the gradient</span></div>
+    <div class="row"><span class="n">§30</span><span class="t">How many samples do you have</span></div>
+    <div class="row"><span class="n">§31</span><span class="t">Diagnostics, and what they cannot see</span></div>
+    <div class="row"><span class="n">§32</span><span class="t">What movement D establishes</span></div>
+    <div class="tocmv">E · Continuous time</div>
+    <div class="row"><span class="n">§33</span><span class="t">Brownian motion</span></div>
+    <div class="row"><span class="n">§34</span><span class="t">Stochastic differential equations</span></div>
+    <div class="row"><span class="n">§35</span><span class="t">Itô's lemma, and why calculus changes</span></div>
+    <div class="row"><span class="n">§36</span><span class="t">The reverse-time SDE</span></div>
+    <div class="row"><span class="n">§37</span><span class="t">The probability-flow ODE</span></div>
+    <div class="row"><span class="n">§38</span><span class="t">What this reframes about Part XVI</span></div>
+    <div class="row"><span class="n">§39</span><span class="t">What movement E establishes</span></div>
+    <div class="tocmv">F · Transport, and practice</div>
+    <div class="row"><span class="n">§40</span><span class="t">Comparing distributions</span></div>
+    <div class="row"><span class="n">§41</span><span class="t">Optimal transport</span></div>
+    <div class="row"><span class="n">§42</span><span class="t">Choosing an inference method</span></div>
+    <div class="row"><span class="n">§43</span><span class="t">What to report, and where this connects</span></div>
+    <div class="row"><span class="n">§44</span><span class="t">What is unsolved</span></div>
+    <div class="row"><span class="n">§45</span><span class="t">What to carry forward</span></div>
+    <div class="tocmv">Practice · Drills</div>
+    <div class="tocmv">Build · The project</div>
+    <div class="tocmv">Assess · Checkpoint</div>
+    <div class="part">Part XXIX: Perception: Vision</div>
+    <div class="tocsub">what a camera can tell you, and what it cannot</div>
+    <div class="tocmv">A · When the output is not a label</div>
+    <div class="row"><span class="n">§1</span><span class="t">The output is not a label</span></div>
+    <div class="row"><span class="n">§2</span><span class="t">Three output spaces</span></div>
+    <div class="row"><span class="n">§3</span><span class="t">Boxes, and what they cannot say</span></div>
+    <div class="row"><span class="n">§4</span><span class="t">The metric is a threshold</span></div>
+    <div class="row"><span class="n">§5</span><span class="t">Measured</span></div>
+    <div class="row"><span class="n">§6</span><span class="t">What AP does not measure</span></div>
+    <div class="row"><span class="n">§7</span><span class="t">Class imbalance is structural here</span></div>
+    <div class="row"><span class="n">§8</span><span class="t">What movement A establishes</span></div>
+    <div class="tocmv">B · Detection</div>
+    <div class="row"><span class="n">§9</span><span class="t">The two-stage idea</span></div>
+    <div class="row"><span class="n">§10</span><span class="t">The one-stage idea</span></div>
+    <div class="row"><span class="n">§11</span><span class="t">Anchors, and what replaced them</span></div>
+    <div class="row"><span class="n">§12</span><span class="t">Non-maximum suppression</span></div>
+    <div class="row"><span class="n">§13</span><span class="t">The imbalance, measured</span></div>
+    <div class="row"><span class="n">§14</span><span class="t">What the loss does about it</span></div>
+    <div class="row"><span class="n">§15</span><span class="t">Scale, and the pyramid</span></div>
+    <div class="row"><span class="n">§16</span><span class="t">What movement B establishes</span></div>
+    <div class="tocmv">C · Dense prediction</div>
+    <div class="row"><span class="n">§17</span><span class="t">Semantic segmentation</span></div>
+    <div class="row"><span class="n">§18</span><span class="t">The resolution problem</span></div>
+    <div class="row"><span class="n">§19</span><span class="t">Instance and panoptic</span></div>
+    <div class="row"><span class="n">§20</span><span class="t">Depth from one image</span></div>
+    <div class="row"><span class="n">§21</span><span class="t">Optical flow</span></div>
+    <div class="row"><span class="n">§22</span><span class="t">The aperture problem</span></div>
+    <div class="row"><span class="n">§23</span><span class="t">What dense metrics hide</span></div>
+    <div class="row"><span class="n">§24</span><span class="t">What movement C establishes</span></div>
+    <div class="tocmv">D · Geometry</div>
+    <div class="row"><span class="n">§25</span><span class="t">The pinhole camera</span></div>
+    <div class="row"><span class="n">§26</span><span class="t">Intrinsics and extrinsics</span></div>
+    <div class="row"><span class="n">§27</span><span class="t">Distortion, and calibration</span></div>
+    <div class="row"><span class="n">§28</span><span class="t">Two views, and the epipolar constraint</span></div>
+    <div class="row"><span class="n">§29</span><span class="t">Triangulation, and its error</span></div>
+    <div class="row"><span class="n">§30</span><span class="t">Structure from motion, and bundle adjustment</span></div>
+    <div class="row"><span class="n">§31</span><span class="t">Bird's-eye view, and what the transform assumes</span></div>
+    <div class="row"><span class="n">§32</span><span class="t">What movement D establishes</span></div>
+    <div class="tocmv">E · Video and tracking</div>
+    <div class="row"><span class="n">§33</span><span class="t">What a video adds</span></div>
+    <div class="row"><span class="n">§34</span><span class="t">Tracking as association</span></div>
+    <div class="row"><span class="n">§35</span><span class="t">Motion models</span></div>
+    <div class="row"><span class="n">§36</span><span class="t">Through occlusion</span></div>
+    <div class="row"><span class="n">§37</span><span class="t">The metrics, and what they trade</span></div>
+    <div class="row"><span class="n">§38</span><span class="t">End-to-end, and what it gives up</span></div>
+    <div class="row"><span class="n">§39</span><span class="t">What movement E establishes</span></div>
+    <div class="tocmv">F · Practice</div>
+    <div class="row"><span class="n">§40</span><span class="t">The data engine</span></div>
+    <div class="row"><span class="n">§41</span><span class="t">Evaluating a perception system</span></div>
+    <div class="row"><span class="n">§42</span><span class="t">What to report</span></div>
+    <div class="row"><span class="n">§43</span><span class="t">Where this connects</span></div>
+    <div class="row"><span class="n">§44</span><span class="t">What is unsolved</span></div>
+    <div class="row"><span class="n">§45</span><span class="t">What to carry forward</span></div>
+    <div class="tocmv">Practice · Drills</div>
+    <div class="tocmv">Build · The project</div>
+    <div class="tocmv">Assess · Checkpoint</div>
+    <div class="part">Part XXX: Perception: Audio and Multimodality</div>
+    <div class="tocsub">the other sensor, and what happens when two of them meet</div>
+    <div class="tocmv">A · Sound, and what a spectrogram commits you to</div>
+    <div class="row"><span class="n">§1</span><span class="t">The signal, and its rates</span></div>
+    <div class="row"><span class="n">§2</span><span class="t">Why not the waveform</span></div>
+    <div class="row"><span class="n">§3</span><span class="t">The spectrogram, and its three parameters</span></div>
+    <div class="row"><span class="n">§4</span><span class="t">The mel scale, measured</span></div>
+    <div class="row"><span class="n">§5</span><span class="t">What else is thrown away</span></div>
+    <div class="row"><span class="n">§6</span><span class="t">The cepstrum, and why it is still there</span></div>
+    <div class="row"><span class="n">§7</span><span class="t">Getting the waveform back</span></div>
+    <div class="row"><span class="n">§8</span><span class="t">What movement A establishes</span></div>
+    <div class="tocmv">B · Recognition</div>
+    <div class="row"><span class="n">§9</span><span class="t">The alignment problem</span></div>
+    <div class="row"><span class="n">§10</span><span class="t">The hybrid system, and why it persisted</span></div>
+    <div class="row"><span class="n">§11</span><span class="t">Connectionist temporal classification</span></div>
+    <div class="row"><span class="n">§12</span><span class="t">Checked against enumeration</span></div>
+    <div class="row"><span class="n">§13</span><span class="t">What CTC assumes</span></div>
+    <div class="row"><span class="n">§14</span><span class="t">What that assumption costs</span></div>
+    <div class="row"><span class="n">§15</span><span class="t">Transducers and attention</span></div>
+    <div class="row"><span class="n">§16</span><span class="t">What movement B establishes</span></div>
+    <div class="tocmv">C · Generation</div>
+    <div class="row"><span class="n">§17</span><span class="t">Text to speech, in two stages</span></div>
+    <div class="row"><span class="n">§18</span><span class="t">Duration, and what autoregression costs</span></div>
+    <div class="row"><span class="n">§19</span><span class="t">Vocoders</span></div>
+    <div class="row"><span class="n">§20</span><span class="t">Quantisation, and audio as tokens</span></div>
+    <div class="row"><span class="n">§21</span><span class="t">What a vector quantiser buys</span></div>
+    <div class="row"><span class="n">§22</span><span class="t">Neural codecs</span></div>
+    <div class="row"><span class="n">§23</span><span class="t">Learned front ends</span></div>
+    <div class="row"><span class="n">§24</span><span class="t">What movement C establishes</span></div>
+    <div class="tocmv">D · Two towers</div>
+    <div class="row"><span class="n">§25</span><span class="t">The construction</span></div>
+    <div class="row"><span class="n">§26</span><span class="t">What the negatives are</span></div>
+    <div class="row"><span class="n">§27</span><span class="t">The temperature</span></div>
+    <div class="row"><span class="n">§28</span><span class="t">Zero-shot classification, and what it is</span></div>
+    <div class="row"><span class="n">§29</span><span class="t">Retrieval, and the number you are reporting</span></div>
+    <div class="row"><span class="n">§30</span><span class="t">What the two towers cannot do</span></div>
+    <div class="row"><span class="n">§31</span><span class="t">Audio, and the same construction</span></div>
+    <div class="row"><span class="n">§32</span><span class="t">What movement D establishes</span></div>
+    <div class="tocmv">E · One model, several modalities</div>
+    <div class="row"><span class="n">§33</span><span class="t">Getting a second modality into a language model</span></div>
+    <div class="row"><span class="n">§34</span><span class="t">The resolution problem, in tokens</span></div>
+    <div class="row"><span class="n">§35</span><span class="t">The geometry of the shared space</span></div>
+    <div class="row"><span class="n">§36</span><span class="t">Fusion, and when it should happen</span></div>
+    <div class="row"><span class="n">§37</span><span class="t">Alignment in time</span></div>
+    <div class="row"><span class="n">§38</span><span class="t">Evaluating a multimodal model</span></div>
+    <div class="row"><span class="n">§39</span><span class="t">What movement E establishes</span></div>
+    <div class="tocmv">F · Practice</div>
+    <div class="row"><span class="n">§40</span><span class="t">Choosing a representation</span></div>
+    <div class="row"><span class="n">§41</span><span class="t">Evaluating audio and multimodal systems</span></div>
+    <div class="row"><span class="n">§42</span><span class="t">The failures that repeat</span></div>
+    <div class="row"><span class="n">§43</span><span class="t">Where this connects</span></div>
+    <div class="row"><span class="n">§44</span><span class="t">What is unsolved</span></div>
+    <div class="row"><span class="n">§45</span><span class="t">What to carry forward</span></div>
+    <div class="tocmv">Practice · Drills</div>
+    <div class="tocmv">Build · The project</div>
+    <div class="tocmv">Assess · Checkpoint</div>
+    <div class="part">Part XXXI: Agents, Control and Embodiment</div>
+    <div class="tocsub">acting in a world that pushes back</div>
+    <div class="tocmv">A · Feedback</div>
+    <div class="row"><span class="n">§1</span><span class="t">Prediction is not control</span></div>
+    <div class="row"><span class="n">§2</span><span class="t">Open loop, and why it fails</span></div>
+    <div class="row"><span class="n">§3</span><span class="t">Closing the loop</span></div>
+    <div class="row"><span class="n">§4</span><span class="t">Measured</span></div>
+    <div class="row"><span class="n">§5</span><span class="t">The integral term</span></div>
+    <div class="row"><span class="n">§6</span><span class="t">What it costs</span></div>
+    <div class="row"><span class="n">§7</span><span class="t">Delay, and why it destabilises</span></div>
+    <div class="row"><span class="n">§8</span><span class="t">What movement A establishes</span></div>
+    <div class="tocmv">B · Optimal control</div>
+    <div class="row"><span class="n">§9</span><span class="t">Stating the problem</span></div>
+    <div class="row"><span class="n">§10</span><span class="t">The linear-quadratic case</span></div>
+    <div class="row"><span class="n">§11</span><span class="t">How much tuning leaves on the table</span></div>
+    <div class="row"><span class="n">§12</span><span class="t">What LQR assumes</span></div>
+    <div class="row"><span class="n">§13</span><span class="t">Constraints</span></div>
+    <div class="row"><span class="n">§14</span><span class="t">Model-predictive control</span></div>
+    <div class="row"><span class="n">§15</span><span class="t">Nonlinear, and trajectory optimisation</span></div>
+    <div class="row"><span class="n">§16</span><span class="t">What movement B establishes</span></div>
+    <div class="tocmv">C · Learning to act</div>
+    <div class="row"><span class="n">§17</span><span class="t">Three things you could learn</span></div>
+    <div class="row"><span class="n">§18</span><span class="t">Behavioural cloning</span></div>
+    <div class="row"><span class="n">§19</span><span class="t">Why a cloned policy drifts</span></div>
+    <div class="row"><span class="n">§20</span><span class="t">Inverse reinforcement learning</span></div>
+    <div class="row"><span class="n">§21</span><span class="t">How far a learned model can be trusted</span></div>
+    <div class="row"><span class="n">§22</span><span class="t">Offline reinforcement learning</span></div>
+    <div class="row"><span class="n">§23</span><span class="t">Simulation, and the gap</span></div>
+    <div class="row"><span class="n">§24</span><span class="t">What movement C establishes</span></div>
+    <div class="tocmv">D · Robots</div>
+    <div class="row"><span class="n">§25</span><span class="t">Frames, and the bugs they cause</span></div>
+    <div class="row"><span class="n">§26</span><span class="t">Kinematics</span></div>
+    <div class="row"><span class="n">§27</span><span class="t">Dynamics, and why torque control is different</span></div>
+    <div class="row"><span class="n">§28</span><span class="t">Where the state comes from</span></div>
+    <div class="row"><span class="n">§29</span><span class="t">Planning, and dimension</span></div>
+    <div class="row"><span class="n">§30</span><span class="t">Estimation and mapping together</span></div>
+    <div class="row"><span class="n">§31</span><span class="t">The stack, and its interfaces</span></div>
+    <div class="row"><span class="n">§32</span><span class="t">What movement D establishes</span></div>
+    <div class="tocmv">E · Agents</div>
+    <div class="row"><span class="n">§33</span><span class="t">Long horizons, and structure</span></div>
+    <div class="row"><span class="n">§34</span><span class="t">Other agents</span></div>
+    <div class="row"><span class="n">§35</span><span class="t">Acting under a safety requirement</span></div>
+    <div class="row"><span class="n">§36</span><span class="t">Tool use is control</span></div>
+    <div class="row"><span class="n">§37</span><span class="t">What an agent needs that a model does not</span></div>
+    <div class="row"><span class="n">§38</span><span class="t">Modular or end-to-end</span></div>
+    <div class="row"><span class="n">§39</span><span class="t">What movement E establishes</span></div>
+    <div class="tocmv">F · Validation, and practice</div>
+    <div class="row"><span class="n">§40</span><span class="t">Why a test set is not enough</span></div>
+    <div class="row"><span class="n">§41</span><span class="t">Stating the requirement</span></div>
+    <div class="row"><span class="n">§42</span><span class="t">What that costs, measured</span></div>
+    <div class="row"><span class="n">§43</span><span class="t">The safety case</span></div>
+    <div class="row"><span class="n">§44</span><span class="t">What is unsolved</span></div>
+    <div class="row"><span class="n">§45</span><span class="t">What to carry forward</span></div>
+    <div class="tocmv">Practice · Drills</div>
+    <div class="tocmv">Build · The project</div>
+    <div class="tocmv">Assess · Checkpoint</div>
+    <div class="part">Part XXXII: Systems and Security</div>
+    <div class="tocsub">the machine underneath, and the adversary in front</div>
+    <div class="tocmv">A · The machine</div>
+    <div class="row"><span class="n">§1</span><span class="t">The gap that organises everything</span></div>
+    <div class="row"><span class="n">§2</span><span class="t">The hierarchy</span></div>
+    <div class="row"><span class="n">§3</span><span class="t">Arithmetic intensity</span></div>
+    <div class="row"><span class="n">§4</span><span class="t">The roofline</span></div>
+    <div class="row"><span class="n">§5</span><span class="t">Measured</span></div>
+    <div class="row"><span class="n">§6</span><span class="t">Occupancy, and why it is not the goal</span></div>
+    <div class="row"><span class="n">§7</span><span class="t">Precision</span></div>
+    <div class="row"><span class="n">§8</span><span class="t">What movement A establishes</span></div>
+    <div class="tocmv">B · Making it fast</div>
+    <div class="row"><span class="n">§9</span><span class="t">Fusion</span></div>
+    <div class="row"><span class="n">§10</span><span class="t">What it is worth</span></div>
+    <div class="row"><span class="n">§11</span><span class="t">Blocking</span></div>
+    <div class="row"><span class="n">§12</span><span class="t">What that is worth</span></div>
+    <div class="row"><span class="n">§13</span><span class="t">What a compiler does</span></div>
+    <div class="row"><span class="n">§14</span><span class="t">Writing a kernel</span></div>
+    <div class="row"><span class="n">§15</span><span class="t">Reading a profile</span></div>
+    <div class="row"><span class="n">§16</span><span class="t">What movement B establishes</span></div>
+    <div class="tocmv">C · Many machines</div>
+    <div class="row"><span class="n">§17</span><span class="t">The operations that exist</span></div>
+    <div class="row"><span class="n">§18</span><span class="t">Why the ring</span></div>
+    <div class="row"><span class="n">§19</span><span class="t">The network is not uniform</span></div>
+    <div class="row"><span class="n">§20</span><span class="t">Overlap</span></div>
+    <div class="row"><span class="n">§21</span><span class="t">What actually goes wrong at scale</span></div>
+    <div class="row"><span class="n">§22</span><span class="t">Where the memory goes</span></div>
+    <div class="row"><span class="n">§23</span><span class="t">Serving is a different problem</span></div>
+    <div class="row"><span class="n">§24</span><span class="t">What movement C establishes</span></div>
+    <div class="tocmv">D · Privacy</div>
+    <div class="row"><span class="n">§25</span><span class="t">What a model leaks</span></div>
+    <div class="row"><span class="n">§26</span><span class="t">Differential privacy</span></div>
+    <div class="row"><span class="n">§27</span><span class="t">Making training private</span></div>
+    <div class="row"><span class="n">§28</span><span class="t">The shape of the trade</span></div>
+    <div class="row"><span class="n">§29</span><span class="t">Federated learning</span></div>
+    <div class="row"><span class="n">§30</span><span class="t">Membership inference</span></div>
+    <div class="row"><span class="n">§31</span><span class="t">Memorisation in large models</span></div>
+    <div class="row"><span class="n">§32</span><span class="t">What movement D establishes</span></div>
+    <div class="tocmv">E · Adversaries</div>
+    <div class="row"><span class="n">§33</span><span class="t">Stating a threat model</span></div>
+    <div class="row"><span class="n">§34</span><span class="t">Adversarial examples</span></div>
+    <div class="row"><span class="n">§35</span><span class="t">Poisoning and backdoors</span></div>
+    <div class="row"><span class="n">§36</span><span class="t">Model extraction</span></div>
+    <div class="row"><span class="n">§37</span><span class="t">Agents, and the confused deputy</span></div>
+    <div class="row"><span class="n">§38</span><span class="t">What defends, and what does not</span></div>
+    <div class="row"><span class="n">§39</span><span class="t">What movement E establishes</span></div>
+    <div class="tocmv">F · Practice</div>
+    <div class="row"><span class="n">§40</span><span class="t">Before you optimise</span></div>
+    <div class="row"><span class="n">§41</span><span class="t">What to report about performance</span></div>
+    <div class="row"><span class="n">§42</span><span class="t">What to state before claiming security</span></div>
+    <div class="row"><span class="n">§43</span><span class="t">Where this connects</span></div>
+    <div class="row"><span class="n">§44</span><span class="t">What is unsolved, and what this part cannot establish</span></div>
+    <div class="row"><span class="n">§45</span><span class="t">What to carry forward</span></div>
+    <div class="tocmv">Practice · Drills</div>
+    <div class="tocmv">Build · The project</div>
+    <div class="tocmv">Assess · Checkpoint</div>
+    <div class="part">Part XXXIII: Search and Planning</div>
+    <div class="tocsub">the other tradition, and why it came back</div>
+    <div class="tocmv">A · The search problem</div>
+    <div class="row"><span class="n">§1</span><span class="t">Where this fits</span></div>
+    <div class="row"><span class="n">§2</span><span class="t">The state space</span></div>
+    <div class="row"><span class="n">§3</span><span class="t">The choice of state is the modelling</span></div>
+    <div class="row"><span class="n">§4</span><span class="t">Searching without a clue</span></div>
+    <div class="row"><span class="n">§5</span><span class="t">The four questions</span></div>
+    <div class="row"><span class="n">§6</span><span class="t">The frontier and the closed list</span></div>
+    <div class="tocmv">B · Heuristics</div>
+    <div class="row"><span class="n">§7</span><span class="t">Greedy best-first</span></div>
+    <div class="row"><span class="n">§8</span><span class="t">A*</span></div>
+    <div class="row"><span class="n">§9</span><span class="t">Admissibility, and why it gives optimality</span></div>
+    <div class="row"><span class="n">§10</span><span class="t">What a heuristic actually buys</span></div>
+    <div class="row"><span class="n">§11</span><span class="t">Giving up optimality on purpose</span></div>
+    <div class="row"><span class="n">§12</span><span class="t">Consistency, and the cost of not having it</span></div>
+    <div class="row"><span class="n">§13</span><span class="t">Where heuristics come from</span></div>
+    <div class="row"><span class="n">§14</span><span class="t">Dominance, and combining</span></div>
+    <div class="tocmv">C · Too big to hold</div>
+    <div class="row"><span class="n">§15</span><span class="t">Local search</span></div>
+    <div class="row"><span class="n">§16</span><span class="t">Getting out</span></div>
+    <div class="row"><span class="n">§17</span><span class="t">Beam search</span></div>
+    <div class="row"><span class="n">§18</span><span class="t">What beam search is actually doing</span></div>
+    <div class="row"><span class="n">§19</span><span class="t">Branch and bound</span></div>
+    <div class="row"><span class="n">§20</span><span class="t">Where bounds come from</span></div>
+    <div class="row"><span class="n">§21</span><span class="t">Trading time for memory</span></div>
+    <div class="row"><span class="n">§22</span><span class="t">Choosing to stop being optimal</span></div>
+    <div class="tocmv">D · A continuous world</div>
+    <div class="row"><span class="n">§23</span><span class="t">Configuration space</span></div>
+    <div class="row"><span class="n">§24</span><span class="t">Why you cannot just discretise</span></div>
+    <div class="row"><span class="n">§25</span><span class="t">Sampling instead of enumerating</span></div>
+    <div class="row"><span class="n">§26</span><span class="t">Probabilistic roadmaps</span></div>
+    <div class="row"><span class="n">§27</span><span class="t">Rapidly-exploring random trees</span></div>
+    <div class="row"><span class="n">§28</span><span class="t">Optimality, dynamics, and the real stack</span></div>
+    <div class="tocmv">E · Uncertainty and adversaries</div>
+    <div class="row"><span class="n">§29</span><span class="t">The exploration problem, in miniature</span></div>
+    <div class="row"><span class="n">§30</span><span class="t">Optimism</span></div>
+    <div class="row"><span class="n">§31</span><span class="t">Monte Carlo tree search</span></div>
+    <div class="row"><span class="n">§32</span><span class="t">The exploration constant is not a property of the algorithm</span></div>
+    <div class="row"><span class="n">§33</span><span class="t">What replacing the rollout changed</span></div>
+    <div class="row"><span class="n">§34</span><span class="t">Adversaries</span></div>
+    <div class="row"><span class="n">§35</span><span class="t">Alpha–beta</span></div>
+    <div class="row"><span class="n">§36</span><span class="t">Ordering is the whole game</span></div>
+    <div class="row"><span class="n">§37</span><span class="t">When the game is not chess</span></div>
+    <div class="tocmv">F · Search with a learned model</div>
+    <div class="row"><span class="n">§38</span><span class="t">The shape almost everything has</span></div>
+    <div class="row"><span class="n">§39</span><span class="t">The degenerate case, which is most of the field</span></div>
+    <div class="row"><span class="n">§40</span><span class="t">Verifiers</span></div>
+    <div class="row"><span class="n">§41</span><span class="t">How good a verifier has to be</span></div>
+    <div class="row"><span class="n">§42</span><span class="t">Test-time compute is a search budget</span></div>
+    <div class="row"><span class="n">§43</span><span class="t">Search inside the model, and around it</span></div>
+    <div class="row"><span class="n">§44</span><span class="t">When not to search</span></div>
+    <div class="row"><span class="n">§45</span><span class="t">What to carry forward</span></div>
+    <div class="tocmv">Practice · Drills</div>
+    <div class="tocmv">Build · The project</div>
+    <div class="tocmv">Assess · Checkpoint</div>
+    <div class="part">Back matter</div>
+    <div class="tocmv">Glossary</div>
+    <div class="tocmv">Reading the literature</div>
+    <div class="row"><span class="n">§1</span><span class="t">Papers are not read linearly</span></div>
+    <div class="row"><span class="n">§2</span><span class="t">Read the figures before the text</span></div>
+    <div class="row"><span class="n">§3</span><span class="t">The questions to ask</span></div>
+    <div class="row"><span class="n">§4</span><span class="t">Read old papers</span></div>
+    <div class="row"><span class="n">§5</span><span class="t">The reading list, gathered</span></div>
+    <div class="row"><span class="n">§6</span><span class="t">Practical notes</span></div>
+    <div class="tocmv">Colophon</div>
+    <div class="row plain"><span class="t">The build</span></div>
+    <div class="row plain"><span class="t">The guards</span></div>
+    <div class="row plain"><span class="t">Verification</span></div>
+    <div class="row plain"><span class="t">Typography</span></div>
+    <div class="row plain"><span class="t">On sources</span></div>
+    <div class="row plain"><span class="t">This edition</span></div>
+    <div class="row plain"><span class="t">The path the book took</span></div>
+  </div>
+</div>

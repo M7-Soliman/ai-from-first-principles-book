@@ -1,0 +1,274 @@
+<h2><span class="part-kicker">Part A</span>From the bottleneck to attention</h2>
+
+<h3><span class="num">§1</span> The problem, restated</h3>
+
+<div class="sixty">
+  <span class="label">In 60 seconds</span>
+  <p>Part XI §27 measured it: an encoder must compress a whole input into one vector
+  <b>before knowing which output it will be asked for first</b>, and widening the vector
+  sixteenfold bought 0.12. The fix is not a bigger summary. It is to stop summarising in
+  advance and let the decoder <b>go and look</b>.</p>
+</div>
+
+<p>The encoder–decoder of Part XI §27 is a good architecture with one structural defect, and
+it is worth stating the defect in the sharpest available form because everything in this part
+follows from removing it.</p>
+
+<p>The decoder receives a context $C$, one vector, computed by the encoder from the entire
+input. To produce its first output the decoder consults $C$. To produce its tenth output it
+consults the same $C$. So $C$ must contain, simultaneously, whatever is needed for every
+output the decoder will ever produce, and it must have been computed before any of them
+existed.</p>
+
+<div class="box why">
+  <span class="label">Why this is not a capacity problem</span>
+  <p>The natural response is that $C$ is too small. Part XI's Figure 9 tested it: at an input
+  length of 24, widening the context from 4 to 64, <b>sixteen times</b>, moved accuracy from
+  0.328 to 0.444.</p>
+  <p>If capacity were the constraint the curve would rise steeply and flatten near the top. It
+  does not. What limits the architecture is that a <b>fixed summary computed in ignorance of
+  the question cannot be right for every question</b>, and there is no size at which that stops
+  being true.</p>
+  <p>Which suggests the shape of the fix immediately. Do not compute a summary. Keep everything
+  the encoder produced, and let each decoder step decide for itself what to look at.</p>
+</div>
+
+<h3><span class="num">§2</span> Attention, derived</h3>
+
+<p>Suppose the encoder gives you not one vector but $n$ of them, one per input position:
+$\mathbf{v}_1, \ldots, \mathbf{v}_n$. The decoder, at some step, needs a summary, but a
+summary chosen for <i>this</i> step.</p>
+
+<p>The most general thing it could take is a weighted average:</p>
+
+$$\mathbf{c} = \sum_{i=1}^{n} a_i \mathbf{v}_i, \qquad a_i \geq 0, \qquad \sum_i a_i = 1$$
+
+<p>and the whole design problem is now: <b>where do the weights come from?</b></p>
+
+<div class="box intuition">
+  <span class="label">Intuition: three demands on the weights, and each pins something down</span>
+  <p><b>They must depend on the decoder's current state.</b> Otherwise the summary is the same
+  at every step and you are back to $C$. So something the decoder emits, call it a
+  <b>query</b>, has to enter the calculation.</p>
+  <p><b>They must depend on the content at each position.</b> Otherwise the model can only
+  learn fixed positional habits. So each position must offer something to be matched against
+  the query, call it a <b>key</b>.</p>
+  <p><b>They must be differentiable.</b> Part XI §26 met the alternative: a hard choice of one
+  position has no gradient, and the whole apparatus of this book is built on gradients. So the
+  selection has to be soft: every position gets a weight, most of them small.</p>
+  <p>Three requirements, and they have already forced the architecture. A query, a key per
+  position, a score comparing them, a normalisation making the scores into weights, and a value
+  per position to be averaged.</p>
+</div>
+
+<div class="box def">
+  <span class="label">Attention</span>
+  <p>Given a query $\mathbf{q}$, keys $\mathbf{k}_1,\ldots,\mathbf{k}_n$ and values
+  $\mathbf{v}_1,\ldots,\mathbf{v}_n$:</p>
+  <p>$$a_i = \frac{\exp(s(\mathbf{q}, \mathbf{k}_i))}{\sum_j \exp(s(\mathbf{q}, \mathbf{k}_j))},
+  \qquad
+  \text{attn}(\mathbf{q}) = \sum_i a_i \mathbf{v}_i$$</p>
+  <p>The softmax of Part II §20 does the normalising, for the reasons it always does: it turns
+  arbitrary real scores into a distribution, and it is differentiable everywhere.</p>
+</div>
+
+<p>Nothing here is arbitrary except the score function $s$, and §4 pins that down too.</p>
+
+<h3><span class="num">§3</span> Queries, keys and values: why three</h3>
+
+<p>A reasonable objection: why does each position need <b>two</b> vectors, a key and a value?
+Why not match against the thing you are going to retrieve?</p>
+
+<div class="box why">
+  <span class="label">Why the thing you search by is not the thing you want back</span>
+  <p>Consider what the two are for. The <b>key</b> is matched against the query: it answers
+  "is this position relevant to what is being asked?". The <b>value</b> is what gets returned:
+  it answers "what should the asker receive?".</p>
+  <p>Those are different questions and there is no reason the same vector should be good at
+  both. A position holding the word <i>bank</i> might want to be <b>found</b> by queries about
+  rivers and about money, and want to <b>deliver</b> quite different content depending on
+  which. Tying key to value forces relevance and content to be the same representation.</p>
+  <p>The general form of the argument is worth keeping: <b>separating the address from the
+  contents is what makes a lookup a lookup.</b> Part XI §26's memory cells had the same
+  structure and for the same reason: content-based addressing needs something to address by.</p>
+</div>
+
+<p>In practice all three come from the same underlying vectors, through three learned linear
+maps:</p>
+
+$$Q = XW^Q, \qquad K = XW^K, \qquad V = XW^V$$
+
+<p>so the model decides for itself what aspect of each position serves as its address and what
+serves as its contents. Three matrices, and the fourth ($W^O$, mixing the result back) is
+§14's.</p>
+
+<h3><span class="num">§4</span> Scaled dot-product, and where the $\sqrt{d}$ comes from</h3>
+
+<p>The score $s(\mathbf{q}, \mathbf{k})$ could be anything differentiable. Early work used a
+small network: <b>additive attention</b>, which is a one-hidden-layer MLP on the concatenated
+pair. It works. It is also $n$ separate small matrix products, where the alternative is one
+large one.</p>
+
+<p>The dot product $\mathbf{q}^\top\mathbf{k}$ measures alignment (Part I §6), needs no
+parameters, and turns the whole score computation into a single matrix multiplication
+$QK^\top$, which by Part X §17's argument is the operation hardware is built for. That is the
+entire reason it won.</p>
+
+<p>Used raw it fails, and the failure has an exact cause.</p>
+
+<div class="box worked">
+  <span class="label">Worked: the variance of a dot product, and the only scale that fixes it</span>
+  <p>Let $\mathbf{q}$ and $\mathbf{k}$ have independent components with mean 0 and variance 1.
+  Then</p>
+  <p>$$\mathbb{E}\big[\mathbf{q}^\top\mathbf{k}\big] = 0,
+  \qquad
+  \text{Var}\big[\mathbf{q}^\top\mathbf{k}\big]
+  = \sum_{i=1}^{d} \text{Var}[q_i k_i] = d$$</p>
+  <p>because the $d$ terms are independent and each has unit variance. Measured over
+  $d = 4$ to $2048$, the ratio $\text{Var}[\mathbf{q}^\top\mathbf{k}]/d$ came out between
+  <b>0.86 and 1.12</b>.</p>
+  <p>So the logits have standard deviation $\sqrt{d}$. At $d = 2048$ that is about 45, and a
+  softmax over logits spread across $\pm 45$ is a hard maximum. Dividing by $\sqrt{d}$ returns
+  them to unit variance, and it is the <b>only</b> scaling that does so independently of $d$.</p>
+</div>
+
+<figure>
+  <img src="figures/at/01-sqrt-d.svg" alt="Standard deviation of a logit and attention entropy against head dimension, with and without scaling">
+  <figcaption><b>Figure 1.</b> Left: the measured standard deviation of $\mathbf{q}^\top
+  \mathbf{k}$ against $\sqrt{d}$ (the prediction, not a fit). Right: the entropy of the
+  resulting attention weights over 64 positions. Unscaled, it collapses from 2.70 to
+  <b>0.102</b> as $d$ grows, against $\ln 64 = 4.159$ for uniform attention: the softmax
+  becomes an <code>argmax</code>. Divided by $\sqrt{d}$ it holds between <b>3.65 and 3.72</b>
+  at every width.</figcaption>
+</figure>
+
+<div class="box why">
+  <span class="label">Why a saturated softmax is fatal rather than merely undesirable</span>
+  <p>It is not that hard attention is a bad answer. It is what it does to the gradient.</p>
+  <p>Differentiate Part II §20's definition $a_i = e^{s_i}/\sum_j e^{s_j}$ and the Jacobian
+  falls out directly: quotient rule, using $\partial a_j/\partial s_j = a_j$ for the
+  denominator's own term:
+  $$\frac{\partial a_i}{\partial s_j} = a_i(\delta_{ij} - a_j)$$
+  When one weight is near 1 and the rest near 0, <b>every one of those terms is near
+  zero</b>. The layer stops learning, and it stops learning at initialisation, before it has
+  any idea which position it ought to be attending to.</p>
+  <p>So the model is frozen into whatever arbitrary choice its random initialisation made. This
+  is Part VII §7's saturation argument, in a place nobody expects it: not in an activation
+  function but in an attention weight.</p>
+</div>
+
+<div class="box def">
+  <span class="label">Scaled dot-product attention</span>
+  <p>$$\text{Attention}(Q, K, V) = \text{softmax}\!\left(\frac{QK^\top}{\sqrt{d_k}}\right) V$$</p>
+  <p>with $Q$ of shape $(n_q, d_k)$, $K$ of shape $(n_k, d_k)$, $V$ of shape $(n_k, d_v)$, and
+  the output $(n_q, d_v)$. The softmax is over the last axis: over <b>keys</b>, so each
+  query's weights sum to one.</p>
+</div>
+
+<div class="box fw">
+  <span class="label">In the framework: the whole formula, one call</span>
+  <p>The scale, the softmax and the weighted sum just derived are one function call, worth
+  meeting now rather than after it has been used silently for the rest of the part. The snippet
+  also passes a mask, which is <b>not yet derived</b>: §21 builds it properly, and it is shown
+  here only because the fused kernel takes it as one argument to the same call rather than as a
+  separate step.</p>
+<pre><code><span class="k">import</span> torch.nn.functional <span class="k">as</span> F
+
+<span class="c"># q, k, v: each (batch, heads, n, d_k)</span>
+out = F.scaled_dot_product_attention(q, k, v, is_causal=<span class="n">True</span>)
+<span class="c"># agrees with softmax(q @ k.transpose(-2, -1) / d_k**0.5, masked) @ v to 5e-7</span>
+</code></pre>
+  <p><b>What each piece corresponds to.</b> The $1/\sqrt{d_k}$ scale is applied inside the
+  call, not supplied by the caller; it is this section's derivation, not a hyperparameter.
+  <code>is_causal=True</code> is §21's mask, built in rather than constructed by hand. There is
+  no separate projection step: $Q$, $K$ and $V$ are §3's $W^Q$, $W^K$, $W^V$ applied
+  <i>before</i> this call, not inside it.</p>
+  <p><b>Why it is designed that way.</b> One function rather than four composed operations,
+  because the composition is exactly what §29 rewrites. Given $Q$, $K$ and $V$ alone, the
+  library is free to route to whichever tiled, IO-aware kernel is fastest on the hardware it
+  finds itself on; the point of calling the primitive, rather than writing softmax and matmul
+  by hand, is that the substitution happens without the caller's code changing.</p>
+  <p><b>What breaks.</b> Passing an explicit <code>attn_mask</code> together with
+  <code>is_causal=True</code> raises: they are two ways of saying the same thing, and the
+  function will not guess which one you meant. And $Q$, $K$ and $V$ must share a dtype; mixing
+  precisions, an easy mistake when only one tensor came from a cached buffer, raises rather than
+  silently upcasting.</p>
+</div>
+
+<h3><span class="num">§5</span> Two ways to read it</h3>
+
+<p>The formula is short and admits two readings, both useful and neither complete.</p>
+
+<div class="box intuition">
+  <span class="label">Reading one: a soft dictionary</span>
+  <p>A Python dictionary maps a key to a value by exact match: <code>d[k]</code> returns the
+  value whose key is exactly <code>k</code>, and fails otherwise.</p>
+  <p>Attention is that operation with the exact match replaced by a similarity, and the single
+  result replaced by a weighted blend of all of them. Query a dictionary of word meanings with
+  something halfway between <i>river</i> and <i>money</i> and you get a mixture. The softmax
+  temperature, set by $\sqrt{d_k}$, controls how nearly exact the match has to be.</p>
+  <p>This reading is why the mechanism is sometimes called <b>content-based addressing</b>, and
+  why Part XI §26's neural Turing machine turned out to be doing the same thing.</p>
+</div>
+
+<div class="box intuition">
+  <span class="label">Reading two: kernel smoothing</span>
+  <p>Part VI §16's nearest-neighbour methods answered a query by looking at nearby training
+  points. Kernel regression generalised that: weight <b>every</b> point by a kernel of its
+  distance to the query, and average.</p>
+  <p>Attention is kernel regression with an exponential kernel on the inner product, where the
+  "training points" are the other positions in this input and the metric is <b>learned</b>
+  rather than chosen.</p>
+  <p>This reading is the more useful one for intuition about failure. Kernel methods degrade
+  when the kernel is badly scaled: too wide and everything is averaged into mush, too narrow
+  and only one point contributes. §4's entropy measurement is exactly that failure, and §25's
+  entropy collapse is it happening during training rather than at initialisation.</p>
+</div>
+
+<h3><span class="num">§6</span> Cross-attention, and what it fixed</h3>
+
+<div class="readnow"><span class="label">Go and read</span><p><span class="src">Bahdanau, Cho &amp; Bengio (2015)</span>, <i>Neural machine translation by jointly learning to align and translate</i>. Attention, invented, and worth reading for how <b>narrowly</b> it is framed. It is presented as a repair to a bottleneck in a translation model, and nothing in it suggests that the component is about to replace everything around it. A good corrective to the sense that important ideas arrive announcing themselves.</p></div>
+
+<p>Put the two together. The decoder produces queries from its own state; the encoder produces
+keys and values from the input. Every decoder step computes its own weighted average over
+<b>every</b> encoder position, choosing the weights afresh.</p>
+
+<p>That is <b>cross-attention</b>, and it is the 2014 mechanism in its original form. Against
+Part XI §28's four limitations:</p>
+
+<div class="box def">
+  <span class="label">What cross-attention removed, and what it did not</span>
+  <table class="compact">
+    <thead><tr><th>Part XI §28's limitation</th><th>Status</th></tr></thead>
+    <tbody>
+      <tr><td>A fixed-size context cannot serve every question</td>
+          <td><b>Removed.</b> There is no fixed context. Each step builds its own.</td></tr>
+      <tr><td>The path between distant positions is long</td>
+          <td><b>Removed between encoder and decoder</b>: one step. Still long
+          <i>within</i> each, which §7 fixes.</td></tr>
+      <tr><td>Training cannot be parallelised over the sequence</td>
+          <td><b>Not removed.</b> Both halves are still recurrent.</td></tr>
+      <tr><td>Stationarity is assumed and never checked</td>
+          <td><b>Not removed.</b> Still one recurrent transition function.</td></tr>
+    </tbody>
+  </table>
+</div>
+
+<p>Two of four, and the two that remained were the ones that mattered most for scale. For three
+years attention was understood as a component you bolted onto a recurrent model to fix its
+bottleneck.</p>
+
+<div class="box why">
+  <span class="label">Why the next step took three years</span>
+  <p>The move from here to §7 is one sentence long: apply the same operation with the sequence
+  attending to <b>itself</b>, and then notice that if you do it everywhere you no longer need
+  the recurrence at all.</p>
+  <p>It is worth sitting with the fact that this took the field three years, because it says
+  something about how ideas actually move. Attention was invented <i>as a repair</i>. Seeing it
+  instead as a <b>replacement</b> required giving up the assumption that a sequence model must
+  process a sequence in order, and that assumption was not written down anywhere, which is
+  precisely what made it hard to discard.</p>
+  <p>The paper that did it is called <i>Attention is all you need</i>. The title is a joke about
+  exactly this: the component everyone treated as an accessory turned out to be the whole
+  thing.</p>
+</div>

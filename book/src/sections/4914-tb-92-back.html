@@ -1,0 +1,198 @@
+<h2><span class="part-kicker">Build</span>The project</h2>
+
+<p class="lede">Twelve to sixteen hours. You write a gradient booster from the splitting rule
+upward, then use it to run the two comparisons this book has been citing without performing:
+trees against networks, and an honest split against a careless one.</p>
+
+<h3><span class="num">P.1</span> What you are building</h3>
+
+<p><b><code>rowwise</code></b>: a histogram-based gradient booster with second-order leaves, early
+stopping and subsampling; a bagged forest sharing the same tree; and a validation harness that
+knows about time and groups.</p>
+
+<p>The rule: <b>numpy only, and every comparison repeated</b>. A single split gives one number with
+no error bar, and a ratio quoted off it is a ratio quoted off noise.</p>
+
+<h3><span class="num">P.2</span> Stage 1: one tree</h3>
+
+<ol>
+  <li>Implement exact split search on one feature, refusing thresholds between equal values.</li>
+  <li>Recurse with a depth limit and a minimum leaf size.</li>
+  <li>Sweep the depth and plot training and test error, counting leaves.</li>
+  <li>Build an XOR target and confirm a depth-1 search finds nothing.</li>
+</ol>
+
+<p><b>Deliverable:</b> the depth curve with the leaf count beside it, and the XOR result. Step four
+is what greedy growth costs, stated as a measurement rather than a caveat.</p>
+
+<h3><span class="num">P.3</span> Stage 2: histograms</h3>
+
+<ol>
+  <li>Bin every feature once at quantiles. Rewrite the split search as a cumulative sum over a
+  bincount.</li>
+  <li>Check it agrees with the exact search when the binning is fine.</li>
+  <li>Implement the sibling-subtraction trick and build only the smaller child.</li>
+  <li>Sweep the bin count over several seeds and plot accuracy.</li>
+</ol>
+
+<p><b>Deliverable:</b> the agreement check and the bin sweep. Note where accuracy stops improving
+and whether it then declines, and say which of the two jobs binning is doing on your data.</p>
+
+<h3><span class="num">P.4</span> Stage 3: averaging</h3>
+
+<ol>
+  <li>Bag your tree. Plot test error against the number of trees.</li>
+  <li>Measure the mean pairwise correlation between the trees' predictions.</li>
+  <li>Sweep the feature fraction, several repetitions each, and plot the ensemble error with error
+  bars alongside the single-tree error and the correlation.</li>
+  <li>Report the paired difference between your best fraction and using every feature, with its
+  standard error.</li>
+</ol>
+
+<p><b>Deliverable:</b> the three curves with error bars, and the paired comparison. Whether the
+subsampling pays on your data is a question about your columns, and step four is how you answer
+it rather than inheriting a default.</p>
+
+<h3><span class="num">P.5</span> Stage 4: boosting</h3>
+
+<ol>
+  <li>Implement the stagewise loop with the negative gradient, first for squared loss.</li>
+  <li>Add the second-order leaf value and the split gain, with the L2 and per-leaf penalties.</li>
+  <li>Swap in the logistic loss, changing only the gradient and curvature.</li>
+  <li>Sweep the learning rate at a fixed budget and plot staged test error. Record which curves
+  converged.</li>
+  <li>Add early stopping on a validation split.</li>
+</ol>
+
+<p><b>Deliverable:</b> the staged curves, annotated with which reached their minimum inside the
+budget. Step three is the payoff of deriving it as a gradient method rather than as a recipe.</p>
+
+<h3><span class="num">P.6</span> Stage 5: the two comparisons</h3>
+
+<ol>
+  <li>Write down your predictions first, in a file, before running anything.</li>
+  <li>Build four generating processes: thresholds, smooth, linear, and a three-way interaction.</li>
+  <li>Tune both your booster and a small network over the same grid on the same validation split.</li>
+  <li>Repeat over at least eight paired draws and report means, spreads and paired differences.</li>
+  <li>Score your predictions against the outcomes.</li>
+</ol>
+
+<p><b>Deliverable:</b> the comparison with error bars, and the scored predictions. If a comparison
+does not separate, say so: that is a result, and it is the one a single split would have
+concealed.</p>
+
+<h3><span class="num">P.7</span> Stage 6: ordered rows</h3>
+
+<ol>
+  <li>Build a series with a trend, a season and a random walk. Construct lag features and assert no
+  row uses information at or after its target.</li>
+  <li>Fit under a random split and under a chronological one. Compare, and compare both against the
+  last-value baseline.</li>
+  <li>Implement rolling-origin validation with expanding and sliding windows.</li>
+  <li>Forecast at several horizons, calibrate a band on a held-out slice at each, and measure its
+  coverage.</li>
+</ol>
+
+<p><b>Deliverable:</b> the two split results with the baseline, and the coverage-against-horizon
+curve. Step four's number is the one to keep: measure it, and if you quote a nominal level instead,
+you will be quoting a promise the data does not support.</p>
+
+<h3><span class="num">P.8</span> Stretch</h3>
+
+<ul>
+  <li><b>Leaf-wise growth</b>, compared with level-wise at matched leaf counts.</li>
+  <li><b>Ordered target statistics</b>, with and without the out-of-fold repair.</li>
+  <li><b>Learned default directions</b> for missing values, against imputation.</li>
+  <li><b>An ensemble across families</b>, weighted on validation.</li>
+  <li><b>A reconciled hierarchy</b> at three levels.</li>
+  <li><b>An audit</b> of a tabular model you actually run.</li>
+</ul>
+
+<h3><span class="num">P.9</span> Done when</h3>
+
+<ul class="checklist">
+  <li>Your tree reproduces a planted threshold and refuses to split between equal values.</li>
+  <li>Your histogram search agrees with the exact one at fine binning.</li>
+  <li>You have a depth curve where training error approaches zero and test error turns.</li>
+  <li>You have measured tree correlation and know your ensemble's floor.</li>
+  <li>Your booster works for squared and logistic loss with only the gradient changed.</li>
+  <li>You know which of your learning-rate curves converged inside the budget.</li>
+  <li>You wrote predictions down before the model comparison and scored them afterwards.</li>
+  <li>Every comparison you report has a spread beside it.</li>
+  <li>You have a random-split and a chronological-split number for the same series, and the
+  baseline.</li>
+  <li>You have a measured coverage number for a forecast band, not a nominal one.</li>
+  <li>Your README names one preprocessing step you were fitting outside the fold.</li>
+</ul>
+
+<div class="box why">
+  <span class="label">Why this project</span>
+  <p>Gradient boosting is used more than any other model in this book and understood by fewer of
+  its users, because it arrives as a library with forty hyperparameters. Written from the splitting
+  rule up it has about six ideas in it, and each one is visible in the code.</p>
+  <p>Stage 5 and Stage 7 are the two the book owes itself. One is a comparison it has cited since
+  Part VI without running; the other is the failure that costs the most in practice and passes every
+  diagnostic in Part XIV on the way through.</p>
+</div>
+
+<h2 class="nobreak"><span class="part-kicker">Assess</span>Checkpoint</h2>
+
+<ul class="checklist">
+  <li>Say what a table lacks that an image and a sequence have, and what follows for architecture.</li>
+  <li>State a decision tree's hypothesis class in one sentence.</li>
+  <li>Write the impurity-reduction criterion in the sum form and say why that form matters.</li>
+  <li>Explain why greedy growth misses XOR, and why the ensemble does not.</li>
+  <li>Describe histogram split-finding and the sibling-subtraction trick.</li>
+  <li>Say where a single tree's test error turns and why the classical curve is clean here.</li>
+  <li>Give three ways to control a tree's capacity and say which suits an ensemble member.</li>
+  <li>State the averaging identity and identify the term that does not vanish.</li>
+  <li>Say why a bagged tree is grown deep when a lone tree is not.</li>
+  <li>Explain what feature subsampling does to each term of the identity.</li>
+  <li>Say what decides whether subsampling pays on a given dataset.</li>
+  <li>Describe out-of-bag estimation and the assumption it needs.</li>
+  <li>Give the bias in impurity importance and the one in permutation importance.</li>
+  <li>Say why neither importance measure answers a causal question.</li>
+  <li>Derive gradient boosting as gradient descent in function space.</li>
+  <li>Write the second-order leaf value and the matching split gain.</li>
+  <li>Say why the same expression scores the split and sets the leaf.</li>
+  <li>Explain why the learning rate and the tree count are one hyperparameter.</li>
+  <li>Say whether boosting overfits, and where the contrary claim comes from.</li>
+  <li>Name four regularisers in a boosted ensemble and what each restrains.</li>
+  <li>Give three categorical encodings and the leak in the two best ones.</li>
+  <li>Describe learned default directions for missing values and when they are a trap.</li>
+  <li>Say what binning costs and what it buys, in both senses.</li>
+  <li>Name what the three main implementations differ on.</li>
+  <li>Say why boosting with logistic loss is calibrated and a vote fraction is not.</li>
+  <li>Explain why a monotone calibrator changes no ranking.</li>
+  <li>Give the three requirements for a model-family comparison to mean anything.</li>
+  <li>Say which family wins on thresholds, on linear targets, and on high-order interactions.</li>
+  <li>State what the folk claim about tabular data is really a claim about.</li>
+  <li>List what to split on, and name four things that must live inside the fold.</li>
+  <li>Give an honest decision procedure for choosing a model family on a table.</li>
+  <li>Name the four assumptions a time index removes.</li>
+  <li>Define stationarity and say what differencing costs.</li>
+  <li>Say what the autocorrelation and partial autocorrelation functions diagnose.</li>
+  <li>Name four classical forecasting methods and say why they remain baselines.</li>
+  <li>Give the ratio between a random and a chronological split on an autocorrelated series, and
+  explain where it comes from.</li>
+  <li>Describe rolling-origin validation and the expanding-versus-sliding diagnostic.</li>
+  <li>Distinguish direct from recursive multi-horizon forecasting.</li>
+  <li>Say what happens to a conformal band's coverage along a forecast horizon, and why.</li>
+  <li>Name two proper scoring rules for a probabilistic forecast.</li>
+  <li>Explain hierarchical reconciliation and why it improves accuracy rather than only
+  arithmetic.</li>
+  <li>Distinguish an anomaly from a change point and say why one is only detectable with delay.</li>
+  <li>Give three conditions under which a neural forecaster earns its place.</li>
+</ul>
+
+<div class="box fw">
+  <span class="label">The framework, and the prior</span>
+  <p>Dataset, model family, loss, optimiser; then Part XXI's claim about what the result
+  establishes, Part XXII's estimand, and Part XXIV's interval. This part is about the second choice,
+  and it says something the earlier parts left implicit: <b>the model family is a prior about the
+  shape of the function</b>, and it should be chosen against what you believe that shape is.</p>
+  <p>Trees represent thresholds exactly and hyperplanes as staircases. Networks are the reverse.
+  Convolution assumes locality; recurrence assumes an order that matters. None of these is a
+  statement about a data format, and reading them as one ("tabular data wants trees") is how a
+  choice that should be about the world becomes a choice about a file extension.</p>
+</div>

@@ -1,0 +1,267 @@
+<h2><span class="part-kicker">Part F</span>What attention is, and is not</h2>
+
+<h3><span class="num">§35</span> Vision transformers, and Part X settled</h3>
+
+<div class="readnow"><span class="label">Go and read</span><p><span class="src">Dosovitskiy et al. (2021)</span>, <i>An image is worth 16×16 words: transformers for image recognition at scale</i>. Already read at Part X §32; it belongs here too, now that both architectures are on the page. It is honest about the condition on its own result: with limited data the transformer loses decisively, and it wins only once the dataset is very large: Part X §11's infinitely strong prior, priced by the people who removed it.</p></div>
+
+<p>Part X §32 left a question open. Here is the honest answer, now that both mechanisms have
+been derived.</p>
+
+<p>A vision transformer cuts the image into patches, typically $16\times16$, projects each to
+a vector, adds positional encodings, and runs an ordinary transformer over the resulting
+sequence. There is no convolution and the model has no notion that patch 5 is adjacent to
+patch 6 except what it learns from the positional encoding.</p>
+
+<div class="box why">
+  <span class="label">Why it loses on small data and wins on large</span>
+  <p>Part X §11 called convolution an <b>infinitely strong prior</b>: locality and translation
+  equivariance, encoded so firmly the model cannot consider anything else. A prior substitutes
+  an assumption for observations, so it is worth most when observations are scarce.</p>
+  <p>The vision transformer discards that prior. It must learn from data that nearby patches are
+  related, which is possible, and which costs data. The original paper is explicit: below about
+  a hundred million images the transformer loses; above it, it wins.</p>
+  <p>That is Part VI §7's no-free-lunch theorem showing up as an empirical curve. The prior is
+  not free and not worthless; it is a loan against data you do not have, repaid when you get it.</p>
+  <p>What has happened since is convergence rather than victory. Modern vision transformers
+  reintroduced hierarchy, local windows and downsampling, which are convolutional design ideas,
+  while convolutional networks adopted the transformer training recipe, and Part X §26 measured
+  how much of the original gap that was.</p>
+</div>
+
+<h3><span class="num">§36</span> What attention maps do not explain</h3>
+
+<div class="sixty">
+  <span class="label">In 60 seconds</span>
+  <p>A high attention weight is routinely read as "the model found this position important."
+  It is not a safe reading: the weight multiplies a value that may be near zero, the residual
+  stream carries information the map never touches, and different weight patterns can produce
+  the same output. Attention maps generate hypotheses about a model. They do not test them.</p>
+</div>
+
+<div class="readnow"><span class="label">Go and read</span><p><span class="src">Jain &amp; Wallace (2019)</span>, <i>Attention is not explanation</i>. Constructs substantially different attention distributions that produce near-identical predictions. If several maps explain the same behaviour then none of them is the explanation, and that is a logical point rather than an empirical one. Read it before trusting any attention heatmap, including one you made yourself.</p></div>
+
+<p>Attention weights are the most-visualised quantity in deep learning and the most
+over-interpreted. The specific claim to be careful about is that a high weight means a position
+was <b>important</b>.</p>
+
+<div class="box pitfall">
+  <span class="label">Pitfall: attention is not explanation, and the reasons are structural</span>
+  <p><b>The weight multiplies a value.</b> Output is $\sum_i a_i \mathbf{v}_i$. A position with
+  $a_i = 0.9$ and $\|\mathbf{v}_i\| \approx 0$ contributes nothing. Influence is the product,
+  and only one factor is what gets plotted.</p>
+  <p><b>The residual stream carries information around the attention.</b> §16: attention adds to
+  a stream that already holds the position's own content. A position can be influential without
+  being attended to at all.</p>
+  <p><b>Different weights, same output.</b> It has been demonstrated repeatedly that one can
+  construct substantially different attention distributions producing near-identical predictions.
+  If several maps explain the same behaviour, no one of them is the explanation.</p>
+  <p><b>$W^O$ mixes the heads.</b> §12: what reaches the stream is a learned combination, so a
+  single head's map is one term of a sum you are not looking at.</p>
+  <p>None of this makes attention maps useless. It makes them a <b>hypothesis-generating</b>
+  instrument rather than evidence, and the difference is Part V's whole subject.</p>
+</div>
+
+<h3><span class="num">§37</span> Induction heads</h3>
+
+<div class="readnow"><span class="label">Go and read</span><p><span class="src">Elhage et al. (2021)</span>, <i>A mathematical framework for transformer circuits</i>. Where §16's residual-stream reading and this section's circuit both come from. Long; the first half, the one- and two-layer analysis, is the part to read, and it is the clearest worked example in the literature of a mechanism <b>predicted from structure</b> and then found.</p></div>
+
+<p>Against §36, here is a case where a mechanism was identified, predicted, and confirmed, and
+it is the best-understood circuit in any transformer.</p>
+
+<div class="box def">
+  <span class="label">The induction pattern</span>
+  <p>Given a sequence containing <code>… A B … A</code>, predict <code>B</code>.</p>
+  <p>The rule is not about any particular tokens. It is: <b>find the earlier occurrence of the
+  current token, and copy whatever followed it.</b> A general-purpose, content-addressed copy,
+  which is exactly Part XI §26's memory read, learned rather than designed.</p>
+</div>
+
+<div class="box why">
+  <span class="label">Why it takes exactly two layers</span>
+  <p>The mechanism is a composition of two heads and neither can do it alone.</p>
+  <p><b>Layer 1: a previous-token head.</b> Each position attends to the one before it and
+  copies its content. Now position $t$'s representation carries "the token at $t-1$ was $X$".</p>
+  <p><b>Layer 2: the induction head.</b> The current token forms a query; the keys, thanks to
+  layer 1, encode <i>what came before</i> each position. So the query "I am token A" matches
+  positions <b>preceded by</b> A, and attending there retrieves the token that followed the
+  earlier A.</p>
+  <p>One layer cannot do this. The information "what preceded position $j$" is not available at
+  position $j$ until a layer has put it there. This is a genuine <b>two-layer composition</b>,
+  and it is the clearest known example of depth being used for something specific.</p>
+</div>
+
+<figure>
+  <img src="figures/at/10-induction.svg" alt="Training curves for one and two layers on random and fixed offsets, per-position loss, and the layer-2 attention map">
+  <figcaption><b>Figure 10.</b> A repeated block at a <b>random</b> offset, so no positional
+  rule can work. Left: one layer plateaus at <b>1.589</b> while two reach <b>0.865</b>; the
+  dotted control repeats the experiment with a <i>fixed</i> offset, where one layer nearly
+  matches two because position alone suffices. Right: layer-2 attention lands on "the token
+  after the previous occurrence of the current token" with weight <b>0.230</b> against
+  <b>0.063</b> for uniform attention over the same prefix: <b>3.6×</b>. Trained once, here;
+  expect the specific numbers to drift a few percent elsewhere, and the gap between one layer
+  and two to survive it.</figcaption>
+</figure>
+
+<div class="box why">
+  <span class="label">Why the control panel is the important one</span>
+  <p>Without the fixed-offset comparison the figure would prove much less. A one-layer model
+  handed a <i>predictable</i> repeat offset solves the task by attending to "position
+  $t - 16$", a positional rule needing no composition at all, and no induction head.</p>
+  <p>Randomising the offset removes that shortcut, and only then does the one-layer model fail.
+  So the measurement that matters is not "two layers beat one" but <b>"two layers beat one
+  exactly when the positional shortcut is unavailable"</b>, which is what identifies the
+  mechanism rather than merely the gap.</p>
+  <p>This is Part IX §29's discipline in a new setting: a comparison establishes a mechanism only
+  when you have removed the alternative explanations, and the control is where that work
+  happens.</p>
+</div>
+
+<p>Induction heads matter beyond the toy. In real language models they appear during a narrow
+window of training, coinciding with a visible bump in the loss curve, and their appearance
+coincides with the emergence of in-context learning. That correlation is the strongest available
+evidence about where §38's capability comes from.</p>
+
+<h3><span class="num">§38</span> In-context learning</h3>
+
+<div class="sixty">
+  <span class="label">In 60 seconds</span>
+  <p>Show a model a few examples of a task <b>in its prompt</b> and it does the task, without
+  any weight changing. This was not designed, not predicted, and is not explained. It is the
+  most consequential property of the architecture and the least understood.</p>
+</div>
+
+<div class="readnow"><span class="label">Go and read</span><p><span class="src">Brown et al. (2020)</span>, <i>Language models are few-shot learners</i>. In-context learning, reported. Read it for what it does <b>not</b> contain: no mechanism, no explanation, and a capability nobody set out to build. That absence is still, five years later, the state of the question, which is worth sitting with.</p></div>
+
+<figure>
+  <img src="figures/at/11-in-context.svg" alt="Accuracy by number of demonstrations, and by position in the sequence">
+  <figcaption><b>Figure 11.</b> Each test sequence uses a <b>fresh random rule</b>: a
+  permutation of the vocabulary the model has never seen and cannot have memorised. Left:
+  accuracy bucketed by how many times that query's answer appeared earlier in the same sequence.
+  At zero demonstrations it is <b>0.135</b> against a chance of 0.100: correctly, it cannot
+  know. With one it is <b>0.51</b>, rising through 0.64, 0.71 and 0.77 to <b>0.85</b> at five or
+  more. Right: the same data averaged over all queries, which dilutes the effect.
+  <b>No weight changed during any of this.</b> Trained once, here; the rising shape is the
+  claim, not the individual bucket values, which drift a few percent on a different run.</figcaption>
+</figure>
+
+<div class="box why">
+  <span class="label">Why the left panel is the right measurement</span>
+  <p>Averaging accuracy over every position mixes two populations. For a query whose answer has
+  never been shown, the model <b>cannot</b> know it: the rule is random and nothing in the
+  prompt determines it. Chance is the correct performance there.</p>
+  <p>Conditioning on the number of demonstrations separates them, and the resulting curve is the
+  actual claim: <b>performance rises with evidence supplied in the context</b>, from chance at
+  zero demonstrations upward.</p>
+  <p>This is worth doing carefully because in-context learning is easy to overstate and easy to
+  understate, and the aggregate number does both at once.</p>
+</div>
+
+<div class="box why">
+  <span class="label">What is and is not known</span>
+  <p><b>Known:</b> it improves with model scale, sharply and somewhat unpredictably. It
+  correlates with the appearance of induction heads. It is sensitive to the order and format of
+  the examples in ways that a genuine learning algorithm would not be. And it happens with no
+  gradient step: the weights are frozen.</p>
+  <p><b>Proposed:</b> that the forward pass implements something like an optimisation step over
+  the examples in context; that attention over demonstrations implements a kernel regression;
+  that the model is doing Bayesian inference over latent tasks it saw in training. There are
+  constructions showing transformers <i>can</i> implement gradient descent in their forward pass,
+  which establishes possibility rather than actuality.</p>
+  <p><b>Not known:</b> which of these, if any, describes what trained models do. The mechanism
+  is open.</p>
+  <p>It is worth being blunt about the significance. Next-token prediction on text produced a
+  system that adapts to new tasks from examples at inference time, and <b>nobody was trying to
+  build that</b>. The capability was discovered by scaling something else. That is a
+  disconcerting fact about the field's understanding of its own artefacts, and Part XX and Part
+  XXI are both downstream of it.</p>
+</div>
+
+<h3><span class="num">§39</span> What actually limits context</h3>
+
+<p>Four separate constraints, routinely conflated, and they have different fixes.</p>
+
+<dl>
+  <dt>Memory, at training time</dt>
+  <dd>The $O(n^2)$ score matrix: §13 measured 17.2 GB at 65,536 positions. <b>Solved</b> by
+  §29's FlashAttention, which never materialises it.</dd>
+
+  <dt>Memory, at inference time</dt>
+  <dd>The KV cache, $O(n)$ per layer and growing with every token: §28 measured 68.7 GB at
+  131,072 tokens. <b>Mitigated</b> by §30's grouped-query attention and by cache compression,
+  not solved.</dd>
+
+  <dt>Positional extrapolation</dt>
+  <dd>A model trained to 4,096 positions has never seen the rotation angles that position 40,000
+  produces (§11), and degrades sharply past its trained length. <b>Mitigated</b> by interpolating
+  the frequencies or raising RoPE's base, usually with a short fine-tune. This is where most
+  practical long-context work happens.</dd>
+
+  <dt>Whether the model uses what it has</dt>
+  <dd>The one nobody can engineer around. A model with a 128,000-token window may attend
+  reliably to the beginning and end of its context and <b>poorly to the middle</b>, a
+  robustly reproduced finding. Context length is a capacity, and capacity is not use.</dd>
+</dl>
+
+<div class="box pitfall">
+  <span class="label">Pitfall: a context window is a specification, not a capability</span>
+  <p>The advertised number says what the model will <i>accept</i> without erroring. It says
+  nothing about retrieval accuracy at depth, and the two diverge substantially.</p>
+  <p>The check is cheap and you should run it on anything you depend on: place a specific fact at
+  a controlled depth in a long context, ask for it, and sweep the depth. Part XIV makes this a
+  standard instrument; here it is enough to know that the number on the box is not the
+  measurement.</p>
+</div>
+
+<h3><span class="num">§40</span> The convergence</h3>
+
+<div class="readnow"><span class="label">Go and read</span><p><span class="src">Gu &amp; Dao (2024)</span>, <i>Mamba: linear-time sequence modeling with selective state spaces</i>. The recurrent end of this section's axis, taken seriously: a state large and structured enough to hold something useful, and an <b>input-dependent</b> transition, which is Part XI §18's gating promoted from repair to central mechanism. Read it knowing that §32 already showed linear attention is a recurrence; this is that observation pursued rather than regretted.</p></div>
+
+<p>Part XI ended by noting that state space models are recurrences designed to keep a recurrent
+form at inference and gain a parallel form for training. Having derived attention, the trade is
+now statable exactly.</p>
+
+<div class="box def">
+  <span class="label">The two ends of one axis</span>
+  <table class="compact">
+    <thead><tr><th></th><th>Attention</th><th>Recurrence</th></tr></thead>
+    <tbody>
+      <tr><td>State at step $n$</td><td>Everything: all $n$ keys and values</td><td>Fixed size</td></tr>
+      <tr><td>Cost per token, generating</td><td>Grows with $n$</td><td>Constant</td></tr>
+      <tr><td>Path length</td><td>1</td><td>$O(n)$</td></tr>
+      <tr><td>Training</td><td>Parallel</td><td>Sequential</td></tr>
+      <tr><td>Retrieval from far back</td><td>Exact, query-dependent</td><td>Whatever survived compression</td></tr>
+    </tbody>
+  </table>
+</div>
+
+<div class="box why">
+  <span class="label">Why this is one trade and not two architectures</span>
+  <p>§32 already found it: linear attention <b>is</b> a recurrence, because reassociating the
+  product turns the keys and values into a fixed-size running state. The quadratic cost and the
+  unbounded state are the same fact.</p>
+  <p>So the axis runs from "keep everything, pay $O(n)$ per token, retrieve exactly" to "keep a
+  summary, pay $O(1)$ per token, retrieve what you compressed". Modern state space models sit
+  toward the recurrent end with two additions: a state large and structured enough to hold
+  usefully more, and an <b>input-dependent</b> transition, which is Part XI §18's gating, made
+  the central mechanism rather than a repair.</p>
+  <p>And they can be trained in parallel, which removes Part XI §28's binding limitation. What
+  they cannot do is retrieve an arbitrary detail from far back on demand, because the state is
+  finite. Hybrid architectures (mostly recurrent layers, a few attention layers for exact
+  recall) are the current practical answer, and it is a genuinely open question which end of the
+  axis the field settles on.</p>
+</div>
+
+<div class="box intuition">
+  <span class="label">The one thing to carry forward</span>
+  <p><b>Attention buys a constant path length between any two positions, and pays for it with a
+  state that grows without bound.</b></p>
+  <p>Everything in this part is that trade. The $O(n^2)$ cost, the KV cache, FlashAttention,
+  grouped-query attention, sparse and linear approximations, the context-length limits: every
+  one is a consequence of keeping everything rather than summarising.</p>
+  <p>Part XI's architecture made the opposite choice and paid in path length. Neither is
+  correct; they are two settings of one dial, and the reason attention won is that
+  <b>parallel training</b> mattered more than either, which is a fact about hardware, not about
+  sequences.</p>
+  <p>Which is the question Part XVII takes up: if the binding constraint on what a model can
+  learn is how much data you can push through it, what happens when you push a great deal?</p>
+</div>

@@ -1,0 +1,134 @@
+<h2><span class="part-kicker">Part D</span>Two towers</h2>
+
+<p class="mvt">Put images and text (or audio and text) into one embedding space by pulling matched
+pairs together and pushing everything else apart. It is the simplest multimodal idea that works, it
+underlies retrieval and zero-shot classification, and two of its properties are routinely
+misreported.</p>
+
+<h3><span class="num">§25</span> The construction</h3>
+
+<div class="readnow"><span class="label">Go and read</span><p><span class="src">Radford et al. (2021)</span>, <i>Learning transferable visual models from natural language supervision</i>. Already read at Part XV §36 for the pretraining signal it makes free: pairs harvested from the web, with no labelling step; it belongs here too, now that the two-tower construction itself, not a vision backbone, is what is being taught. The batch of 32,768 behind the next section's negatives count is theirs, and so is training the temperature itself, log-parameterised and clipped, rather than fixing it, a choice this book does not follow, so that Figure 6's sweep stays a controlled comparison rather than a moving target.</p></div>
+
+<div class="box def">
+  <span class="label">Two encoders, one loss</span>
+  <p>Encode each modality separately, normalise both to the unit sphere, and train so that the
+  similarity of a matched pair exceeds its similarity to every other item in the batch:</p>
+  <p class="m">$$\mathcal{L} = -\frac{1}{N}\sum_i \log \frac{\exp(\mathbf{a}_i \cdot \mathbf{b}_i / \tau)}{\sum_j \exp(\mathbf{a}_i \cdot \mathbf{b}_j / \tau)}$$</p>
+  <p>Symmetrised over both directions. This is Part XV §17's contrastive loss with the two views
+  coming from different modalities rather than from two augmentations, and the change is more
+  consequential than it looks: the negatives are now other <i>examples</i>, so the batch is the
+  supervision.</p>
+</div>
+
+<h3><span class="num">§26</span> What the negatives are</h3>
+
+<div class="box why">
+  <span class="label">Why batch size is an architectural parameter here</span>
+  <p>Every other item in the batch is a negative, so a batch of 32,768 gives each example 32,767
+  of them. That is why contrastive systems are trained at batch sizes no other task needs, and why
+  a great deal of engineering exists purely to make the batch bigger: gathering embeddings across
+  devices, or keeping a queue of recent ones.</p>
+  <p>The assumption underneath is that a random other item is a true negative. For captions it is
+  usually right and sometimes badly wrong: two images of a dog with the caption "a dog" are pushed
+  apart because they were not paired, which is a false negative the loss cannot distinguish from a
+  real one.</p>
+</div>
+
+<h3><span class="num">§27</span> The temperature</h3>
+
+<figure>
+  <img src="figures/au/06-temperature.svg" alt="Effective number of negatives against temperature, log-log">
+  <figcaption><b>Figure 6.</b> The effective number of negatives carrying the gradient (the
+  perplexity of the softmax weights) for one query against 512 negatives. At
+  <span class="m">$\tau = 1$</span> essentially all of them contribute (<b>508</b> of 512). At
+  <span class="m">$\tau = 0.05$</span>, near the standard setting, it is <b>46</b>. At
+  <span class="m">$\tau = 0.01$</span> it is <b>1.1</b>, with the single hardest negative taking
+  <b>98.5%</b> of the weight.</figcaption>
+</figure>
+
+<div class="box why">
+  <span class="label">What the temperature really is</span>
+  <p>It is usually described as a scale on the logits, which is true and unhelpful. Figure 6 says
+  what it does: <b>it selects how many negatives you are actually training against</b>.</p>
+  <p>Two consequences. A low temperature is implicit hard-negative mining, with the benefits and the
+  instability: one mislabelled pair can dominate the gradient. And below some temperature, growing
+  the batch stops helping, because the extra negatives receive no weight; a system reporting gains
+  from a larger batch at a very low temperature is reporting something other than more negatives.</p>
+</div>
+
+<h3><span class="num">§28</span> Zero-shot classification, and what it is</h3>
+
+<div class="box shapes">
+  <span class="label">Retrieval wearing a different name</span>
+  <p>Write each class as a sentence, embed those sentences, and label an image by whichever is
+  nearest. No classifier is trained, which is the appeal, and the label space becomes editable at
+  inference time, which is the practical value.</p>
+  <p>What it is sensitive to is the wording. The same class described two ways can differ by several
+  points, which is Part XX §22's prompt sensitivity in another modality; and it means a zero-shot
+  number without the prompts is not reproducible.</p>
+</div>
+
+<h3><span class="num">§29</span> Retrieval, and the number you are reporting</h3>
+
+<figure>
+  <img src="figures/au/07-retrieval.svg" alt="Recall at 1 against gallery size on a log axis, for two embedding qualities">
+  <figcaption><b>Figure 7.</b> Recall@1 for two embeddings of different quality, against the number
+  of items they are searched against. The weaker one falls from <b>0.290</b> at a gallery of 100 to
+  <b>0.005</b> at 30,000; the stronger from <b>0.490</b> to <b>0.068</b>. The fall is close to
+  linear in the logarithm of gallery size, at <b>&minus;0.108</b> and <b>&minus;0.174</b> per
+  decade.</figcaption>
+</figure>
+
+<div class="box pitfall">
+  <span class="label">Pitfall: a retrieval number is a property of the gallery</span>
+  <p>The same embedding scores 0.49 or 0.07 depending only on how many things it was searched
+  against. So a recall figure without the gallery size is not a measurement, and two systems
+  evaluated on differently-sized galleries cannot be compared at all.</p>
+  <p>Unlike Part XXIX §5's threshold, the <i>ordering</i> here was stable: the better embedding was
+  better at every gallery size tested. So the gallery changes the number and not, in this case, the
+  ranking, which is a weaker warning than the detection one and still enough to make an unqualified
+  recall figure meaningless.</p>
+</div>
+
+<h3><span class="num">§30</span> What the two towers cannot do</h3>
+
+<div class="box why">
+  <span class="label">The cost of encoding separately</span>
+  <p>Each tower sees only its own modality, so the interaction between them is a single dot product
+  at the end. That is what makes retrieval fast (every item can be embedded once and indexed) and
+  it is a hard ceiling on what can be expressed.</p>
+  <p>Anything requiring the two inputs to be compared in detail is unavailable: which object in the
+  image the phrase refers to, whether a stated relation holds between two things in the scene,
+  counting. These systems are famously weak at exactly those, and it is architecture rather than
+  data.</p>
+  <p>The alternative is a <b>cross-encoder</b> that attends across both, which can express all of it
+  and cannot be indexed: every query must be run against every candidate. The standard resolution
+  is to use both: two towers to retrieve a shortlist, a cross-encoder to rerank.</p>
+</div>
+
+<h3><span class="num">§31</span> Audio, and the same construction</h3>
+
+<div class="box shapes">
+  <span class="label">Three places it transfers, and one where it does not</span>
+  <p><b>Audio and text</b> gives zero-shot sound classification and text-to-audio search, from the
+  same loss with one tower replaced.</p>
+  <p><b>Speech and text</b> gives a shared space in which spoken and written queries match, which is
+  how spoken retrieval works without a recogniser in the path.</p>
+  <p><b>Audio and video</b> can be trained with no labels at all, because the two streams arrive
+  synchronised: the pairing is free, which is the most attractive property any of these
+  constructions has.</p>
+  <p><b>Where it does not transfer:</b> anything needing precise timing. A single embedding for a
+  ten-second clip cannot say <i>when</i> the dog barked, and the loss gives no reason for it to.</p>
+</div>
+
+<h3><span class="num">§32</span> What movement D establishes</h3>
+
+<div class="box intuition">
+  <span class="label">Three things</span>
+  <p><b>The batch is the supervision</b>, which is why these systems are trained at batch sizes
+  nothing else needs, and why a false negative is indistinguishable from a real one.</p>
+  <p><b>The temperature selects how many negatives you are training against.</b> Figure 6 measures
+  1.1 of 512 at a low setting, which makes it implicit hard-negative mining rather than a scale.</p>
+  <p><b>A retrieval number is a property of the gallery.</b> Figure 7 measures the same embedding at
+  0.49 and 0.07 depending only on what it was searched against.</p>
+</div>

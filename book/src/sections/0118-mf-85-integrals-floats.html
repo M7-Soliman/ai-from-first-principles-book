@@ -1,0 +1,236 @@
+<h2><span class="part-kicker">Part J</span>Integrals</h2>
+
+<h3><span class="num">§25</span> Enough integration to read Part II</h3>
+
+<p>Good news, stated up front: <b>you will never compute an integral by hand in this
+book.</b> You need to recognise one and know what it means. That is a much smaller
+ask.</p>
+
+<p>An integral accumulates. Where a derivative asks "how fast is this changing?", an
+integral asks "how much has piled up in total?"</p>
+
+<p>The pairing is easiest to feel with a car. The speedometer reports a rate, a
+derivative of position. The odometer reports a total, an integral of speed. Drive for an
+hour at a steady 60 and the odometer gains 60, which is just multiplication. Drive for an
+hour while constantly speeding up and slowing down, and multiplication no longer applies,
+because there is no single speed to multiply by. What the odometer does instead is add up a
+great many tiny contributions: a little distance at this speed, a little more at that one,
+continuously. That summing-up of infinitely many small pieces is what the $\int$ symbol
+denotes, and the odometer performs it correctly without knowing any calculus.</p>
+
+<p>Notice how the same limiting move from §15 appears again, applied to a different
+quantity. There we could not get a slope at a point, so we took slopes over short intervals
+and shrank them. Here we cannot get an area under a curved boundary, so we take areas of
+rectangles and shrink their width. Both times: answer a manageable approximate question,
+then watch where the answers go. Calculus is essentially that one idea used twice, in
+opposite directions, and the fundamental theorem is the statement that the two directions
+undo each other.</p>
+
+$$\int_a^b f(x)\,dx = \text{the area under the curve } f \text{ between } a \text{ and } b$$
+
+<figure>
+  <img src="figures/mf/12-integral.svg" alt="Rectangles approximating the area under a curve, refining as their count grows">
+  <figcaption><b>Figure 12.</b> The construction. Chop the region into rectangles and add
+  their areas, which is easy but crude. Use more, thinner rectangles and the estimate
+  improves. The integral is the limit as the rectangles become infinitely thin. Same
+  limiting move as the derivative in §15, applied to area instead of slope.</figcaption>
+</figure>
+
+<p>Read the notation as a continuous sum, because that is exactly what it is:</p>
+
+<ul class="tight">
+  <li>$\int$ is a stretched letter S, for "sum". It is a $\sum$ for continuous quantities.</li>
+  <li>$f(x)$ is the height of each sliver.</li>
+  <li>$dx$ is its infinitesimal width.</li>
+  <li>$f(x)\,dx$ is therefore one sliver's area, and the $\int$ adds them all.</li>
+</ul>
+
+<div class="box intuition">
+  <span class="label">Intuition: the sum-to-integral dictionary</span>
+  <p>Every discrete formula has a continuous twin, obtained by one substitution:</p>
+  <table class="compact" style="margin-top:0.5em">
+    <thead><tr><th>Discrete</th><th>Continuous</th></tr></thead>
+    <tbody>
+      <tr><td>$\sum_x P(x) = 1$</td><td>$\int p(x)\,dx = 1$</td></tr>
+      <tr><td>$\mathbb{E}[X] = \sum_x x P(x)$</td><td>$\mathbb{E}[X] = \int x\,p(x)\,dx$</td></tr>
+      <tr><td>$\sum_y P(x,y)$</td><td>$\int p(x,y)\,dy$</td></tr>
+    </tbody>
+  </table>
+  <p>Swap $\sum$ for $\int$ and add a $dx$. That is the whole translation, and it covers
+  every integral in Part II. If a continuous formula confuses you, read the discrete
+  version instead; they say the same thing.</p>
+</div>
+
+<h4>The one fact worth knowing</h4>
+
+<p>Differentiation and integration are inverse operations. This is the fundamental
+theorem of calculus, and its practical content is that accumulating a rate of change
+recovers the original quantity. Integrate velocity and you get distance travelled.</p>
+
+<div class="box why">
+  <span class="label">Why deep learning cares: mostly, it does not</span>
+  <p>Integrals appear in Part II whenever a variable is continuous: normalising a
+  density, taking an expectation, marginalising out a variable. You read them; you do not
+  evaluate them.</p>
+  <p>When an integral genuinely must be computed and has no closed form (which is the
+  usual situation in probabilistic modelling), the field does not integrate. It
+  <b>samples</b>. That is what Monte Carlo methods are, and it is why Part XXVIII exists.
+  The practical answer to a hard integral is almost always "draw random samples and
+  average", which requires no integration technique whatsoever.</p>
+</div>
+
+<div class="box try">
+  <span class="label">Try it</span>
+  <p>What does $\int_{-\infty}^{\infty} p(x)\,dx = 1$ say, in English? And what would the
+  discrete version be?</p>
+</div>
+
+<p><b>Answer.</b> "The total area under the density curve, across all possible values, is
+exactly 1": that is, the outcome is certain to be <i>something</i>. The discrete twin is
+$\sum_x P(x) = 1$: the probabilities of all outcomes add to one. Identical statement, two
+notations.</p>
+
+<h2><span class="part-kicker">Part K</span>Numbers in a computer</h2>
+
+<h3><span class="num">§26</span> Floating point, overflow, underflow</h3>
+
+<div class="sixty">
+  <span class="label">In 60 seconds</span>
+  <p>Computers store approximations, not real numbers. Three consequences: spacing between
+  representable values <b>grows with magnitude</b>; going too large gives
+  <code>inf</code>; going too small gives exactly zero. Every numerical trick in this book
+  (log-likelihoods, subtracting the max in softmax, log-sum-exp, gradient clipping) is a
+  defence against one of those three.</p>
+</div>
+
+<div class="readnow"><span class="label">Go and read</span><p><span class="src">Goldberg (1991)</span>, <i>What every computer scientist should know about floating-point arithmetic</i>. Long, and the title is not a boast: this is the definitive treatment of everything in this section and of Part III's opening. Read it once properly and you will stop being surprised by numerical bugs for the rest of your career.</p></div>
+
+<div class="box history">
+  <span class="label">History: when floating point goes wrong, it goes expensively</span>
+  <p>Before <span class="year">1985</span> every manufacturer handled fractional arithmetic
+  differently, so the same program produced different answers on different machines. The
+  IEEE 754 standard, driven substantially by William Kahan at Berkeley, fixed the
+  representation the world now uses, and won Kahan the Turing Award.</p>
+  <p>Two reminders of what the standard is defending against:</p>
+  <p><b>Ariane 5, <span class="year">1996</span>.</b> Forty seconds after launch, the
+  rocket destroyed itself. A 64-bit floating point value describing horizontal velocity was
+  converted to a 16-bit signed integer. The new trajectory produced a number too large for
+  the destination, the conversion failed, and the backup system (running identical code)
+  failed the same way a moment later.</p>
+  <p><b>The Pentium FDIV bug, <span class="year">1994</span>.</b> A handful of missing
+  entries in a lookup table made certain division results wrong in the fourth significant
+  digit. Intel initially argued the error was too rare to matter, then recalled the chips
+  at a cost of several hundred million dollars.</p>
+  <p>Neither was a mathematical mistake. Both were arithmetic that ran, produced a number,
+  and was believed. That is the failure mode this section is about, and it is exactly the
+  failure mode of a training run that silently returns <code>nan</code>.</p>
+</div>
+
+<p>Not traditionally part of a math review, and included because it causes more real
+bugs in machine learning code than any theorem in this document.</p>
+
+<p>A computer does not store real numbers. It stores <b>floating point
+approximations</b>, a fixed number of significant digits plus an exponent, like
+scientific notation with a hard limit on precision.</p>
+
+<p>The scientific-notation comparison is not a loose analogy; it is the design. Think about
+what a physicist means by $6.022 \times 10^{23}$. Two separate pieces of information are
+being recorded: <i>which digits</i> (6022) and <i>where the decimal point sits</i> (23).
+A float works exactly this way, in binary, with a fixed budget for each piece. A
+64-bit float spends 52 bits on the digits and 11 on the exponent, which works out to about
+16 decimal digits of precision and a range of roughly $10^{-308}$ to $10^{308}$.</p>
+
+<p>Everything that goes wrong follows from those two budgets being separate and fixed. The
+digit budget controls <b>how precisely</b> a number can be recorded; the exponent budget
+controls <b>how large or small</b> it can be. Run out of digits and you lose accuracy
+quietly; the number is still roughly right. Run out of exponent and you lose the number
+entirely, to <code>inf</code> at the top or to zero at the bottom.</p>
+
+<p>The word <i>floating</i> names the crucial consequence. The decimal point is not fixed
+in place; it moves, and the sixteen digits of precision follow it. That is why a float can
+represent $10^{-300}$ and $10^{300}$ with equal relative accuracy, and it is also why
+precision is <b>relative rather than absolute</b>. You always get about sixteen significant
+digits: near 1 that means resolving differences of $10^{-16}$, and near $10^{15}$ it means
+resolving differences of about 1. Nothing is broken there. The same sixteen digits simply
+buy you less absolute precision when they are describing a larger number, exactly as
+quoting a national budget to four significant figures leaves millions unaccounted for while
+quoting your lunch bill to four is overkill.</p>
+
+<h4>Three consequences</h4>
+<aside class="mnote"><b>Every trick</b> in this book (log-likelihoods, max subtraction, log-sum-exp, clipping) is a defence against one of these three.</aside>
+
+<p><b>1. Spacing is not uniform.</b> Representable numbers cluster densely near zero and
+spread out as magnitude grows. Near 1 the gap between neighbours is about $10^{-16}$;
+near $10^{15}$ it is about 1.</p>
+
+<figure>
+  <img src="figures/mf/13-floating-point.svg" alt="Non-uniform float spacing, and exponential overflow">
+  <figcaption><b>Figure 13.</b> Left: representable values on a log axis, evenly spaced
+  here, which means <i>exponentially</i> spaced in absolute terms. Right: how many
+  decimal digits $e^x$ has, against the roughly 308 a float64 can hold. Past
+  $x \approx 709$ the result no longer fits and becomes <code>inf</code>. This is not a
+  rare edge case; raw logits reach that range routinely.</figcaption>
+</figure>
+
+<p><b>2. Overflow.</b> Exceed roughly $1.8 \times 10^{308}$ and a float64 becomes
+<code>inf</code>. Then $\texttt{inf}/\texttt{inf}$ gives <code>nan</code>, and
+<code>nan</code> propagates through every subsequent operation, poisoning the entire
+computation silently.</p>
+
+<p><b>3. Underflow.</b> Go below about $2.2 \times 10^{-308}$ and a float64 leaves its
+normal range and enters the <b>subnormal</b> range, where it keeps shrinking but sheds
+precision as it does. Only below about $4.9 \times 10^{-324}$ does it collapse to exactly
+zero (§11's $0.9^{10000} \approx 10^{-458}$ is far past even that floor, which is why it
+is stored as exactly 0). Then $\log(0) = -\infty$, and you are in the same trouble from
+the other direction.</p>
+
+<div class="box why">
+  <span class="label">Why deep learning cares: this is where the tricks come from</span>
+  <p>Every numerical trick you will meet in this book is a defence against this section:</p>
+  <ul class="tight">
+    <li><b>Log-likelihoods</b> instead of likelihoods (§11), defeating underflow.</li>
+    <li><b>Subtracting the max in softmax</b>: makes the largest exponent $e^0 = 1$,
+    defeating overflow.</li>
+    <li><b>Log-sum-exp</b>: summing in log space without leaving it.</li>
+    <li><b>Adding $\epsilon$ inside a log or a denominator</b>: preventing $\log 0$ and
+    division by zero.</li>
+    <li><b>Gradient clipping</b>: bounding an update before it becomes <code>inf</code>.</li>
+  </ul>
+  <p>None of these change the mathematics. All of them change whether the code runs.</p>
+</div>
+
+<div class="box pitfall">
+  <span class="label">Pitfall: never test floats for exact equality</span>
+  <p><code>0.1 + 0.2 == 0.3</code> is <code>False</code> in Python, and in essentially
+  every language, because none of those values is exactly representable in binary.</p>
+  <p>Use a tolerance instead: <code>np.isclose(a, b)</code> for scalars,
+  <code>np.allclose(A, B)</code> for arrays. Every drill in this project uses these for
+  exactly that reason.</p>
+</div>
+
+<pre><code><span class="k">import</span> numpy <span class="k">as</span> np
+
+print(<span class="n">0.1</span> + <span class="n">0.2</span> == <span class="n">0.3</span>)              <span class="o">### False</span>
+print(np.isclose(<span class="n">0.1</span> + <span class="n">0.2</span>, <span class="n">0.3</span>))    <span class="o">### True</span>
+
+<span class="c"># overflow, and the standard fix</span>
+z = np.array([<span class="n">1000.</span>, <span class="n">1001.</span>, <span class="n">1002.</span>])
+<span class="k">with</span> np.errstate(over=<span class="s">'ignore'</span>, invalid=<span class="s">'ignore'</span>):
+    print(np.exp(z) / np.exp(z).sum())     <span class="o">### [nan nan nan]</span>
+
+zs = z - z.max()                           <span class="c"># now the largest is exp(0) = 1</span>
+print(np.exp(zs) / np.exp(zs).sum())       <span class="o">### [0.09 0.245 0.665]</span>
+</code></pre>
+
+<div class="box try">
+  <span class="label">Try it</span>
+  <p>Why does subtracting the maximum leave the softmax result unchanged? Argue it
+  algebraically.</p>
+</div>
+
+<p><b>Answer.</b> Subtracting a constant $c$ multiplies every exponential by $e^{-c}$:</p>
+<p>$\dfrac{e^{z_i - c}}{\sum_j e^{z_j - c}} = \dfrac{e^{z_i}e^{-c}}{e^{-c}\sum_j e^{z_j}} = \dfrac{e^{z_i}}{\sum_j e^{z_j}}$</p>
+<p>The $e^{-c}$ factors out of both numerator and denominator and cancels exactly. So the
+result is mathematically identical for <i>any</i> $c$, and choosing $c = \max(z)$ makes
+the largest exponent zero, which is the safest possible place to be. Free numerical
+safety, from one line of algebra.</p>

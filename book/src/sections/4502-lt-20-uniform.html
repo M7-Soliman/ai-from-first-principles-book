@@ -1,0 +1,153 @@
+<h2><span class="part-kicker">Part B</span>Uniform convergence</h2>
+
+<p class="mvt">A class with infinitely many hypotheses can still have finitely much freedom, because
+what matters is not how many functions it contains but how many distinct <i>labellings</i> it can
+produce on a finite sample. That observation replaces the count in §4's bound with something that
+stays finite, and it is the central idea of classical learning theory.</p>
+
+<h3><span class="num">§8</span> Probably approximately correct</h3>
+
+<div class="box def">
+  <span class="label">The PAC framework</span>
+  <p>A class <span class="m">$\mathcal{H}$</span> is <b>PAC learnable</b> if there is an algorithm
+  and a function <span class="m">$n(\varepsilon, \delta)$</span> such that for every distribution,
+  given <span class="m">$n(\varepsilon, \delta)$</span> samples, the algorithm returns
+  <span class="m">$h$</span> with <span class="m">$R(h) \leq \min_{h'} R(h') + \varepsilon$</span>
+  with probability at least <span class="m">$1 - \delta$</span>.</p>
+  <p>Three commitments are worth noticing. <b>Approximately</b>: within
+  <span class="m">$\varepsilon$</span>, not exactly. <b>Probably</b>: with probability
+  <span class="m">$1-\delta$</span>, not always. And <b>for every distribution</b>, which is the
+  demanding one: the guarantee is required to hold for the worst distribution an adversary could
+  choose, which is why the resulting bounds are pessimistic.</p>
+</div>
+
+<h3><span class="num">§9</span> Counting labellings instead of functions</h3>
+
+<div class="box def">
+  <span class="label">The growth function</span>
+  <p>For a sample of <span class="m">$m$</span> points, the class can produce some set of
+  labellings. The <b>growth function</b> <span class="m">$\Pi_{\mathcal{H}}(m)$</span> is the
+  largest number of distinct labellings achievable on any <span class="m">$m$</span> points.</p>
+  <p>It is at most <span class="m">$2^m$</span>. A class with continuum-many members can have a
+  small growth function: linear classifiers in the plane contain infinitely many functions and
+  produce at most 14 labellings of four points, not 16.</p>
+  <p>Replace <span class="m">$|\mathcal{H}|$</span> with
+  <span class="m">$\Pi_{\mathcal{H}}(2n)$</span> in §4's bound and it applies to infinite classes.
+  Everything now turns on how fast the growth function grows.</p>
+</div>
+
+<h3><span class="num">§10</span> Shattering, and the VC dimension</h3>
+
+<div class="box def">
+  <span class="label">VC dimension</span>
+  <p>A set of <span class="m">$m$</span> points is <b>shattered</b> if the class realises all
+  <span class="m">$2^m$</span> labellings of it. The <b>VC dimension</b> is the largest
+  <span class="m">$m$</span> for which some set of <span class="m">$m$</span> points is
+  shattered.</p>
+  <p>The definition is existential in the points and universal in the labellings: <i>some</i>
+  arrangement of <span class="m">$m$</span> points, <i>every</i> labelling of it.</p>
+</div>
+
+<figure>
+  <img src="figures/lt/02-shattering.svg" alt="Fraction of random point sets shattered by linear classifiers, against the number of points, for two dimensions">
+  <figcaption><b>Figure 2.</b> Shattering checked by enumeration: for every one of the
+  <span class="m">$2^m$</span> labellings, a linear program decides whether a separating hyperplane
+  exists. In two dimensions every random set of 2 or 3 points is shattered and <b>no set of 4 ever
+  is</b>; in three dimensions the collapse happens at 5. The measured VC dimensions are <b>3</b>
+  and <b>4</b>, exactly <span class="m">$d+1$</span>, and obtained without invoking the
+  theorem.</figcaption>
+</figure>
+
+<div class="box why">
+  <span class="label">Why the collapse is total rather than gradual</span>
+  <p>The transition in the figure is from 1.00 to 0.00 with nothing between. Past
+  <span class="m">$d+1$</span> points in general position there is <i>always</i> at least one
+  labelling no hyperplane achieves: for four points in the plane, the diagonal pairing of a convex
+  quadrilateral, which is the XOR arrangement of Part VII §1.</p>
+  <p>So the VC dimension is not a statistical quantity that gets fuzzy at the edges. It is a
+  combinatorial fact about the class, and Part VII's opening problem is the
+  <span class="m">$d = 2, m = 4$</span> case of it.</p>
+</div>
+
+<h3><span class="num">§11</span> Sauer's lemma, and why the bound is polynomial</h3>
+
+<div class="box def">
+  <span class="label">The dichotomy</span>
+  <p>If the VC dimension is <span class="m">$d$</span>, then for
+  <span class="m">$m > d$</span></p>
+  <p class="m">$$\Pi_{\mathcal{H}}(m) \;\leq\; \sum_{i=0}^{d} \binom{m}{i} \;\leq\; \left(\frac{em}{d}\right)^{d}$$</p>
+  <p>This is the load-bearing combinatorial fact of the subject. The growth function is either
+  <span class="m">$2^m$</span> for all <span class="m">$m$</span> (infinite VC dimension, no
+  learning guarantee) or it is bounded by a <b>polynomial</b> of degree
+  <span class="m">$d$</span>. There is nothing in between.</p>
+  <p>Polynomial matters because <span class="m">$\log \Pi$</span> then grows like
+  <span class="m">$d \log m$</span> rather than <span class="m">$m$</span>, and
+  <span class="m">$\sqrt{d \log m / m} \to 0$</span> while
+  <span class="m">$\sqrt{m/m}$</span> does not.</p>
+</div>
+
+<h3><span class="num">§12</span> The generalisation bound</h3>
+
+<div class="box def">
+  <span class="label">What it says</span>
+  <p>With probability at least <span class="m">$1-\delta$</span>, for every
+  <span class="m">$h \in \mathcal{H}$</span> simultaneously:</p>
+  <p class="m">$$R(h) \;\leq\; \hat{R}_S(h) + \sqrt{\frac{d\left(\log(2n/d) + 1\right) + \log(4/\delta)}{n}}$$</p>
+  <p>Three properties to notice. It is <b>uniform</b> over the class, so it survives choosing
+  <span class="m">$h$</span> after seeing the data. It depends on the class only through
+  <span class="m">$d$</span>. And it is <b>distribution-free</b>, which is its strength and the
+  reason §23 finds it numerically useless.</p>
+</div>
+
+<aside class="mnote"><b>Simplified constant:</b> the textbook (Vapnik/Mohri) statement of this bound
+carries <span class="m">$\sqrt{8(d\ln(2en/d)+\ln(4/\delta))/n}$</span> rather than the coefficient-1,
+denominator-<span class="m">$n$</span> form above, harmless here, since §23 shows the bound is
+vacuous regardless of which constant is used.</aside>
+
+<h3><span class="num">§13</span> Sample complexity, and the fundamental theorem</h3>
+
+<div class="box shapes">
+  <span class="label">What the theorem settles</span>
+  <p>Inverting the bound: <span class="m">$n = O\!\left(\frac{d + \log(1/\delta)}{\varepsilon^2}\right)$</span>
+  samples suffice. Roughly, <b>you need on the order of one sample per unit of VC dimension</b>.</p>
+  <p>The <b>fundamental theorem of statistical learning</b> makes this an equivalence: for binary
+  classification, a class is PAC learnable <b>if and only if</b> its VC dimension is finite, and the
+  sample complexity is <span class="m">$\Theta(d/\varepsilon^2)$</span>. Not a sufficient condition
+  that might be improvable: the matching lower bound says no algorithm does better.</p>
+</div>
+
+<div class="box why">
+  <span class="label">The lower bound is the part that should have been alarming</span>
+  <p>The upper bound could have been an artefact of a loose proof. The lower bound says that for
+  <i>any</i> algorithm there exists a distribution requiring that many samples.</p>
+  <p>Which means the vacuity §23 measures is not a defect in the analysis. Uniform convergence
+  genuinely cannot explain why an overparameterised network generalises, because a theorem says
+  no distribution-free argument over that class can. Something has to be assumed about the
+  distribution or the algorithm, and movement D is the search for what.</p>
+</div>
+
+<h3><span class="num">§14</span> No free lunch, restated</h3>
+
+<div class="box intuition">
+  <span class="label">The same theorem from the other side</span>
+  <p>Part VI §7 said no learner beats every other across all problems. In this language: a class
+  with infinite VC dimension, one that can label any finite sample any way at all, is not PAC
+  learnable, because fitting the sample tells you nothing about the rest.</p>
+  <p>Restriction is not a regrettable limitation of a model family. It is the <b>mechanism</b> by
+  which generalisation happens, and Part X §11's "infinitely strong prior" is one instance of
+  buying it deliberately.</p>
+</div>
+
+<h3><span class="num">§15</span> What movement B establishes</h3>
+
+<div class="box intuition">
+  <span class="label">Three things</span>
+  <p><b>Infinite classes can have finite complexity</b>, because only the labellings realisable on
+  a finite sample matter. Figure 2 measures that number collapsing from everything to not-everything
+  at exactly <span class="m">$d+1$</span>.</p>
+  <p><b>The growth function is polynomial or maximal, with nothing between.</b> Sauer's lemma is
+  what converts a combinatorial fact into a <span class="m">$\sqrt{d \log n / n}$</span> rate.</p>
+  <p><b>The characterisation is exact and two-sided.</b> Finite VC dimension is necessary and
+  sufficient, with a matching lower bound, which means the theory's later failure on deep networks
+  is a theorem about what distribution-free analysis can do, not a gap waiting to be closed.</p>
+</div>

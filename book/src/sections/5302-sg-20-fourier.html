@@ -1,0 +1,189 @@
+<h2><span class="part-kicker">Part B</span>The Fourier transform</h2>
+
+<p class="mvt">A change of basis, an algorithm that made it practical, and a theorem that turns
+convolution into multiplication. The third of those is what Part X's entire subject rests on, and it
+has been used here for seventeen parts without being stated.</p>
+
+<h3><span class="num">§8</span> Frequency as a basis</h3>
+
+<div class="box def">
+  <span class="label">The idea, before the formula</span>
+  <p>Any signal can be written as a sum of sinusoids. The <b>Fourier transform</b> is the map from a
+  signal to the amplitudes and phases of those sinusoids, a change of basis, from the basis of
+  individual samples to the basis of frequencies.</p>
+  <p>The basis is orthogonal, which is why the coefficients can be read off one at a time by
+  projection rather than solved for jointly, and it is the eigenbasis of every shift-invariant
+  operation, which is §14's theorem and the reason the whole construction matters.</p>
+</div>
+
+<div class="box shapes">
+  <span class="label">Why sinusoids and not something else</span>
+  <p>Part I taught that a basis is a choice, and that a good one makes the operations you care about
+  simple. Here the operation is <b>shifting</b>. Shift a sinusoid and you get the same sinusoid with
+  a different phase; the frequency does not change. No other family of functions has that property,
+  which is what makes this the natural basis for anything that treats all positions alike.</p>
+  <p>So the argument is the same one as Part XXVI's: a symmetry picks the representation. There the
+  symmetry was permutation; here it is translation, and it picks frequency.</p>
+</div>
+
+<h3><span class="num">§9</span> The transform</h3>
+
+<div class="box def">
+  <span class="label">Continuous, and its inverse</span>
+  <p class="m">$$\hat{x}(f) \;=\; \int_{-\infty}^{\infty} x(t)\, e^{-2\pi i f t}\, dt
+  \qquad\qquad x(t) \;=\; \int_{-\infty}^{\infty} \hat{x}(f)\, e^{2\pi i f t}\, df$$</p>
+  <p>The integrand is the signal against a complex sinusoid: the result's magnitude says how much of
+  that frequency is present, its argument says with what phase. The symmetry between the pair is the
+  statement that no information has been created or destroyed: the transform is invertible, and
+  §11 gives the exact sense in which it is an isometry.</p>
+</div>
+
+<h3><span class="num">§10</span> The discrete Fourier transform</h3>
+
+<div class="box def">
+  <span class="label">What you can actually compute</span>
+  <p>For <span class="m">$n$</span> samples <span class="m">$x_0 \dots x_{n-1}$</span>:</p>
+  <p class="m">$$X_k \;=\; \sum_{j=0}^{n-1} x_j\, e^{-2\pi i jk/n}, \qquad k = 0,\dots,n-1$$</p>
+  <p>This is a matrix product: <span class="m">$X = Wx$</span> with
+  <span class="m">$W_{kj} = e^{-2\pi i jk/n}$</span>. Which is the first thing to notice about it:
+  the transform is a linear map, so everything Part I says about linear maps applies, and the second
+  thing to notice is that computing it this way costs <span class="m">$n^2$</span>.</p>
+</div>
+
+<div class="box pitfall">
+  <span class="label">Pitfall: the DFT assumes your signal is periodic</span>
+  <p>The discrete transform treats the <span class="m">$n$</span> samples as one period of an
+  infinitely repeating signal. If the first and last samples differ, the implied signal has a
+  discontinuity at the seam, and a discontinuity has energy at every frequency.</p>
+  <p>That is where §21's leakage comes from, and it is the reason windows exist. It is also the most
+  common way a spectrum gets misread: a broad noise floor that is not in the data, manufactured by
+  the assumption.</p>
+</div>
+
+<h3><span class="num">§11</span> What the transform preserves</h3>
+
+<div class="box def">
+  <span class="label">Parseval, and why it matters here</span>
+  <p class="m">$$\sum_{j} |x_j|^2 \;=\; \frac{1}{n}\sum_{k} |X_k|^2$$</p>
+  <p>Energy is conserved. The transform is a rotation of the space, not a distortion of it, so
+  "how much signal is there" is the same question in either basis.</p>
+  <p>This is what licenses talking about a <b>power spectrum</b> as a decomposition of the signal's
+  energy across frequency (§27 measures one), and it is why an <span class="m">$L_2$</span> loss in
+  one domain is an <span class="m">$L_2$</span> loss in the other, which occasionally makes a hard
+  objective easy.</p>
+</div>
+
+<h3><span class="num">§12</span> The fast algorithm</h3>
+
+<div class="box def">
+  <span class="label">Cooley–Tukey</span>
+  <p>Split the sum into even-indexed and odd-indexed terms. Each is a transform of length
+  <span class="m">$n/2$</span>, and the two combine in <span class="m">$n$</span> operations because
+  the odd half only needs a phase factor applied. Recurse:</p>
+  <p class="m">$$T(n) = 2T(n/2) + O(n) \;\Longrightarrow\; T(n) = O(n \log n)$$</p>
+  <p>It is exactly the divide-and-conquer shape, and it works because the roots of unity used at
+  length <span class="m">$n$</span> contain those used at <span class="m">$n/2$</span>, an
+  arithmetic coincidence, not a general property of matrix products.</p>
+</div>
+
+<div class="box hist">
+  <span class="label">1965, and 1805</span>
+  <p>Cooley and Tukey published the algorithm in 1965 and it changed what was computationally
+  possible in signal processing overnight. Gauss had it in an unpublished notebook around 1805,
+  before Fourier's own work appeared, which makes it one of the more thoroughly rediscovered results
+  in numerical mathematics, at least sixteen times, by one count.</p>
+</div>
+
+<figure>
+  <img src="figures/sg/02-fft.svg" alt="Left: relative error of a from-scratch radix-2 FFT against the definition. Right: timing of the definition, the radix-2 implementation and numpy against transform length">
+  <figcaption><b>Figure 2.</b> A radix-2 FFT written out (bit-reversal, then
+  <span class="m">$\log_2 n$</span> butterfly stages) checked against the explicit matrix on every
+  run. <b>Left:</b> it computes the same thing, worst case <b>4.35&times;10<sup>&minus;13</sup></b>
+  relative over <i>n</i> = 8 to 2,048. <b>Right:</b> at a cost that scales differently, though the
+  timing numbers are wall-clock and hardware-specific: re-run this on different hardware and expect
+  a different fitted exponent, not merely different constants. On the machine measured here, the
+  definition's fitted exponent was <b>2.17</b> against a predicted 2.00 over the largest four sizes;
+  the ratio between them grew from 0.8&times; at <i>n</i> = 256 to <b>28.5&times;</b> at 8,192 and
+  kept going. The radix-2 curve measured <b>0.78</b> against a predicted 1.11, because below
+  <i>n</i> &asymp; 10<sup>4</sup> the fixed per-stage cost is still being amortised: complexity is
+  a claim about operation counts, and wall clock is a different, machine-dependent measurement.</figcaption>
+</figure>
+
+<h3><span class="num">§13</span> Reading a spectrum</h3>
+
+<div class="box shapes">
+  <span class="label">Four things to know before you plot one</span>
+  <p><b>Bin <span class="m">$k$</span> is frequency <span class="m">$k f_s / n$</span>.</b> The
+  spacing is set by the record length, not by the sampling rate alone.</p>
+  <p><b>The second half is a mirror</b> for a real signal, so only bins
+  <span class="m">$0$</span> to <span class="m">$n/2$</span> carry information.</p>
+  <p><b>Bin zero is the mean.</b> Subtract it before plotting on a log scale or it dominates
+  everything.</p>
+  <p><b>Plot power on a log axis.</b> Natural signals span many orders of magnitude across
+  frequency (§27 measures how many), and a linear axis shows one peak and nothing else.</p>
+</div>
+
+<h3><span class="num">§14</span> The convolution theorem</h3>
+
+<div class="box def">
+  <span class="label">The result this book has been using since Part X</span>
+  <p class="m">$$\widehat{x * h} \;=\; \hat{x} \cdot \hat{h}$$</p>
+  <p>Convolution in one domain is pointwise multiplication in the other. A filter that mixes every
+  input position with every output position becomes a per-frequency scalar.</p>
+  <p>Equivalently: <b>the complex sinusoids are the eigenvectors of every convolution</b>, and
+  <span class="m">$\hat{h}$</span> is the vector of eigenvalues. That is the precise sense in which
+  a convolutional layer is diagonal in frequency, and it is why "what does this filter do" has a
+  one-line answer (it scales each frequency by a number) where "what does this dense layer do"
+  does not.</p>
+</div>
+
+<div class="box why">
+  <span class="label">What it explains about Part X</span>
+  <p><b>Why convolution and translation belong together.</b> Shift-invariant linear operators are
+  exactly the convolutions, and they are exactly the operators diagonalised by the Fourier basis.
+  Part X §9's equivariance and this theorem are the same fact.</p>
+  <p><b>Why a small kernel is a smooth response.</b> A short filter has a broad, slowly-varying
+  frequency response (the uncertainty relation of §22 again), so a 3&times;3 kernel cannot be
+  sharply selective in frequency however it is trained.</p>
+  <p><b>Why depth changes the picture.</b> Stacking convolutions multiplies frequency responses, so
+  a deep stack of small kernels can be selective where one cannot. The receptive-field argument of
+  Part X §10 is this statement in the other domain.</p>
+</div>
+
+<h3><span class="num">§15</span> What it costs</h3>
+
+<figure>
+  <img src="figures/sg/03-convolution.svg" alt="Milliseconds for direct convolution and FFT-based convolution against kernel length, for a fixed signal length">
+  <figcaption><b>Figure 3.</b> The same convolution computed directly and through the transform,
+  on a signal of length 2<sup>16</sup>. They agree to <b>7.25&times;10<sup>&minus;16</sup></b>, so
+  the choice is purely a cost decision, and the costs cross. Direct convolution is
+  <span class="m">$O(nk)$</span> and wins for small kernels; the FFT route is
+  <span class="m">$O(n \log n)$</span> regardless of kernel size and wins above
+  <b>k = 256</b> (a crossover set by the two complexities and stable across machines) by a
+  wall-clock margin that is not: <b>16&times;</b> at k = 4,096 on the machine measured here.</figcaption>
+</figure>
+
+<div class="box why">
+  <span class="label">Why deep learning almost never takes the right-hand branch</span>
+  <p>Kernels in vision are 3&times;3 or 7&times;7, three orders of magnitude below the crossover, so
+  direct convolution wins by a wide margin and the transform is irrelevant. That is a fact about the
+  architecture, not about the mathematics.</p>
+  <p>It reverses where kernels are long: convolutional sequence models with hundreds of taps, the
+  long convolutions inside state space models, and any place a global filter is applied. In those
+  the transform is not an optimisation but the only way the layer is affordable.</p>
+</div>
+
+<h3><span class="num">§16</span> What movement B establishes</h3>
+
+<div class="box intuition">
+  <span class="label">Three things</span>
+  <p><b>The Fourier transform is the change of basis that translation picks out.</b> Sinusoids are
+  the only functions a shift leaves in place, which is why they diagonalise every shift-invariant
+  operator.</p>
+  <p><b>The fast algorithm is divide-and-conquer on an arithmetic coincidence.</b> Figure 2 measures
+  it exact to 4.35&times;10<sup>&minus;13</sup> and pulling away from the definition without bound,
+  and measures the gap between an asymptotic claim and a wall clock.</p>
+  <p><b>Convolution is multiplication in frequency.</b> This is the theorem behind Part X, it says
+  what a filter does in one line, and Figure 3 says when computing it that way is worth the
+  trouble.</p>
+</div>

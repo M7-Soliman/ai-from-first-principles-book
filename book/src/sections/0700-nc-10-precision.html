@@ -1,0 +1,294 @@
+<h2><span class="part-kicker">Part A</span>Precision and its failures</h2>
+
+<h3><span class="num">§1</span> What a floating point number actually is</h3>
+
+<div class="sixty">
+  <span class="label">In 60 seconds</span>
+  <p>A float is <b>scientific notation in binary</b>: a sign, a fixed number of
+  significant bits, and an exponent. The consequence that matters is that the significant
+  bits are <b>fixed in count, not in position</b>, so the gap between representable
+  numbers grows with magnitude. Near 1 the gap is about $10^{-16}$; near $10^{16}$ the gap
+  is about 1.</p>
+</div>
+
+<p>Part 0 §26 said computers store approximations. Here is what the approximation
+actually is.</p>
+
+<p>A 64-bit float divides its bits into three fields: one <b>sign</b> bit, 11
+<b>exponent</b> bits, and 52 <b>mantissa</b> bits holding the significant digits. The
+value is</p>
+
+$$(-1)^{\text{sign}} \times 1.m \times 2^{e}$$
+
+<p>which is scientific notation with a base of 2 instead of 10. The mantissa holds the
+digits; the exponent says where the point goes.</p>
+
+<div class="box intuition">
+  <span class="label">Intuition: a fixed number of digits, sliding along the number line</span>
+  <p>Imagine a calculator that shows exactly 16 significant digits and an exponent. It can
+  represent 1.234567890123456 and it can represent 1.234567890123456 × 10<sup>50</sup>.
+  What it cannot do is represent a number needing 17 significant digits, at any
+  magnitude.</p>
+  <p>So precision is <b>relative</b>, not absolute. You always get about 16 significant
+  digits, but 16 digits of a number near $10^{20}$ means the smallest change you can
+  express is around $10^{4}$. The absolute gap grows with the number.</p>
+</div>
+
+<h4>Machine epsilon</h4>
+
+<p>The single most useful constant in numerical work:</p>
+
+<div class="box def">
+  <span class="label">Definition: machine epsilon</span>
+  <p>$\epsilon_{\text{mach}}$ is the gap between $1$ and the next representable number
+  above it. For 64-bit floats, $\epsilon_{\text{mach}} = 2^{-52} \approx 2.22 \times
+  10^{-16}$.</p>
+</div>
+
+<p>Equivalently: adding anything smaller than about $10^{-16}$ to 1 leaves 1 unchanged.
+Not approximately unchanged, but <i>exactly</i> unchanged, because the result rounds back to
+the nearest representable value, which is 1.</p>
+
+<figure>
+  <img src="figures/nc/01-float-spacing.svg" alt="Float spacing growing with magnitude, and addition of 1 losing effect">
+  <figcaption><b>Figure 1.</b> Left: the gap between consecutive floats, plotted against
+  magnitude. It is a straight line on log axes because spacing is <i>proportional</i> to
+  magnitude. Right: the computed value of $(x+1) - x$, which is exactly 1 in mathematics.
+  Past about $10^{16}$ the 1 is smaller than the local gap, so the addition does nothing at
+  all and the answer collapses to 0.</figcaption>
+</figure>
+
+<div class="box pitfall">
+  <span class="label">Pitfall: accumulating small numbers into a large one</span>
+  <p>Summing a million small values into a running total is a common pattern and a common
+  bug. Once the total is large relative to the individual terms, each addition rounds away
+  part of what it was adding, and the error compounds.</p>
+  <p>Two defences. <b>Sum in pairs</b> rather than sequentially, so the running totals stay
+  comparable in size; this is what <code>np.sum</code> does internally, which is one of
+  several reasons it beats a Python loop. Or use <b>compensated summation</b>, which keeps
+  a second variable tracking the accumulated rounding error and adds it back.</p>
+</div>
+
+<div class="box history">
+  <span class="label">History: the standard that had to be fought for</span>
+  <p>Before <span class="year">1985</span>, every manufacturer did this differently. Word
+  sizes differed, rounding rules differed, and whether a machine even had a way to signal
+  that a result was invalid differed. The same program produced different answers on
+  different hardware, and there was no way to reason about which was right.</p>
+  <p>The IEEE 754 standard fixed the representation, the rounding behaviour, and (crucially) the special values <code>inf</code> and <code>nan</code> that let a computation signal
+  failure rather than silently continue with garbage. William Kahan drove it through a
+  committee process against real commercial resistance, since every vendor's existing
+  hardware was the incumbent and the standard obsoleted parts of it.</p>
+  <p>He received the Turing Award in <span class="year">1989</span> for the work. It is
+  worth appreciating what it bought: every numerical result in this book is reproducible on
+  any machine you run it on, which was simply not true a decade before.</p>
+</div>
+
+<div class="box fw">
+  <span class="label">In the framework: why training runs in half precision on purpose</span>
+  <p>Everything in this section is a property of a <b>dtype</b>, and a deep learning library
+  will happily hand you four of them. Their differences are not academic; choosing among
+  them is one of the few decisions that changes both your results and your bill.</p>
+<pre><code><span class="k">import</span> torch
+<span class="k">for</span> dt <span class="k">in</span> (torch.float64, torch.float32, torch.float16, torch.bfloat16):
+    fi = torch.finfo(dt)
+    print(dt, fi.eps, fi.max)
+</code></pre>
+  <table class="compact">
+    <thead><tr><th>Type</th><th>$\epsilon_{\text{mach}}$</th><th>Decimal digits</th><th>Largest value</th></tr></thead>
+    <tbody>
+      <tr><td><code>float64</code></td><td>$2.2\times10^{-16}$</td><td>≈ 16</td><td>$1.8\times10^{308}$</td></tr>
+      <tr><td><code>float32</code> <span class="small muted">(the default)</span></td><td>$1.2\times10^{-7}$</td><td>≈ 7</td><td>$3.4\times10^{38}$</td></tr>
+      <tr><td><code>float16</code></td><td>$9.8\times10^{-4}$</td><td>≈ 3</td><td><b>65,504</b></td></tr>
+      <tr><td><code>bfloat16</code></td><td>$7.8\times10^{-3}$</td><td>≈ 2</td><td>$3.4\times10^{38}$</td></tr>
+    </tbody>
+  </table>
+
+  <h4>Read the last two rows against each other</h4>
+  <p>Both are 16 bits, so both halve memory and roughly double throughput against float32.
+  But they spend those sixteen bits differently, and the difference is the whole story of
+  modern training.</p>
+  <p><b>float16</b> keeps more precision (three decimal digits against two) and pays for
+  it with exponent bits. Its largest representable value is <b>65,504</b>. Not $10^{38}$;
+  sixty-five thousand. A single activation, gradient or intermediate sum crossing that
+  becomes <code>inf</code>, and by §2 the run is then poisoned with <code>nan</code>. In a
+  network of any depth this is not a remote possibility, it is a routine occurrence.</p>
+  <p><b>bfloat16</b> makes the opposite trade. It keeps float32's exponent field exactly (same $3.4\times10^{38}$ ceiling, same tiny floor) and throws away mantissa bits instead,
+  leaving roughly two decimal digits. It is a truncated float32: anything float32 can
+  represent in magnitude, bfloat16 can represent in magnitude, just coarsely.</p>
+  <p>And that trade turns out to be the right one, for a reason this whole part is about.
+  <b>Imprecision degrades a result; overflow destroys it.</b> A gradient known to two digits
+  is perfectly serviceable; §14 will show it is a noisy sample anyway, so a little
+  more noise costs almost nothing. A gradient that became <code>inf</code> ends the run. So
+  the format that cannot overflow wins, even though it is the less accurate one, and that is
+  why bfloat16 became the default for large-scale training while float16 requires an
+  elaborate apparatus of loss scaling to be usable at all.</p>
+
+  <h4>What this means in practice</h4>
+  <p>Mixed precision is the standard arrangement: keep a float32 copy of the weights,
+  compute the forward and backward passes in 16 bits, and accumulate the updates back in 32.
+  You get the speed where the work is and the precision where the accumulation happens,
+  which is exactly the pitfall about summing small numbers into a large one, solved by
+  putting the running total in a wider type.</p>
+<pre><code><span class="k">with</span> torch.autocast(device_type=<span class="s">"cuda"</span>, dtype=torch.bfloat16):
+    loss = model(x)          <span class="c"># forward runs in 16 bits</span>
+loss.backward()              <span class="c"># gradients accumulate into float32 parameters</span>
+</code></pre>
+  <p>The habit that follows: <b>16 bits for the network, 32 or 64 for anything that looks
+  like linear algebra.</b> A covariance matrix, a solve, an eigendecomposition or a metric
+  computed over a whole test set are all places where §5's condition number can be large and
+  two decimal digits is not a budget you can spend.</p>
+</div>
+
+<h3><span class="num">§2</span> Overflow, underflow, and the operations that break</h3>
+
+<p>Three failure modes, each with a characteristic signature.</p>
+
+<h4>Overflow</h4>
+
+<p>The result exceeds the largest representable value, about $1.8 \times 10^{308}$, and
+becomes <code>inf</code>. The dangerous part is what happens next: $\texttt{inf} -
+\texttt{inf}$, $\texttt{inf}/\texttt{inf}$ and $0 \times \texttt{inf}$ all produce
+<code>nan</code>, and <code>nan</code> contaminates every subsequent operation. One
+overflow forty layers deep poisons the entire computation, and the traceback points
+nowhere near the cause.</p>
+
+<h4>Underflow</h4>
+
+<p>The result is smaller than the smallest representable positive value and becomes
+exactly zero. This is often harmless and occasionally catastrophic, specifically when the
+zero then appears in a denominator, or inside a logarithm. $\log(0) = -\infty$, and you
+are back to <code>nan</code> from the other direction.</p>
+
+<h4>The operations to watch</h4>
+
+<table class="compact">
+  <thead><tr><th>Operation</th><th>Fails when</th><th>Standard fix</th></tr></thead>
+  <tbody>
+    <tr><td>$e^x$</td><td>$x \gtrsim 709$</td><td>shift the argument (Part II §20)</td></tr>
+    <tr><td>$\log x$</td><td>$x$ underflows to 0</td><td>work in log space throughout</td></tr>
+    <tr><td>$\prod p_i$</td><td>more than a few dozen terms</td><td>sum the logs instead</td></tr>
+    <tr><td>$a - b$</td><td>$a \approx b$</td><td>rearrange algebraically (§3)</td></tr>
+    <tr><td>$a / b$</td><td>$b$ near zero</td><td>add $\epsilon$, or reformulate</td></tr>
+    <tr><td>$\sqrt{x}$, $x^p$</td><td>$x$ slightly negative from rounding</td><td>clamp at zero</td></tr>
+  </tbody>
+</table>
+
+<div class="box pitfall">
+  <span class="label">Pitfall: <code>nan</code> is not equal to itself</span>
+  <p>By definition, <code>nan != nan</code> evaluates to <code>True</code>. This is
+  deliberate and occasionally useful: it is how you detect one.
+  <code>x != x</code> is <code>True</code> exactly when <code>x</code> is
+  <code>nan</code>.</p>
+  <p>It also means <code>nan</code> silently breaks sorting, deduplication, and any
+  equality check. If a data pipeline starts behaving impossibly, look for one.</p>
+</div>
+
+<h3><span class="num">§3</span> Catastrophic cancellation</h3>
+
+<div class="sixty">
+  <span class="label">In 60 seconds</span>
+  <p>Subtracting two nearly equal numbers <b>destroys significant digits</b>. The inputs
+  each carry 16 good digits; if they agree in the first 15, the difference has one good
+  digit and fifteen digits of noise. Nothing overflowed, nothing warned, and the answer is
+  simply wrong. The fix is always to <b>rearrange the algebra so the subtraction does not
+  happen</b>.</p>
+</div>
+
+<p>This is the subtlest of the failure modes and the one that catches experienced people,
+because unlike overflow it produces a perfectly ordinary-looking number.</p>
+
+<div class="worked">
+  <span class="label">Worked: where the digits go</span>
+  <p>Suppose two quantities are known to 16 significant digits:</p>
+  <p>$a = 1.2345678901234567$, &nbsp; $b = 1.2345678901234000$</p>
+  <p>Each is accurate to about $10^{-16}$. Their difference is $5.67 \times 10^{-14}$,
+  but only the last few digits of each input contributed to it, and those were exactly the
+  digits carrying rounding error.</p>
+  <p>The result has perhaps <b>two</b> reliable digits, down from sixteen. Fourteen digits
+  of accuracy vanished in a single subtraction, and nothing anywhere reported a
+  problem.</p>
+</div>
+
+<figure>
+  <img src="figures/nc/02-cancellation.svg" alt="Relative error from cancellation, and two formulas for a quadratic root">
+  <figcaption><b>Figure 2.</b> Left: computing $(1+h) - 1$, which should give exactly $h$.
+  As $h$ shrinks the relative error grows without bound; by $h \approx 10^{-16}$ the answer
+  is pure noise. Right: two algebraically identical formulas for the smaller root of a
+  quadratic. The textbook formula subtracts near-equal numbers and loses everything; the
+  rearranged one does not. Same mathematics, different arithmetic.</figcaption>
+</figure>
+
+<div class="worked long">
+  <span class="label">Worked: the quadratic formula, done properly</span>
+  <p>The roots of $ax^2 + bx + c = 0$ are usually written</p>
+  <p>$$x = \frac{-b \pm \sqrt{b^2 - 4ac}}{2a}$$</p>
+  <p>When $b$ is large and positive, $\sqrt{b^2 - 4ac} \approx b$. The root taking the
+  $+$ sign then computes $-b + (\text{something almost exactly } b)$: catastrophic
+  cancellation, and the answer loses most of its digits.</p>
+  <p>The fix uses the fact that the two roots multiply to $c/a$. Compute the <i>safe</i>
+  root first (the one whose subtraction does not cancel) and get the other by
+  division:</p>
+  <p>$$q = -\tfrac{1}{2}\left(b + \operatorname{sign}(b)\sqrt{b^2-4ac}\right), \qquad x_1 = \frac{q}{a}, \qquad x_2 = \frac{c}{q}$$</p>
+  <p>The $\operatorname{sign}(b)$ ensures the two terms in $q$ always <i>add</i> rather
+  than subtract, so nothing cancels. Both roots then come out accurate. This
+  reformulation is standard in every serious numerical library, and it is invisible to
+  anyone who has only seen the textbook version.</p>
+</div>
+
+<div class="box why">
+  <span class="label">Why this matters</span>
+  <p>Cancellation is why Part II §11's identity $\text{Var}(X) = \mathbb{E}[X^2] -
+  (\mathbb{E}[X])^2$ is dangerous in code. When the mean is large and the variance small,
+  those two terms are big and nearly equal, and the subtraction can return a small
+  negative number, which is mathematically impossible for a variance.</p>
+  <p>It is also why numerical differentiation has a floor. The central difference
+  $\big(f(x+h) - f(x-h)\big)/2h$ improves as $h$ shrinks, until cancellation in the
+  numerator overwhelms the gain. Part 0's drill C15 observed this empirically; the cause
+  is this section.</p>
+</div>
+
+<h3><span class="num">§4</span> Writing code that survives</h3>
+
+<p>The techniques are few and they recur. This is the whole catalogue.</p>
+
+<table>
+  <thead><tr><th>Technique</th><th>What it does</th></tr></thead>
+  <tbody>
+    <tr><td><b>Work in log space</b></td><td>Products become sums; underflow becomes impossible. Every likelihood, everywhere.</td></tr>
+    <tr><td><b>Shift before exponentiating</b></td><td>Subtract the max so the largest exponent is $e^0 = 1$. Provably changes nothing.</td></tr>
+    <tr><td><b>Fuse operations</b></td><td>Compute $\log(\text{softmax}(z))$ directly rather than composing two steps that each lose precision.</td></tr>
+    <tr><td><b>Rearrange to avoid subtraction</b></td><td>The quadratic formula above; also <code>log1p</code> and <code>expm1</code>, which exist precisely for this.</td></tr>
+    <tr><td><b>Clamp defensively</b></td><td>Clip probabilities to $[\epsilon, 1-\epsilon]$ before taking a log; clamp near-zero negatives to 0 before a square root.</td></tr>
+    <tr><td><b>Branch on sign</b></td><td>The stable sigmoid: exponentiate only non-positive numbers, so overflow cannot occur.</td></tr>
+    <tr><td><b>Never test floats for equality</b></td><td>Use a tolerance. <code>0.1 + 0.2 == 0.3</code> is <code>False</code>.</td></tr>
+  </tbody>
+</table>
+
+<pre><code><span class="k">import</span> numpy <span class="k">as</span> np
+
+<span class="c"># log1p and expm1 exist because of section 3</span>
+x = <span class="n">1e-16</span>
+print(np.log(<span class="n">1</span> + x))     <span class="o">### 0.0        -- the 1+x rounded to 1</span>
+print(np.log1p(x))     <span class="o">### 1e-16      -- correct</span>
+
+<span class="c"># variance: the tidy identity versus the stable algorithm</span>
+a = np.array([<span class="n">1e8</span>, <span class="n">1e8</span> + <span class="n">1</span>, <span class="n">1e8</span> + <span class="n">2</span>])
+print((a**<span class="n">2</span>).mean() - a.mean()**<span class="n">2</span>)   <span class="o">### 2.0    -- wrong by 3×, and silently so</span>
+print(np.var(a))                       <span class="o">### 0.667 -- correct</span>
+</code></pre>
+
+<div class="box try">
+  <span class="label">Try it</span>
+  <p>You need $\log(1 + e^{x})$ for $x = 800$. The direct computation overflows. What is
+  the answer, and how do you get it?</p>
+</div>
+
+<p><b>Answer.</b> For large $x$, $e^x$ dwarfs the 1, so $\log(1+e^x) \approx \log(e^x) =
+x$. The answer is essentially exactly 800.</p>
+<p>The general stable form, which is correct for every $x$ rather than just large ones:</p>
+<p>$$\log(1+e^x) = \max(x, 0) + \log\!\left(1 + e^{-|x|}\right)$$</p>
+<p>The exponent $-|x|$ is never positive, so it can never overflow, and the
+<code>log1p</code> form of the second term handles the small-$x$ case without cancellation.
+This is the softplus implementation from Part 0 §18, and now you know why it is written
+that way.</p>

@@ -1,0 +1,156 @@
+<h2><span class="part-kicker">Part B</span>Quantization</h2>
+
+<p class="lede">Store the weights in fewer bits. The most effective single technique in this part,
+because it attacks the quantity §3 says is binding, and because it costs less than it has any right
+to.</p>
+
+<h3><span class="num">§8</span> The idea</h3>
+
+<div class="box def">
+  <span class="label">Integers with a scale</span>
+  <p>Represent a group of weights by integers and one scale factor:</p>
+  <p>$$w \approx s \cdot q, \qquad q = \mathrm{round}(w / s) \in [-2^{b-1}, 2^{b-1}-1]$$</p>
+  <p>with $s = \max|w| / (2^{b-1}-1)$ for the symmetric case. Asymmetric quantization adds a
+  <b>zero point</b> so the range need not be centred, which matters for activations after a ReLU
+  and rarely for weights.</p>
+  <p>Going from 16 bits to 4 divides the bytes moved by four, and §3 says that is the number that
+  sets decode speed. The arithmetic saving is a bonus and often not realised at all, because the
+  values are typically dequantized before the multiply.</p>
+</div>
+
+<h3><span class="num">§9</span> Granularity, and what it buys</h3>
+
+<figure>
+  <img src="figures/ef/03-quant-granularity.svg" alt="Relative quantization error against bit width for three granularities, and the effect of removing outlier columns">
+  <figcaption><b>Figure 3.</b> A weight matrix with the heavy tail real ones have. At 8 bits the
+  error is <b>0.067</b> per-tensor, <b>0.036</b> per-channel and <b>0.024</b> per-group. Right: six
+  outlier columns out of 512 are responsible for most of it; removing them drops the per-tensor
+  error to <b>0.011</b>, a factor of <b>6</b>.</figcaption>
+</figure>
+
+<div class="box def">
+  <span class="label">One scale for how many weights</span>
+  <p><b>Per-tensor</b>: one scale for the whole matrix. Cheapest, and every weight shares a range
+  set by the largest.</p>
+  <p><b>Per-channel</b>: one per output row. Almost free and substantially better.</p>
+  <p><b>Per-group</b>: one per block of 64 or 128 along the input dimension. Best, and the extra
+  scales are themselves storage: at group 128 in 4-bit, the scales add about 3% overhead, which is
+  worth counting when comparing "4-bit" schemes.</p>
+</div>
+
+<h3><span class="num">§10</span> Outliers</h3>
+
+<div class="readnow"><span class="label">Go and read</span><p><span class="src">Dettmers et al. (2022)</span>, <i>LLM.int8(): 8-bit matrix multiplication for transformers at scale</i>. The outlier finding, and the reason 8-bit inference works at all. Read §3 for the structure (the large activations concentrate in a small number of <b>fixed</b> feature dimensions, consistently across inputs) because that structure is what every later method exploits.</p></div>
+
+<div class="box why">
+  <span class="label">Why a handful of channels dominates</span>
+  <p>Quantization error is set by the <b>step size</b>, which is set by the <b>range</b>, which is
+  set by the largest value in the group. A few weights a hundred times larger than the rest widen
+  the range for everyone, and every ordinary weight loses precision to accommodate them.</p>
+  <p>The figure measures it: six columns of 512 account for a sixfold difference in error. In real
+  transformers the effect is stronger and structured: the large activations concentrate in a small
+  number of <b>fixed</b> feature dimensions, consistently across inputs.</p>
+  <p>That structure is what the remedies exploit. <b>Mixed precision</b> keeps the outlier channels
+  in 16 bits and quantizes the rest, which was the original LLM.int8 observation. <b>Scaling</b>
+  divides outlier channels down and folds a compensating factor into the adjacent layer, which is
+  <b>SmoothQuant</b>'s approach; AWQ instead scales the weight channels that <i>multiply</i> large
+  activations, using activation statistics to decide which weights are salient rather than moving
+  the difficulty into the activations themselves (§11). Both work because the outliers are few and
+  identifiable rather than scattered.</p>
+</div>
+
+<h3><span class="num">§11</span> Post-training quantization</h3>
+
+<div class="readnow"><span class="label">Go and read</span><p><span class="src">Frantar et al. (2023)</span>, <i>GPTQ: accurate post-training quantization for generative pre-trained transformers</i>. Column-by-column quantization that adjusts the remaining weights to compensate for the error just introduced. The transferable idea is the reframing: accept the rounding and fix its downstream effect, rather than trying to round better. Then <span class="src">Lin et al. (2024)</span> on AWQ, which is simpler and competitive.</p></div>
+
+<div class="box def">
+  <span class="label">Quantize a trained model, with a little calibration</span>
+  <p>The cheapest route: take the weights, choose scales, done. A calibration set of a few hundred
+  examples is used to pick activation ranges and, in the better methods, to choose <b>which</b>
+  rounding minimises the error that actually propagates.</p>
+  <p><b>GPTQ</b> quantizes column by column and, after each, adjusts the remaining unquantized
+  weights to compensate for the error just introduced, using second-order information from the
+  calibration set. <b>AWQ</b> observes that not all weights matter equally and protects the ones
+  that multiply large activations.</p>
+  <p>Both are error-<b>compensating</b> rather than error-minimising: they accept the rounding and
+  fix its downstream effect, which is why they beat naive rounding at the same bit width.</p>
+</div>
+
+<h3><span class="num">§12</span> Quantization-aware training</h3>
+
+<div class="box def">
+  <span class="label">Train with the rounding in the loop</span>
+  <p>Simulate quantization in the forward pass and let the model adapt. The gradient does not exist;
+  rounding has zero derivative almost everywhere, so the <b>straight-through estimator</b> is
+  used: quantize forward, pass the gradient back as though the operation were the identity.</p>
+  <p>It is a lie about the derivative and it works, for a reason worth stating: the quantity being
+  optimised is not the rounding but the <b>weights</b>, and the identity gradient points in
+  approximately the right direction for them.</p>
+  <p>Better than post-training quantization at low bit widths, and it costs a training run, so it
+  is used when 4 bits or below is required and post-training methods have failed.</p>
+</div>
+
+<h3><span class="num">§13</span> Activations, and why they are harder</h3>
+
+<div class="box pitfall">
+  <span class="label">Pitfall: weight-only quantization is not the same as quantized inference</span>
+  <p>Most deployed quantization is <b>weight-only</b>: weights in 4 bits, dequantized to 16 for the
+  multiply. This gets the memory-bandwidth win of §3 and none of the arithmetic win.</p>
+  <p>Quantizing activations too would let the multiply run in integer arithmetic, which is several
+  times faster on hardware that supports it. It is much harder, because activations are
+  <b>data-dependent</b>: their range varies per input, so the scale must be computed on the fly or
+  calibrated and hoped for, and the outliers of §10 are worse in activations than in weights.</p>
+  <p>So when a system reports "4-bit", ask which. The two have different speedups and very different
+  accuracy risks.</p>
+</div>
+
+<h3><span class="num">§14</span> What it actually costs</h3>
+
+<div class="box def">
+  <span class="label">Measure the loss, not the weight error</span>
+  <p>§9's figure measures the error in the weights, which is the wrong quantity: it is not what
+  anyone deploys against. §15's figure measures the model's loss, which is.</p>
+  <p>The two disagree in an important way: weight error grows smoothly as bits fall, and loss stays
+  flat and then falls off a cliff. Choosing a bit width by weight error will pick the wrong
+  one.</p>
+</div>
+
+<h3><span class="num">§15</span> Where the cliff is</h3>
+
+<figure>
+  <img src="figures/ef/04-quant-loss.svg" alt="Test loss against bits per weight for three granularities, and the loss above full precision on a log scale">
+  <figcaption><b>Figure 4.</b> A trained model, quantized and evaluated. Full precision is
+  <b>1.7766</b>. Per-tensor stays within 0.01 nats down to <b>5 bits</b>; per-channel and per-group
+  down to <b>4</b>. At 2 bits per-tensor reaches <b>2.61</b> and per-group <b>2.05</b>: the
+  degradation is flat and then it is a cliff, and granularity moves the cliff by about a bit. These
+  are one training run's numbers on one toy source; re-training or a different seed shifts the exact
+  losses and the bit at which each curve leaves the floor by a bit or so. What is robust across runs
+  is the <b>shape</b> (flat, then a cliff), and that granularity moves the cliff rather than
+  smoothing it.</figcaption>
+</figure>
+
+<div class="box why">
+  <span class="label">Why the shape matters more than the numbers</span>
+  <p>Compare this to §9's figure, which measured the error in the <b>weights</b>. That error grows
+  smoothly as bits fall. The loss does not: it is flat, and then it collapses.</p>
+  <p>Two consequences. Choosing a bit width by weight error will pick the wrong one, because a
+  smooth quantity cannot tell you where a cliff is. And there is usually a bit width that is nearly
+  free, going below it is expensive and stopping above it wastes memory, so the useful thing to
+  measure is the location of the edge rather than the error at any point.</p>
+  <p>Where the edge sits depends on the <b>granularity</b> more than on the method. That is worth
+  knowing before reaching for a sophisticated post-training algorithm: per-group scales are cheap,
+  and they buy about the same bit that GPTQ does.</p>
+</div>
+
+<h3><span class="num">§16</span> Quantizing the cache</h3>
+
+<div class="box def">
+  <span class="label">Where the other half of the memory is</span>
+  <p>§4 showed the KV cache overtaking the weights past about 26,000 tokens. Quantizing the weights
+  and not the cache therefore stops helping exactly in the long-context regime that motivated the
+  work.</p>
+  <p>Cache quantization to 8 or 4 bits is standard, and it has a property the weights do not: the
+  cache is written once and read many times, so quantization error <b>accumulates</b> over the
+  generation rather than being applied once. Keys are more sensitive than values, because they enter
+  a softmax; the common asymmetry is to keep keys at higher precision than values.</p>
+</div>

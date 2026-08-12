@@ -1,0 +1,272 @@
+<h2 class="nobreak">Before you start</h2>
+
+<p class="lede">This part is different from the three before it. Those derived mathematics
+that will be true in fifty years. This one describes a library, and libraries change.</p>
+
+<p>It is here anyway, and placed exactly here, for a reason worth stating.</p>
+
+<p>Everything a training loop contains has now been built from nothing. The chain rule is
+Part 0 §17. The matrix arithmetic of a layer is Part I §§4–8, hand-computed. Cross-entropy
+was derived from maximum likelihood in Part II §26, not asserted. Stochastic gradient
+descent, momentum and Adam are Part III §§14–17, with the formulas worked out and the
+figures measured. <b>There is no line in a modern training script whose mathematics you
+have not already seen.</b></p>
+
+<p>That is the only honest moment to introduce a framework. Earlier and you would be
+copying incantations: <code>F.cross_entropy</code> would be a magic word rather than a
+consequence. Later and you would have spent three more parts writing NumPy that nobody
+writes.</p>
+
+<div class="box why">
+  <span class="label">What this part is not</span>
+  <p>It is not a tutorial that gets you to a working model as fast as possible. Those exist,
+  they are good, and they are not what a book like this is for.</p>
+  <p>The aim here is different: <b>to make the framework legible rather than usable.</b>
+  Every section takes something the library does, connects it to the mathematics that forces
+  it, and then shows what happens when the connection is broken. By §17 you should be able
+  to read an unfamiliar training script and say what each line is for, and, more usefully,
+  to look at an error message and know which of the derivations behind it has been
+  violated.</p>
+  <p>The material that dates fastest is quarantined into this one part deliberately. If a
+  future version of PyTorch renames something, nothing in Parts 0 through III needs a word
+  changed.</p>
+</div>
+
+<h3><span class="num">§0.1</span> Why PyTorch</h3>
+
+<p>Two libraries have dominated for most of this book's life, and the choice between them
+matters less than either community suggests. This book uses <b>PyTorch</b> for three
+reasons.</p>
+
+<p>It is dominant in research, so the papers you will read in the reading list ship PyTorch
+code. Its API sits closest to the notation: <code>a @ b</code> is a matrix product,
+<code>x.T</code> is a transpose, and a model is a Python object you can print and step
+through with an ordinary debugger. And its graph is built <i>as the code runs</i>, which
+means the graph in §4 is the one your program actually executed rather than one compiled
+in advance from a description.</p>
+
+<p>TensorFlow, and Keras layered on top of it, does the same things with different
+vocabulary. Where a difference would genuinely catch you out (a transposed weight matrix,
+an unsafe default), this part says so. It does not attempt a full translation, because a
+half-remembered second API is worse than one you know.</p>
+
+<p>A third, <b>JAX</b>, has earned a place in research code since: composable function
+transforms (<code>grad</code>, <code>vmap</code>, <code>jit</code>) over pure functions,
+rather than an object that owns state. The mathematics you have built transfers directly
+(a transform is still the chain rule under the name), but its idioms are different enough
+from the object-oriented shape below that this part leaves it unmapped rather than
+half-covering it.</p>
+
+<div class="box pitfall">
+  <span class="label">Pitfall: versions</span>
+  <p>Everything here was run against PyTorch 2.x, and the numbers printed in the output
+  comments are real output from that version. Function names in the core (<code>tensor</code>,
+  <code>backward</code>, <code>nn.Module</code>, <code>optim</code>) have been stable for
+  years and are safe to learn. The periphery moves.</p>
+  <p>Where a snippet's exact output could drift, this part says what to expect rather than
+  quoting a digit.</p>
+</div>
+
+<h2><span class="part-kicker">Part A</span>One program, and the object it moves</h2>
+
+<h3><span class="num">§1</span> A complete program, line by line</h3>
+
+<div class="sixty">
+  <span class="label">In 60 seconds</span>
+  <p>A training script is four objects (data, model, loss, optimiser) and a loop that
+  repeats five statements. Everything else in this part is detail about one of those nine
+  things. Read the program first; the sections that follow open it up.</p>
+</div>
+
+<p>Here is a working, complete program. It trains a classifier, evaluates it, and saves it.
+Nothing is elided.</p>
+
+<pre><code><span class="k">import</span> torch
+<span class="k">import</span> torch.nn <span class="k">as</span> nn
+<span class="k">import</span> torch.nn.functional <span class="k">as</span> F
+<span class="k">from</span> torch.utils.data <span class="k">import</span> TensorDataset, DataLoader
+
+torch.manual_seed(<span class="n">0</span>)
+
+<span class="c"># ---- data -------------------------------------------------------------</span>
+X = torch.randn(<span class="n">2000</span>, <span class="n">20</span>)
+y = (X[:, :<span class="n">3</span>].sum(dim=<span class="n">1</span>) &gt; <span class="n">0</span>).long()          <span class="c"># a learnable rule</span>
+
+n_tr, n_va = <span class="n">1400</span>, <span class="n">300</span>
+train_ds = TensorDataset(X[:n_tr], y[:n_tr])
+val_X, val_y = X[n_tr:n_tr+n_va], y[n_tr:n_tr+n_va]
+
+train_dl = DataLoader(train_ds, batch_size=<span class="n">64</span>, shuffle=<span class="k">True</span>)
+
+<span class="c"># ---- model ------------------------------------------------------------</span>
+model = nn.Sequential(
+    nn.Linear(<span class="n">20</span>, <span class="n">64</span>),
+    nn.ReLU(),
+    nn.Linear(<span class="n">64</span>, <span class="n">2</span>),
+)
+
+<span class="c"># ---- optimiser --------------------------------------------------------</span>
+opt = torch.optim.AdamW(model.parameters(), lr=<span class="n">1e-3</span>)
+
+<span class="c"># ---- loop -------------------------------------------------------------</span>
+<span class="k">for</span> epoch <span class="k">in</span> range(<span class="n">10</span>):
+    model.train()
+    <span class="k">for</span> xb, yb <span class="k">in</span> train_dl:
+        opt.zero_grad()                       <span class="c"># 1. clear last step's gradients</span>
+        logits = model(xb)                    <span class="c"># 2. forward</span>
+        loss = F.cross_entropy(logits, yb)    <span class="c"># 3. how wrong</span>
+        loss.backward()                       <span class="c"># 4. backward</span>
+        opt.step()                            <span class="c"># 5. update</span>
+
+    model.eval()
+    <span class="k">with</span> torch.no_grad():
+        acc = (model(val_X).argmax(dim=<span class="n">1</span>) == val_y).float().mean()
+    print(<span class="s">f"epoch {epoch}  val acc {acc:.3f}"</span>)
+
+torch.save(model.state_dict(), <span class="s">"model.pt"</span>)
+</code></pre>
+
+<p>That is the whole thing. Roughly thirty lines, and it is structurally identical to a
+script training a model a thousand times larger: the differences are the shape of the data,
+the contents of the model, and how many machines are involved.</p>
+
+<aside class="mnote"><b>Seeding is necessary, not sufficient:</b>
+<code>torch.manual_seed(0)</code> fixes the initial weights and the shuffle order, but
+several GPU kernels (convolutions in particular) pick a fast algorithm nondeterministically
+unless you also set <code>torch.backends.cudnn.deterministic = True</code>, which costs
+speed. On CPU, as in this program, seeding alone is enough.</aside>
+
+<div class="box why">
+  <span class="label">Where every line came from</span>
+  <table class="compact" style="margin-top:0.5em">
+    <thead><tr><th>Line</th><th>Derived in</th></tr></thead>
+    <tbody>
+      <tr><td><code>shuffle=True</code></td><td>Part II §17: sampling from the empirical distribution</td></tr>
+      <tr><td><code>batch_size=64</code></td><td>Part III §14: the noise/cost trade, $1/\sqrt{b}$ against $b$</td></tr>
+      <tr><td><code>nn.Linear</code></td><td>Part I §8: $W\mathbf{x}+\mathbf{b}$, computed by hand</td></tr>
+      <tr><td><code>nn.ReLU</code></td><td>Part 0 §18: and why its derivative is 1, not $\le 0.25$</td></tr>
+      <tr><td><code>cross_entropy</code></td><td>Part II §26: maximum likelihood, not a convention</td></tr>
+      <tr><td><code>backward()</code></td><td>Part 0 §17: the chain rule, organised</td></tr>
+      <tr><td><code>AdamW</code></td><td>Part III §16: momentum plus per-parameter scaling</td></tr>
+      <tr><td><code>zero_grad()</code></td><td><i>Forward reference</i>: closed properly in Part VII §21; the reason gradients accumulate at all is already visible in the chain rule you organised in Part 0 §17, where a value used twice sums both contributions</td></tr>
+      <tr><td><code>train()</code> / <code>eval()</code></td><td>§14 below</td></tr>
+    </tbody>
+  </table>
+  <p>Nine lines: seven already derived outright, one (<code>train()</code>/<code>eval()</code>)
+  explained two sections from here, and one (<code>zero_grad()</code>) a flagged forward
+  reference you will close properly in Part VII. That is what makes this part short: it is
+  mostly naming things you built, with one debt honestly carried forward rather than
+  disguised.</p>
+</div>
+
+<h3><span class="num">§2</span> The tensor</h3>
+
+<div class="readnow"><span class="label">Go and read</span><p><span class="src">Micikevicius et al. (2018)</span>, <i>Mixed precision training</i>. What it takes to train in 16 bits safely: loss scaling to keep small gradients out of the subnormal range, and a 32-bit copy of the weights so that tiny updates are not rounded away. It is Part III §1's precision-versus-range trade at production scale, and it explains why bfloat16 later displaced the float16 scheme described here.</p></div>
+
+<p>Part I §2 introduced the tensor as the four-rung ladder of scalar, vector, matrix and
+array. That is what it <i>holds</i>. Here is what it <i>is</i> as an object, because five
+attributes explain most of what goes wrong.</p>
+
+<pre><code>t = torch.randn(<span class="n">32</span>, <span class="n">64</span>)
+
+t.shape      <span class="c"># torch.Size([32, 64])  -- the maths</span>
+t.dtype      <span class="c"># torch.float32        -- the precision</span>
+t.device     <span class="c"># cpu                  -- where the bytes live</span>
+t.requires_grad  <span class="c"># False            -- is this being differentiated?</span>
+t.grad       <span class="c"># None                 -- and the result, once there is one</span>
+</code></pre>
+
+<p>Those five are worth memorising as a checklist, because when something fails it is almost
+always one of them. Two tensors will not multiply if the <b>shapes</b> do not chain. They
+will not add if the <b>dtypes</b> differ. They will not do anything at all if they are on
+different <b>devices</b>. And no gradient will appear if <code>requires_grad</code> was
+never set.</p>
+
+<div class="box shapes">
+  <span class="label">Watch the shapes: the habit, now with a debugger</span>
+  <p>Part I §0.4 asked you to write down a shape before computing anything. In a framework
+  that habit becomes cheaper and more important: cheaper because <code>print(t.shape)</code>
+  costs nothing, more important because a wrong shape frequently does <i>not</i> raise:
+  broadcasting silently produces a plausible tensor of the wrong size.</p>
+  <p>The single most useful debugging line in deep learning is a shape printed at the point
+  you stopped being sure.</p>
+</div>
+
+<h4>dtype, and the default that will bite you</h4>
+
+<p>Part III §1 established the trade between precision and range. Here is where it becomes
+a decision you make by accident:</p>
+
+<pre><code>torch.tensor([<span class="n">1.0</span>, <span class="n">2.0</span>]).dtype     <span class="c"># torch.float32  -- note: not 64</span>
+torch.tensor([<span class="n">1</span>, <span class="n">2</span>]).dtype         <span class="c"># torch.int64    -- no decimal point, no float</span>
+np_array_converted = torch.from_numpy(a)  <span class="c"># inherits NumPy's float64!</span>
+</code></pre>
+
+<p>Three defaults, three different answers. Writing <code>1.0</code> gives you 32-bit;
+writing <code>1</code> gives you an integer, which will refuse to enter a linear layer;
+converting from NumPy gives you 64-bit, which will then refuse to combine with the 32-bit
+weights of your model. All three produce error messages, and §16 decodes them.</p>
+
+<div class="box pitfall">
+  <span class="label">Pitfall: NumPy is 64-bit and PyTorch is 32-bit</span>
+  <p>This mismatch catches everyone once. A dataset loaded with NumPy arrives as
+  <code>float64</code>; a model's parameters are <code>float32</code>; multiplying them
+  raises <code>RuntimeError: mat1 and mat2 must have the same dtype, but got Double and
+  Float</code>.</p>
+  <p>The fix is one call (<code>X.float()</code>), and the reason to know it is that the
+  error names the symptom rather than the cause. The libraries chose different defaults for
+  good reasons: NumPy is for numerical computing, where Part III §5's condition numbers can
+  be large; PyTorch is for training, where speed matters more than digits.</p>
+</div>
+
+<h3><span class="num">§3</span> Getting numbers in and out</h3>
+
+<p>A tensor is not a number, and the boundary between them causes a specific and very common
+class of bug.</p>
+
+<pre><code>loss = torch.tensor(<span class="n">0.42</span>, requires_grad=<span class="k">True</span>)
+
+loss.item()          <span class="c"># 0.42        -- a Python float. Use this.</span>
+float(loss)          <span class="c"># 0.42        -- same thing</span>
+t.tolist()           <span class="c"># nested Python lists</span>
+t.detach().numpy()   <span class="c"># a NumPy array sharing the same memory</span>
+</code></pre>
+
+<p><code>.item()</code> works only on a single-element tensor, which is exactly what a loss
+is. The reason to reach for it is not convenience.</p>
+
+<div class="box why">
+  <span class="label">Why <code>.item()</code> matters: the accidental memory leak</span>
+  <p>Consider the innocent-looking line inside a training loop:</p>
+  <p><code>total_loss += loss</code></p>
+  <p><code>loss</code> is a tensor with a <code>grad_fn</code>, so it is attached to the
+  entire computational graph of that batch, every activation and every intermediate value.
+  Adding it to a running total <b>keeps that graph alive</b>. Do it for a thousand batches
+  and you are holding a thousand graphs, and the run dies with an out-of-memory error that
+  points at whichever batch happened to be last.</p>
+  <p>The fix is <code>total_loss += loss.item()</code>, which extracts a plain float and
+  lets the graph be freed. This is one of the most common bugs in real training code, it
+  scales with how long you train, and it looks nothing like a memory problem in the
+  source.</p>
+  <p>Section 6 explains what the graph is holding and why it is expensive; Figure 2 measures
+  it.</p>
+</div>
+
+<div class="box try">
+  <span class="label">Try it</span>
+  <p>You load features with <code>X = np.loadtxt("data.csv")</code> and labels with
+  <code>y = np.loadtxt("labels.csv")</code>, convert both with <code>torch.from_numpy</code>,
+  and pass them to a model with an <code>nn.Linear</code> first layer and
+  <code>F.cross_entropy</code> as the loss. Name the two errors you will hit, in order.</p>
+</div>
+
+<p><b>Answer.</b> First, <code>X</code> is <code>float64</code> from NumPy while the layer's
+weights are <code>float32</code>: <code>RuntimeError: mat1 and mat2 must have the same
+dtype, but got Double and Float</code>. Fix with <code>X = X.float()</code>.</p>
+<p>Second, <code>y</code> is also <code>float64</code>, but <code>cross_entropy</code> wants
+class <i>indices</i> (integers), as Part II §25 explained, because it looks up one
+element rather than forming a one-hot vector. So you get <code>RuntimeError: expected
+scalar type Long but found Double</code>. Fix with <code>y = y.long()</code>.</p>
+<p>Two different dtype errors from one loading pattern, requiring opposite conversions.
+Neither is a deep problem and both cost a beginner an afternoon, which is why they are in
+§16's table.</p>

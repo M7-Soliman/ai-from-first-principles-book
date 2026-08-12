@@ -1,0 +1,177 @@
+<h2><span class="part-kicker">Part F</span>The discipline</h2>
+
+<h3><span class="num">§32</span> A case, end to end</h3>
+
+<p>The Street View transcription system of §4 and §11, told once in order, because the value of
+the process is in the sequence rather than in any step.</p>
+
+<div class="box worked">
+  <span class="label">Worked: from a goal to ten points of coverage</span>
+  <p><b>The goal.</b> Add addresses to a map from photographs. A wrong address is worse than
+  none, so accuracy must be human-level: 98%. Stated as classification that is a hard target;
+  stated as §4's coverage it becomes tractable: <b>hold accuracy at 98% and maximise
+  coverage</b>. Coverage became the project's metric.</p>
+  <p><b>The baseline.</b> §6: a convolutional network with rectifiers, and the simplest possible
+  output: $n$ independent softmax units, one per character, each trained as if it were its own
+  classification problem.</p>
+  <p><b>The first change came from theory.</b> Refusing requires a probability for the whole
+  sequence, and multiplying independent softmax outputs is not one. Replacing it with an output
+  layer computing a genuine sequence log-likelihood made the rejection mechanism work: §5's
+  point, that a refusal threshold is only as good as the number it thresholds.</p>
+  <p><b>Then instrumentation.</b> Coverage was still under 90% with no obvious theoretical
+  problem left. §10: train and test error were nearly identical, so it was not overfitting, and
+  with tens of millions of labelled examples, §13 says more data was not the answer either. That
+  leaves underfitting or a data defect.</p>
+  <p><b>Then §11.</b> Sorting the training images by the confidence of incorrect transcriptions
+  showed the defect: addresses cropped too tightly by the upstream detector, with digits missing.
+  "1849" arriving as "849".</p>
+  <p><b>The fix was not the obvious one.</b> Improving the detector would have taken weeks.
+  Widening the crop systematically took an afternoon and forced the transcription network to
+  tolerate more variation in position and scale. <b>It added ten percentage points of
+  coverage.</b></p>
+  <p><b>Then the last few points came from hyperparameters</b>, mostly making the model larger,
+  which §13 licenses precisely because train and test error had stayed equal throughout, so the
+  deficit was known to be underfitting.</p>
+</div>
+
+<div class="box why">
+  <span class="label">Why every step depended on the one before</span>
+  <p>The crop discovery is the memorable part and it was only reachable because of what came
+  first. Without a metric, nobody knows the system is stuck. Without the train/test comparison,
+  the obvious response to "coverage is low" is more data or a bigger model, and both would have
+  been wrong. Without §11's ranking, the images are just images.</p>
+  <p>And the final hyperparameter work was safe only because the diagnosis was continuously
+  maintained: train and test error stayed equal, so making the model bigger was known to be the
+  right direction rather than hoped to be.</p>
+</div>
+
+<h3><span class="num">§33</span> What the metric cannot tell you</h3>
+
+<p>Three gaps between the number and the thing, each of which has appeared in this book and is
+worth collecting in one place.</p>
+
+<dl>
+  <dt>The loss is not the metric</dt>
+  <dd>You train on cross-entropy because it is differentiable and well-behaved (Part II §26).
+  You care about something else. They usually move together and there is no guarantee, and
+  where they diverge the optimiser follows the loss.</dd>
+
+  <dt>The metric is not the goal</dt>
+  <dd>Part XIII §6's mechanism, one level up. The metric is a measurable stand-in for something you
+  actually want, and the substitution is invisible everywhere downstream. A recommender
+  optimising engagement is not optimising usefulness, and nothing in the pipeline records the
+  difference.</dd>
+
+  <dt>The goal is not the consequence</dt>
+  <dd>A system that achieves its goal can still be harmful, and this is not a metric problem at
+  all. Part XXI is about it. The point here is only that no amount of diagnostic rigour in
+  Parts A–E addresses it, and treating a good number as a complete answer is a category
+  error.</dd>
+</dl>
+
+<div class="box why">
+  <span class="label">Why Goodhart's law is the governing hazard</span>
+  <p>Any measure used as a target stops measuring what it measured. This is not cynicism about
+  metrics; it is a structural consequence of optimising against a proxy, and the field runs into
+  it at every scale: an individual overfitting a validation set (§20), a community overfitting
+  a benchmark (§22), a deployed system optimising a proxy for user value (§33).</p>
+  <p>The defence is not to abandon measurement. It is to <b>keep a measurement you are not
+  optimising</b>: a held-out benchmark used once, a labelled stream from live traffic (§27), a
+  control group (§30). The moment every number you have is one you have been optimising, you
+  have lost the ability to tell whether you are improving.</p>
+</div>
+
+<h3><span class="num">§34</span> The ladder</h3>
+
+<p>Part IX §29 gave a diagnostic ladder for a run that will not train. This is the general one,
+ordered by cost: each rung is cheaper than the one below and eliminates more.</p>
+
+<div class="box def">
+  <span class="label">When something is wrong, in this order</span>
+  <ol class="tight">
+    <li><b>Is the evaluation real?</b> Score the model on training data through the <i>test-time</i>
+    code path. Two minutes, and it separates a bad model from a broken measurement (§10).</li>
+    <li><b>Can it fit ten examples?</b> Regularization off. If not, it is a bug (§8).</li>
+    <li><b>Is training error acceptable?</b> If not, more data cannot help. Capacity, then
+    optimiser, then suspect the data (§13).</li>
+    <li><b>Is the gap the problem?</b> Then regularize, reduce capacity, or gather more, and use
+    a learning curve to decide how much (§14).</li>
+    <li><b>What do the worst mistakes look like?</b> Sorted by confidence, on the training set
+    (§11).</li>
+    <li><b>What do the instruments say?</b> Gradient norms, dead units, the update ratio
+    (§12).</li>
+    <li><b>Is the difference real?</b> Seeds, and the size of the search (§19, §20).</li>
+    <li><b>Only now:</b> a different architecture or optimiser.</li>
+  </ol>
+</div>
+
+<div class="box why">
+  <span class="label">Why the last rung is last</span>
+  <p>Changing the architecture is the most common first move and the least informative. It is
+  expensive, it changes many things at once, and if it helps you have learned that <i>something</i>
+  about the previous configuration was wrong without learning what.</p>
+  <p>Every rung above it is cheaper and returns a specific answer. Rungs one and two together
+  take ten minutes and between them eliminate the two failure modes (broken evaluation and
+  outright bug) that account for a large share of the cases where a model "does not work".</p>
+</div>
+
+<h3><span class="num">§35</span> When nothing works</h3>
+
+<p>The ladder terminates and the model is still not good enough. Four possibilities, in the order
+worth considering them.</p>
+
+<div class="box def">
+  <span class="label">The four</span>
+  <p><b>You are at the irreducible error.</b> Part V §20. Estimate it (Part XIII §14's
+  sample-and-relabel gives you the number), and if you are near it, you are finished. This is the
+  possibility people check last and should check first, because it is the only one where the
+  correct action is to stop.</p>
+  <p><b>The data cannot answer the question.</b> The inputs do not contain the information.
+  No model recovers what was never measured, and the response is new features or new
+  instrumentation, not new architecture.</p>
+  <p><b>The task is mis-specified.</b> Part XIII §6: the labels define the task, and if the
+  labels encode an ambiguous or wrong question then a better model fits it better. High
+  annotator disagreement (Part XIII §5) is the diagnostic.</p>
+  <p><b>It is genuinely open.</b> Sometimes the problem is a research problem. This is the
+  correct conclusion far less often than it is reached.</p>
+</div>
+
+<div class="box why">
+  <span class="label">Why stopping is a legitimate outcome</span>
+  <p>§2 asked for a target so that this moment has an answer. A system that reaches the noise
+  floor is done, and continuing to work on it produces §20's inflated numbers and nothing else.</p>
+  <p>The uncomfortable version: the honest conclusion is sometimes that the problem is not
+  solvable with the data available, and that finding is worth more than a model that appears to
+  work because the evaluation was not rigorous enough to say otherwise. Every technique in Part D
+  exists to make that distinction possible.</p>
+</div>
+
+<h3><span class="num">§36</span> The habits</h3>
+
+<div class="box def">
+  <span class="label">What actually transfers</span>
+  <ul class="tight">
+    <li><b>Decide the metric and the target before training.</b> Both, written down.</li>
+    <li><b>Get something end to end working badly, immediately.</b></li>
+    <li><b>Fit ten examples before anything else.</b> Keep it as a test.</li>
+    <li><b>Look at the data.</b> Especially the confident mistakes, sorted.</li>
+    <li><b>Change one thing.</b> Then measure.</li>
+    <li><b>Run the baseline five times</b> so you know the noise floor.</li>
+    <li><b>Keep one measurement you never optimise against.</b></li>
+    <li><b>Report the search size, the seeds, and the worst slice.</b></li>
+    <li><b>Write down what you expected before you look.</b> It is the only defence against
+    finding every result unsurprising.</li>
+  </ul>
+</div>
+
+<div class="box intuition">
+  <span class="label">The one thing to carry forward</span>
+  <p><b>Diagnose before treating.</b></p>
+  <p>Every remedy in this book treats a specific condition. Regularization treats variance and
+  makes bias worse. More data treats variance and does nothing for underfitting. A bigger model
+  treats underfitting and makes overfitting worse. Applied to the wrong condition, each of them
+  is not merely useless: it moves you backwards while looking like progress.</p>
+  <p>The instruments that tell you which condition you have are cheap: two error numbers, ten
+  examples, a sorted list of mistakes, five seeds. The expensive part is remembering to look
+  before reaching, and that is the whole of this part.</p>
+</div>

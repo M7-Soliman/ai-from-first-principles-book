@@ -1,0 +1,136 @@
+<h2><span class="part-kicker">Part A</span>Two kinds of not knowing</h2>
+
+<p class="mvt">"The model is uncertain" names two different quantities that behave in opposite
+ways under more data, call for opposite responses, and are routinely reported as one number. This
+movement separates them, measures the separation, and states what calibration, the only
+uncertainty tool the book has offered so far, does not give you.</p>
+
+<h3><span class="num">§1</span> The promise an interval makes</h3>
+
+<div class="box def">
+  <span class="label">Coverage</span>
+  <p>An interval with <b>nominal coverage</b> <span class="m">$1-\alpha$</span> promises that,
+  over repeated draws, it contains the truth a <span class="m">$1-\alpha$</span> fraction of the
+  time. That promise is checkable, and checking it is the only thing that distinguishes an
+  uncertainty estimate from a decoration.</p>
+  <p>Every figure in this part is a coverage measurement. It is a low bar and most methods clear it
+  only under conditions worth stating precisely.</p>
+</div>
+
+<div class="box why">
+  <span class="label">Why the book needs this now</span>
+  <p>Part XIV §5 measured whether predicted probabilities matched observed frequencies. That is
+  necessary and it is not sufficient: a model can be perfectly calibrated on the distribution it
+  was measured on and say nothing useful about an input unlike anything it has seen.</p>
+  <p>Part XXI §32's safety case requires a bound with a stated confidence. Part XXII §22's
+  sensitivity analysis requires knowing how wrong an estimate could be. Both need an interval, and
+  neither Part XIV nor Part XXIII produces one for a deployed model.</p>
+</div>
+
+<h3><span class="num">§2</span> Aleatoric and epistemic</h3>
+
+<div class="box def">
+  <span class="label">The two, and the test that separates them</span>
+  <p><b>Aleatoric</b> uncertainty is in the world: the same input genuinely produces different
+  outcomes. Two patients with identical records have different results. It is a property of the
+  data-generating process.</p>
+  <p><b>Epistemic</b> uncertainty is in the model: you have not seen enough to know which function
+  is right. It is a property of your ignorance.</p>
+  <p>The test: <b>does more data reduce it?</b> Epistemic uncertainty falls towards zero;
+  aleatoric does not move, because it was never about you.</p>
+</div>
+
+<h3><span class="num">§3</span> Why the distinction is operational</h3>
+
+<div class="box shapes">
+  <span class="label">They call for different actions</span>
+  <p><b>High epistemic:</b> collect more data, particularly near the inputs in question. Active
+  learning is exactly the strategy of sampling where this is largest.</p>
+  <p><b>High aleatoric:</b> more data will not help. Either accept the irreducible spread, find a
+  feature that explains it (at which point it was epistemic all along, relative to the smaller
+  feature set) or decline to predict (§37).</p>
+  <p><b>The failure of reporting one number:</b> a system reporting total variance cannot tell you
+  which of those to do. This is the practical cost of the conflation, and it is common.</p>
+</div>
+
+<h3><span class="num">§4</span> Measuring the separation</h3>
+
+<figure>
+  <img src="figures/uq/01-decomposition.svg" alt="Epistemic and aleatoric variance against training set size, and predictive bands at two sample sizes">
+  <figcaption><b>Figure 1.</b> Data generated with a noise level the script sets. Epistemic variance
+  falls <b>213-fold</b> between 33 and 2,512 training points; aleatoric sits at <b>0.16</b>
+  throughout, because it is
+  <span class="m">$0.40^2$</span> and nothing about the sample changes it. At the far left the
+  epistemic term reaches <b>38</b>: that is a numerical artefact of fitting six basis functions to
+  thirteen points, not an interesting measurement, and it is included because it is what an
+  ensemble genuinely reports in that regime.</figcaption>
+</figure>
+
+<div class="box def">
+  <span class="label">The decomposition, and how to compute it</span>
+  <p>The law of total variance splits the predictive variance in two:</p>
+  <p class="m">$$\underbrace{\mathrm{Var}[y \mid x]}_{\text{total}} = \underbrace{\mathbb{E}_\theta\big[\mathrm{Var}[y \mid x, \theta]\big]}_{\text{aleatoric}} + \underbrace{\mathrm{Var}_\theta\big[\mathbb{E}[y \mid x, \theta]\big]}_{\text{epistemic}}$$</p>
+  <p>In words: average the noise each model reports, then add the spread <i>between</i> the models'
+  means. Any method producing several plausible models (an ensemble, posterior samples, dropout
+  masks) gives both terms for the price of one.</p>
+</div>
+
+<div class="box try">
+  <span class="label">Try it</span>
+  <p>Take a model you have deployed and produce five variants by retraining on bootstrap resamples.
+  Compare their predictions on your held-out set and on inputs from a different period. The spread
+  is your epistemic uncertainty; if it is negligible in both, either you have plenty of data or
+  your ensemble is not diverse, and distinguishing those is drill C4.</p>
+</div>
+
+<h3><span class="num">§5</span> Heteroscedastic prediction</h3>
+
+<div class="readnow"><span class="label">Go and read</span><p><span class="src">Kendall &amp; Gal (2017)</span>, <i>What uncertainties do we need in Bayesian deep learning for computer vision?</i> The paper this section's loss comes from, applied to depth regression and semantic segmentation rather than a toy problem. Read §3 for the derivation and then the finding the paper does not dwell on but the data support plainly: aleatoric uncertainty matters most in large-data regimes, where epistemic uncertainty has mostly been explained away, and epistemic matters most when data is scarce; so the two are not competitors for a modelling budget, they cover for each other.</p></div>
+
+<div class="box def">
+  <span class="label">When the noise depends on the input</span>
+  <p>Assuming a single noise level everywhere is usually wrong. Predict the variance too:</p>
+  <p class="m">$$-\log p(y \mid x) = \frac{(y - \mu(x))^2}{2\sigma^2(x)} + \frac{1}{2}\log \sigma^2(x) + \text{const}$$</p>
+  <p>Two heads, one loss. Part VII §6's "match the output unit to the distribution" taken one step
+  further: you are now modelling the distribution's second moment rather than assuming it.</p>
+</div>
+
+<div class="box pitfall">
+  <span class="label">Pitfall: the model can escape by declaring everything noisy</span>
+  <p>The loss above is minimised, on any point the mean head fits badly, by inflating
+  <span class="m">$\sigma^2(x)$</span> rather than improving <span class="m">$\mu(x)$</span>. Hard
+  examples get large predicted variance and stop contributing gradient to the mean.</p>
+  <p>The symptom is a model that is well calibrated and inaccurate, which looks fine on a
+  reliability diagram. Watch the mean's accuracy separately, and warm up the variance head after the
+  mean rather than jointly from the start.</p>
+</div>
+
+<h3><span class="num">§6</span> What calibration does not give you</h3>
+
+<div class="readnow"><span class="label">Go and read</span><p><span class="src">Guo et al. (2017)</span>, <i>On calibration of modern neural networks</i>. The paper behind Part XIV §5's calibration measurement, worth a second visit here for what it does not claim. It shows that accuracy improved through the 2010s while calibration got worse, and that a single scalar, temperature scaling, repairs most of it cheaply. It says nothing, and does not claim to, about an input unlike the distribution it was measured on, which is exactly this section's first gap.</p></div>
+
+<div class="box why">
+  <span class="label">Three things it is silent about</span>
+  <p><b>Inputs unlike the training data.</b> Calibration is measured on a held-out set from the
+  same distribution. A confidently wrong prediction on an input from elsewhere is invisible to it:
+  Part XXIII §39's shift, arriving where it does the most damage.</p>
+  <p><b>Which uncertainty you have.</b> A calibrated probability of 0.5 is consistent with a
+  genuine coin flip and with total ignorance. §2's distinction is not recoverable from the number.</p>
+  <p><b>Individual predictions.</b> Calibration is a property of a population of predictions. It
+  says nothing about the one in front of you, in the same way Part V §9's confidence interval says
+  nothing about the interval you computed.</p>
+</div>
+
+<h3><span class="num">§7</span> What movement A establishes</h3>
+
+<div class="box intuition">
+  <span class="label">Three things</span>
+  <p><b>Two quantities, opposite behaviour.</b> Figure 1 measures epistemic variance falling
+  213-fold while aleatoric stays at 0.16 exactly, because one is about the sample and the other is
+  about the world.</p>
+  <p><b>They call for different actions</b>, and a system reporting a single number cannot tell you
+  which to take.</p>
+  <p><b>Calibration is necessary and not sufficient.</b> It is measured on the distribution you
+  sampled, it cannot distinguish the two kinds, and it is a statement about a population of
+  predictions rather than about yours.</p>
+</div>

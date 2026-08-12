@@ -1,0 +1,137 @@
+<h2><span class="part-kicker">Part C</span>Dense prediction</h2>
+
+<p class="mvt">One output per pixel, so the matching problem of movement A disappears and two others
+replace it: a network that downsamples cannot produce a full-resolution answer without help, and a
+per-pixel average hides exactly the errors that matter.</p>
+
+<h3><span class="num">§17</span> Semantic segmentation</h3>
+
+<div class="box def">
+  <span class="label">Classification at every pixel</span>
+  <p>Predict a class per pixel. The loss is cross-entropy summed over pixels, the output shape is
+  fixed, and there is nothing to match, which makes it the easiest of these tasks to set up and
+  one of the harder ones to evaluate honestly.</p>
+  <p>The standard metric is mean intersection over union, computed per class and averaged over
+  classes rather than over pixels. That choice matters: averaging over pixels would let a class
+  covering 40% of every image drown out one covering 0.1%, and in a driving scene the second class
+  is the pedestrian.</p>
+</div>
+
+<h3><span class="num">§18</span> The resolution problem</h3>
+
+<div class="box why">
+  <span class="label">Three ways to get the resolution back, and what each costs</span>
+  <p>A backbone downsamples by 32. A segmentation needs the original resolution. Something has to
+  bridge that.</p>
+  <p><b>Learned upsampling.</b> Transposed convolution, which produces the checkerboard artefact of
+  Part X §27 whenever the kernel size is not a multiple of the stride, a defect with an exact
+  arithmetic cause and a one-line fix.</p>
+  <p><b>Skip connections.</b> Carry the shallow, high-resolution features across to the decoder. The
+  U-shape that dominates medical and satellite work, and the reason boundaries survive at all.</p>
+  <p><b>Dilated convolution.</b> Enlarge the receptive field without downsampling, so resolution is
+  never lost. Expensive in memory, since every layer runs at full resolution, and it makes the
+  gridding artefact of Part X §29 possible instead.</p>
+</div>
+
+<h3><span class="num">§19</span> Instance and panoptic</h3>
+
+<div class="box shapes">
+  <span class="label">Three questions that sound like one</span>
+  <p><b>Semantic:</b> which class is this pixel. Two adjacent cars are one region of "car".</p>
+  <p><b>Instance:</b> which object is this pixel. Two adjacent cars are two regions, and pixels
+  belonging to no object have no answer.</p>
+  <p><b>Panoptic:</b> both, with every pixel assigned exactly once: countable things get
+  identities, uncountable stuff gets classes.</p>
+  <p>The distinction is not pedantry. A planner needs to know that there are two cars rather than a
+  large car-shaped region, and a semantic model cannot tell it.</p>
+</div>
+
+<aside class="mnote"><b>Left out on purpose:</b> occupancy grids (a per-cell occupied/free
+probability over a voxel or bird's-eye-view grid, used where the set of things worth flagging is
+open-ended rather than a fixed class list) are named in §2 among the dense outputs and not
+developed as their own topic here. The representation is close enough to this section's per-pixel
+classification that little would be new; what is genuinely different is fusing the grid over time
+and across sensors, which belongs with tracking (movement E) rather than with a single frame.</aside>
+
+<h3><span class="num">§20</span> Depth from one image</h3>
+
+<div class="box pitfall">
+  <span class="label">Pitfall: monocular depth is scale-ambiguous, and the ambiguity is exact</span>
+  <p>A single projection cannot determine absolute scale: a scene twice as large at twice the
+  distance produces an identical image. Any absolute depth a monocular network reports comes from
+  the training data's statistics (typical object sizes, typical camera height), not from the
+  image.</p>
+  <p>Which is why monocular depth is usually evaluated after fitting a scale factor per image, and
+  why a number reported that way says nothing about whether the system knows how far away anything
+  is. Move the camera to a different height and the scale prior is wrong in a way no amount of
+  data from the original rig will reveal.</p>
+</div>
+
+<h3><span class="num">§21</span> Optical flow</h3>
+
+<div class="readnow"><span class="label">Go and read</span><p><span class="src">Lucas &amp; Kanade (1981)</span>, <i>An iterative image registration technique</i>. Where the brightness-constancy formulation and the local-constancy assumption come from. The aperture problem is visible in the algebra on the second page, forty years before anyone measured it with a network.</p></div>
+
+<div class="box def">
+  <span class="label">A motion vector per pixel</span>
+  <p>The classical assumption is that brightness is constant along a pixel's motion, which
+  linearises to</p>
+  <p class="m">$$I_x u + I_y v + I_t = 0$$</p>
+  <p>One equation, two unknowns, per pixel. So flow is underdetermined pointwise and every method is
+  a way of adding the missing constraint: assume the flow is locally constant, or penalise its
+  gradient, or learn a prior from data. The next section is what happens when the assumption does
+  not supply enough.</p>
+</div>
+
+<h3><span class="num">§22</span> The aperture problem</h3>
+
+<figure>
+  <img src="figures/vs/05-aperture.svg" alt="Residual of the brightness constancy equation over candidate velocities, for a patch containing an edge and a patch containing a corner">
+  <figcaption><b>Figure 5.</b> The residual of the brightness-constancy equation over candidate
+  velocities, for two patches moving with the same known velocity (white dot). For the <b>edge</b>
+  the residual is exactly zero along a whole line, <b>121</b> cells of the grid at
+  0, so the motion along the edge is not merely hard to estimate, it is not present in the data.
+  The structure tensor's smaller eigenvalue is <b>0.000e+00</b>. For the <b>corner</b> exactly
+  <b>one</b> cell is zero, both eigenvalues are <b>30.35</b>, and the velocity is
+  determined.</figcaption>
+</figure>
+
+<div class="box why">
+  <span class="label">Why this is worth more than its size suggests</span>
+  <p>It is a rare thing in this book and the second instance of it: a limit that is <b>exact and
+  provable</b> rather than a measured tendency, like Part XXVI's Weisfeiler–Leman bound. No
+  network, however large, recovers the tangential motion of a featureless straight edge from a local
+  window, because the information is not there.</p>
+  <p>What a network can do is supply a prior: the rest of the object moves this way, so this edge
+  probably does too. That is a real and legitimate answer, and it is inference from context rather
+  than measurement, which is exactly the distinction that matters when the context is unusual.</p>
+  <p>The same eigenvalue that decides this decides where a corner detector fires. Good features to
+  track and solvable flow are the same condition, seen from either side.</p>
+</div>
+
+<h3><span class="num">§23</span> What dense metrics hide</h3>
+
+<div class="box shapes">
+  <span class="label">Four</span>
+  <p><b>Boundaries.</b> Most pixels are interior and easy; the errors are on edges, and a per-pixel
+  average buries them. Boundary-specific metrics exist and are rarely reported.</p>
+  <p><b>Rare classes.</b> Averaging over classes helps and does not fix a class that appears in one
+  image in a thousand.</p>
+  <p><b>Range.</b> Depth error is usually reported as a single figure over the whole image, and
+  §29 shows the error at 100 m is a different quantity from the error at 10 m.</p>
+  <p><b>Consistency between tasks.</b> A system predicting depth and segmentation separately can
+  report a pedestrian-shaped region at a depth belonging to the building behind it, and neither
+  metric notices.</p>
+</div>
+
+<h3><span class="num">§24</span> What movement C establishes</h3>
+
+<div class="box intuition">
+  <span class="label">Three things</span>
+  <p><b>Dense prediction trades a matching problem for a resolution problem</b>, and every solution
+  to the second brings its own artefact.</p>
+  <p><b>Two of these tasks are limited by the data, not the model.</b> Monocular depth cannot
+  determine scale, and a local window cannot determine motion along an edge; Figure 5 measures the
+  second as an exact zero.</p>
+  <p><b>A per-pixel average hides the errors you care about</b>, because most pixels are interior,
+  common and near.</p>
+</div>

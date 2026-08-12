@@ -1,0 +1,739 @@
+/* ==========================================================================
+   Climbing Deep Learning — print stylesheet
+   Target: US Letter, Chrome headless print-to-PDF.
+   ========================================================================== */
+
+:root {
+  --ink:        #1a2130;
+  --body:       #263042;
+  --muted:      #64748b;
+  --faint:      #94a3b8;
+  --rule:       #e2e8f0;
+
+  --blue:       #2563eb;
+  --orange:     #ea580c;
+  --green:      #059669;
+  --purple:     #7c3aed;
+  --pink:       #db2777;
+  --amber:      #b45309;
+
+  --blue-bg:    #eff5ff;
+  --green-bg:   #ecfdf5;
+  --orange-bg:  #fff7ed;
+  --purple-bg:  #f6f2ff;
+  --pink-bg:    #fdf2f8;
+  --gray-bg:    #f7f8fa;
+  --cyan:       #0e7490;
+  --cyan-bg:    #ecfeff;
+
+  --serif: "Charter", "Bitstream Charter", "Georgia", "Times New Roman", serif;
+  --sans:  "Helvetica Neue", "Helvetica", "Arial", sans-serif;
+  --mono:  "SF Mono", "Menlo", "Consolas", "Liberation Mono", monospace;
+}
+
+@page { size: Letter; }
+
+* { box-sizing: border-box; }
+
+body {
+  font-family: var(--serif);
+  font-size: 10.6pt;
+  line-height: 1.62;
+  color: var(--body);
+  margin: 0;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+  hyphens: auto;
+}
+
+p { margin: 0 0 0.72em; orphans: 3; widows: 3; }
+p.tight { margin-bottom: 0.35em; }
+
+/* An h2 forces a page break. Any paragraph landing right before one must not be
+   split across that break, or a single stranded line gets a page to itself.
+   Keeps the whole paragraph together; the sparse page then reads as a section
+   ending rather than as a layout fault. */
+p:has(+ h2), ul:has(+ h2), ol:has(+ h2), dl:has(+ h2) {
+  break-inside: avoid;
+  page-break-inside: avoid;
+}
+
+strong { color: var(--ink); font-weight: 700; }
+em { font-style: italic; }
+
+a { color: var(--blue); text-decoration: none; }
+
+/* ------------------------------------------------------------- headings -- */
+
+h1, h2, h3, h4 {
+  font-family: var(--sans);
+  color: var(--ink);
+  line-height: 1.22;
+  break-after: avoid;
+  page-break-after: avoid;
+}
+
+h2 {                                   /* part opener */
+  font-size: 19pt;
+  font-weight: 700;
+  letter-spacing: -0.018em;
+  margin: 0 0 1.1em;
+  padding-bottom: 0.42em;
+  border-bottom: 2.5px solid var(--ink);
+  break-before: page;
+  page-break-before: always;
+}
+h2.nobreak { break-before: auto; page-break-before: auto; }
+
+h2 .part-kicker {
+  display: block;
+  font-size: 8.5pt;
+  font-weight: 700;
+  letter-spacing: 0.17em;
+  text-transform: uppercase;
+  color: var(--orange);
+  margin-bottom: 0.55em;
+}
+
+h3 {
+  font-size: 13.2pt;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  margin: 1.85em 0 0.6em;
+}
+h3 .num {
+  color: var(--orange);
+  font-variant-numeric: tabular-nums;
+  margin-right: 0.42em;
+}
+
+h4 {
+  font-size: 10.7pt;
+  font-weight: 700;
+  margin: 1.35em 0 0.42em;
+  color: var(--ink);
+}
+
+/* ----------------------------------------------------------- title page -- */
+
+.titlepage {
+  min-height: 9.1in;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  break-after: page;
+  page-break-after: always;
+  text-align: left;
+}
+.titlepage .series {
+  font-family: var(--sans);
+  font-size: 9pt;
+  font-weight: 700;
+  letter-spacing: 0.24em;
+  text-transform: uppercase;
+  color: var(--orange);
+  margin-bottom: 2.2em;
+}
+.titlepage .chno {
+  font-family: var(--sans);
+  font-size: 10pt;
+  font-weight: 700;
+  letter-spacing: 0.19em;
+  text-transform: uppercase;
+  color: var(--faint);
+  margin-bottom: 0.7em;
+}
+.titlepage h1 {
+  font-size: 43pt;
+  font-weight: 700;
+  letter-spacing: -0.033em;
+  line-height: 1.02;
+  margin: 0 0 0.42em;
+  color: var(--ink);
+}
+.titlepage .tagline {
+  font-family: var(--serif);
+  font-size: 14.5pt;
+  line-height: 1.45;
+  color: var(--muted);
+  font-style: italic;
+  max-width: 26em;
+  margin: 0 0 3.4em;
+}
+.titlepage .rule {
+  width: 68px; height: 4px;
+  background: var(--orange);
+  margin-bottom: 2.1em;
+}
+.titlepage .meta {
+  font-family: var(--sans);
+  font-size: 9.2pt;
+  line-height: 1.85;
+  color: var(--muted);
+}
+.titlepage .meta b { color: var(--ink); font-weight: 700; }
+
+/* -------------------------------------------------------------- callouts -- */
+
+.box {
+  break-inside: avoid;
+  page-break-inside: avoid;
+  margin: 1.15em 0;
+  padding: 0.82em 1.05em 0.72em;
+  border-radius: 3px;
+  font-size: 10.1pt;
+  line-height: 1.56;
+}
+.box .label {
+  display: block;
+  font-family: var(--sans);
+  font-size: 7.6pt;
+  font-weight: 700;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  margin-bottom: 0.5em;
+}
+.box p:last-child { margin-bottom: 0; }
+
+.box.intuition { background: var(--blue-bg); }
+.box.intuition .label { color: var(--blue); }
+
+.box.shapes { background: var(--green-bg); }
+.box.shapes .label { color: var(--green); }
+
+.box.pitfall { background: var(--pink-bg); }
+.box.pitfall .label { color: var(--pink); }
+
+.box.why { background: var(--orange-bg); }
+.box.why .label { color: var(--amber); }
+
+.box.try { background: var(--purple-bg); }
+.box.try .label { color: var(--purple); }
+
+.box.def {
+  background: #fff;
+  border: 1px solid var(--rule);
+}
+.box.def .label { color: var(--ink); }
+
+/* In the framework — how the idea just derived appears in PyTorch / TensorFlow. */
+.box.fw { background: var(--cyan-bg); }
+.box.fw .label { color: var(--cyan); }
+.box.fw pre { margin: 0.7em 0 0.6em; }
+.box.fw pre:last-child { margin-bottom: 0; }
+.box.fw table { margin: 0.6em 0 0.2em; }
+.box.fw table th { border-bottom-color: var(--cyan); }
+
+/* --------------------------------------------------------------- worked -- */
+
+.worked {
+  break-inside: avoid;
+  page-break-inside: avoid;
+  margin: 1.25em 0;
+  padding: 0.9em 1.1em 0.8em;
+  background: var(--gray-bg);
+  border: 1px solid var(--rule);
+  border-radius: 3px;
+}
+.worked > .label {
+  display: block;
+  font-family: var(--sans);
+  font-size: 7.6pt;
+  font-weight: 700;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin-bottom: 0.55em;
+}
+.worked p:last-child { margin-bottom: 0; }
+.worked.long { break-inside: auto; page-break-inside: auto; }
+
+/* ---------------------------------------------------------------- lists -- */
+
+ul, ol { margin: 0 0 0.8em; padding-left: 1.35em; }
+li { margin-bottom: 0.34em; padding-left: 0.12em; }
+li::marker { color: var(--faint); }
+ul.tight li, ol.tight li { margin-bottom: 0.12em; }
+
+dl { margin: 0.6em 0; }
+dt {
+  font-family: var(--sans); font-weight: 700; font-size: 9.8pt;
+  color: var(--ink); margin-top: 0.65em;
+}
+dd { margin: 0.1em 0 0 0; padding-left: 1.1em; }
+
+/* ----------------------------------------------------------------- code -- */
+
+code {
+  font-family: var(--mono);
+  font-size: 0.855em;
+  background: #f1f3f7;
+  padding: 0.1em 0.34em;
+  border-radius: 2.5px;
+  color: #0f172a;
+}
+pre {
+  font-family: var(--mono);
+  font-size: 8.35pt;
+  line-height: 1.5;
+  background: #0f172a;
+  color: #e2e8f0;
+  padding: 0.85em 1.05em;
+  border-radius: 4px;
+  overflow-x: auto;
+  margin: 1.0em 0;
+  break-inside: avoid;
+  page-break-inside: avoid;
+  white-space: pre-wrap;
+}
+pre code { background: none; padding: 0; color: inherit; font-size: 1em; }
+pre .c { color: #7f8ea3; font-style: italic; }   /* comment */
+pre .k { color: #c4b5fd; }                        /* keyword */
+pre .s { color: #86efac; }                        /* string  */
+pre .n { color: #fdba74; }                        /* number  */
+pre .o { color: #67e8f9; }                        /* output  */
+
+/* --------------------------------------------------------------- tables -- */
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 9.5pt;
+  margin: 1.1em 0;
+  break-inside: avoid;
+  page-break-inside: avoid;
+}
+th {
+  font-family: var(--sans);
+  font-size: 8.1pt;
+  font-weight: 700;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  color: var(--muted);
+  text-align: left;
+  padding: 0.42em 0.6em;
+  border-bottom: 1.6px solid var(--ink);
+}
+td {
+  padding: 0.42em 0.6em;
+  border-bottom: 1px solid var(--rule);
+  vertical-align: top;
+}
+tbody tr:last-child td { border-bottom: none; }
+td code { font-size: 0.85em; }
+table.compact td, table.compact th { padding: 0.3em 0.55em; font-size: 9.1pt; }
+
+/* -------------------------------------------------------------- figures -- */
+
+figure {
+  margin: 1.4em 0;
+  text-align: center;
+  break-inside: avoid;
+  page-break-inside: avoid;
+}
+figure img { max-width: 100%; height: auto; }
+figcaption {
+  font-family: var(--sans);
+  font-size: 8.5pt;
+  line-height: 1.5;
+  color: var(--muted);
+  margin-top: 0.7em;
+  text-align: left;
+  padding-left: 0.1em;
+}
+figcaption b { color: var(--ink); font-weight: 700; }
+
+/* ----------------------------------------------------------------- math -- */
+
+.katex { font-size: 1.045em; }
+.katex-display {
+  margin: 0.95em 0;
+  break-inside: avoid;
+  page-break-inside: avoid;
+}
+.katex-display > .katex { font-size: 1.06em; }
+
+/* --------------------------------------------------------------- drills -- */
+
+.drill {
+  break-inside: avoid;
+  page-break-inside: avoid;
+  margin: 0.95em 0;
+  padding: 0.75em 0.95em;
+  border: 1px solid var(--rule);
+  border-radius: 3px;
+  background: #fff;
+}
+.drill .head {
+  font-family: var(--sans);
+  font-size: 9.3pt;
+  font-weight: 700;
+  color: var(--ink);
+  margin-bottom: 0.4em;
+}
+.drill .head .tier {
+  display: inline-block;
+  font-size: 7.2pt;
+  font-weight: 700;
+  letter-spacing: 0.11em;
+  text-transform: uppercase;
+  padding: 0.16em 0.5em;
+  border-radius: 2px;
+  margin-right: 0.6em;
+  vertical-align: 1.5px;
+}
+.tier.est     { background: #ffedd5; color: #c2410c; }
+.tier.warm    { background: #dcfce7; color: #15803d; }
+.tier.core    { background: #dbeafe; color: #1d4ed8; }
+.tier.stretch { background: #fae8ff; color: #a21caf; }
+.drill p:last-child { margin-bottom: 0; }
+.drill .ans {
+  margin-top: 0.5em; padding-top: 0.45em;
+  border-top: 1px dashed var(--rule);
+  font-size: 9.6pt; color: var(--muted);
+}
+.drill .ans b { color: var(--ink); }
+
+/* ------------------------------------------------------------ utilities -- */
+
+.lede {
+  font-size: 12pt;
+  line-height: 1.55;
+  color: var(--muted);
+  font-style: italic;
+  margin-bottom: 1.4em;
+  padding-left: 0.9em;
+  border-left: 2.5px solid var(--rule);
+}
+
+hr {
+  border: none;
+  border-top: 1px solid var(--rule);
+  margin: 1.7em 0;
+}
+
+.pagebreak { break-before: page; page-break-before: always; }
+.avoidbreak { break-inside: avoid; page-break-inside: avoid; }
+
+.center { text-align: center; }
+.small { font-size: 9.2pt; }
+.muted { color: var(--muted); }
+
+.checklist { list-style: none; padding-left: 0; }
+.checklist li {
+  padding-left: 1.6em;
+  position: relative;
+  margin-bottom: 0.42em;
+}
+.checklist li::before {
+  content: "";
+  position: absolute;
+  left: 0; top: 0.36em;
+  width: 0.78em; height: 0.78em;
+  border: 1.5px solid var(--faint);
+  border-radius: 2px;
+}
+
+.toc { font-family: var(--sans); font-size: 9.1pt; line-height: 1.42; }
+/* Do NOT set an explicit height here with column-fill:auto. It was tried to stop
+   the balanced columns pushing the trailing note onto a page of its own, and it
+   truncated the whole document from 691 pages to 514. The note is inside the
+   container instead. */
+.toc.twocol { columns: 2; column-gap: 2.4em; }
+.toc.twocol .part { break-after: avoid; }
+.toc.twocol .row { break-inside: avoid; }
+.toc .part {
+  font-weight: 700; font-size: 8.2pt; letter-spacing: 0.15em;
+  text-transform: uppercase; color: var(--orange);
+  margin: 1.3em 0 0.5em;
+}
+.toc .part:first-child { margin-top: 0; }
+.toc .row {
+  padding: 0.06em 0;
+  display: flex; justify-content: space-between;
+  padding: 0.2em 0; border-bottom: 1px dotted var(--rule);
+  color: var(--body);
+}
+.toc .row .t { flex: 1; }
+.toc .row .p { color: var(--faint); font-variant-numeric: tabular-nums; padding-left: 1em; }
+
+/* --------------------------------------------------------------------------
+   FULL CONTENTS — generated by make_contents.py. 713 numbered sections, so it
+   is set tighter than the summary list and drops the dotted leaders: without
+   page numbers to carry the eye across, they are noise at this density.
+   -------------------------------------------------------------------------- */
+.toc.full { font-size: 8.2pt; line-height: 1.34; }
+.toc.full .row {
+  border-bottom: none;
+  padding: 0.055em 0;
+  display: flex; align-items: baseline; gap: 0.45em;
+  break-inside: avoid;
+}
+.toc.full .row .n {
+  flex: 0 0 2.7em; text-align: right;   /* fits "§0.1" as well as "§7" */
+  color: var(--faint); font-variant-numeric: tabular-nums;
+  font-size: 7.4pt;
+}
+.toc.full .row.plain { padding-left: 2.8em; }
+.toc.full .part {
+  font-size: 7.8pt; margin: 1.5em 0 0.15em;
+  break-after: avoid;
+}
+.toc.full .tocsub {
+  font-size: 7.4pt; font-style: italic; color: var(--muted);
+  margin: 0 0 0.45em; break-after: avoid;
+}
+.toc.full .tocmv {
+  font-weight: 600; font-size: 7.9pt; color: var(--ink);
+  margin: 0.65em 0 0.2em; break-after: avoid;
+}
+.tocnote {
+  font-family: var(--sans); font-size: 8.4pt; line-height: 1.5;
+  color: var(--muted); margin: 0 0 1.5em; max-width: 34em;
+}
+
+/* ==========================================================================
+   BOOK ADDITIONS — cover, part openers, history, margin notes, glossary
+   ========================================================================== */
+
+:root {
+  --sepia:    #7c5c34;
+  --sepia-bg: #fdf8f0;
+  --sepia-ln: #d8c49c;
+}
+
+/* ------------------------------------------------------------------ cover -- */
+
+.cover {
+  /* Printed in its own zero-margin pass and spliced in, so this really is full bleed.
+     Padding here is overridden by the build for that pass. */
+  height: 11in;
+  position: relative;
+  overflow: hidden;
+  break-after: page;
+  page-break-after: always;
+  background: #0b1220;
+  margin: 0;
+  padding: 44mm 26mm 30mm 26mm;
+  color: #fff;
+}
+.cover .grid-art {
+  position: absolute; inset: 0; width: 100%; height: 100%;
+}
+.cover-inner {
+  position: relative; z-index: 3; height: 100%;
+  display: flex; flex-direction: column;
+}
+.cover .kicker {
+  font-family: var(--sans); font-size: 10pt; font-weight: 700;
+  letter-spacing: 0.02em; color: #f59e0b;
+  margin-bottom: auto;
+}
+.cover h1 {
+  font-family: var(--sans); font-size: 62pt; font-weight: 800;
+  letter-spacing: -0.048em; line-height: 0.92; margin: 0 0 0.30em;
+  color: #fff;
+}
+.cover h1 .thin { font-weight: 200; color: #93a4bd; display: block; }
+.cover .rule-c { width: 92px; height: 3px; background: #f59e0b; margin: 0 0 1.15em; }
+.cover .sub {
+  font-family: var(--serif); font-style: italic; font-size: 15.5pt;
+  color: #94a3b8; max-width: 23em; line-height: 1.45; margin: 0 0 2.4em;
+}
+.cover .cover-foot {
+  display: flex; justify-content: space-between;
+  font-family: var(--sans); font-size: 8.5pt; letter-spacing: 0.2em;
+  text-transform: uppercase; color: #56657d;
+  border-top: 1px solid #1e2c44; padding-top: 1.1em;
+}
+
+/* ------------------------------------------------------------- title page -- */
+
+.bookpage {
+  /* min-height, NOT height: a fixed height cannot grow, so when the contents list
+     outgrew it the overflow rendered on top of the following section.
+     8.6in, not 9.1: at 9.1 the two-column contents balanced to fill the whole
+     page and pushed its own trailing note onto a near-blank page of its own. */
+  min-height: 8.6in; display: flex; flex-direction: column;
+  break-after: page; page-break-after: always;
+}
+.bookpage.center { justify-content: center; }
+.bookpage h1 {
+  font-family: var(--sans); font-size: 34pt; font-weight: 800;
+  letter-spacing: -0.03em; line-height: 1.02; margin: 0 0 0.3em; color: var(--ink);
+}
+.bookpage .sub {
+  font-family: var(--serif); font-style: italic; font-size: 13.5pt;
+  color: var(--muted); margin-bottom: 2.4em;
+}
+.bookpage .by {
+  font-family: var(--sans); font-size: 13pt; font-weight: 700; color: var(--ink);
+}
+.bookpage .fine {
+  font-size: 9pt; color: var(--muted); line-height: 1.7; margin-top: auto;
+}
+
+/* ------------------------------------------------------------ part opener -- */
+
+.partopen {
+  min-height: 8.6in;
+  display: flex; flex-direction: column; justify-content: center;
+  break-before: page; page-break-before: always;
+  break-after: page; page-break-after: always;
+}
+.partopen .pnum {
+  font-family: var(--sans); font-size: 8.5pt; font-weight: 700;
+  letter-spacing: 0.28em; text-transform: uppercase; color: var(--orange);
+  margin-bottom: 1.1em;
+}
+.partopen h1 {
+  font-family: var(--sans); font-size: 40pt; font-weight: 800;
+  letter-spacing: -0.035em; line-height: 1.0; margin: 0 0 0.35em; color: var(--ink);
+}
+.partopen .tag {
+  font-family: var(--serif); font-style: italic; font-size: 14pt;
+  color: var(--muted); max-width: 27em; line-height: 1.45; margin-bottom: 2.2em;
+}
+.partopen .rule { width: 64px; height: 4px; background: var(--orange);
+  margin-bottom: 2.2em; }
+.partopen .contents {
+  font-family: var(--sans); font-size: 9.4pt; line-height: 1.75; color: var(--body);
+  columns: 2; column-gap: 2.2em;
+}
+.partopen .contents b { color: var(--ink); }
+.partopen .meta {
+  font-family: var(--sans); font-size: 9pt; color: var(--muted);
+  margin-top: 2.2em; padding-top: 1em; border-top: 1px solid var(--rule);
+}
+
+/* --------------------------------------------------------------- history -- */
+
+.box.history {
+  background: var(--sepia-bg);
+  border-top: 1px solid var(--sepia-ln);
+  border-right: 1px solid var(--sepia-ln);
+  border-bottom: 1px solid var(--sepia-ln);
+}
+.box.history .label { color: var(--sepia); }
+.box.history i, .box.history em { color: #6b4f2c; }
+.box.history .year {
+  font-family: var(--sans); font-weight: 700; color: var(--sepia);
+  font-variant-numeric: tabular-nums;
+}
+
+/* ------------------------------------------------------- 60-second boxes -- */
+
+.sixty {
+  break-inside: avoid; page-break-inside: avoid;
+  margin: 0.55em 0 1.15em;
+  padding: 0.62em 0.9em 0.58em;
+  background: #f8fafc;
+  border: 1px solid var(--rule);
+  border-radius: 3px;
+  font-size: 9.9pt; line-height: 1.5; color: var(--body);
+}
+.sixty .label {
+  display: block; font-family: var(--sans); font-size: 7.2pt; font-weight: 700;
+  letter-spacing: 0.16em; text-transform: uppercase; color: var(--faint);
+  margin-bottom: 0.35em;
+}
+.sixty p { margin: 0; }
+.sixty b { color: var(--ink); }
+
+/* ------------------------------------------------ illustrative figures -- */
+
+figure.illus img {
+  border: 1px dashed var(--faint);
+  border-radius: 3px;
+  padding: 0.35em;
+}
+.illus-tag {
+  display: inline-block;
+  font-family: var(--sans); font-size: 6.8pt; font-weight: 700;
+  letter-spacing: 0.14em; text-transform: uppercase;
+  color: #fff; background: var(--faint);
+  padding: 0.12em 0.45em; border-radius: 2px;
+  margin-right: 0.5em; vertical-align: 0.08em;
+}
+
+/* ------------------------------------------------------ inline sources -- */
+
+.readnow {
+  break-inside: avoid; page-break-inside: avoid;
+  margin: 1.0em 0 1.2em;
+  padding: 0.5em 0 0.55em;
+  border-top: 1px solid var(--sepia-ln);
+  border-bottom: 1px solid var(--sepia-ln);
+  font-size: 9.6pt;
+  line-height: 1.52;
+  color: var(--body);
+}
+.readnow .label {
+  font-family: var(--sans);
+  font-size: 7.0pt; font-weight: 700;
+  letter-spacing: 0.16em; text-transform: uppercase;
+  color: var(--sepia);
+  margin-right: 0.75em;
+  white-space: nowrap;
+}
+.readnow p { margin: 0; display: inline; }
+.readnow .src { font-weight: 700; color: var(--ink); }
+.readnow i, .readnow em { color: #6b4f2c; }
+.readnow b { color: var(--ink); }
+.readnow-inline {
+  font-family: var(--sans); font-size: 7.6pt; font-weight: 700;
+  letter-spacing: 0.13em; text-transform: uppercase; color: var(--sepia);
+  white-space: nowrap;
+}
+
+/* ---------------------------------------------------------- margin notes -- */
+
+.mnote {
+  float: right;
+  clear: right;
+  width: 27mm;
+  margin: 0.2em -30mm 0.7em 4mm;
+  font-family: var(--sans);
+  font-size: 7.6pt;
+  line-height: 1.42;
+  color: var(--muted);
+  border-top: 2px solid var(--orange);
+  padding-top: 0.4em;
+}
+.mnote b { color: var(--ink); font-weight: 700; }
+
+/* -------------------------------------------------------------- glossary -- */
+
+.gloss dt {
+  font-family: var(--sans); font-weight: 700; font-size: 10pt; color: var(--ink);
+  margin-top: 0.85em;
+}
+.gloss dt .where {
+  font-weight: 400; font-size: 8pt; color: var(--orange);
+  letter-spacing: 0.06em; margin-left: 0.5em;
+}
+.gloss dd { margin: 0.12em 0 0 0; padding-left: 0; font-size: 9.8pt; }
+.gloss { column-count: 1; }
+
+.gloss-letter {
+  font-family: var(--sans); font-size: 15pt; font-weight: 800; color: var(--orange);
+  margin: 1.5em 0 0.2em; padding-bottom: 0.15em;
+  border-bottom: 2px solid var(--rule);
+  break-after: avoid; page-break-after: avoid;
+}
+
+/* ------------------------------------------------------------ book misc -- */
+
+h2.partsec {
+  break-before: auto; page-break-before: auto;
+}
+.roadmap-row {
+  display: flex; gap: 0.8em; align-items: baseline;
+  padding: 0.32em 0; border-bottom: 1px dotted var(--rule);
+  font-family: var(--sans); font-size: 9.6pt;
+}
+.roadmap-row .n {
+  font-weight: 700; color: var(--orange); min-width: 3.4em;
+  font-variant-numeric: tabular-nums;
+}
+.roadmap-row .d { color: var(--muted); }

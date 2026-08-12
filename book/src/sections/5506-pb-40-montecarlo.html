@@ -1,0 +1,144 @@
+<h2><span class="part-kicker">Part D</span>Turning inference into sampling</h2>
+
+<p class="mvt">The other answer: do not approximate the posterior, draw from it. Sampling methods
+are asymptotically exact where movement C's are not, and they exchange that guarantee for a
+different problem: you cannot tell from the samples whether they have arrived.</p>
+
+<h3><span class="num">§25</span> Estimating an expectation</h3>
+
+<div class="box def">
+  <span class="label">What you actually need</span>
+  <p>Posteriors are rarely wanted for their own sake; what is wanted is an expectation under one: a
+  predictive mean, a probability, a decision. With samples,
+  <span class="m">$\mathbb{E}_p[f] \approx \frac{1}{n}\sum f(x^{(i)})$</span>, unbiased, with error
+  falling as <span class="m">$1/\sqrt{n}$</span>.</p>
+  <p>Two things about that rate. It does not depend on dimension, which is the reason Monte Carlo
+  exists. And it is slow (a further decimal place costs a hundred times the samples), which is why
+  everything in this movement is about reducing the constant.</p>
+</div>
+
+<h3><span class="num">§26</span> Importance sampling, and when it dies</h3>
+
+<div class="box def">
+  <span class="label">Sampling from the wrong distribution on purpose</span>
+  <p class="m">$$\mathbb{E}_p[f] \;=\; \mathbb{E}_q\!\left[f(x)\,\frac{p(x)}{q(x)}\right]
+  \;\approx\; \frac{1}{n}\sum_i f(x^{(i)})\, w_i, \qquad w_i = \frac{p(x^{(i)})}{q(x^{(i)})}$$</p>
+  <p>Correct for any <span class="m">$q$</span> covering <span class="m">$p$</span>'s support, and
+  the weights only need <span class="m">$p$</span> up to a constant if you normalise them. This is
+  Part XXII §19's inverse-propensity weighting and Part XVIII §40's off-policy correction, in their
+  general form.</p>
+</div>
+
+<div class="box pitfall">
+  <span class="label">Pitfall: the estimator can be unbiased and useless</span>
+  <p>If <span class="m">$q$</span> is a poor match the weights are dominated by a handful of
+  samples, and the effective sample size collapses. In high dimensions this is the normal case, not
+  the pathological one: mismatch compounds per dimension, so a proposal that is 10% off in each of
+  fifty dimensions has essentially all its weight on one draw.</p>
+  <p>The diagnostic is one line: <span class="m">$(\sum w)^2 / \sum w^2$</span>, the effective
+  sample size, and it is the number to look at before any estimate computed from weights. If it
+  reads 3 out of 10,000, your unbiased estimator is a single sample with extra steps.</p>
+</div>
+
+<h3><span class="num">§27</span> Markov chains</h3>
+
+<div class="box def">
+  <span class="label">Constructing a chain whose stationary distribution is your posterior</span>
+  <p>Rather than drawing independently, take a random walk whose long-run distribution is the target.
+  Two conditions suffice: the chain can reach anywhere from anywhere, and it leaves the target
+  unchanged.</p>
+  <p><b>Detailed balance</b> (<span class="m">$p(x)T(x \to y) = p(y)T(y \to x)$</span>) is the
+  usual way to get the second, and it is sufficient rather than necessary, which matters because
+  some good samplers do not satisfy it.</p>
+  <p>What you give up is independence. Consecutive draws are correlated, so <span class="m">$n$</span>
+  samples are worth fewer than <span class="m">$n$</span>, and §30 is about how many fewer.</p>
+</div>
+
+<h3><span class="num">§28</span> Metropolis–Hastings and Gibbs</h3>
+
+<div class="box def">
+  <span class="label">Two constructions</span>
+  <p><b>Metropolis–Hastings.</b> Propose <span class="m">$y$</span> from any
+  <span class="m">$q(\cdot \mid x)$</span>, accept with probability
+  <span class="m">$\min\{1, \frac{p(y)q(x\mid y)}{p(x)q(y\mid x)}\}$</span>. The normalising constant
+  cancels, which is the whole trick. The proposal scale is the tuning problem: too small and the
+  chain crawls, too large and everything is rejected.</p>
+  <p><b>Gibbs sampling.</b> Update one variable at a time from its conditional given the rest. No
+  rejections and no tuning, and it moves only along the axes, so on a strongly correlated posterior
+  it takes tiny steps for the same reason mean field misreports the variance. The two failures have
+  the same cause.</p>
+</div>
+
+<h3><span class="num">§29</span> Using the gradient</h3>
+
+<div class="box def">
+  <span class="label">Hamiltonian Monte Carlo</span>
+  <p>Add a momentum variable, treat the negative log-density as a potential energy, and simulate
+  the resulting dynamics with a symplectic integrator. The trajectory travels a long way while
+  keeping the density high, so proposals are distant and still accepted.</p>
+  <p>Its two knobs are the step size and the number of steps; the second is what modern
+  implementations tune automatically by detecting when a trajectory doubles back.</p>
+</div>
+
+<figure>
+  <img src="figures/pb/05-samplers.svg" alt="Effective samples per evaluation against target condition number, for random-walk Metropolis and Hamiltonian Monte Carlo">
+  <figcaption><b>Figure 5.</b> Effective samples per density or gradient evaluation on a Gaussian
+  as its conditioning worsens. HMC is ahead throughout and the gap grows from <b>1.6&times;</b> at
+  condition number 1 to <b>7.0&times;</b> at 256. The fitted exponents are <b>&minus;0.70</b> and
+  <b>&minus;0.42</b>, against the &minus;1 and &minus;&frac12; the theory predicts: the ordering
+  and the widening gap are as expected, the exponents are shallower, and the theoretical rates are
+  asymptotic in dimension where this is two-dimensional.</figcaption>
+</figure>
+
+<h3><span class="num">§30</span> How many samples do you have</h3>
+
+<div class="box def">
+  <span class="label">Effective sample size</span>
+  <p class="m">$$n_{\text{eff}} \;=\; \frac{n}{1 + 2\sum_{k \ge 1} \rho_k}$$</p>
+  <p>With <span class="m">$\rho_k$</span> the autocorrelation at lag <span class="m">$k$</span>.
+  This is the number to quote: the Monte Carlo standard error is
+  <span class="m">$\sigma/\sqrt{n_{\text{eff}}}$</span>, not <span class="m">$\sigma/\sqrt{n}$</span>,
+  and a chain of a million draws can have an effective size of forty.</p>
+  <p>Thinning a chain to reduce correlation throws information away and lowers
+  <span class="m">$n_{\text{eff}}$</span>. It is worth doing only when storage is the binding
+  constraint, which it usually is not.</p>
+</div>
+
+<h3><span class="num">§31</span> Diagnostics, and what they cannot see</h3>
+
+<figure>
+  <img src="figures/pb/06-diagnostics.svg" alt="Histograms of MCMC draws against the true bimodal density, for chains started in one mode and chains started in both">
+  <figcaption><b>Figure 6.</b> A target with two equal, well-separated modes. <b>Left:</b> four
+  chains all started in the same mode. They mix beautifully within it, the convergence diagnostic
+  reads <b>R&#770; = 1.0000</b>, and <b>100%</b> of the recovered mass sits in one of two equally
+  probable modes. <b>Right:</b> chains started in both. The samples are correct (50/50, matching
+  the target), and the diagnostic reads <b>R&#770; = 10.47</b>. On this problem the statistic is not
+  merely blind; it is inverted.</figcaption>
+</figure>
+
+<div class="box why">
+  <span class="label">What R&#770; is actually testing</span>
+  <p>The Gelman–Rubin statistic compares variance between chains with variance within them. That is
+  a test of whether the chains <b>agree</b>, which is a necessary condition for convergence and not
+  a sufficient one. Chains that started in the same place and never left it agree perfectly.</p>
+  <p>So the diagnostic is only informative if the chains were dispersed to begin with, and Figure
+  6's right panel shows what a correct answer then looks like: a diagnostic screaming failure
+  because the chains genuinely disagree, which is the truth about the target rather than a defect
+  of the sampler.</p>
+  <p>The honest summary is uncomfortable. <b>No diagnostic can prove convergence</b>; they detect
+  specific failures, and a mode nobody visited leaves no trace in the samples. What helps is
+  dispersed initialisation, many chains, and simulating data from your own model to check the
+  method recovers parameters you set.</p>
+</div>
+
+<h3><span class="num">§32</span> What movement D establishes</h3>
+
+<div class="box intuition">
+  <span class="label">Three things</span>
+  <p><b>Sampling is asymptotically exact where variational inference is not</b>, and pays for it in
+  cost and in the impossibility of knowing when you have arrived.</p>
+  <p><b>The gradient is worth a lot and more as the problem stiffens.</b> Figure 5 measures HMC's
+  advantage growing from 1.6&times; to 7.0&times; with the condition number.</p>
+  <p><b>A clean diagnostic is not evidence of a correct answer.</b> Figure 6 measures
+  R&#770; = 1.0000 on a run that missed half the distribution, and 10.47 on the run that found it.</p>
+</div>

@@ -1,0 +1,131 @@
+<h2><span class="part-kicker">Part E</span>When the rows are ordered</h2>
+
+<p class="mvt">A table with a time index is a different problem, and treating it as an ordinary
+table breaks the assumption every guarantee in this book rests on. This movement establishes what
+changes, borrows what the classical forecasting literature settled decades ago, and measures what a
+careless split is worth.</p>
+
+<h3><span class="num">§32</span> What a time index changes</h3>
+
+<div class="box shapes">
+  <span class="label">Four assumptions that stop holding</span>
+  <p><b>Independence.</b> Consecutive observations are correlated by construction. Part XXIII §6
+  named this as the first thing concentration needs, and a series violates it maximally.</p>
+  <p><b>Exchangeability.</b> The rows have an order that matters, so any procedure invariant to
+  permutation is discarding the signal, including the conformal guarantee of Part XXIV §29.</p>
+  <p><b>A fixed distribution.</b> Trends, regime changes and seasonality mean the distribution moves
+  by design rather than as a deployment accident. Part XXIII's movement F is not an edge case here,
+  it is the setting.</p>
+  <p><b>Symmetric information.</b> At prediction time you have the past and not the future, so any
+  quantity computed over the whole series (a mean, a scaler, a target encoding) is a leak.</p>
+</div>
+
+<h3><span class="num">§33</span> Stationarity, and what differencing buys</h3>
+
+<div class="box def">
+  <span class="label">The property the classical models require</span>
+  <p>A series is <b>stationary</b> when its distribution does not depend on when you look: constant
+  mean, constant variance, and autocovariance depending only on the lag.</p>
+  <p>Most real series are not. The standard repairs: <b>differencing</b>
+  <span class="m">$\Delta y_t = y_t - y_{t-1}$</span> removes a trend, seasonal differencing removes
+  a seasonal pattern, and a log transform stabilises variance that grows with the level.</p>
+  <p>Differencing is not free. It amplifies noise, and differencing a series that did not need it
+  introduces a moving-average structure that was not there. The question to ask is whether the series
+  has a <b>unit root</b> (a stochastic trend that never reverts) rather than whether it looks like
+  it drifts. The standard instruments are the augmented Dickey–Fuller test, whose null hypothesis is
+  that a unit root is present, and the KPSS test, whose null is the opposite: that the series is
+  stationary. Running both is more informative than either alone, because they can disagree in
+  exactly the region where the answer matters.</p>
+</div>
+
+<h3><span class="num">§34</span> Autocorrelation</h3>
+
+<div class="box def">
+  <span class="label">The two functions to plot before anything else</span>
+  <p>The <b>autocorrelation function</b> is the correlation of the series with itself at each lag.
+  The <b>partial</b> autocorrelation is the same with the intervening lags' contributions removed.</p>
+  <p>Between them they diagnose the structure: an autoregressive process has a partial
+  autocorrelation that cuts off at its order and an autocorrelation that decays; a moving-average
+  process is the reverse. A slow linear decay in the autocorrelation says the series is not
+  stationary and should be differenced first.</p>
+  <p>These two plots cost nothing and are the time-series equivalent of Part XXIV §40's coverage
+  check, the diagnostic that should precede the modelling and usually does not.</p>
+</div>
+
+<h3><span class="num">§35</span> The classical models, and why they are still baselines</h3>
+
+<div class="readnow"><span class="label">Go and read</span><p><span class="src">Hyndman &amp; Athanasopoulos</span>, <i>Forecasting: Principles and Practice</i>. Free online, and the single best source for this movement and the next. Read Chapter 5 on evaluation before any of the modelling chapters: the split is what decides whether a forecasting result means anything, which is §36's argument made independently by the field's own reference text.</p></div>
+
+<div class="box shapes">
+  <span class="label">Four, and what each assumes</span>
+  <p><b>ARIMA.</b> Autoregressive terms, a differencing order, and moving-average terms. Linear,
+  interpretable, and with a principled order-selection procedure.</p>
+  <p><b>Exponential smoothing.</b> A weighted average of the past with geometrically decaying
+  weights, extended to trend and seasonality. Almost no parameters, and it is the method that most
+  often wins forecasting competitions outright at short horizons.</p>
+  <p><b>State-space models.</b> Level, trend and season as unobserved states evolving with noise, with
+  a Kalman filter doing the inference. Handles missing observations and irregular sampling naturally,
+  and generalises the previous two.</p>
+  <p><b>Seasonal naive.</b> Predict the value from one season ago. It is a baseline, it is
+  frequently hard to beat, and a paper that does not report it should be read with that in mind.</p>
+</div>
+
+<div class="box why">
+  <span class="label">Why these have not been displaced</span>
+  <p>Forecasting problems are usually short (thousands of observations, not millions) and heavily
+  structured. A method with three parameters and the right structure beats a flexible method with
+  the wrong one at that sample size, which is Part VI §7's no-free-lunch in a setting where it
+  bites.</p>
+  <p>Neural forecasters win at scale and when many related series share structure. Which is a claim
+  about <span class="m">$n$</span>, not about the year.</p>
+</div>
+
+<h3><span class="num">§36</span> What a random split is worth</h3>
+
+<figure>
+  <img src="figures/tb/08-temporal-cv.svg" alt="A series with trend, seasonality and a random walk, and test error under a random split, a chronological split, and a last-value baseline">
+  <figcaption><b>Figure 8.</b> A series with a trend, a seasonal component and a random walk, and a
+  boosted model on twelve lags. Split at random, the reported test error is <b>0.205</b>. Split
+  chronologically (the only split that answers the question the model will be asked), it is
+  <b>3.847</b>. The random split reports a model <b>18.8 times better</b> than the one you have. The
+  last-value baseline is 8.018, so the model is genuinely useful; it is the size of the claim that
+  was fabricated, not the model.</figcaption>
+</figure>
+
+<div class="box why">
+  <span class="label">Where the 18.8 comes from</span>
+  <p>Under a random split the training set contains observations from immediately before and
+  immediately after each test point. Since the series is smooth and highly autocorrelated,
+  interpolating between two neighbours is nearly trivial, and interpolation is not the task.</p>
+  <p>Note that nothing here is a bug. The model is fitted correctly, the test set is genuinely held
+  out, no row appears twice, and every diagnostic in Part XIV passes. The estimand was wrong, which
+  is Part XXII §1's distinction arriving in the most common form it takes.</p>
+</div>
+
+<h3><span class="num">§37</span> Validation that respects the order</h3>
+
+<div class="box shapes">
+  <span class="label">Three schemes</span>
+  <p><b>Hold out the tail.</b> Train on the first part, test on the last. Simple, and it gives one
+  estimate from one period, which may be unrepresentative.</p>
+  <p><b>Rolling origin.</b> Repeatedly train on everything up to a point and test on what follows,
+  advancing the point. Several estimates, each honest, and it is the standard.</p>
+  <p><b>Expanding against sliding window.</b> Expanding uses all history; sliding uses a fixed
+  recent window. Sliding is better when the process changes, and comparing the two is itself a
+  diagnostic for whether it does.</p>
+  <p>In all three, <b>every</b> fitted quantity (scalers, encoders, imputers, the differencing order)
+  belongs inside the fold. A scaler fitted on the whole series has seen the future.</p>
+</div>
+
+<h3><span class="num">§38</span> What movement E establishes</h3>
+
+<div class="box intuition">
+  <span class="label">Three things</span>
+  <p><b>A time index removes the assumptions everything else rests on</b>: independence,
+  exchangeability, a fixed distribution and symmetric information, all four at once.</p>
+  <p><b>A random split reports a model that does not exist.</b> Figure 8 measures 18.8× on a series
+  with ordinary structure, with every conventional diagnostic passing.</p>
+  <p><b>The classical methods are baselines rather than history.</b> At the sample sizes forecasting
+  problems actually have, structure beats flexibility, and seasonal naive is the number a result
+  should be reported against.</p>
+</div>

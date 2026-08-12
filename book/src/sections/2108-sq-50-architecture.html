@@ -1,0 +1,158 @@
+<h2><span class="part-kicker">Part E</span>Architecture around the recurrence</h2>
+
+<p class="lede">Five variations, each changing something other than the cell. Two are still in
+everyday use, one is the live descendant of the recurrent line, and one is where the next part
+comes from.</p>
+
+<h3><span class="num">§22</span> Bidirectional</h3>
+
+<p>Every model so far has been <b>causal</b>: the state at $t$ depends on the past and the
+present, and knows nothing of the future. For generation that is not a choice: the future has
+not happened. For <i>analysis</i> it is an arbitrary handicap.</p>
+
+<p>In speech recognition, whether a sound is one phoneme or another can depend on the next few
+phonemes, and sometimes on the next few words. The same holds for handwriting, for tagging, and
+for most tasks where you are labelling a sequence you already have in full.</p>
+
+<div class="box def">
+  <span class="label">Bidirectional RNNs</span>
+  <p>Run two recurrences: $\mathbf{h}^{(t)}$ forward from the start, $\mathbf{g}^{(t)}$
+  backward from the end. The output at $t$ reads both.</p>
+  <p>So $\mathbf{o}^{(t)}$ depends on the whole sequence, while remaining <b>most sensitive to
+  inputs near $t$</b>, and without anyone having to choose a window size, which is what a
+  feedforward or convolutional model would require.</p>
+</div>
+
+<p>The idea extends to grids: four recurrences on an image, one per direction, giving each
+position a representation that is mostly local but can depend on arbitrarily distant inputs.
+More expensive than convolution and capable of long-range lateral interaction within a feature
+map, which is exactly Part X §32's first limitation, and worth noting as an early, expensive
+answer to it.</p>
+
+<div class="box pitfall">
+  <span class="label">Pitfall: bidirectional is not available where you most want it</span>
+  <p>A bidirectional model must see the entire sequence before producing any output. That rules
+  it out for generation, for streaming, and for anything with a latency budget.</p>
+  <p>It is worth being explicit because the temptation is real: bidirectional models score
+  better on offline benchmarks, and the benchmark does not measure the constraint that makes
+  them unusable in the application. Part XIV returns to this as a category of error.</p>
+</div>
+
+<h3><span class="num">§23</span> Depth</h3>
+
+<p>An RNN has three transformations (input to hidden, hidden to hidden, hidden to output), and
+in §4 each is a single matrix followed by a nonlinearity. Each is therefore <b>shallow</b>, in
+the sense of being one layer of an MLP. Nothing requires that.</p>
+
+<p>The straightforward version stacks recurrent layers: the hidden state is broken into groups
+organised hierarchically, with the lower layers transforming the raw input into something the
+higher ones can use. This helps, reliably, and is what <code>num_layers</code> does.</p>
+
+<div class="box why">
+  <span class="label">Why more depth has a cost the feedforward case does not have</span>
+  <p>You could go further and put a whole MLP in each of the three transformations. Capacity
+  arguments say yes; the result is mixed, for a reason specific to recurrence.</p>
+  <p>Putting a single hidden layer inside the state-to-state transition <b>doubles the length of
+  the shortest path</b> between a variable at step $t$ and one at step $t+1$. Over a sequence of
+  length $\tau$ that doubles the number of Jacobians in the product of §11, so you have bought
+  representational capacity by making the vanishing-gradient problem exactly twice as bad.</p>
+  <p>The mitigation is the one Part IX §27 and Part X §23 both arrived at: add <b>skip
+  connections</b> in the hidden-to-hidden path, so the shortest route stays short while the long
+  route adds capacity. Third appearance of the same fix, and it is worth noticing that it was
+  invented independently in all three places.</p>
+</div>
+
+<h3><span class="num">§24</span> Trees instead of chains</h3>
+
+<p>Unfolding produced a chain because the recurrence was defined over time. Nothing requires
+the graph to be a chain.</p>
+
+<p>A <b>recursive network</b> (not to be abbreviated RNN, for obvious reasons) uses the same
+shared parameters over a <b>tree</b>. Combine two children into a parent, apply the same
+transformation at every node, and reduce a variable-length sequence to a fixed representation.</p>
+
+<div class="box why">
+  <span class="label">Why a tree is attractive, and why it did not win</span>
+  <p>The depth of a balanced tree over $\tau$ items is $O(\log \tau)$ rather than $\tau$. Since
+  every problem in Part C is exponential in the number of composed steps, cutting the exponent
+  from $\tau$ to $\log\tau$ is an enormous structural improvement: a 1000-step sequence becomes
+  a 10-deep computation.</p>
+  <p>The obstacle is that <b>somebody has to supply the tree</b>. You can use a fixed balanced
+  tree, which throws away the reason to have a tree at all. You can use an external parser,
+  which works for language and imports its errors. Or the learner can infer the structure,
+  which is the right answer and remains open, because the structure is discrete and the
+  machinery of this book is built on differentiable things.</p>
+  <p>Worth holding onto, because Part XII resolves the tension from a direction nobody expected:
+  attention gets $O(1)$ path length between any two positions <b>without</b> committing to a
+  tree, by connecting everything to everything and learning the weights.</p>
+</div>
+
+<h3><span class="num">§25</span> Not training the recurrence at all</h3>
+
+<p>$W$ is the hardest parameter in the model, for every reason in Part C. <b>Echo state
+networks</b> respond by not training it.</p>
+
+<p>Fix the input and recurrent weights at random, train only the output weights. The hidden
+units become a <b>reservoir</b> of temporal features, and the readout is a linear model on top.</p>
+
+<div class="box intuition">
+  <span class="label">Intuition: this is a kernel machine</span>
+  <p>The reservoir maps an arbitrary-length history into a fixed-length vector $\mathbf{h}^{(t)}$
+  that nobody optimised. A linear predictor is then fitted on that vector.</p>
+  <p>Which is Part VI §15's kernel trick with a random feature map: project into a rich space
+  you did not design, then fit something simple. And it inherits the property that makes kernel
+  methods attractive: with a linear readout and squared error, the training objective is
+  <b>convex</b>, so it is solved reliably and once, with none of Part IX's difficulties.</p>
+</div>
+
+<p>The design question is what makes a good reservoir, and the answer is a direct application
+of §11. Set the recurrent weights so the eigenvalues of the state-to-state Jacobian are near
+one, the <b>edge of stability</b>. Too small and the reservoir forgets before the readout can
+use anything; too large and it is chaotic. §11's spectral radius, used deliberately rather than
+suffered.</p>
+
+<p>Echo state networks are not competitive on large problems, and they are worth knowing for
+what they establish: <b>a substantial part of what a recurrent network does is available
+without training the recurrence</b>. Any claim about learned temporal representations should be
+compared against a random reservoir, and frequently is not.</p>
+
+<h3><span class="num">§26</span> Explicit memory</h3>
+
+<div class="readnow"><span class="label">Go and read</span><p><span class="src">Graves, Wayne &amp; Danihelka (2014)</span>, <i>Neural Turing machines</i>. A network given a memory it addresses rather than one it is, trained end to end because the addressing is soft. Read it for the mechanism and then notice, as its authors did, that the addressing operation is <b>attention</b>, arrived at from the direction of computer architecture rather than translation.</p></div>
+
+<p>Networks are excellent at implicit knowledge, how a cat differs from a dog, and poor at
+explicit facts. Storing "the meeting is at three in room 141" in the weights takes many
+presentations of the same input and stores it imprecisely, which is not how a working memory
+behaves.</p>
+
+<p>The response is to give the network a memory it addresses rather than one it is: a set of
+cells, and a controller that learns where to read and where to write.</p>
+
+<div class="box def">
+  <span class="label">Soft addressing</span>
+  <p>An exact integer address cannot be optimised: there is no gradient with respect to
+  "cell 347". So the network reads <b>every</b> cell and takes a weighted average, with weights
+  produced by a softmax, and writes to every cell by different amounts.</p>
+  <p>The weights have nonzero derivatives, so the whole thing trains by gradient descent. They
+  concentrate on a few cells in practice, which is what makes it a memory rather than a blur.</p>
+  <p>Cells hold <b>vectors</b> rather than scalars, for two reasons. It offsets the cost of
+  computing a coefficient for every cell. And it permits <b>content-based addressing</b>:
+  produce a pattern matching part of a cell and retrieve the whole of it: "the lyrics of the
+  song with the chorus <i>we all live in a yellow submarine</i>", as against location-based
+  addressing, "the lyrics in slot 347".</p>
+</div>
+
+<div class="box why">
+  <span class="label">Why this section is the bridge to the next part</span>
+  <p>If a cell's content is copied rather than forgotten at most steps, information propagates
+  forward and gradients backward without vanishing or exploding. That is §18's argument, applied
+  to a store the network indexes rather than a state it overwrites.</p>
+  <p>And the mechanism for choosing an address (produce a query, score it against every
+  location, softmax the scores, take the weighted sum) <b>is identical in form to the attention
+  mechanism</b> that had just been introduced for machine translation. This was noted at the
+  time, and stated plainly in the source this part follows.</p>
+  <p>So two independent lines of work (how do I give a network a memory it can address, and how
+  do I stop a translation model losing the beginning of its sentence) converged on the same
+  operation. When that happens the operation is usually more fundamental than either problem,
+  and Part XII is about what follows from taking it as the primitive rather than as a fix.</p>
+</div>

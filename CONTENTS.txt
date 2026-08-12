@@ -1,0 +1,2172 @@
+==============================================================================
+ARTIFICIAL INTELLIGENCE: From first principles
+The mathematics, the learning, and the machines that think
+Soliman M.H.
+==============================================================================
+
+34 parts, 1287 numbered sections, all complete.
+Each part is built in movements, and carries computed figures, tiered drills
+with an automated test harness, a substantial project and a checkpoint,
+listed here in the position they occupy.
+
+
+------------------------------------------------------------------------------
+FRONT MATTER
+------------------------------------------------------------------------------
+
+  Preface
+          The situation
+          Two failure modes
+          What this book is
+          Who it is for
+          Three commitments
+          On history
+          What comes after the mathematics
+          A closing note
+
+  How to read this book
+          In order, and slowly
+          Do not read passively
+          The markers
+          Notation
+
+  The architecture
+          The spine
+          Where each part goes
+          The five load-bearing ideas
+          Dependencies
+          Three routes
+          Code, and the two kinds of it
+
+------------------------------------------------------------------------------
+PART 0: MATHEMATICAL FOUNDATIONS
+------------------------------------------------------------------------------
+
+  Read this first
+      §0.1  Who this is for
+      §0.2  What is actually required
+      §0.3  How to use it
+      §0.4  The markers
+      §0.5  Map
+
+  A · Reading mathematics
+        §1  How to read a formula
+        §2  The symbols, decoded
+
+  B · Algebra that must be automatic
+        §3  Rearranging expressions
+        §4  Powers, roots, and fractions
+        §5  Solving for a variable
+
+  C · Functions
+        §6  What a function is
+        §7  Composition and inverses
+        §8  Lines, slopes, and polynomials
+
+  D · Exponentials and logarithms
+        §9  Exponentials and the number e
+       §10  Logarithms
+       §11  Why machine learning lives in log space
+
+  E · Notation you must be able to read
+       §12  Sigma and Pi
+       §13  The trigonometry you actually need
+
+  F · The derivative
+       §14  Limits, informally
+       §15  The derivative
+       §16  The rules
+       §17  The chain rule: the important one
+
+  G · The deep learning function zoo
+       §18  Differentiating the functions you will meet
+
+  H · Optimisation in one variable
+       §19  Critical points and the second derivative
+       §20  Convexity
+
+  I · Many variables
+       §21  Functions of several variables
+       §22  Partial derivatives
+       §23  The gradient
+       §24  Gradient descent
+
+  J · Integrals
+       §25  Enough integration to read Part II
+
+  K · Numbers in a computer
+       §26  Floating point, overflow, underflow
+
+  Practice · Drills
+
+  Build · The project
+
+  Assess · Checkpoint
+
+  Reference · Formula card
+
+------------------------------------------------------------------------------
+PART I: LINEAR ALGEBRA
+------------------------------------------------------------------------------
+
+  Before you start
+      §0.1  Why this part is long
+      §0.2  How to use it
+      §0.3  What you need before page one
+      §0.4  The one habit that matters
+      §0.5  Map of the chapter
+
+  A · The objects
+        §1  Why linear algebra, in one honest paragraph
+        §2  Scalars, vectors, matrices, tensors
+        §3  Two ways to see a vector
+
+  B · The operations
+        §4  Matrix times vector: three views of one idea
+        §5  Matrix times matrix
+        §6  Transpose, elementwise products, broadcasting
+        §7  The rules of the algebra (and the one that fails)
+        §8  Worked example: a neural network layer, by hand
+
+  C · Solving
+        §9  Systems of equations as Ax = b
+       §10  Identity and inverse
+       §11  Span, linear independence, rank
+       §12  When does a solution exist? The complete answer
+       §13  Why nobody actually inverts matrices
+
+  D · Measuring
+       §14  Norms
+       §15  Norms in practice: regularization and clipping
+
+  E · Special matrices
+       §16  Diagonal, symmetric, orthogonal
+
+  F · Decompositions
+       §17  Eigendecomposition
+       §18  Quadratic forms and positive definiteness
+       §19  Singular value decomposition
+       §20  The Moore–Penrose pseudoinverse
+       §21  Trace
+       §22  Determinant
+
+  G · The payoff
+       §23  Principal components analysis, derived from nothing
+
+  Practice · Drills
+
+  Build · The project
+
+  Assess · Checkpoint
+
+  Reference · Appendices
+
+------------------------------------------------------------------------------
+PART II: PROBABILITY & INFORMATION
+------------------------------------------------------------------------------
+
+  Before you start
+      §0.1  The good news, and the catch
+      §0.2  What you need before page one
+      §0.3  The markers
+      §0.4  The habit for this chapter
+      §0.5  Map of the chapter
+
+  A · Why probability
+        §1  Three kinds of uncertainty
+        §2  Two schools, and why the argument matters
+        §3  Random variables
+
+  B · Distributions
+        §4  Discrete distributions and the PMF
+        §5  Continuous distributions and the PDF
+        §6  Joint and marginal
+        §7  Conditional probability
+        §8  The chain rule
+        §9  Independence and conditional independence
+
+  C · Summarising
+       §10  Expectation
+       §11  Variance and standard deviation
+       §12  Covariance, correlation, and a myth
+       §13  The covariance matrix
+
+  D · The distribution zoo
+       §14  Bernoulli and categorical
+       §15  The Gaussian, and why it is everywhere
+       §16  The multivariate Gaussian
+       §17  Exponential, Laplace, Dirac, empirical
+       §18  Mixtures and latent variables
+
+  E · Functions that keep appearing
+       §19  Sigmoid and softplus
+       §20  Softmax
+
+  F · Bayes
+       §21  Bayes' rule
+       §22  The base rate trap
+
+  G · Information theory
+       §23  Self-information and entropy
+       §24  KL divergence
+       §25  Cross-entropy: your loss function
+       §26  Maximum likelihood, and where the loss came from
+
+  Practice · Drills
+
+  Build · The project
+
+  Assess · Checkpoint
+
+  Reference · Appendices
+
+------------------------------------------------------------------------------
+PART III: NUMERICAL COMPUTATION
+------------------------------------------------------------------------------
+
+  A · Precision and its failures
+        §1  What a floating point number actually is
+        §2  Overflow, underflow, and the operations that break
+        §3  Catastrophic cancellation
+        §4  Writing code that survives
+
+  B · Conditioning
+        §5  The condition number
+        §6  Conditioning versus stability
+        §7  Where conditioning bites in learning
+
+  C · Optimisation and curvature
+        §8  The optimisation problem
+        §9  Gradient descent: step size and convergence
+       §10  Curvature and the Hessian
+       §11  Newton's method
+       §12  Why nobody uses Newton at scale
+       §13  Line search
+
+  D · Stochastic methods
+       §14  Stochastic gradient descent
+       §15  Momentum
+       §16  Adaptive methods
+       §17  Learning rate schedules
+       §18  Saddle points and high dimensions
+
+  E · Constrained optimisation
+       §19  Lagrange multipliers and KKT
+
+  F · The payoff
+       §20  Least squares, three ways
+
+  Practice · Drills
+
+  Build · The project
+
+  Assess · Checkpoint
+
+------------------------------------------------------------------------------
+PART IV: THE FRAMEWORK
+  PyTorch, from the ground up
+------------------------------------------------------------------------------
+
+  Before you start
+      §0.1  Why PyTorch
+
+  A · One program, and the object it moves
+        §1  A complete program, line by line
+        §2  The tensor
+        §3  Getting numbers in and out
+
+  B · The graph
+        §4  requires_grad, and what it spreads to
+        §5  The graph, seen
+        §6  What backward() does, and what it destroys
+        §7  Stopping the gradient
+
+  C · The model
+        §8  nn.Module, and what parameters() is
+        §9  Composing, and reading someone else's model
+       §10  Initialisation, which is not decoration
+
+  D · Data, batching, devices
+       §11  Dataset and DataLoader
+       §12  Devices
+
+  E · The loop
+       §13  Five statements, in order
+       §14  train() and eval()
+       §15  Saving, loading, resuming
+
+  F · When it breaks
+       §16  Error messages, decoded
+       §17  The debugging order
+
+  Practice · Drills
+
+  Build · The project
+
+  Assess · Checkpoint
+
+------------------------------------------------------------------------------
+PART V: STATISTICS & ESTIMATION
+------------------------------------------------------------------------------
+
+  A · Estimators
+        §1  What an estimator is
+        §2  Bias
+        §3  Variance and standard error
+        §4  Mean squared error, and the trade
+        §5  Consistency and efficiency
+
+  B · Sampling distributions
+        §6  The distribution of a statistic
+        §7  When is unknown
+
+  C · Intervals
+        §8  Confidence intervals
+        §9  What a confidence interval does not mean
+       §10  The bootstrap
+
+  D · Testing, and how it goes wrong
+       §11  Hypothesis testing
+       §12  What a p-value is not
+       §13  Power, and the studies that cannot see
+       §14  Multiple comparisons
+       §15  Test set reuse
+       §16  Comparing two models honestly
+
+  E · Bayesian estimation
+       §17  MAP and MLE
+       §18  Priors are regularization
+       §19  Keeping the whole posterior
+
+  F · The payoff
+       §20  The bias–variance decomposition
+
+  Practice · Drills
+
+  Build · The project
+
+  Assess · Checkpoint
+
+------------------------------------------------------------------------------
+PART VI: MACHINE LEARNING BASICS
+------------------------------------------------------------------------------
+
+  A · What learning is
+        §1  Task, experience, performance
+        §2  Supervised, unsupervised, and the boundary between them
+        §3  The learning problem, stated
+
+  B · Generalisation
+        §4  Training error and generalisation error
+        §5  The assumption everything rests on
+        §6  Capacity
+        §7  No free lunch
+        §8  Regularization
+
+  C · Choosing a model
+        §9  Hyperparameters and the validation set
+       §10  Cross-validation
+       §11  Reporting a result you can defend
+
+  D · Supervised algorithms
+       §12  Linear regression
+       §13  Logistic regression
+       §14  Support vector machines
+       §15  Kernels
+       §16  Nearest neighbours and decision trees
+
+  E · Unsupervised algorithms
+       §17  PCA, as learning
+       §18  k-means clustering
+
+  F · Making it work at scale
+       §19  Stochastic gradient descent, applied
+       §20  Building a learning algorithm
+
+  G · Why any of this needed deep learning
+       §21  The curse of dimensionality
+       §22  Local constancy
+       §23  The manifold hypothesis
+
+  Practice · Drills
+
+  Build · The project
+
+  Assess · Checkpoint
+
+------------------------------------------------------------------------------
+PART VII: NEURAL NETWORKS
+------------------------------------------------------------------------------
+
+  A · Why depth
+        §1  The problem that stopped the field
+        §2  What a hidden layer actually does
+        §3  Universal approximation
+        §4  Why depth rather than width
+
+  B · Anatomy of a network
+        §5  The feedforward network
+        §6  Output units: match the distribution
+        §7  Hidden units
+        §8  Architecture
+
+  C · The objective, and where to start
+        §9  The cost function is a log-likelihood
+       §10  Why cross-entropy and not squared error
+       §11  Initialisation
+
+  D · Backpropagation
+       §12  Computational graphs
+       §13  Forward mode and reverse mode
+       §14  Backpropagation, derived
+       §15  A whole network, by hand
+       §16  What a framework actually does
+       §17  The cost of remembering
+
+  E · What goes wrong
+       §18  Vanishing and exploding gradients
+       §19  Dead units and other pathologies
+       §20  Diagnosing a training run
+
+  F · The payoff
+       §21  The autograd engine
+
+  Practice · Drills
+
+  Build · The project
+
+  Assess · Checkpoint
+
+------------------------------------------------------------------------------
+PART VIII: REGULARIZATION
+  buying generalisation with bias
+------------------------------------------------------------------------------
+
+  A · What regularization is
+        §1  The definition, and why it is broader than a penalty
+        §2  The five views, reconciled
+        §3  Where the preference comes from
+
+  B · Penalties
+        §4  What L^2 actually does to the solution
+        §5  L^1, and where sparsity comes from
+        §6  Sparse representations
+        §7  A penalty is a constraint
+        §8  Under-constrained problems
+
+  C · More data, and pretending you have it
+        §9  The best regulariser is more data
+       §10  Dataset augmentation
+       §11  Encoding an invariance without generating data
+       §12  Noise, and why it is a penalty
+
+  D · Stopping, and sharing
+       §13  Early stopping
+       §14  Early stopping is weight decay
+       §15  Parameter tying and sharing
+       §16  Multi-task learning
+       §17  Semi-supervised learning
+
+  E · Ensembles, dropout, adversaries
+       §18  Bagging, and why averaging works
+       §19  Dropout
+       §20  Adversarial training
+
+  F · The payoff
+       §21  One idea, six costumes
+       §22  Choosing, in practice
+       §23  What regularization cannot do
+
+  Practice · Drills
+
+  Build · The project
+
+  Assess · Checkpoint
+
+------------------------------------------------------------------------------
+PART IX: OPTIMIZATION
+  why training is hard, and what to do about it
+------------------------------------------------------------------------------
+
+  A · What we are actually optimising
+        §1  Learning is not optimisation
+        §2  Empirical risk minimisation, and why almost nobody does it
+        §3  Surrogate losses, and the bonus nobody expected
+        §4  Why training stops, and why that is not convergence
+        §5  Minibatches: what the batch size actually buys
+
+  B · Everything that goes wrong
+        §6  Ill-conditioning, and a diagnostic you can actually run
+        §7  Local minima, and why most of them do not matter
+        §8  Saddles, plateaus, and flat regions
+        §9  Cliffs, and what clipping is really for
+       §10  Repeated matrices: the sharper vanishing-gradient problem
+       §11  Inexact gradients
+       §12  Local versus global: the problem nobody has solved
+
+  C · The algorithms, completed
+       §13  SGD, with the schedule spelled out
+       §14  Momentum, and why the form is forced
+       §15  Nesterov momentum
+       §16  Initialisation: what the scale has to achieve
+       §17  Initialisation: biases, and a protocol that beats searching
+       §18  Adaptive methods: choosing, and the honest answer
+
+  D · Second order, properly
+       §19  Newton's method, damped
+       §20  Conjugate gradients
+       §21  BFGS and its limited-memory form
+
+  E · Reparametrisation and meta-algorithms
+       §22  The coordination problem
+       §23  Batch normalisation
+       §24  Coordinate descent
+       §25  Polyak averaging
+       §26  Pretraining, transfer, and hints
+       §27  Designing models to be optimisable
+       §28  Continuation methods and curriculum learning
+
+  F · The payoff
+       §29  A run that will not train: the ladder
+       §30  The theoretical limits, and what they are worth
+       §31  What optimisation cannot do
+
+  Practice · Drills
+
+  Build · The project
+
+  Assess · Checkpoint
+
+------------------------------------------------------------------------------
+PART X: CONVOLUTIONAL MODELS
+  an assumption about space, priced exactly
+------------------------------------------------------------------------------
+
+  A · The operation
+        §1  Why a dense layer is the wrong shape for an image
+        §2  Convolution
+        §3  Cross-correlation, and why everyone calls it convolution
+        §4  Convolution is a matrix multiplication
+        §5  Padding, stride, and the arithmetic of size
+        §6  Channels, and the shape bookkeeping
+
+  B · Why it works, measured
+        §7  Sparse interactions
+        §8  Parameter sharing
+        §9  Equivariance, precisely
+       §10  Receptive fields, and the gap you were not told about
+       §11  An infinitely strong prior
+
+  C · Pooling, and its decline
+       §12  Pooling
+       §13  Invariance against equivariance
+       §14  Learned invariance
+       §15  Why modern architectures dropped it
+
+  D · Backward, and fast
+       §16  The backward pass of a convolution is a convolution
+       §17  How it is actually computed
+       §18  Separable kernels, and the other algorithms
+       §19  Depthwise separable convolution
+
+  E · Architectures, and what each one fixed
+       §20  LeNet to AlexNet
+       §21  VGG, and the argument for small kernels
+       §22  Inception, and the cost of width
+       §23  ResNet
+       §24  Normalisation, and where it goes in an image
+       §25  DenseNet, and scaling three ways at once
+       §26  ConvNeXt, and the experiment that should have been done first
+
+  F · Beyond classification, and the limits
+       §27  Structured outputs, and the artefact you will recognise
+       §28  Detection, in one section
+       §29  Dilated convolution
+       §30  Data types, and one dimension
+       §31  The neuroscience, and what the analogy buys
+       §32  What convolution cannot do
+
+  Practice · Drills
+
+  Build · The project
+
+  Assess · Checkpoint
+
+------------------------------------------------------------------------------
+PART XI: SEQUENCE MODELS
+  sharing across time, and what it costs
+------------------------------------------------------------------------------
+
+  A · The recurrence
+        §1  What a sequence needs that a fixed input does not
+        §2  Unfolding
+        §3  What sharing across time buys
+        §4  The recurrent network
+        §5  Three design patterns
+        §6  Backpropagation through time
+
+  B · What it is, probabilistically
+        §7  The RNN as a graphical model
+        §8  The assumption nobody states
+        §9  Teacher forcing
+       §10  Exposure bias, and how a sequence ends
+
+  C · Why it fails
+       §11  The same matrix, over and over
+       §12  The trade nobody mentions
+       §13  Cliffs
+       §14  The failure, measured, and what it is actually a failure of
+       §15  Why better optimisers were not the answer
+
+  D · What fixes it
+       §16  Skip connections through time
+       §17  Leaky units
+       §18  The LSTM
+       §19  What the gates actually do
+       §20  The forget-gate bias
+       §21  GRU, and the honest comparison
+
+  E · Architecture around the recurrence
+       §22  Bidirectional
+       §23  Depth
+       §24  Trees instead of chains
+       §25  Not training the recurrence at all
+       §26  Explicit memory
+
+  F · The bottleneck
+       §27  Encoder–decoder
+       §28  What this part could not do
+
+  G · What came after, and what came back
+       §29  Reading this movement in order
+       §30  The cost, counted properly
+       §31  Removing the softmax
+       §32  What that costs
+       §33  The parallel scan
+       §34  State space models
+       §35  What a fixed state cannot hold
+       §36  Selectivity
+       §37  What practice settled on
+       §38  What to carry forward
+
+  Practice · Drills
+
+  Build · The project
+
+  Assess · Checkpoint
+
+------------------------------------------------------------------------------
+PART XII: ATTENTION AND TRANSFORMERS
+  every position, at once, and what it costs
+------------------------------------------------------------------------------
+
+  A · From the bottleneck to attention
+        §1  The problem, restated
+        §2  Attention, derived
+        §3  Queries, keys and values: why three
+        §4  Scaled dot-product, and where the d comes from
+        §5  Two ways to read it
+        §6  Cross-attention, and what it fixed
+
+  B · Self-attention
+        §7  The same operation, one sequence
+        §8  Path length
+        §9  Permutation equivariance, and why it is a defect here
+       §10  Putting the order back
+       §11  RoPE
+       §12  Multiple heads
+       §13  What it costs
+
+  C · The block and the stack
+       §14  The block
+       §15  Where the model actually is
+       §16  The residual stream
+       §17  Where the normalisation goes
+       §18  LayerNorm and RMSNorm
+       §19  The activation function
+       §20  Encoder, decoder, and why one of them won
+
+  D · Making it train
+       §21  Causal masking, and the thing Part XI could not have
+       §22  Initialisation, and what depth does to it
+       §23  The optimiser, and what transfers
+       §24  Regularization, and how little of it there is
+       §25  What breaks
+       §26  Rank collapse, and what the skip connections are really for
+
+  E · Making it fast
+       §27  Two different problems
+       §28  The KV cache
+       §29  FlashAttention
+       §30  Multi-query and grouped-query attention
+       §31  Sparse and local attention
+       §32  Linear attention
+       §33  Mixture of experts
+       §34  Quantization
+
+  F · What attention is, and is not
+       §35  Vision transformers, and Part X settled
+       §36  What attention maps do not explain
+       §37  Induction heads
+       §38  In-context learning
+       §39  What actually limits context
+       §40  The convergence
+
+  Practice · Drills
+
+  Build · The project
+
+  Assess · Checkpoint
+
+------------------------------------------------------------------------------
+PART XIII: DATA
+  the input nobody audits
+------------------------------------------------------------------------------
+
+  A · What a dataset is
+        §1  The assumption everything so far has rested on
+        §2  Population, sample, and the frame
+        §3  Coverage, and how you would know
+        §4  Labels are measurements
+        §5  Agreement, and what it does not tell you
+        §6  The label defines the task
+
+  B · Getting it wrong
+        §7  Selection bias
+        §8  Shortcuts
+        §9  Label noise, and how much a model absorbs
+       §10  Imbalance
+       §11  Leakage
+       §12  Duplicates
+       §13  Contamination
+
+  C · Measuring it
+       §14  Quality has to be operationalised
+       §15  Finding near-duplicates at scale
+       §16  Detecting contamination
+       §17  Filtering
+       §18  Diversity
+       §19  Writing it down
+
+  D · Scale, and what it changes
+       §20  How much data
+       §21  What deduplication does to training
+       §22  Quality against quantity
+       §23  Repeating data
+       §24  Ordering
+       §25  Splitting, when the data is not i.i.d.
+
+  E · Making data
+       §26  Augmentation, revisited
+       §27  Synthetic data
+       §28  Model collapse
+       §29  Distillation
+       §30  Active learning
+       §31  Annotation as a system
+
+  F · The parts that are not technical
+       §32  Provenance, licence and consent
+       §33  Memorisation
+       §34  What a dataset commits you to
+
+  Practice · Drills
+
+  Build · The project
+
+  Assess · Checkpoint
+
+------------------------------------------------------------------------------
+PART XIV: PRACTICE AND DIAGNOSIS
+  deciding what to do next
+------------------------------------------------------------------------------
+
+  A · Before you train
+        §1  The loop
+        §2  The metric, and the number that would be good enough
+        §3  Precision, recall, and where the threshold goes
+        §4  Coverage: the option to refuse
+        §5  Calibration
+        §6  The baseline
+
+  B · Diagnosis
+        §7  Why this is hard
+        §8  Fit a tiny dataset
+        §9  Gradient checking
+       §10  Reading train and test error
+       §11  Look at the worst mistakes
+       §12  Histograms, and the one-percent rule
+
+  C · Deciding what to do next
+       §13  The decision procedure
+       §14  Learning curves, and how far they extrapolate
+       §15  What each hyperparameter does
+       §16  Grid, random, and why random wins
+       §17  Spending the budget where the evidence is
+       §18  Model-based search, honestly
+
+  D · Measuring honestly
+       §19  Seed variance
+       §20  The winner of a search is biased upward
+       §21  Ablations that isolate
+       §22  What a benchmark measures now
+       §23  Evaluating output with no right answer
+       §24  Model-as-judge
+       §25  What a leaderboard is
+
+  E · After deployment
+       §26  The distribution moves
+       §27  Monitoring when you have no labels
+       §28  Feedback loops
+       §29  The long tail
+       §30  Shipping so you can unship
+       §31  What accumulates
+
+  F · The discipline
+       §32  A case, end to end
+       §33  What the metric cannot tell you
+       §34  The ladder
+       §35  When nothing works
+       §36  The habits
+
+  Practice · Drills
+
+  Build · The project
+
+  Assess · Checkpoint
+
+------------------------------------------------------------------------------
+PART XV: REPRESENTATION LEARNING
+  what the middle of a network holds
+------------------------------------------------------------------------------
+
+  A · What a representation is
+        §1  The question
+        §2  Every supervised network is already doing this
+        §3  Three properties, and the fact that they conflict
+        §4  Distributed representations, and the counting argument
+        §5  The manifold assumption
+        §6  Why local methods are not enough
+
+  B · Compression
+        §7  The encoder–decoder frame
+        §8  Undercomplete, and its exact relationship to PCA
+        §9  Why capacity alone defeats the whole scheme
+       §10  Sparse autoencoders
+       §11  Denoising autoencoders
+       §12  What denoising actually learns
+       §13  Contractive autoencoders
+       §14  The two forces
+
+  C · Self-supervision
+       §15  The idea, and its first failure
+       §16  Pretext tasks
+       §17  Contrastive learning
+       §18  What the negatives are for
+       §19  The augmentation is the specification
+       §20  Collapse, measured
+       §21  Without negatives
+       §22  Masked modelling
+       §23  What self-supervision buys
+
+  D · The geometry of embeddings
+       §24  Similarity, and the three measures
+       §25  Anisotropy
+       §26  Hubness
+       §27  The linear representation hypothesis
+       §28  Neighbour embeddings, and what they destroy
+       §29  Retrieval
+       §30  What movement D establishes
+
+  E · Reading a representation
+       §31  Probing
+       §32  What a probe establishes
+       §33  Superposition
+       §34  Sparse autoencoders, for interpretability
+       §35  What a learned feature is, and is not
+       §36  Multimodal alignment
+
+  F · What transfers
+       §37  Fine-tuning against linear probing
+       §38  Zero-shot
+       §39  Disentanglement, and what a decade established
+       §40  Does scale improve representations
+       §41  The priors, revisited
+       §42  What movements A to F establish
+
+  G · Learning as compression
+       §43  Rate and distortion
+       §44  Description length
+       §45  The information bottleneck
+       §46  Does compression imply generalisation
+       §47  What the frame does not do
+       §48  What to carry forward
+
+  Practice · Drills
+
+  Build · The project
+
+  Assess · Checkpoint
+
+------------------------------------------------------------------------------
+PART XVI: GENERATIVE MODELS
+  learning a distribution, not a function
+------------------------------------------------------------------------------
+
+  A · What generating means
+        §1  A different object
+        §2  The normalising constant
+        §3  Energy-based models
+        §4  Which direction of KL
+        §5  The taxonomy
+        §6  Ancestral sampling
+        §7  MCMC, and why it disappointed
+
+  B · Autoregressive models
+        §8  The chain rule as a model
+        §9  Ordering
+       §10  Masking, and training in one pass
+       §11  Sampling, and the asymmetry that does not go away
+       §12  Exposure bias
+       §13  What this family is good at
+
+  C · Latent variables and the VAE
+       §14  The latent variable model
+       §15  The evidence lower bound
+       §16  The reparameterisation trick
+       §17  How loose is the bound
+       §18  The VAE, assembled
+       §19  Posterior collapse
+       §20  Why the samples are blurry
+       §21  Normalising flows, briefly
+       §22  What this movement establishes
+
+  D · Score and diffusion
+       §23  Score matching
+       §24  Where the score has no signal
+       §25  Denoising score matching
+       §26  Many noise levels
+       §27  The forward process
+       §28  What the network predicts
+       §29  Sampling, and what it recovers
+       §30  Conditioning and guidance
+       §31  The schedule
+       §32  Flow matching
+       §33  What this movement establishes
+
+  E · Implicit models
+       §34  Generating without a density
+       §35  Why the training is hard
+       §36  Mode collapse, measured
+       §37  What was tried
+       §38  Why GANs lost
+       §39  Boltzmann machines, as history
+
+  F · Evaluation
+       §40  Why this is unsolved
+       §41  Likelihood, and what it fails to measure
+       §42  Sample quality, and what it fails to measure
+       §43  Automatic sample metrics
+       §44  What to report
+       §45  Choosing a family
+       §46  What to carry forward
+
+  Practice · Drills
+
+  Build · The project
+
+  Assess · Checkpoint
+
+------------------------------------------------------------------------------
+PART XVII: SCALE
+  what happens when you make it bigger
+------------------------------------------------------------------------------
+
+  A · The empirical laws
+        §1  The question scale asks
+        §2  Power laws, and how to read them
+        §3  What the irreducible term is
+        §4  Fitting a law honestly
+        §5  The three laws, and their joint form
+        §6  What the laws do not say
+        §7  Emergence, and the measurement artefact
+        §8  Extrapolation, and its limits
+
+  B · Compute-optimal
+        §9  The allocation question
+       §10  The first answer
+       §11  The error
+       §12  The correction
+       §13  The frontier, and what bounds it
+       §14  Why models are deliberately overtrained
+       §15  What this movement establishes
+
+  C · The memory wall
+       §16  Where the memory goes
+       §17  Activation recomputation
+       §18  Sharding the states
+       §19  Mixed precision
+       §20  The memory budget, in practice
+
+  D · Parallelism
+       §21  Data parallelism
+       §22  Why it stops scaling
+       §23  Tensor parallelism
+       §24  Pipeline parallelism
+       §25  Sequence and context parallelism
+       §26  Combining them
+       §27  Asynchronous SGD, and why it lost
+       §28  Failure, and checkpointing
+
+  E · Conditional computation
+       §29  Not every parameter for every token
+       §30  Mixture of experts
+       §31  Load balancing
+       §32  What it actually buys, and what it costs
+
+  F · Running a large job
+       §33  Batch size, and the critical batch size
+       §34  Hyperparameter transfer
+       §35  Loss spikes and instability
+       §36  What to log
+       §37  The cost model
+       §38  When scale is the wrong answer
+       §39  What to carry forward
+
+  Practice · Drills
+
+  Build · The project
+
+  Assess · Checkpoint
+
+------------------------------------------------------------------------------
+PART XVIII: REINFORCEMENT LEARNING
+  when your actions decide your data
+------------------------------------------------------------------------------
+
+  A · The setting
+        §1  What changes
+        §2  The Markov decision process
+        §3  Return, and why it is discounted
+        §4  Policies and value functions
+        §5  The Bellman equations
+        §6  The taxonomy
+        §7  The unit of measurement
+        §8  What this part will and will not cover
+
+  B · Solving it exactly
+        §9  Policy evaluation
+       §10  Policy iteration
+       §11  Value iteration
+       §12  Why it converges, and how fast
+       §13  Why exact methods do not scale
+       §14  What survives
+
+  C · Learning from samples
+       §15  Monte Carlo
+       §16  Temporal difference
+       §17  The trade, measured
+       §18  Control: SARSA and Q-learning
+       §19  The maximisation bias
+       §20  Function approximation
+       §21  The deadly triad
+       §22  DQN, and what each part is for
+       §23  What movement C establishes
+
+  D · Policy gradients
+       §24  Optimising the policy directly
+       §25  The policy gradient theorem
+       §26  REINFORCE
+       §27  Baselines
+       §28  Actor–critic
+       §29  Advantage estimation
+       §30  Why step size is the central difficulty
+       §31  Trust regions, and then clipping
+       §32  Why PPO won
+
+  E · Exploration
+       §33  The problem
+       §34  The bandit, and why it is the right first case
+       §35  Four strategies, measured
+       §36  Exploration in an MDP
+       §37  What is actually done
+       §38  Why this is unsolved
+
+  F · What it is used for
+       §39  Reward design
+       §40  Offline reinforcement learning
+       §41  Learning from human feedback
+       §42  Training for reasoning
+       §43  Evaluating a reinforcement learning result
+       §44  When not to use it
+       §45  What to carry forward
+
+  Practice · Drills
+
+  Build · The project
+
+  Assess · Checkpoint
+
+------------------------------------------------------------------------------
+PART XIX: EFFICIENCY AND DEPLOYMENT
+  making it cheap enough to use
+------------------------------------------------------------------------------
+
+  A · The inference problem
+        §1  What changes
+        §2  Two regimes, not one
+        §3  Arithmetic intensity
+        §4  The KV cache
+        §5  Latency against throughput
+        §6  The cost model
+        §7  What follows
+
+  B · Quantization
+        §8  The idea
+        §9  Granularity, and what it buys
+       §10  Outliers
+       §11  Post-training quantization
+       §12  Quantization-aware training
+       §13  Activations, and why they are harder
+       §14  What it actually costs
+       §15  Where the cliff is
+       §16  Quantizing the cache
+
+  C · Sparsity and pruning
+       §17  Pruning
+       §18  The lottery ticket
+       §19  Structured against unstructured
+       §20  The pattern that works
+       §21  What to prune
+       §22  Against quantization
+       §23  What survives
+
+  D · Distillation
+       §24  The idea
+       §25  Why soft targets carry more
+       §26  Temperature
+       §27  What is actually transferred
+       §28  Self-distillation
+       §29  Distilling a sampler
+       §30  When it works
+
+  E · Adaptation
+       §31  What full fine-tuning costs
+       §32  LoRA
+       §33  Is the update actually low rank
+       §34  The variants
+       §35  The alternatives
+       §36  Serving many adaptations
+       §37  What to choose
+
+  F · Serving
+       §38  Batching
+       §39  Paged attention
+       §40  Speculative decoding
+       §41  Caching what repeats
+       §42  Distributed inference
+       §43  Measuring a serving system
+       §44  The cost model, end to end
+       §45  What to carry forward
+
+  Practice · Drills
+
+  Build · The project
+
+  Assess · Checkpoint
+
+------------------------------------------------------------------------------
+PART XX: LANGUAGE MODELS
+  what next-token prediction turned into
+------------------------------------------------------------------------------
+
+  A · Tokenization
+        §1  A decision images do not require
+        §2  Byte-pair encoding
+        §3  What a tokenizer commits you to
+        §4  Numbers, and the failure everyone has seen
+        §5  Vocabulary size
+        §6  What byte-level would cost
+        §7  The tokenizer is frozen first
+        §8  What movement A establishes
+
+  B · Pretraining
+        §9  The objective, and why it was enough
+       §10  The recipe
+       §11  The data mixture
+       §12  Context length
+       §13  What is actually learned, and in what order
+       §14  Memorisation
+       §15  The loss curve, and what it hides
+       §16  What pretraining does not give you
+
+  C · In-context learning
+       §17  The phenomenon
+       §18  Why it is not mysterious
+       §19  What the demonstrations actually supply
+       §20  Prompting
+       §21  Chain of thought
+       §22  The sensitivity problem
+       §23  What prompting cannot fix
+       §24  What movement C establishes
+
+  D · Alignment
+       §25  The interface problem
+       §26  The pipeline
+       §27  The preference data
+       §28  RLHF, applied
+       §29  The direct methods
+       §30  What alignment changes
+       §31  The measurable failure modes
+       §32  The alignment tax
+       §33  Jailbreaks
+
+  E · Beyond the weights
+       §34  Retrieval
+       §35  Tools
+       §36  Agents
+       §37  Test-time compute
+       §38  Context engineering
+       §39  What these buy over fine-tuning
+
+  F · Evaluation
+       §40  Why this is the hardest part
+       §41  Benchmarks, and their decay
+       §42  Model-as-judge, again
+       §43  What cannot currently be measured well
+       §44  Capability against reliability
+       §45  What movements A to F establish
+
+  G · Keeping and changing what a model knows
+       §46  The shape of the problem
+       §47  Forgetting
+       §48  Rehearsal
+       §49  Averaging weights
+       §50  Task arithmetic
+       §51  Editing
+       §52  What to do about it
+       §53  What to carry forward
+
+  Practice · Drills
+
+  Build · The project
+
+  Assess · Checkpoint
+
+------------------------------------------------------------------------------
+PART XXI: ALIGNMENT, INTERPRETABILITY AND CONSEQUENCE
+  what we can see, what we can specify, and what we can prove
+------------------------------------------------------------------------------
+
+  A · Looking inside
+        §1  What a question about internals means
+        §2  Neurons are not features
+        §3  Superposition, recalled
+        §4  What superposition costs the analyst
+        §5  Dictionary learning
+        §6  What a dictionary actually recovers
+        §7  Probing, revisited
+        §8  What movement A establishes
+
+  B · Causal interpretability
+        §9  The intervention that makes a claim causal
+       §10  Activation patching
+       §11  Circuits
+       §12  Ablation and its traps
+       §13  Steering
+       §14  Attribution, and why it disappointed
+       §15  Evaluating interpretability itself
+       §16  What movement B establishes
+
+  C · Specification
+       §17  The problem, stated without metaphor
+       §18  Goodhart, and the condition for it
+       §19  Reward hacking, observed
+       §20  Outer and inner, carefully
+       §21  Scalable oversight
+       §22  Debate, amplification, weak-to-strong
+       §23  What we cannot currently specify
+       §24  What movement C establishes
+
+  D · Measuring harm
+       §25  Why this is not ordinary evaluation
+       §26  Red-teaming
+       §27  The statistics of rare failures
+       §28  Dangerous capability evaluations
+       §29  Bias and fairness, as measurement
+       §30  Evaluation validity
+       §31  Elicitation, and the lower bound problem
+       §32  Safety cases
+       §33  What movement D establishes
+
+  E · Deployment and consequence
+       §34  What changes at deployment
+       §35  Monitoring
+       §36  Open weights
+       §37  Concentration
+       §38  Labour
+       §39  Environmental cost
+       §40  The questions this book cannot answer
+
+  F · Closing
+       §41  What is genuinely unknown
+       §42  How to reason under this uncertainty
+       §43  What to carry forward
+       §44  Where to go next
+       §45  What is left standing
+
+  Practice · Drills
+
+  Build · The project
+
+  Assess · Checkpoint
+
+------------------------------------------------------------------------------
+PART XXII: CAUSAL INFERENCE
+  the question a predictor cannot answer
+------------------------------------------------------------------------------
+
+  A · Two different questions
+        §1  The question a predictor cannot answer
+        §2  Three rungs
+        §3  Confounding, measured
+        §4  The collider, and why more controls is not safer
+        §5  Mediators, and the effect you did not mean to remove
+        §6  Selection, and the sample you actually have
+        §7  What movement A establishes
+
+  B · Structural causal models
+        §8  A model of the mechanism
+        §9  Graphs, and what an arrow means
+       §10  Reading dependence off the graph
+       §11  The do-operator
+       §12  The backdoor criterion
+       §13  The front-door criterion
+       §14  Identifiability, and when the answer is no
+       §15  What movement B establishes
+
+  C · Estimating an effect
+       §16  The randomised experiment
+       §17  Adjustment, and the estimator that follows
+       §18  The propensity score
+       §19  Matching, weighting, and what each assumes
+       §20  Overlap, and where adjustment stops working
+       §21  Doubly robust estimation
+       §22  Sensitivity analysis
+       §23  What goes wrong in practice
+       §24  What movement C establishes
+
+  D · When you cannot randomise
+       §25  Borrowing randomness from the world
+       §26  Instrumental variables
+       §27  Difference-in-differences
+       §28  Regression discontinuity
+       §29  Synthetic controls
+       §30  The four designs, compared
+       §31  What movement D establishes
+
+  E · Causality and machine learning
+       §32  Evaluating a policy you have not run
+       §33  The average conceals the decision
+       §34  Invariance, and why it transfers
+       §35  Causal discovery
+       §36  What Part XXI's "causal" means, and what it does not
+       §37  Fairness, with the causal versions available
+       §38  What a randomised system gets for free
+       §39  What movement E establishes
+
+  F · Practice
+       §40  The design comes before the data
+       §41  What a causal claim owes you
+       §42  Reading a causal claim critically
+       §43  Where this changes the rest of the book
+       §44  What is unsolved
+       §45  What to carry forward
+
+  Practice · Drills
+
+  Build · The project
+
+  Assess · Checkpoint
+
+------------------------------------------------------------------------------
+PART XXIII: LEARNING THEORY
+  why it works, and where the guarantees run out
+------------------------------------------------------------------------------
+
+  A · Concentration
+        §1  The question, stated so it can be answered
+        §2  Three bounds, and what each one uses
+        §3  How much the bounds give up
+        §4  The union bound, and the first real theorem
+        §5  What "with high probability" is a statement about
+        §6  What concentration cannot reach
+        §7  What movement A establishes
+
+  B · Uniform convergence
+        §8  Probably approximately correct
+        §9  Counting labellings instead of functions
+       §10  Shattering, and the VC dimension
+       §11  Sauer's lemma, and why the bound is polynomial
+       §12  The generalisation bound
+       §13  Sample complexity, and the fundamental theorem
+       §14  No free lunch, restated
+       §15  What movement B establishes
+
+  C · Beyond counting
+       §16  Rademacher complexity
+       §17  Covering numbers
+       §18  Margins
+       §19  Algorithmic stability
+       §20  Structural risk minimisation
+       §21  What all four have in common
+       §22  What movement C establishes
+
+  D · Where the theory broke
+       §23  The bound against the gap it bounds
+       §24  Interpolation is not overfitting
+       §25  Double descent
+       §26  Benign overfitting
+       §27  What the optimiser chooses
+       §28  Flatness, and the trouble with it
+       §29  Norm-based bounds, and the ones that are not vacuous
+       §30  What movement D establishes
+
+  E · Learning against an adversary
+       §31  The online protocol
+       §32  Why following the leader fails
+       §33  Online gradient descent
+       §34  Multiplicative weights
+       §35  Bandits, and the cost of not seeing
+       §36  Non-stationarity
+       §37  What the adversarial framing buys and costs
+       §38  What movement E establishes
+
+  F · Distribution shift
+       §39  Three shifts, and why the distinction is operational
+       §40  Importance weighting
+       §41  Label shift, which is easier
+       §42  Distributionally robust optimisation
+       §43  Worst-group risk
+       §44  Detecting shift, and what detection is worth
+       §45  What movements A to F establish
+
+  G · Width
+       §46  A different limit
+       §47  The neural tangent kernel
+       §48  How constant is constant
+       §49  Lazy and rich
+       §50  Three parameterisations
+       §51  The coordinate check
+       §52  Why hyperparameters transfer
+       §53  Depth, and what a random network does to a signal
+       §54  What initialisation is choosing
+       §55  What to carry forward
+
+  Practice · Drills
+
+  Build · The project
+
+  Assess · Checkpoint
+
+------------------------------------------------------------------------------
+PART XXIV: UNCERTAINTY QUANTIFICATION
+  saying how much you do not know, and being right about it
+------------------------------------------------------------------------------
+
+  A · Two kinds of not knowing
+        §1  The promise an interval makes
+        §2  Aleatoric and epistemic
+        §3  Why the distinction is operational
+        §4  Measuring the separation
+        §5  Heteroscedastic prediction
+        §6  What calibration does not give you
+        §7  What movement A establishes
+
+  B · Distributions over functions
+        §8  A prior over functions
+        §9  The posterior, in closed form
+       §10  What the intervals do
+       §11  Choosing the kernel by marginal likelihood
+       §12  The cost, and what is done about it
+       §13  Bayesian optimisation
+       §14  Where this belongs
+       §15  What movement B establishes
+
+  C · Uncertainty for networks
+       §16  What a prior over weights means
+       §17  Variational inference
+       §18  The Laplace approximation
+       §19  Dropout and ensembles
+       §20  What each one's intervals contain
+       §21  Why ensembles do well
+       §22  The cost table, honestly
+       §23  What movement C establishes
+
+  D · Coverage without assumptions
+       §24  The construction
+       §25  The guarantee, measured
+       §26  Marginal, not conditional
+       §27  Making the width adapt
+       §28  Classification, and sets rather than intervals
+       §29  Where the guarantee ends
+       §30  What conformal does not give you
+       §31  What movement D establishes
+
+  E · From a probability to a decision
+       §32  Utility, and why the loss is not it
+       §33  The optimal threshold
+       §34  What the default costs
+       §35  Risk aversion
+       §36  The value of information
+       §37  Abstention as an action
+       §38  What movement E establishes
+
+  F · Practice
+       §39  Choosing a method
+       §40  The measurement to run
+       §41  Under shift
+       §42  What to report
+       §43  Communicating it
+       §44  What is unsolved
+       §45  What to carry forward
+
+  Practice · Drills
+
+  Build · The project
+
+  Assess · Checkpoint
+
+------------------------------------------------------------------------------
+PART XXV: STRUCTURED AND TABULAR LEARNING
+  the models that win where the data is a table
+------------------------------------------------------------------------------
+
+  A · One tree
+        §1  Why a table is not an image
+        §2  The model
+        §3  Choosing a split
+        §4  Finding the threshold
+        §5  Depth, and the curve you can point to
+        §6  Stopping, and pruning
+        §7  What movement A establishes
+
+  B · Averaging
+        §8  Bagging
+        §9  The identity that governs it
+       §10  Measuring both terms
+       §11  Random forests
+       §12  The trade
+       §13  Out-of-bag estimation
+       §14  Feature importance, and its two traps
+       §15  What movement B establishes
+
+  C · Boosting
+       §16  Additive modelling
+       §17  Gradient boosting, derived
+       §18  Shrinkage
+       §19  The other regularisers
+       §20  Categorical features
+       §21  Missing values
+       §22  Histogram splitting, measured
+       §23  What the implementations actually differ on
+       §24  What movement C establishes
+
+  D · Tabular practice
+       §25  Are the scores probabilities
+       §26  Measured
+       §27  The comparison this book has been owing
+       §28  Which family wins, and when
+       §29  Validation, which matters more than the model
+       §30  When to use which
+       §31  What movement D establishes
+
+  E · When the rows are ordered
+       §32  What a time index changes
+       §33  Stationarity, and what differencing buys
+       §34  Autocorrelation
+       §35  The classical models, and why they are still baselines
+       §36  What a random split is worth
+       §37  Validation that respects the order
+       §38  What movement E establishes
+
+  F · Forecasting
+       §39  The horizon is part of the question
+       §40  What the intervals do along the horizon
+       §41  Probabilistic forecasts, and how to score them
+       §42  Hierarchies
+       §43  Change points and anomalies
+       §44  When a neural forecaster earns its place
+       §45  What to carry forward
+
+  Practice · Drills
+
+  Build · The project
+
+  Assess · Checkpoint
+
+------------------------------------------------------------------------------
+PART XXVI: GRAPH AND GEOMETRIC LEARNING
+  architecture as a declaration about symmetry
+------------------------------------------------------------------------------
+
+  A · The ordering that is not there
+        §1  The symmetry, and where it comes from
+        §2  Sets first
+        §3  A graph is a set with structure
+        §4  What goes wrong without it
+        §5  Measured
+        §6  Invariant features, and their ceiling
+        §7  What movement A establishes
+
+  B · Message passing
+        §8  The loop
+        §9  The graph convolutional network
+       §10  Sampling, and why it was needed
+       §11  Attention on a graph
+       §12  What the aggregator decides
+       §13  Depth, which does not mean what it usually means
+       §14  What is done about it
+       §15  What movement B establishes
+
+  C · What message passing cannot do
+       §16  The colour-refinement algorithm
+       §17  The bound, demonstrated
+       §18  What the limit costs in practice
+       §19  Three ways past it
+       §20  Over-squashing
+       §21  Bottlenecks, and rewiring
+       §22  Graph transformers
+       §23  Which of these you actually have
+       §24  What movement C establishes
+
+  D · Nodes, links and graphs
+       §25  The three tasks
+       §26  Transductive and inductive
+       §27  Splitting a graph
+       §28  Link prediction, and the negatives
+       §29  Graph-level prediction, and the readout
+       §30  Knowledge graphs
+       §31  What movement D establishes
+
+  E · Geometry
+       §32  Groups, and what an architecture declares
+       §33  Building invariance from distances
+       §34  What a symmetry is worth
+       §35  Equivariant message passing
+       §36  Higher-order features
+       §37  Where geometry meets graphs
+       §38  What movement E establishes
+
+  F · Practice
+       §39  Do you have a graph problem
+       §40  The baselines that must be reported
+       §41  The reproducibility problem in this area
+       §42  What to report
+       §43  Where this connects
+       §44  What is unsolved
+       §45  What to carry forward
+
+  Practice · Drills
+
+  Build · The project
+
+  Assess · Checkpoint
+
+------------------------------------------------------------------------------
+PART XXVII: SIGNALS AND SPECTRA
+  the foundation four earlier parts have been borrowing
+------------------------------------------------------------------------------
+
+  A · What a sample throws away
+        §1  Continuous and discrete
+        §2  The sampling theorem
+        §3  Aliasing
+        §4  Where this bites in a network
+        §5  Measured
+        §6  Anti-aliasing, and why it is not free
+        §7  What movement A establishes
+
+  B · The Fourier transform
+        §8  Frequency as a basis
+        §9  The transform
+       §10  The discrete Fourier transform
+       §11  What the transform preserves
+       §12  The fast algorithm
+       §13  Reading a spectrum
+       §14  The convolution theorem
+       §15  What it costs
+       §16  What movement B establishes
+
+  C · Filters, phase and the window
+       §17  A filter is a convolution
+       §18  Magnitude and phase
+       §19  Frequency response, and the four kinds
+       §20  Two ways to build one
+       §21  Leakage, and the window
+       §22  The uncertainty principle for signals
+       §23  The spectrogram, and the mel scale
+       §24  What movement C establishes
+
+  D · The spectra of operators and of data
+       §25  Eigenvalues are frequencies
+       §26  The graph Laplacian
+       §27  The spectrum of natural data
+       §28  What that licenses
+       §29  Spectral bias
+       §30  Why it happens
+       §31  What follows for training
+       §32  What movement D establishes
+
+  E · Frequency in modern architectures
+       §33  Positional encoding is a frequency basis
+       §34  Rotary embeddings
+       §35  Extending context by changing frequencies
+       §36  Fourier features
+       §37  What the first layer learns
+       §38  Where the frequency view misleads
+       §39  What movement E establishes
+
+  F · Practice
+       §40  When to reach for the frequency domain
+       §41  The checks that catch a signals bug
+       §42  What to report
+       §43  Where this connects
+       §44  What is unsolved
+       §45  What to carry forward
+
+  Practice · Drills
+
+  Build · The project
+
+  Assess · Checkpoint
+
+------------------------------------------------------------------------------
+PART XXVIII: PROBABILISTIC MODELS AND INFERENCE
+  what you can compute once you have written down a joint distribution
+------------------------------------------------------------------------------
+
+  A · What a joint distribution factorises into
+        §1  The object, and why it is intractable
+        §2  Factorisation is the whole idea
+        §3  Directed models
+        §4  Conditional independence, read off the graph
+        §5  Measured
+        §6  Undirected models, and what they buy
+        §7  Plates, and the models you already know
+        §8  What movement A establishes
+
+  B · Exact inference, and the models that permit it
+        §9  The query, and the three kinds
+       §10  Variable elimination
+       §11  Treewidth, and the wall
+       §12  Sequences: the forward–backward algorithm
+       §13  Linear-Gaussian: the Kalman filter
+       §14  Learning with hidden variables
+       §15  EM, and what it guarantees
+       §16  What movement B establishes
+
+  C · Turning inference into optimisation
+       §17  The idea
+       §18  The evidence lower bound
+       §19  Mean field
+       §20  What it gets wrong
+       §21  The direction of the KL
+       §22  Amortisation, and the VAE recalled
+       §23  Beyond mean field
+       §24  What movement C establishes
+
+  D · Turning inference into sampling
+       §25  Estimating an expectation
+       §26  Importance sampling, and when it dies
+       §27  Markov chains
+       §28  Metropolis–Hastings and Gibbs
+       §29  Using the gradient
+       §30  How many samples do you have
+       §31  Diagnostics, and what they cannot see
+       §32  What movement D establishes
+
+  E · Continuous time
+       §33  Brownian motion
+       §34  Stochastic differential equations
+       §35  Itô's lemma, and why calculus changes
+       §36  The reverse-time SDE
+       §37  The probability-flow ODE
+       §38  What this reframes about Part XVI
+       §39  What movement E establishes
+
+  F · Transport, and practice
+       §40  Comparing distributions
+       §41  Optimal transport
+       §42  Choosing an inference method
+       §43  What to report, and where this connects
+       §44  What is unsolved
+       §45  What to carry forward
+
+  Practice · Drills
+
+  Build · The project
+
+  Assess · Checkpoint
+
+------------------------------------------------------------------------------
+PART XXIX: PERCEPTION: VISION
+  what a camera can tell you, and what it cannot
+------------------------------------------------------------------------------
+
+  A · When the output is not a label
+        §1  The output is not a label
+        §2  Three output spaces
+        §3  Boxes, and what they cannot say
+        §4  The metric is a threshold
+        §5  Measured
+        §6  What AP does not measure
+        §7  Class imbalance is structural here
+        §8  What movement A establishes
+
+  B · Detection
+        §9  The two-stage idea
+       §10  The one-stage idea
+       §11  Anchors, and what replaced them
+       §12  Non-maximum suppression
+       §13  The imbalance, measured
+       §14  What the loss does about it
+       §15  Scale, and the pyramid
+       §16  What movement B establishes
+
+  C · Dense prediction
+       §17  Semantic segmentation
+       §18  The resolution problem
+       §19  Instance and panoptic
+       §20  Depth from one image
+       §21  Optical flow
+       §22  The aperture problem
+       §23  What dense metrics hide
+       §24  What movement C establishes
+
+  D · Geometry
+       §25  The pinhole camera
+       §26  Intrinsics and extrinsics
+       §27  Distortion, and calibration
+       §28  Two views, and the epipolar constraint
+       §29  Triangulation, and its error
+       §30  Structure from motion, and bundle adjustment
+       §31  Bird's-eye view, and what the transform assumes
+       §32  What movement D establishes
+
+  E · Video and tracking
+       §33  What a video adds
+       §34  Tracking as association
+       §35  Motion models
+       §36  Through occlusion
+       §37  The metrics, and what they trade
+       §38  End-to-end, and what it gives up
+       §39  What movement E establishes
+
+  F · Practice
+       §40  The data engine
+       §41  Evaluating a perception system
+       §42  What to report
+       §43  Where this connects
+       §44  What is unsolved
+       §45  What to carry forward
+
+  Practice · Drills
+
+  Build · The project
+
+  Assess · Checkpoint
+
+------------------------------------------------------------------------------
+PART XXX: PERCEPTION: AUDIO AND MULTIMODALITY
+  the other sensor, and what happens when two of them meet
+------------------------------------------------------------------------------
+
+  A · Sound, and what a spectrogram commits you to
+        §1  The signal, and its rates
+        §2  Why not the waveform
+        §3  The spectrogram, and its three parameters
+        §4  The mel scale, measured
+        §5  What else is thrown away
+        §6  The cepstrum, and why it is still there
+        §7  Getting the waveform back
+        §8  What movement A establishes
+
+  B · Recognition
+        §9  The alignment problem
+       §10  The hybrid system, and why it persisted
+       §11  Connectionist temporal classification
+       §12  Checked against enumeration
+       §13  What CTC assumes
+       §14  What that assumption costs
+       §15  Transducers and attention
+       §16  What movement B establishes
+
+  C · Generation
+       §17  Text to speech, in two stages
+       §18  Duration, and what autoregression costs
+       §19  Vocoders
+       §20  Quantisation, and audio as tokens
+       §21  What a vector quantiser buys
+       §22  Neural codecs
+       §23  Learned front ends
+       §24  What movement C establishes
+
+  D · Two towers
+       §25  The construction
+       §26  What the negatives are
+       §27  The temperature
+       §28  Zero-shot classification, and what it is
+       §29  Retrieval, and the number you are reporting
+       §30  What the two towers cannot do
+       §31  Audio, and the same construction
+       §32  What movement D establishes
+
+  E · One model, several modalities
+       §33  Getting a second modality into a language model
+       §34  The resolution problem, in tokens
+       §35  The geometry of the shared space
+       §36  Fusion, and when it should happen
+       §37  Alignment in time
+       §38  Evaluating a multimodal model
+       §39  What movement E establishes
+
+  F · Practice
+       §40  Choosing a representation
+       §41  Evaluating audio and multimodal systems
+       §42  The failures that repeat
+       §43  Where this connects
+       §44  What is unsolved
+       §45  What to carry forward
+
+  Practice · Drills
+
+  Build · The project
+
+  Assess · Checkpoint
+
+------------------------------------------------------------------------------
+PART XXXI: AGENTS, CONTROL AND EMBODIMENT
+  acting in a world that pushes back
+------------------------------------------------------------------------------
+
+  A · Feedback
+        §1  Prediction is not control
+        §2  Open loop, and why it fails
+        §3  Closing the loop
+        §4  Measured
+        §5  The integral term
+        §6  What it costs
+        §7  Delay, and why it destabilises
+        §8  What movement A establishes
+
+  B · Optimal control
+        §9  Stating the problem
+       §10  The linear-quadratic case
+       §11  How much tuning leaves on the table
+       §12  What LQR assumes
+       §13  Constraints
+       §14  Model-predictive control
+       §15  Nonlinear, and trajectory optimisation
+       §16  What movement B establishes
+
+  C · Learning to act
+       §17  Three things you could learn
+       §18  Behavioural cloning
+       §19  Why a cloned policy drifts
+       §20  Inverse reinforcement learning
+       §21  How far a learned model can be trusted
+       §22  Offline reinforcement learning
+       §23  Simulation, and the gap
+       §24  What movement C establishes
+
+  D · Robots
+       §25  Frames, and the bugs they cause
+       §26  Kinematics
+       §27  Dynamics, and why torque control is different
+       §28  Where the state comes from
+       §29  Planning, and dimension
+       §30  Estimation and mapping together
+       §31  The stack, and its interfaces
+       §32  What movement D establishes
+
+  E · Agents
+       §33  Long horizons, and structure
+       §34  Other agents
+       §35  Acting under a safety requirement
+       §36  Tool use is control
+       §37  What an agent needs that a model does not
+       §38  Modular or end-to-end
+       §39  What movement E establishes
+
+  F · Validation, and practice
+       §40  Why a test set is not enough
+       §41  Stating the requirement
+       §42  What that costs, measured
+       §43  The safety case
+       §44  What is unsolved
+       §45  What to carry forward
+
+  Practice · Drills
+
+  Build · The project
+
+  Assess · Checkpoint
+
+------------------------------------------------------------------------------
+PART XXXII: SYSTEMS AND SECURITY
+  the machine underneath, and the adversary in front
+------------------------------------------------------------------------------
+
+  A · The machine
+        §1  The gap that organises everything
+        §2  The hierarchy
+        §3  Arithmetic intensity
+        §4  The roofline
+        §5  Measured
+        §6  Occupancy, and why it is not the goal
+        §7  Precision
+        §8  What movement A establishes
+
+  B · Making it fast
+        §9  Fusion
+       §10  What it is worth
+       §11  Blocking
+       §12  What that is worth
+       §13  What a compiler does
+       §14  Writing a kernel
+       §15  Reading a profile
+       §16  What movement B establishes
+
+  C · Many machines
+       §17  The operations that exist
+       §18  Why the ring
+       §19  The network is not uniform
+       §20  Overlap
+       §21  What actually goes wrong at scale
+       §22  Where the memory goes
+       §23  Serving is a different problem
+       §24  What movement C establishes
+
+  D · Privacy
+       §25  What a model leaks
+       §26  Differential privacy
+       §27  Making training private
+       §28  The shape of the trade
+       §29  Federated learning
+       §30  Membership inference
+       §31  Memorisation in large models
+       §32  What movement D establishes
+
+  E · Adversaries
+       §33  Stating a threat model
+       §34  Adversarial examples
+       §35  Poisoning and backdoors
+       §36  Model extraction
+       §37  Agents, and the confused deputy
+       §38  What defends, and what does not
+       §39  What movement E establishes
+
+  F · Practice
+       §40  Before you optimise
+       §41  What to report about performance
+       §42  What to state before claiming security
+       §43  Where this connects
+       §44  What is unsolved, and what this part cannot establish
+       §45  What to carry forward
+
+  Practice · Drills
+
+  Build · The project
+
+  Assess · Checkpoint
+
+------------------------------------------------------------------------------
+PART XXXIII: SEARCH AND PLANNING
+  the other tradition, and why it came back
+------------------------------------------------------------------------------
+
+  A · The search problem
+        §1  Where this fits
+        §2  The state space
+        §3  The choice of state is the modelling
+        §4  Searching without a clue
+        §5  The four questions
+        §6  The frontier and the closed list
+
+  B · Heuristics
+        §7  Greedy best-first
+        §8  A*
+        §9  Admissibility, and why it gives optimality
+       §10  What a heuristic actually buys
+       §11  Giving up optimality on purpose
+       §12  Consistency, and the cost of not having it
+       §13  Where heuristics come from
+       §14  Dominance, and combining
+
+  C · Too big to hold
+       §15  Local search
+       §16  Getting out
+       §17  Beam search
+       §18  What beam search is actually doing
+       §19  Branch and bound
+       §20  Where bounds come from
+       §21  Trading time for memory
+       §22  Choosing to stop being optimal
+
+  D · A continuous world
+       §23  Configuration space
+       §24  Why you cannot just discretise
+       §25  Sampling instead of enumerating
+       §26  Probabilistic roadmaps
+       §27  Rapidly-exploring random trees
+       §28  Optimality, dynamics, and the real stack
+
+  E · Uncertainty and adversaries
+       §29  The exploration problem, in miniature
+       §30  Optimism
+       §31  Monte Carlo tree search
+       §32  The exploration constant is not a property of the algorithm
+       §33  What replacing the rollout changed
+       §34  Adversaries
+       §35  Alpha–beta
+       §36  Ordering is the whole game
+       §37  When the game is not chess
+
+  F · Search with a learned model
+       §38  The shape almost everything has
+       §39  The degenerate case, which is most of the field
+       §40  Verifiers
+       §41  How good a verifier has to be
+       §42  Test-time compute is a search budget
+       §43  Search inside the model, and around it
+       §44  When not to search
+       §45  What to carry forward
+
+  Practice · Drills
+
+  Build · The project
+
+  Assess · Checkpoint
+
+------------------------------------------------------------------------------
+BACK MATTER
+------------------------------------------------------------------------------
+
+  Glossary
+
+  Reading the literature
+        §1  Papers are not read linearly
+        §2  Read the figures before the text
+        §3  The questions to ask
+        §4  Read old papers
+        §5  The reading list, gathered
+        §6  Practical notes
+
+  Colophon
+          The build
+          The guards
+          Verification
+          Typography
+          On sources
+          This edition
+          The path the book took

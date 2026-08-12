@@ -1,0 +1,415 @@
+<h2><span class="part-kicker">Practice</span>Drills</h2>
+
+<p class="mvt">Forty-three drills. The harness in <code>parts/21-alignment/drills/</code> covers
+twenty of them with twenty-eight tests; several assert a <b>negative</b> result, because this
+part's subject is what evidence does not establish.</p>
+
+<h3><span class="num">Tier 0</span> Estimate first</h3>
+
+<div class="drill">
+  <div class="head"><span class="tier est">Estimate</span>E1 &middot; Testing for a rare failure</div>
+  <p>You need 95% confidence that a failure mode occurs less than once in a thousand. Write down how many samples you must test, seeing zero failures, before deriving it.</p>
+  <div class="ans"><b>Answer.</b> <b>3,000</b>, from the rule of three: with zero events in n trials the 95% upper bound on the rate is 3/n. Zero failures in 300 tries is entirely consistent with a 1% failure rate, which is the arithmetic that should govern every safety claim made from a clean evaluation. <i>Score yourself: within a factor of two is a pass, and an order of magnitude out is worth understanding before you go on.</i></div>
+</div>
+
+<h3><span class="num">Tier 1</span> Warm-up</h3>
+
+<div class="drill">
+  <div class="head"><span class="tier warm">Warm-up</span>W1 · The rule of three</div>
+  <p>You run 300 adversarial evaluations and see no failures. State the 95% upper bound on the
+  failure rate, exactly and by the approximation.</p>
+  <div class="ans"><b>Answer.</b> Exactly <span class="m">$1 - 0.05^{1/300} = 0.99\%$</span>; by the
+  rule of three, <span class="m">$3/300 = 1\%$</span>. Carry the approximation: it is accurate to
+  a couple of percent for any <span class="m">$n$</span> you will use, and it makes §27's arithmetic
+  something you can do in a meeting.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier warm">Warm-up</span>W2 · The other direction</div>
+  <p>A failure occurs one time in 20,000. How many attempts before you have a 95% chance of having
+  seen it once?</p>
+  <div class="ans"><b>Answer.</b> About <span class="m">$3 \times 20{,}000 = 60{,}000$</span>
+  (exactly 59,914). The same factor of three, running the other way.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier warm">Warm-up</span>W3 · A million users</div>
+  <p>Take the bound from W1 and convert it into expected failures at a million uses.</p>
+  <div class="ans"><b>Answer.</b> Up to ten thousand. The point of the drill is the conversion
+  step: a rate that reads as reassuring becomes a count that does not, and the count is what
+  reaches a user.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier warm">Warm-up</span>W4 · Orthogonality's ceiling</div>
+  <p>How many mutually orthogonal directions fit in 768 dimensions? How many <i>nearly</i>
+  orthogonal ones, at a tolerance of 0.1 cosine?</p>
+  <div class="ans"><b>Answer.</b> Exactly 768 orthogonal. Nearly orthogonal: exponentially many in
+  the dimension: this is the Johnson–Lindenstrauss regime, and it is the reason superposition is
+  possible at all rather than merely desirable.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier warm">Warm-up</span>W5 · The sparsity/capacity trade</div>
+  <p>Recall Part XV §33's superposition sweep. At which sparsity does the model first represent
+  more features than it has dimensions, and what is the exchange rate it is accepting?</p>
+  <div class="ans"><b>Answer.</b> Immediately: at 50% active it already stores 7 features in 5
+  dimensions, and only the fully dense case stops at 5. The trade is interference against capacity:
+  an extra feature costs a little accuracy on every other feature it overlaps, and that cost is
+  only paid when the two happen to fire together.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier warm">Warm-up</span>W6 · Zero is not neutral</div>
+  <p>Why is ablating a component to zero a worse-behaved intervention than replacing it with its
+  dataset mean?</p>
+  <div class="ans"><b>Answer.</b> Zero is usually far outside the range the component actually
+  takes, so you are measuring the network's response to an impossible input. The mean is at least
+  in-distribution. §9's list is the fuller answer.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier warm">Warm-up</span>W7 · Present against used</div>
+  <p>State, in one sentence each, what a probe establishes and what an ablation establishes.</p>
+  <div class="ans"><b>Answer.</b> A probe establishes that information is recoverable from the
+  representation. An ablation establishes that the network's output depends on it. Figure 2 is a
+  case where the first holds at 0.775 and the second is a negligible +0.001, no more than a
+  random direction costs.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier warm">Warm-up</span>W8 · The correlation that does not settle it</div>
+  <p>Both arms of Figure 4 have a proxy correlating 0.706 with the truth. Why does that not
+  determine the outcome?</p>
+  <div class="ans"><b>Answer.</b> Correlation is a property of the bulk; selection samples the
+  tail. Two errors with identical variance and correlation can have completely different behaviour
+  far from the mean, and far from the mean is the only place a maximiser looks.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier warm">Warm-up</span>W9 · Where reward hacking hides</div>
+  <p>You are training against a learned reward and the reward curve rises smoothly for the whole
+  run. What does that tell you about whether reward hacking occurred?</p>
+  <div class="ans"><b>Answer.</b> Nothing whatsoever. In Figure 4 the proxy is at its maximum
+  exactly when the true reward has collapsed to 0.097. Detection requires a measurement that does
+  not route through the objective being optimised.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier warm">Warm-up</span>W10 · Uplift, not capability</div>
+  <p>A report says a model "can provide detailed instructions for <span class="m">$X$</span>."
+  What is missing before this bears on a release decision?</p>
+  <div class="ans"><b>Answer.</b> The counterfactual. What could the same actor obtain from a
+  library, a search engine, and the models already released? The decision quantity is the
+  difference, which requires a control group and therefore an experiment rather than a
+  benchmark.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier warm">Warm-up</span>W11 · The lower bound</div>
+  <p>A model fails a dangerous-capability evaluation. What has been established?</p>
+  <div class="ans"><b>Answer.</b> That this elicitation, at this effort, did not succeed. Not that
+  the capability is absent (§31). This is why serious reports state the elicitation budget, and
+  why one that does not cannot be interpreted.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier warm">Warm-up</span>W12 · Which fairness</div>
+  <p>Two groups have different base rates. A vendor reports the system is fair. What is the first
+  question?</p>
+  <div class="ans"><b>Answer.</b> Which criterion. Demographic parity, equalised odds and
+  within-group calibration cannot all hold when base rates differ (a theorem, not a gap in the
+  method), so the claim is incomplete until the choice is named and defended.</div>
+</div>
+
+<h3><span class="num">Tier 2</span> Core</h3>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C1 · The evaluation-sizing calculator</div>
+  <p>Write <code>zero_failure_bound(n)</code>, <code>rule_of_three(n)</code> and
+  <code>trials_needed(p)</code>. Check the approximation against the exact bound across four orders
+  of magnitude.</p>
+  <div class="ans"><b>Answer.</b> Within 2% everywhere you will use it. Keep this function; it is
+  the one from this part you will actually run, and it belongs in the design phase of an evaluation
+  rather than the write-up.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C2 · Attack success against attempts</div>
+  <p>Implement <code>attack_success(p, n)</code> and verify it inverts <code>trials_needed</code>.
+  Then plot it for a jailbreak that works one time in fifty.</p>
+  <div class="ans"><b>Answer.</b> <span class="m">$1-(1-p)^n$</span>. At <span class="m">$p =
+  0.02$</span> a hundred attempts succeed 87% of the time. Per-attempt robustness is not the
+  quantity a determined attacker faces.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C3 · Confidence intervals that behave at the edge</div>
+  <p>Implement a binomial interval and check it against the exact bound at zero failures, where the
+  normal approximation fails hardest.</p>
+  <div class="ans"><b>Answer.</b> The Wald interval gives <span class="m">$[0,0]$</span> at zero
+  failures, which is absurd and is still widely used. Wilson or Clopper–Pearson behave, and both
+  agree with <span class="m">$1-0.05^{1/n}$</span> closely at that edge.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C4 · Build the toy model of superposition</div>
+  <p>No figure here: Part XV Figure 10 already shows this experiment. Project
+  <span class="m">$m$</span> features into <span class="m">$n \lt m$</span> dimensions, reconstruct
+  with a ReLU, sweep sparsity.</p>
+  <div class="ans"><b>Answer.</b> Dense inputs keep exactly <span class="m">$n$</span> features and
+  discard the rest. At 0.1% density, 19 of 20. The transition is gradual and the mechanism is a
+  trade you can watch happen.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C5 · Measure the interference</div>
+  <p>Implement <code>mean_overlap</code>. Show it is zero for an orthogonal set and necessarily
+  positive when features outnumber dimensions.</p>
+  <div class="ans"><b>Answer.</b> Positive, always, for <span class="m">$m > n$</span>: there is
+  no packing that avoids it. This is why a neuron reads as polysemantic: you are seeing a sum of
+  overlapping features, and no amount of staring decomposes it.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C6 · Importance changes what survives</div>
+  <p>Rerun C4 with uniform feature importance rather than a decaying one. Which features does the
+  dense model keep now, and does the sparse regime change?</p>
+  <div class="ans"><b>Answer.</b> With uniform importance the dense model's choice of which
+  <span class="m">$n$</span> to keep becomes arbitrary: it is breaking a tie. The sparse regime is
+  largely unchanged, which says superposition is driven by sparsity rather than by the importance
+  structure.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C7 · Train the sparse autoencoder</div>
+  <p>Reproduce Figure 1. Sweep the dictionary size and the <span class="m">$\ell_1$</span>
+  coefficient, and measure recovery against the known directions.</p>
+  <div class="ans"><b>Answer.</b> Recovery improves with dictionary size and does not reach 20 of
+  20: 12 at four times overcomplete. The <span class="m">$\ell_1$</span> coefficient trades
+  reconstruction against sparsity, and there is a broad middle where both are acceptable and the
+  recovered set differs between them. That last observation is §6's feature-splitting problem
+  arriving in your own run.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C8 · The control PCA provides</div>
+  <p>Run PCA on the same activations and compare recovery. Explain the ceiling before you run
+  it.</p>
+  <div class="ans"><b>Answer.</b> At most <span class="m">$n$</span> components for
+  <span class="m">$n$</span> dimensions, so at most <span class="m">$n$</span> features: the
+  measured result is 1 of 20. A method that <i>can</i> exceed the dimension is a genuine
+  requirement, not a preference, and this is the control that shows it.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C9 · A probe for something the model ignores</div>
+  <p>Reproduce Figure 2. Train on a task depending on one block of the input; probe for a property
+  of a different block.</p>
+  <div class="ans"><b>Answer.</b> The probe reaches 0.775, above the network's own task accuracy of
+  0.753. Nothing is wrong: the hidden layer is a function of the whole input, so the information is
+  there whether or not anything uses it.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C10 · Ablate what is present against what is used</div>
+  <p>Project the activations off the unused property's probe direction, and separately off the
+  direction the network's own output layer reads for the task (its weights, not a second probe's
+  approximation of them). Include a random-direction control of the same norm.</p>
+  <div class="ans"><b>Answer.</b> +0.001 for the unused property's probed direction, −0.003 for a
+  random one (indistinguishable from each other, which is why the control is not optional) and
+  −0.249 for the direction the network's own readout actually uses, collapsing the task to chance.
+  A second probe trained to find "the direction the task uses" is not guaranteed to find the one
+  the network's own output layer reads, and in a redundantly-encoded hidden layer it may not: only
+  the network's literal decision boundary is guaranteed to cost something when removed.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C11 · Patch a known computation</div>
+  <p>Reproduce Figure 3. Train on <span class="m">$(a+b) \bmod 10$</span> with an irrelevant third
+  input, then sweep the patch site over layers and positions.</p>
+  <div class="ans"><b>Answer.</b> 0.98 at <span class="m">$a$</span>'s position in layer 0, 1.00 at
+  the answer position by layer 3, and the crossover between layers 1 and 2. You have localised a
+  computation without interpreting anything.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C12 · The column that reads zero</div>
+  <p>In C11, explain <span class="m">$b$</span>'s zero before you look at
+  <span class="m">$c$</span>'s. Then corrupt <span class="m">$b$</span> instead and rerun.</p>
+  <div class="ans"><b>Answer.</b> <span class="m">$b$</span> is identical in both runs, so
+  splicing it changes nothing: necessary to the computation and invisible to this experiment.
+  <span class="m">$c$</span> is zero for a different reason: it is genuinely unused. The two zeros
+  mean opposite things and the method cannot distinguish them. Only your choice of corruption
+  can.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C13 · Corrupt both</div>
+  <p>Now corrupt <span class="m">$a$</span> and <span class="m">$b$</span> together and try to read
+  the map.</p>
+  <div class="ans"><b>Answer.</b> It stops decomposing: restoring either alone gives a fraction
+  that no longer corresponds to a share of the computation. Minimal pairs are what make the
+  arithmetic mean anything, and this is the fastest way to see why.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C14 · A steering vector, swept</div>
+  <p>Build a difference-in-means direction for a property in a small model. Sweep the coefficient
+  and measure both the target property and one you did not intend to change.</p>
+  <div class="ans"><b>Answer.</b> A real direction moves the target monotonically and leaves the
+  other alone until the coefficient is large. If both move together, the direction is entangled and
+  the name you gave it is doing work the measurement does not support.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C15 · Goodhart, measured</div>
+  <p>Reproduce Figure 4. Match the correlation between the two arms exactly, then sweep the
+  selection pressure.</p>
+  <div class="ans"><b>Answer.</b> Light-tailed climbs to 2.599; heavy-tailed peaks at 2.042 near
+  <span class="m">$n = 118$</span> and collapses to 0.097. Matching the correlation is the step
+  that makes the comparison mean something: without it the result is confounded and proves
+  nothing.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C16 · What ensembling actually buys</div>
+  <p>Average <span class="m">$k$</span> independent heavy-tailed proxies. Measure the standard
+  deviation and the normalised tail statistic separately, then the best-of-<span class="m">$n$</span>
+  reward. Predict all three first.</p>
+  <div class="ans"><b>Answer.</b> The scale falls as expected; the tail <i>shape</i> does not
+  improve, and by the normalised statistic it can look worse. Averaging preserves a tail index
+  below 2, so an ensemble moves you along the heavy curve rather than onto the light one. The
+  common claim that ensembling fixes Goodhart is stronger than this measurement supports.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C17 · What a KL penalty does</div>
+  <p>Add a penalty on distance from the reference and sweep its coefficient, measuring true reward
+  and proxy reward separately.</p>
+  <div class="ans"><b>Answer.</b> It caps the effective search, so it holds you near the peak of
+  Figure 4's heavy curve at the cost of never reaching the light curve's ceiling. That is the whole
+  trade, and it explains why the coefficient is tuned rather than derived.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C18 · Hack a judge on purpose</div>
+  <p>Build a judge with a known bias: length, or position. Optimise against it with
+  best-of-<span class="m">$n$</span> and measure the true quality of what you selected.</p>
+  <div class="ans"><b>Answer.</b> Judge score rises, true quality does not, and the outputs get
+  longer. Part XX §42 measured the bias; this measures what optimising into it costs. Do it once
+  and model-as-judge will never again look like a free evaluation.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C19 · The three fairness criteria, in code</div>
+  <p>Implement all three on a calibrated score with different base rates per group. Check whether
+  all three can hold.</p>
+  <div class="ans"><b>Answer.</b> They cannot. Construct the data by drawing the probability first
+  and the outcome from it; then the score is calibrated by construction, and you can watch parity
+  and equalised odds fail regardless of what you do downstream.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C20 · Size a real evaluation</div>
+  <p>Pick a system you use. Write the claim you would want to make about its failure rate, compute
+  the evaluation size it needs, and cost it in hours.</p>
+  <div class="ans"><b>Answer.</b> Usually unaffordable, which is the finding. The right response is
+  to weaken the claim to what the budget supports and say so, not to run the smaller study and
+  state the stronger claim, which is what happens by default.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C21 · Correlated trials</div>
+  <p>Simulate an evaluation suite where prompts come in templated clusters. Compare the true
+  coverage of a nominal 95% interval against the independent-trials calculation.</p>
+  <div class="ans"><b>Answer.</b> Below 95%, and further below as the clusters get tighter. §27's
+  arithmetic is the optimistic case, and most real suites are clustered by construction.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C22 · The randomised-weights sanity check</div>
+  <p>Take any attribution method. Run it on a trained network and on the same architecture with
+  random weights, and compare the outputs.</p>
+  <div class="ans"><b>Answer.</b> For several published methods the two are nearly identical:
+  <span class="src">Adebayo et al. (2018)</span>. A method that cannot distinguish a trained model
+  from an untrained one is not describing the model. Run this before trusting any new
+  interpretability method, including the ones in this part.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C23 · Write a safety case</div>
+  <p>For a system you have built, write the four sections of §32: claim, evidence, assumptions,
+  defeaters.</p>
+  <div class="ans"><b>Answer.</b> The assumptions section is where it becomes uncomfortable, which
+  is the point of the format. If you cannot state a defeater, you have written a summary rather
+  than an argument.</div>
+</div>
+
+<h3><span class="num">Tier 3</span> Stretch</h3>
+
+<div class="drill">
+  <div class="head"><span class="tier stretch">Stretch</span>S1 · A dictionary on a real model</div>
+  <p>Train a sparse autoencoder on activations from a small pretrained language model. Then run
+  the verification: pick a dictionary entry, predict which inputs should activate it, and test the
+  prediction on inputs you constructed.</p>
+  <div class="ans"><b>Answer.</b> The gap between "the top activations look coherent" and "my
+  prediction held" is the whole subject of §15, and running it once is worth more than reading
+  about it.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier stretch">Stretch</span>S2 · Find a circuit</div>
+  <p>Take a small transformer and a specific behaviour. Localise it with patching, identify the
+  components, then run the sufficiency and necessity checks from §11.</p>
+  <div class="ans"><b>Answer.</b> Sufficiency usually fails first: ablate everything outside your
+  circuit and the behaviour degrades more than expected, which means the circuit is a partial
+  account. Report the fraction it explains rather than declaring it found.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier stretch">Stretch</span>S3 · Reproduce a reward hack</div>
+  <p>Train a reward model on preference data you generate, then optimise a policy against it with
+  PPO. Track proxy and true reward on the same axes.</p>
+  <div class="ans"><b>Answer.</b> Divergence appears earlier than with best-of-<span
+  class="m">$n$</span>, because gradient ascent finds the extreme more efficiently than sampling.
+  This is Part XVIII's machinery producing Part XXI's failure, and seeing them as one system is
+  the objective.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier stretch">Stretch</span>S4 · Weak-to-strong, at your scale</div>
+  <p>Supervise a larger model using labels from a smaller one and measure how much of the larger
+  model's ceiling is recovered.</p>
+  <div class="ans"><b>Answer.</b> More than the weak labels' accuracy, which is the effect. Then
+  vary the capability gap and see whether the recovery fraction holds: that extrapolation is the
+  paper's load-bearing assumption and the thing nobody can currently check where it matters.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier stretch">Stretch</span>S5 · Red-team something you built</div>
+  <p>Run all three modes from §26 against your own system for a fixed budget. Fix what you find.
+  Then have somebody who did not see the first round run it again.</p>
+  <div class="ans"><b>Answer.</b> If the second round's success rate matches the first, you patched
+  instances rather than the vulnerability. This is the single most informative experiment in the
+  part and almost nobody runs the second round.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier stretch">Stretch</span>S6 · Interpretability that predicts</div>
+  <p>Form a mechanistic hypothesis about a model. Derive from it a specific input on which the
+  model should fail. Construct the input and test.</p>
+  <div class="ans"><b>Answer.</b> The only interpretability evidence that does not require knowing
+  the ground truth in advance, and therefore the only kind that scales to systems you did not
+  build. A hypothesis that generates no such prediction is a description.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier stretch">Stretch</span>S7 · Audit a published safety claim</div>
+  <p>Take a model card or system card. For each safety claim, identify the evaluation size, the
+  elicitation effort, and the assumption that would have to hold. Write the safety case the
+  document implies.</p>
+  <div class="ans"><b>Answer.</b> Most claims will turn out to be bounded by §27's arithmetic far
+  more loosely than the prose suggests, and the elicitation budget is usually absent. Doing this
+  once changes how you read every such document afterwards.</div>
+</div>

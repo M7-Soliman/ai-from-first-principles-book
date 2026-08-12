@@ -1,0 +1,430 @@
+<h2><span class="part-kicker">Practice</span>Drills</h2>
+
+<p class="mvt">Fifty-two drills. The harness in <code>parts/23-theory/drills/</code> covers
+twenty-seven of them with thirty-nine tests. The theory here makes checkable claims, so most of these drills are
+the check: a bound is a number, a tail is a frequency, a VC dimension is a finite enumeration.</p>
+
+<h3><span class="num">Tier 0</span> Estimate first</h3>
+
+<div class="drill">
+  <div class="head"><span class="tier est">Estimate</span>E1 &middot; What the bound asks for</div>
+  <p>A hypothesis class with VC dimension 10<sup>6</sup>: a modest network. Write down how many samples the classical bound requires for a generalisation gap of 0.1.</p>
+  <div class="ans"><b>Answer.</b> About <b>10<sup>8</sup></b>, from roughly d/&epsilon;<sup>2</sup>. Networks with far more parameters generalise from far fewer examples, every day. That gap is not a detail to be tightened; it is Part XXIII's subject, and Figure 3 measures how wide it is. <i>Score yourself: within a factor of two is a pass, and an order of magnitude out is worth understanding before you go on.</i></div>
+</div>
+
+<h3><span class="num">Tier 1</span> Warm-up</h3>
+
+<div class="drill">
+  <div class="head"><span class="tier warm">Warm-up</span>W1 · The two risks</div>
+  <p>Define true and empirical risk, and say which one you can compute.</p>
+  <div class="ans"><b>Answer.</b> You can compute the empirical one and you care about the other.
+  The whole subject is the difference, and it is hard only because you chose the hypothesis using
+  the same data you are evaluating it on.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier warm">Warm-up</span>W2 · What Hoeffding does not use</div>
+  <p>Two coins, one fair and one landing heads once in twenty. What does Hoeffding say about each
+  at <span class="m">$n = 200$</span>?</p>
+  <div class="ans"><b>Answer.</b> The same thing. It uses only the range, so its curve is identical
+  in both panels of Figure 1, which is the entire meaning of distribution-free, and it costs four
+  orders of magnitude at <span class="m">$p = 0.05$</span>.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier warm">Warm-up</span>W3 · Which bound to use</div>
+  <p>At <span class="m">$p = 0.5$</span> Bernstein is looser than Hoeffding. Why, and when should
+  you prefer it?</p>
+  <div class="ans"><b>Answer.</b> It pays a worse constant for the privilege of using the variance,
+  and at <span class="m">$p = 0.5$</span> the variance is at its largest so there is nothing to
+  gain. Prefer it when the variance is small relative to the range. Neither dominates.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier warm">Warm-up</span>W4 · The rate</div>
+  <p>You halve the target error. What happens to the sample size?</p>
+  <div class="ans"><b>Answer.</b> It quadruples: <span class="m">$n \sim 1/\varepsilon^2$</span>.
+  The rate is <span class="m">$1/\sqrt{n}$</span> and it is tight, so no cleverness improves
+  it.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier warm">Warm-up</span>W5 · Why the logarithm matters</div>
+  <p>You double the number of models in your search. What does the bound cost you?</p>
+  <div class="ans"><b>Answer.</b> A constant added under the square root, not a factor. That is why
+  searching over many candidates is affordable, and why §4 is the first theorem in this book that
+  licenses choosing after seeing the data.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier warm">Warm-up</span>W6 · Shattering, by hand</div>
+  <p>Four points in the plane forming a convex quadrilateral. Which labelling defeats every
+  hyperplane?</p>
+  <div class="ans"><b>Answer.</b> The diagonal pairing: XOR. This is Part VII §1's opening problem
+  and the <span class="m">$d=2$</span> case of Figure 2's collapse at
+  <span class="m">$m = d + 2$</span>.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier warm">Warm-up</span>W7 · Existential and universal</div>
+  <p>VC dimension asks for <i>some</i> set of points and <i>every</i> labelling. Why does swapping
+  the quantifiers give a different and useless definition?</p>
+  <div class="ans"><b>Answer.</b> "Every set of points" would be defeated by any degenerate
+  arrangement: three collinear points are not shattered by a line in the plane even though the VC
+  dimension is 3. The definition asks what the class <i>can</i> do, not what it does everywhere.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier warm">Warm-up</span>W8 · Vacuous</div>
+  <p>A generalisation bound evaluates to 4.5. What have you learned?</p>
+  <div class="ans"><b>Answer.</b> Nothing. An error rate lies in [0,1], so the bound is satisfied by
+  a random classifier and excludes no possibility. Figure 3's right panel reads 1.1, 4.5 and 10.0
+  at ordinary network sizes.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier warm">Warm-up</span>W9 · Why sharpening the constants will not help</div>
+  <p>Someone proposes tightening the VC bound by a factor of ten. Does that rescue it for a
+  network with more parameters than samples?</p>
+  <div class="ans"><b>Answer.</b> No. The bound is at least
+  <span class="m">$\sqrt{d/n} > 1$</span> before any constant is chosen, and networks demonstrably
+  fit random labels so the capacity really is maximal. §13's lower bound then forecloses any
+  distribution-free repair.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier warm">Warm-up</span>W10 · Read Figure 4</div>
+  <p>Where is the peak, and what is at that point?</p>
+  <div class="ans"><b>Answer.</b> At <span class="m">$p \approx n$</span>, where exactly one
+  interpolating solution exists and there is no freedom to choose a well-behaved one. Past it there
+  are infinitely many and the solver picks the minimum-norm one.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier warm">Warm-up</span>W11 · What regret compares against</div>
+  <p>Can regret be negative?</p>
+  <div class="ans"><b>Answer.</b> Yes. The comparator is the best <i>fixed</i> action, not the best
+  sequence, so an adaptive strategy can beat it. That is precisely why no-regret is a weaker promise
+  than the name suggests.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier warm">Warm-up</span>W12 · Which shift is correctable</div>
+  <p>Covariate, label and concept shift. Which can you fix with unlabelled test data?</p>
+  <div class="ans"><b>Answer.</b> The first two. Concept shift changed
+  <span class="m">$p(y \mid x)$</span> itself, which is exactly what you need labels to see, so
+  Part XXI §35's sampled human review is not substitutable.</div>
+</div>
+
+<h3><span class="num">Tier 2</span> Core</h3>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C1 · Simulate the tail</div>
+  <p>Implement <code>hoeffding_bound</code>, <code>bernstein_bound</code> and
+  <code>empirical_tail</code>. Reproduce Figure 1 and confirm neither bound is ever violated.</p>
+  <div class="ans"><b>Answer.</b> Both hold everywhere, as they must. The interesting number is the
+  ratio: roughly an order of magnitude where they do best.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C2 · Where the bounds cross</div>
+  <p>Find the variance at which Bernstein overtakes Hoeffding at fixed
+  <span class="m">$n$</span> and <span class="m">$\varepsilon$</span>.</p>
+  <div class="ans"><b>Answer.</b> Solve the exponents for equality. Having done it once you will
+  stop treating "use the tighter bound" as a well-defined instruction.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C3 · The price of being distribution-free</div>
+  <p>Compute the <span class="m">$n$</span> Hoeffding demands for a 95% interval of width 0.02 at
+  <span class="m">$p = 0.01$</span>, and compare with the exact binomial answer.</p>
+  <div class="ans"><b>Answer.</b> A large multiple. That ratio is what a guarantee holding for every
+  distribution costs when you happen to know yours.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C4 · Sauer's dichotomy</div>
+  <p>Implement <code>sauer_bound</code>. Verify it equals <span class="m">$2^m$</span> up to the VC
+  dimension and is polynomial after.</p>
+  <div class="ans"><b>Answer.</b> There is nothing between "every labelling" and "polynomially
+  many", and that gap is what converts a combinatorial fact into a
+  <span class="m">$\sqrt{d \log n / n}$</span> rate.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C5 · Separability by linear program</div>
+  <p>Implement <code>is_separable</code> exactly, with an LP. Do not fit a classifier and check its
+  training error.</p>
+  <div class="ans"><b>Answer.</b> A fitted classifier failing to separate is evidence about the
+  optimiser, not about the class. The LP either finds a feasible point or proves none exists, which
+  is what the definition requires.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C6 · Measure a VC dimension</div>
+  <p>Reproduce Figure 2: enumerate all <span class="m">$2^m$</span> labellings over random point
+  sets and find where shattering stops.</p>
+  <div class="ans"><b>Answer.</b> Exactly <span class="m">$d+1$</span>, and the transition is total
+  rather than gradual: 1.00 to 0.00 with nothing between.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C7 · Axis-aligned rectangles</div>
+  <p>Work out the VC dimension of axis-aligned rectangles in the plane, then verify it by
+  enumeration.</p>
+  <div class="ans"><b>Answer.</b> Four. Extend the harness to a second hypothesis class and the
+  machinery you wrote for C5 stops being about hyperplanes.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C8 · The bound against the gap</div>
+  <p>Reproduce Figure 3's left panel: measure the real gap for a linear classifier and plot the VC
+  bound beside it.</p>
+  <div class="ans"><b>Answer.</b> 14× at <span class="m">$n=100$</span>, over 100,000× by
+  <span class="m">$n = 7{,}618$</span> where the gap has closed and the bound is still 0.112. Valid
+  throughout, and increasingly uninformative.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C9 · Make the bound vacuous</div>
+  <p>Implement <code>vc_bound</code> and evaluate it at network sizes. Watch what happens when the
+  dimension exceeds twice the sample.</p>
+  <div class="ans"><b>Answer.</b> The naive expression takes the square root of a negative number.
+  Floor the log at zero and it reduces to <span class="m">$\sqrt{d/n}$</span>, already above 1. The
+  first version of this book's Figure 3 printed <code>nan</code> for exactly the sizes the figure
+  exists to discuss.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C10 · Fit random labels</div>
+  <p>Train a network to convergence on correctly labelled data, then on randomly labelled data.
+  Report the training error of each.</p>
+  <div class="ans"><b>Answer.</b> Zero in both cases. So the class can realise any labelling of the
+  sample, its VC dimension is at least <span class="m">$n$</span>, and uniform convergence over it
+  provably says nothing, while the model trained on real labels still generalises. Both facts at
+  once is the whole problem.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C11 · Rademacher complexity, measured</div>
+  <p>Implement <code>rademacher_linear</code> using the closed form for norm-bounded linear
+  functions, and check it falls as <span class="m">$1/\sqrt{n}$</span>.</p>
+  <div class="ans"><b>Answer.</b> The supremum is
+  <span class="m">$(B/n)\lVert\sum_i \sigma_i x_i\rVert$</span>. Notice that computing it <i>is</i>
+  the randomised-label experiment: the bound and the diagnostic are the same procedure.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C12 · Double descent</div>
+  <p>Reproduce Figure 4. Sweep the feature count through <span class="m">$p = n$</span> with a
+  minimum-norm solver.</p>
+  <div class="ans"><b>Answer.</b> Peak 4.708 at <span class="m">$p = 115$</span> against
+  <span class="m">$n = 120$</span>; second descent to 0.224, below the classical best of 0.541.
+  Then add ridge regularization and watch the peak disappear, which tells you what the peak
+  was.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C13 · Which interpolant</div>
+  <p>Reproduce Figure 5: construct several exact fits of the same underdetermined problem and
+  compare their norms and test errors.</p>
+  <div class="ans"><b>Answer.</b> Gradient descent from zero matches the minimum-norm solution to
+  fifteen digits, and test error rises with norm from 6.2 to 109.5. The objective cannot
+  distinguish them; the algorithm does.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C14 · Change the starting point</div>
+  <p>Run C13's gradient descent from a large random initialisation instead of zero.</p>
+  <div class="ans"><b>Answer.</b> It converges to a different interpolant: the one nearest the
+  start in the row space. The implicit bias is toward the <i>initialisation</i>, and "minimum norm"
+  is the special case of starting at the origin.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C15 · Defeat follow-the-leader</div>
+  <p>Implement <code>follow_the_leader</code> and <code>regret</code>, then construct the sequence
+  that gives it linear regret.</p>
+  <div class="ans"><b>Answer.</b> Alternate which action is best. The leader flips every round and
+  is wrong every round while the best fixed action is right half the time. The failure is
+  instability, which is §19's condition arriving in a different theory.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C16 · Multiplicative weights</div>
+  <p>Implement it and run it on C15's sequence. Sweep the learning rate.</p>
+  <div class="ans"><b>Answer.</b> Sublinear regret on the sequence that defeats the leader, and the
+  learning rate trades adaptivity against stability: too large and you have rebuilt
+  follow-the-leader.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C17 · The cost of partial feedback</div>
+  <p>Run the same experts problem with full information and then bandit feedback. Compare
+  regret.</p>
+  <div class="ans"><b>Answer.</b> A factor of about <span class="m">$\sqrt{K}$</span>. That number
+  is what not seeing the counterfactual costs, and it is the same missing quantity as Part XXII
+  §32.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C18 · When weighting helps and when it does not</div>
+  <p>Reproduce Figure 6. Run the shift sweep with a correctly specified model and with a
+  misspecified one.</p>
+  <div class="ans"><b>Answer.</b> Nothing to gain when the model is right, 0.090 against 0.091,
+  and a factor of ten when it is not. Then measure the variance the weights add, which is what you
+  pay for a correction you did not need.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C19 · Label shift, from unlabelled data</div>
+  <p>Implement <code>label_shift_weights</code> by inverting a confusion matrix, and recover a
+  prior change you set.</p>
+  <div class="ans"><b>Answer.</b> Exactly, up to estimation error. It needs only unlabelled target
+  data, which makes it the cheapest correction in the movement and the most often missed.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C20 · Worst group against average</div>
+  <p>Reproduce Figure 7. Train to minimise the average and then the worst group, and report both by
+  group.</p>
+  <div class="ans"><b>Answer.</b> 0.994 and 0.215 against 0.822 and 0.795, and the robust model
+  has the better <i>overall</i> accuracy too, because the average was computed on a group mixture
+  that did not survive to test. Below chance is a signature, not a bad score.</div>
+</div>
+
+<h3><span class="num">Tier 3</span> Stretch</h3>
+
+<div class="drill">
+  <div class="head"><span class="tier stretch">Stretch</span>S1 · A non-vacuous bound</div>
+  <p>Implement a PAC-Bayes bound and evaluate it on a small trained network.</p>
+  <div class="ans"><b>Answer.</b> With compression it can come in under 1, genuinely non-vacuous,
+  and still far from the true error. Note carefully which object it bounds: usually a stochastic or
+  compressed network, not the one you would deploy.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier stretch">Stretch</span>S2 · Stability of SGD</div>
+  <p>Train two models on datasets differing in one point. Measure how far their predictions diverge
+  as a function of the number of steps.</p>
+  <div class="ans"><b>Answer.</b> Divergence grows with training time, which is the stability bound
+  degrading, and it is why early stopping is a generalisation guarantee and not only a heuristic.
+  Part VIII §13 and §14, with the theory attached.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier stretch">Stretch</span>S3 · Sharpness, and its reparameterisation problem</div>
+  <p>Measure a sharpness statistic at a minimum. Then rescale one layer up and the next down and
+  measure again.</p>
+  <div class="ans"><b>Answer.</b> The function is unchanged and the sharpness is not. Any claim
+  built on a non-invariant measure needs to explain why the rescaling is disallowed.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier stretch">Stretch</span>S4 · Grokking</div>
+  <p>Train a small network on modular arithmetic with weight decay, far past the point of zero
+  training error.</p>
+  <div class="ans"><b>Answer.</b> Test accuracy can jump long after training accuracy saturates.
+  Whatever this is, it is not explained by anything in movements B or C, since the training error
+  has not moved.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier stretch">Stretch</span>S5 · An online learner in production</div>
+  <p>Take a deployed model and run a no-regret algorithm over a set of candidate policies on live
+  traffic, tracking regret.</p>
+  <div class="ans"><b>Answer.</b> The guarantee holds without any i.i.d. assumption, which is the
+  case for doing it this way rather than retraining on a snapshot. Log the action probabilities:
+  Part XXII §38.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier stretch">Stretch</span>S6 · Find your worst group</div>
+  <p>On a system you run, partition the data every way you can and find the partition with the
+  largest accuracy spread.</p>
+  <div class="ans"><b>Answer.</b> Something will be well below the headline number. Note that this
+  search is itself Part XIV §20's biased maximum, so confirm the gap on held-out data before
+  believing it.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier stretch">Stretch</span>S7 · Bound something you actually shipped</div>
+  <p>Take a deployed model and try to state any non-vacuous generalisation guarantee for it.</p>
+  <div class="ans"><b>Answer.</b> The honest outcome is usually that you cannot, and that the real
+  evidence is a held-out set plus Part XXI §27's arithmetic. Knowing that the guarantee is empirical
+  rather than theoretical is the point of this part.</div>
+</div>
+
+<h3><span class="num">Movement G</span> Width</h3>
+
+<div class="drill">
+  <div class="head"><span class="tier est">Estimate</span>E2 &middot; How wide is infinite</div>
+  <p>Figure 8 measures the NTK moving 4.8% at width 2,048, falling like <span class="m">$m^{-0.65}$</span>. Before computing: how wide would a network have to be for the kernel to move less than 0.1%?</p>
+  <div class="ans"><b>Answer.</b> <span class="m">$(0.048/0.001)^{1/0.65}\approx 48^{1.54}\approx 400$</span>, so about <b>800,000</b> units: two orders of magnitude beyond any hidden layer in use. The infinite-width limit is not approached by anything anyone trains, which is the practical content of &sect;48. <i>Within a factor of two is a pass.</i></div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier warm">Warm-up</span>W13 &middot; Which limit</div>
+  <p>What is taken to infinity in movements A to F, and what in movement G?</p>
+  <div class="ans"><b>Answer.</b> The sample size, and the width. The first gives bounds that hold with high probability and go vacuous for modern models; the second gives an <i>identity</i> in a limit, which is a different kind of object and fails differently: not by being loose but by describing a network that cannot learn features.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier warm">Warm-up</span>W14 &middot; Why the NTK makes things solvable</div>
+  <p>What does the constant-kernel assumption buy?</p>
+  <div class="ans"><b>Answer.</b> Gradient descent on the network becomes gradient descent on a <i>linear</i> model in fixed features, which converges to kernel regression: a closed form. Every question about generalisation becomes a question about the spectrum of a fixed matrix.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C21 &middot; Compute an empirical NTK</div>
+  <p>Build the Jacobian of a small network's output with respect to every parameter, form <span class="m">$JJ^{\top}$</span>, and verify it is symmetric positive semi-definite. Then confirm it is the kernel of the linearised model by checking that a small parameter step changes the outputs by <span class="m">$J\,\Delta\theta$</span> to first order.</p>
+  <div class="ans"><b>Answer.</b> Symmetry and PSD are automatic from the Gram structure. The first-order check is the one that matters: the residual should fall quadratically as the step shrinks, and if it falls linearly your Jacobian is wrong. Doing this once is what makes &sect;47 concrete rather than notational.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C22 &middot; Reproduce Figure 8, and match the progress</div>
+  <p>Measure the relative NTK change during training across widths. Train each width until it halves <i>its own</i> initial loss rather than for a fixed number of steps, and explain why.</p>
+  <div class="ans"><b>Answer.</b> A fixed step budget lets each width get a different distance, so the kernel change is partly measuring progress rather than width, and narrow networks fit <i>faster</i> here, because they can move features, which biases the comparison in the direction of the conclusion. Halving each network's own loss removes that. The exponent lands near <span class="m">$-0.65$</span>, not the <span class="m">$-1/2$</span> the scaling argument suggests.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C23 &middot; Interpolate between lazy and rich</div>
+  <p>Scale a network's output by <span class="m">$\alpha$</span> and sweep it, scaling the learning rate by <span class="m">$1/\alpha^2$</span>. Measure feature movement, test error, and the alignment of the first-layer update with the direction the target depends on, all at equal training loss.</p>
+  <div class="ans"><b>Answer.</b> Feature movement and alignment both fall; test error rises. The learning-rate correction is not optional: the loss curvature scales like <span class="m">$\alpha^2$</span>, so without it you are comparing different effective step sizes and measuring that instead. And the arms must reach the same training loss, or the lazy ones are simply unconverged.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C24 &middot; Run a coordinate check</div>
+  <p>Implement standard, NTK and μP parameterisation. Take one optimiser step at four widths and plot the change in the network output against width on log axes.</p>
+  <div class="ans"><b>Answer.</b> Standard grows roughly linearly in width; the other two are flat. Measure the change in the <b>output</b>, not in an activation: <span class="m">$|\Delta h|$</span> falls like <span class="m">$1/\sqrt{m}$</span> under every scheme including the unstable one, so the activation panel shows three parallel declining lines and no instability anywhere.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C25 &middot; Get μP right</div>
+  <p>Implement μP and check it against the definition: output layer initialised at <span class="m">$1/m$</span>, output learning rate <span class="m">$\propto 1/m$</span>, input learning rate <span class="m">$\propto m$</span>. Then delete the third of those and re-measure.</p>
+  <div class="ans"><b>Answer.</b> With all three, both the output change and the relative feature movement are flat in width. Delete the input-layer scaling and the features move like <span class="m">$1/m$</span>, making μP <b>lazier than NTK parameterisation</b>, the exact opposite of what it is for. It is one solution to one system of constraints, not a list of tricks with a useful subset.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier stretch">Stretch</span>S8 &middot; Measure the transfer, and bound the drift</div>
+  <p>Sweep the learning rate at five widths under both parameterisations and locate each optimum. Report the spread, and state what your grid resolution allows you to claim.</p>
+  <div class="ans"><b>Answer.</b> Standard shifts by roughly the width ratio; μP does not move. The second half is the discipline: if your grid steps by a factor of 1.33, "no drift" means "drift below 1.33×", not zero. Check also that no optimum sits on an edge of the swept range: an optimum at the boundary is not a measurement of anything.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier stretch">Stretch</span>S9 &middot; Find the critical initialisation</div>
+  <p>Push two correlated inputs through a deep random tanh network and track the correlation by layer. Locate the variance where the approach to the fixed point is slowest, and separately where the gradient scale is nearest one. Then check they agree.</p>
+  <div class="ans"><b>Answer.</b> They agree, near <span class="m">$\sigma_w^2\approx1.76$</span> at <span class="m">$\sigma_b^2=0.05$</span>. Estimate the fixed point from a much deeper stack than you plot: measuring the approach against the correlation at your plotted depth puts the slowest point in the chaotic phase instead of at criticality, because the critical curve has not converged yet.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier stretch">Stretch</span>S10 &middot; Does the phase diagram predict trainability</div>
+  <p>Train plain deep networks (no normalisation, no residuals) at ordered, critical and chaotic initialisation, sweeping the learning rate at each depth. Plot the best loss reached against depth.</p>
+  <div class="ans"><b>Answer.</b> The ordered phase degrades to no better than predicting the mean; the critical one trains at every depth; the <b>chaotic one also trains fine</b>, despite an enormous gradient scale. The phase diagram predicts one side. Sweeping the rate per depth is what makes this a measurement of trainability rather than of whether one arbitrary rate happens to be stable: at a fixed rate everything deep diverges and the answer looks symmetric.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier stretch">Stretch</span>S11 &middot; Residual scaling from the same calculation</div>
+  <p>Take a residual network with branches scaled by <span class="m">$\beta$</span> and work out how the activation variance grows with depth. Find the <span class="m">$\beta$</span> that keeps it bounded, then verify numerically.</p>
+  <div class="ans"><b>Answer.</b> Each branch adds variance, so <span class="m">$L$</span> blocks at <span class="m">$\beta=1$</span> give variance growing like <span class="m">$L$</span>; <span class="m">$\beta=1/\sqrt{L}$</span> holds it fixed. This is &sect;53's calculation on a different architecture, and it is why residual connections make criticality automatic rather than something to be tuned onto, which is the practical reason very deep plain networks were untrainable and very deep residual ones were not.</div>
+</div>

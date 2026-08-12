@@ -1,0 +1,315 @@
+<h2><span class="part-kicker">Part A</span>What we are actually optimising</h2>
+
+<h3><span class="num">§1</span> Learning is not optimisation</h3>
+
+<div class="sixty">
+  <span class="label">In 60 seconds</span>
+  <p>An optimiser is handed a function and told to make it small. That is not the situation
+  here. You care about a quantity you cannot measure, so you minimise a second quantity that
+  stands in for it, using a third quantity that is cheap to differentiate, and then you stop
+  before any of them is minimised. Every difficulty in this part descends from that
+  arrangement.</p>
+</div>
+
+<p>Part III treated optimisation as a self-contained problem: here is $f$, find its minimum,
+mind the conditioning. That was the right way to learn the machinery and it is the wrong way
+to think about training a model.</p>
+
+<p>The difference is worth stating precisely, because it is not a philosophical point. It
+changes what counts as success, which algorithms are appropriate, and when you should stop.
+In pure optimisation, minimising $J$ <i>is</i> the goal; you have converged when the gradient
+vanishes, and a smaller $J$ is always better. In learning, minimising $J$ is a <b>means</b>,
+and there are three distinct quantities in play that are routinely conflated.</p>
+
+<div class="box def">
+  <span class="label">The three quantities</span>
+  <p><b>1. What you want.</b> Performance on data you have not seen, under whatever measure
+  the application cares about: accuracy, revenue, a clinician's judgement. Call it $P$. It
+  is frequently not even a function of the model's parameters in any usable way.</p>
+  <p><b>2. What you would minimise if you could.</b> The <b>risk</b>, the expected loss under
+  the true data-generating distribution:</p>
+  <p>$$J^*(\boldsymbol{\theta}) = \mathbb{E}_{(\mathbf{x},y)\sim p_{\text{data}}}\big[L(f(\mathbf{x};\boldsymbol{\theta}), y)\big]$$</p>
+  <p>You cannot evaluate this, because you do not have $p_{\text{data}}$. If you did, you
+  would have a solved optimisation problem and no machine learning problem.</p>
+  <p><b>3. What you actually minimise.</b> The <b>empirical risk</b>, the same expectation
+  taken over the empirical distribution defined by your training set:</p>
+  <p>$$J(\boldsymbol{\theta}) = \mathbb{E}_{(\mathbf{x},y)\sim \hat{p}_{\text{data}}}\big[L(f(\mathbf{x};\boldsymbol{\theta}), y)\big]
+  = \frac{1}{m}\sum_{i=1}^{m} L\big(f(\mathbf{x}^{(i)};\boldsymbol{\theta}), y^{(i)}\big)$$</p>
+</div>
+
+<p>The whole enterprise is the hope that pushing down the third moves the second, which moves
+the first. Part VI §4 named the gap between the second and the third the generalisation gap
+and spent a part on it. This part is about the gap on the other side: the one between the
+function your optimiser sees and the function you would have wanted it to see.</p>
+
+<p>That gap is not a defect to be engineered away. It is load-bearing. A model that minimised
+the empirical risk perfectly would memorise the training set, which Part VI §6 showed is the
+one outcome guaranteed to be useless. <b>You are relying on the optimiser to fail, in a
+specific and controlled way.</b> No branch of pure optimisation has anything to say about
+that, and it is why importing optimisation results wholesale into learning goes wrong.</p>
+
+<h3><span class="num">§2</span> Empirical risk minimisation, and why almost nobody does it</h3>
+
+<p>The obvious move (replace $p_{\text{data}}$ with $\hat{p}_{\text{data}}$ and minimise
+what remains) has a name, <b>empirical risk minimisation</b>, and a respectable theory. It
+also has two problems severe enough that deep learning essentially never does it.</p>
+
+<p><b>The first is overfitting</b>, and Part VI covered it. A model with enough capacity can
+drive the empirical risk to zero by memorisation, and the theory guaranteeing that low
+empirical risk implies low true risk requires capacity control that modern networks do not
+satisfy in any obvious way.</p>
+
+<p><b>The second is more immediate and less discussed.</b> The loss you actually care about
+is usually not differentiable. Classification error (the 0–1 loss, counting mistakes) has
+derivative zero wherever it is defined and is undefined at the boundaries. Gradient descent
+on it does nothing at all: every step sees a slope of zero and stays put.</p>
+
+<p>Nor is this a limitation of gradient methods that a cleverer algorithm would sidestep.
+Minimising expected 0–1 loss exactly is intractable, exponential in the input dimension
+<b>even for a linear classifier</b>. There is no algorithm waiting to be found.</p>
+
+<div class="box intuition">
+  <span class="label">Intuition: why counting mistakes gives you nothing to follow</span>
+  <p>Picture the loss as a landscape you are trying to descend. Under 0–1 loss the landscape
+  is a flight of stairs: flat treads with vertical risers, and you are standing in the middle
+  of a tread.</p>
+  <p>Everything within a small step of you has exactly the same height, so the local slope is
+  zero and there is no direction to prefer. Move a hair in any direction and nothing changes.
+  Move far enough to reach a riser and the loss jumps discontinuously by a whole unit.</p>
+  <p>Gradient descent needs the landscape to tell it something local about where lower ground
+  lies. A staircase refuses to answer. The fix is to replace the staircase with a ramp that
+  descends in the same overall direction, which is exactly what a surrogate loss is.</p>
+</div>
+
+<h3><span class="num">§3</span> Surrogate losses, and the bonus nobody expected</h3>
+
+<p>A <b>surrogate loss</b> is a differentiable function you optimise in place of the one you
+care about, chosen so that making it small tends to make the real one small too.</p>
+
+<p>You have been using one since Part VII §9 without the label. The negative log-likelihood
+of the correct class is the standard surrogate for 0–1 loss, and the argument for it is
+short: a model that estimates $p(y \mid \mathbf{x})$ well can pick the most probable class,
+and picking the most probable class minimises expected classification error. So doing well at
+the surrogate is <i>sufficient</i> for doing well at the target, even though they are
+different functions.</p>
+
+<p>What is not obvious, and is the interesting part, is that the substitution can make you
+<b>better off than optimising the target directly would have</b>.</p>
+
+<figure>
+  <img src="figures/op/01-three-objectives.svg" alt="Surrogate loss and 0-1 error against iteration, weight norm growth, and a case where test error rises instead">
+  <figcaption><b>Figure 1.</b> Logistic regression, forty training points, full-batch
+  gradient descent. <b>(a)</b> Training 0–1 error hits zero at iteration <b>280</b>, where
+  the surrogate is still 0.043, and the surrogate goes on falling for three more decades,
+  to 0.0004. <b>(b)</b> The same run's test error, which does not bottom out until iteration
+  <b>8,627</b>, thirty-one times later, improving 9% relative to where it stood when the
+  training error hit zero. <b>(c)</b> $\|\mathbf{w}\|$ over the same run: it grows without
+  bound, because on separable data the loss has <b>no minimum to converge to</b>. <b>(d)</b>
+  Ten pure-noise coordinates added to the same problem: now test error is best at iteration
+  <b>80</b>, before the training error reaches zero, and rises 46% thereafter. Both outcomes
+  are real, and §4 is about which one you are in.</figcaption>
+</figure>
+
+<p>Panel (a) is the phenomenon. Once every training example is on the correct side of the
+boundary, the 0–1 loss is zero and has nothing further to ask for. The surrogate is not
+satisfied. It keeps pushing the examples further from the boundary, because $-\log p$ keeps
+falling as $p$ rises toward one, and it will keep pushing forever.</p>
+
+<p>That extra work is not wasted. A boundary with more room around it classifies unseen
+points more reliably, so panel (b) keeps improving long after the training error has
+flatlined. <b>The model extracted information from the training set that the 0–1 loss could
+not express</b>: how confidently each point is classified, not merely whether it is.
+Optimising the thing you wanted would have stopped at iteration 280 with a worse model.</p>
+
+<div class="box why">
+  <span class="label">Why this matters: the loss you report is not the loss you train</span>
+  <p>This is the first of several places in this part where two numbers that look
+  interchangeable are not, and mixing them up produces confident nonsense.</p>
+  <p>A training curve that has flattened in <b>accuracy</b> may still be improving in
+  <b>loss</b>, and the improvement may be real. A model with lower cross-entropy may have
+  identical accuracy and be materially better calibrated, Part II §25's reading of
+  cross-entropy as a measure of the whole predicted distribution, not just its argmax.</p>
+  <p>The practical rule: <b>plot both, always.</b> Accuracy tells you what the user gets;
+  loss tells you what the optimiser is doing. When they disagree, the disagreement is
+  information, not noise.</p>
+</div>
+
+<h3><span class="num">§4</span> Why training stops, and why that is not convergence</h3>
+
+<p>Here is the difference from pure optimisation that is easiest to state and hardest to
+internalise.</p>
+
+<div class="box def">
+  <span class="label">Training halts on a criterion the optimiser cannot see</span>
+  <p>An optimisation algorithm has converged when its gradient is negligible. A training run
+  stops when a <b>validation</b> measure (often the very 0–1 loss the surrogate replaced)
+  stops improving.</p>
+  <p>These are unrelated events. Training routinely halts <b>while the surrogate still has
+  large derivatives</b>, and would have gone on descending for a very long time.</p>
+</div>
+
+<p>Part VIII §13 introduced early stopping as a regulariser, and derived in §14 the sense in
+which it is equivalent to weight decay. That was the regularisation reading. The optimisation
+reading is separate and worth having: <b>early stopping is the mechanism by which a learning
+algorithm refuses to solve the optimisation problem it was given.</b></p>
+
+<p>Panels (b) and (d) of Figure 1 are the two outcomes, on the same model and the same loss.
+In (b) the classes are genuinely separated, the extra confidence the surrogate buys is real
+information, and running longer helps for thirty-one times as long as you might have guessed.
+In (d) ten coordinates of pure noise have been added; the surrogate spends its effort fitting
+those, and test error is best at iteration 80 and 46% worse by the end.</p>
+
+<p>You cannot tell which case you are in by looking at the training loss. Both fall smoothly
+and monotonically. The only instrument that distinguishes them is a held-out set, which is
+why Part VI §9's validation set is not bureaucracy but the sole source of the stopping
+signal.</p>
+
+<div class="box pitfall">
+  <span class="label">Pitfall: "the loss is still going down, so keep training"</span>
+  <p>The training loss is <i>always</i> still going down. On a separable problem it will go
+  down for as long as you let it and never reach a minimum, because there is not one, panel
+  (c), and §12 explains why this is the normal case rather than a curiosity.</p>
+  <p>So "training loss still falling" carries no information about whether to continue. It is
+  compatible with panel (b), where continuing gains you 9%, and with panel (d), where
+  continuing costs you 46%. The two runs look identical from the training curve.</p>
+  <p>The corresponding error in the other direction: reporting that a model "converged"
+  because you stopped it. Almost no deep network is trained to convergence in the
+  optimisation sense, and §6 shows that the gradient norm at the point where you stop is
+  often <i>larger</i> than where you started.</p>
+</div>
+
+<h3><span class="num">§5</span> Minibatches: what the batch size actually buys</h3>
+
+<div class="sixty">
+  <span class="label">In 60 seconds</span>
+  <p>Part III §14 established that gradient estimates from a sample are unbiased and that
+  noise falls like $1/\sqrt{b}$. That is one of four forces setting the batch size. The others
+  are hardware, memory, and (the one most often missed) <b>how badly your update amplifies
+  the estimation error</b>. Gradient methods tolerate $b = 100$. Second-order methods need
+  $b = 10{,}000$, and this section measures why.</p>
+</div>
+
+<p>The reason a minibatch works at all is structural: the cost is an average over examples, so
+its gradient is an average over per-example gradients, and an average is precisely the thing
+that can be estimated by sampling. Part II §10 gives the unbiasedness in one line.</p>
+
+<p>The returns are poor and it does not matter. Part V §3's standard error of a mean falls
+like $\sigma/\sqrt{b}$, so a hundredfold increase in compute buys a tenfold reduction in
+noise. Figure 2's left panel confirms the exponent on real data. Spending that compute on
+more steps instead is almost always the better trade, and it is why essentially all
+large-scale training is stochastic.</p>
+
+<div class="box intuition">
+  <span class="label">Intuition: redundancy is the deeper reason</span>
+  <p>The $1/\sqrt{b}$ argument makes small batches <i>tolerable</i>. Redundancy is what makes
+  them <i>efficient</i>.</p>
+  <p>Take the extreme case: a training set consisting of the same example repeated a million
+  times. The exact gradient is the gradient of one example, and computing it a million times
+  is a million times more work for an identical answer.</p>
+  <p>Real datasets are not that degenerate, but they are far from the opposite extreme. Large
+  numbers of examples make nearly the same contribution to the gradient, because they are
+  handled correctly for the same reason or wrongly for the same reason. What a minibatch
+  estimates cheaply is not a fine-grained quantity; it is a heavily redundant one, and the
+  redundancy is what you are exploiting.</p>
+</div>
+
+<figure>
+  <img src="figures/op/03-batch-size.svg" alt="Gradient error against batch size, per-example cost against batch size, and gradient versus Newton step error">
+  <figcaption><b>Figure 2.</b> Left: measured relative error of the gradient estimate against
+  batch size, over 160 resamples each, against the $1/\sqrt{b}$ reference, the exponent is
+  exactly as predicted. Middle: microseconds <b>per example</b> for a real two-layer forward
+  pass on this machine. A batch of one costs <b>13×</b> as much per example as a batch of
+  256; below about 32 the hardware is idle and you pay for it. Right: the same gradient error
+  against the error in the Newton step $H^{-1}\hat{\mathbf{g}}$ built from it, at
+  $\kappa(H) = 9852$. The Newton step is about <b>10× noisier at every batch size</b>: the
+  gradient holds 7% error at $b = 8192$, while the second-order step has not reached 50% at
+  $b = 16{,}384$.</figcaption>
+</figure>
+
+<h4>The four forces</h4>
+
+<p>The middle panel is the hardware constraint made concrete, and it is the one that surprises
+people who reason only about statistics. A batch of one is <i>not</i> cheap; it is thirteen
+times more expensive per example than a batch of 256, because a matrix–vector product leaves
+almost all of the machine idle. There is an absolute minimum batch size below which you get
+faster gradients for free, and on this machine it is around 32.</p>
+
+<p>Against that, memory scales linearly with batch size when the batch is processed in
+parallel, and on most hardware that is the binding constraint. Powers of two are conventional
+because array libraries and GPU kernels are tuned for them; 32 to 256 is the usual range,
+with 16 attempted for very large models.</p>
+
+<p>And small batches regularise. Generalisation error is often best at a batch size of one,
+Part III §14's observation that gradient noise appears to prefer wide minima, restated. The
+cost is that you may need a smaller learning rate to stay stable, so the wall-clock price is
+paid twice.</p>
+
+<div class="box why">
+  <span class="label">Why second-order methods need enormous batches</span>
+  <p>The right panel of Figure 2 measures something the $1/\sqrt{b}$ argument alone would
+  never surface, and it explains a fact §19 will need.</p>
+  <p>Different algorithms use the minibatch's information differently, and some
+  <b>amplify</b> its error. A gradient method steps along $\hat{\mathbf{g}}$, so an $\epsilon$
+  error in the estimate is an $\epsilon$ error in the step. A second-order method steps along
+  $H^{-1}\hat{\mathbf{g}}$, and Part III §5 says that multiplying by an ill-conditioned
+  matrix multiplies relative error by up to $\kappa$.</p>
+  <p>So even with $H$ known <i>exactly</i>, the same gradient noise produces a far noisier
+  step. The measurement above: a tenfold amplification throughout, at $\kappa \approx 10^4$.
+  And $H$ is never known exactly; it is estimated from the same small sample, so the real
+  situation is worse than the figure shows.</p>
+  <p>This is the honest reason second-order methods are rare in deep learning, and it is
+  independent of their cost. Even if $H^{-1}$ were free you would need batches two orders of
+  magnitude larger to use it, which gives back the advantage that made stochastic methods
+  worth having.</p>
+</div>
+
+<h4>Two requirements that are easy to violate</h4>
+
+<p><b>The sample must be random.</b> Unbiasedness requires independence, and many datasets
+arrive in an order that destroys it: five blood samples from one patient, then three from
+the next; all the cats, then all the dogs. Drawing consecutive examples from such a file
+gives minibatches that are each a biased picture of one subpopulation, and successive
+gradients that are correlated with each other rather than independent.</p>
+
+<p>Shuffling once and storing the shuffled order is enough in practice, even though it fixes
+the set of possible minibatches for every model trained thereafter. Never shuffling is
+seriously damaging. This is the cheapest correctness win in the whole pipeline and it is
+routinely skipped.</p>
+
+<div class="box def">
+  <span class="label">The first epoch is different from every epoch after it</span>
+  <p>Here is a fact with an odd consequence. On the <b>first</b> pass through a shuffled
+  dataset, every example is a fresh draw from $p_{\text{data}}$ that the model has not seen.
+  So each minibatch gradient is an unbiased estimate not of $\nabla J$, the empirical risk
+  gradient, but of $\nabla J^*$, the gradient of the <b>true generalisation error</b>.</p>
+  <p>For one epoch, SGD is performing gradient descent directly on the quantity §1 said you
+  could never evaluate. On the second pass this stops being true, because you are resampling
+  values you have already used rather than drawing fair new ones.</p>
+  <p>This is not merely cute. It is why training on a stream (where examples are never
+  repeated) has no overfitting problem at all, and why, as datasets grow faster than
+  compute, it is becoming ordinary to make a single pass or even an incomplete one. In that
+  regime underfitting and throughput are the only concerns, and most of Part VIII becomes
+  irrelevant.</p>
+</div>
+
+<div class="box try">
+  <span class="label">Try it</span>
+  <p>You are training with $b = 32$ and consider $b = 1024$ to "get better gradients". Using
+  Figure 2, what do you gain, what do you pay, and what would you do with the compute
+  instead?</p>
+</div>
+
+<p><b>Answer.</b> A 32-fold increase in compute per step, for a $\sqrt{32} \approx 5.7$-fold
+reduction in gradient noise. That is the trade, and stated that way it rarely sounds
+attractive.</p>
+<p>What you gain beyond the noise reduction: nothing, unless you were below the hardware
+threshold, and at $b = 32$ you are near it, the middle panel is already flat, so the 32×
+compute is a real 32×, not partly free. What you pay: 32× the memory, and 32× fewer parameter
+updates per epoch.</p>
+<p>The alternative use of that compute is thirty-two more steps at $b = 32$. Since the
+gradient is only a local model of the surface anyway and you are about to recompute it, more
+steps at a rougher direction almost always wins, which is §5's whole argument, and Part III
+§14's.</p>
+<p>The exception is the one Figure 2's right panel identifies. If you are running a
+second-order or natural-gradient method, the noise reduction is not a luxury: your update
+amplifies gradient error tenfold, and at $b = 32$ your step direction is mostly noise.</p>

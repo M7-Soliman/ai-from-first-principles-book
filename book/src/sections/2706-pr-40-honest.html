@@ -1,0 +1,219 @@
+<h2><span class="part-kicker">Part D</span>Measuring honestly</h2>
+
+<p class="lede">Everything so far assumed the numbers mean what they appear to. This movement is
+about the ways they do not, and it is where Part V's statistics finally get applied to the
+activity that generates most of the field's published claims.</p>
+
+<h3><span class="num">§19</span> Seed variance</h3>
+
+<div class="sixty">
+  <span class="label">In 60 seconds</span>
+  <p>Train the same configuration twice with different random seeds and the results differ. If
+  you do not know by how much, you cannot tell whether an improvement is real, and on many
+  benchmarks the seed-to-seed spread exceeds the improvements being claimed.</p>
+</div>
+
+<div class="box def">
+  <span class="label">What varies with the seed</span>
+  <p>Initialisation, data order, dropout masks, augmentation draws, and any nondeterminism in
+  the kernels. Every one of them changes the final parameters, and on a hard problem they change
+  the final score.</p>
+  <p>The measurement is one line of experimental design: <b>run the baseline five times</b> and
+  report the mean and the spread. That is your noise floor, and any difference smaller than it
+  is not a result.</p>
+</div>
+
+<div class="box pitfall">
+  <span class="label">Pitfall: one run of each is not a comparison</span>
+  <p>Method A scores 0.847 and method B scores 0.851. Reported as an improvement, this is not
+  evidence of anything: with a seed standard deviation of, say, 0.006, the difference is well
+  inside a single run's noise.</p>
+  <p>Part V §16 gives the apparatus: a difference needs an interval, and an interval needs
+  repeated measurements. Report mean and standard deviation over $n$ seeds, state $n$, and if
+  you cannot afford five runs of everything, afford five runs of the <b>baseline</b> so at least
+  the noise floor is known.</p>
+  <p>The asymmetry to watch for: a new method whose seeds were run and a baseline whose seed was
+  not. That is Part X §26's complaint about attribution, and it is also the mechanism §20
+  describes.</p>
+</div>
+
+<h3><span class="num">§20</span> The winner of a search is biased upward</h3>
+
+<div class="readnow"><span class="label">Go and read</span><p><span class="src">Dodge et al. (2019)</span>, <i>Show your work: improved reporting of experimental results</i>. Argues that a reported score is meaningless without the compute budget that produced it, and proposes reporting expected best performance <i>as a function of the number of trials</i>, which turns Figure 7's inflation from a hazard into a curve you publish. The most actionable proposal in this movement, and largely ignored.</p></div>
+
+<p>Part V §14 established that the best of many noisy measurements is not an unbiased estimate of
+anything. Hyperparameter search is that situation, run deliberately, hundreds of times.</p>
+
+<figure>
+  <img src="figures/pd/07-selection-bias.svg" alt="Reported best validation score and a fresh estimate of the winner, against the number of configurations tried">
+  <figcaption><b>Figure 7.</b> Configurations whose true scores are <b>all exactly 0.800</b>,
+  measured with realistic validation noise. The best-of-$k$ score rises steadily: <b>+0.023</b>
+  at five configurations, <b>+0.050</b> at a hundred, <b>+0.055</b> at two hundred. A fresh
+  estimate of the same winner returns 0.800 every time. The entire gain is selection on noise,
+  and it is larger than most improvements anyone claims.</figcaption>
+</figure>
+
+<div class="box why">
+  <span class="label">Why this is worse than it looks</span>
+  <p>Two things compound it.</p>
+  <p><b>The bias grows with effort.</b> The harder you search, the more inflated the reported
+  number, so a well-resourced search produces a more optimistic result than a lazy one, from
+  the same underlying model.</p>
+  <p><b>It is invisible.</b> Nothing in the pipeline records that 200 configurations were tried.
+  The validation score is a number, it is higher than the baseline's, and every subsequent
+  decision treats it as an estimate of quality.</p>
+  <p>The fix is Part V §15's and it is not optional: <b>the configuration you selected must be
+  evaluated on data used in no part of the selection.</b> Three splits: train, validation for
+  selection, test used <b>once</b>. If you look at the test set and then change something, it is
+  a validation set now and you need a new one.</p>
+  <p>And report the search size. "Best of 200 configurations, test score measured once" is an
+  honest claim. "Validation accuracy 0.85" from the same experiment is not.</p>
+</div>
+
+<h3><span class="num">§21</span> Ablations that isolate</h3>
+
+<p>A method with five changes and one aggregate number tells you nothing about which change
+mattered. Ablation is the remedy and it is usually done in a way that does not deliver it.</p>
+
+<div class="box def">
+  <span class="label">Two kinds, answering different questions</span>
+  <p><b>Leave-one-out.</b> Remove each component from the full system in turn. Answers: is this
+  component <i>necessary</i>, given everything else?</p>
+  <p><b>Add-one-in.</b> Add each component to the baseline alone. Answers: is this component
+  <i>sufficient</i>, on its own?</p>
+  <p>These give different answers when components interact, which they usually do. Two changes
+  that are individually useless and jointly essential will look worthless under add-one-in and
+  essential under leave-one-out, and reporting only one of the two is how a paper attributes an
+  effect to the wrong thing.</p>
+</div>
+
+<div class="box pitfall">
+  <span class="label">Pitfall: an ablation that changes two things</span>
+  <p>Removing a component often changes something else by implication. Remove a regulariser and
+  the optimal learning rate moves. Remove a normalisation layer and the model may need warmup.
+  Halve the width and the parameter count changes, so the comparison is now about size.</p>
+  <p>An honest ablation <b>re-tunes what the removal invalidated</b>, or states plainly that it
+  did not. The common failure is to remove a component, keep every other setting fixed, observe
+  a large drop, and attribute it to the component, when part of it was the settings that were
+  tuned for the component's presence.</p>
+  <p>This is Part X §26's ConvNeXt lesson at the scale of a single table, and it is the most
+  common way an ablation overstates.</p>
+</div>
+
+<h3><span class="num">§22</span> What a benchmark measures now</h3>
+
+<div class="readnow"><span class="label">Go and read</span><p><span class="src">Recht et al. (2019)</span>, <i>Do ImageNet classifiers generalize to ImageNet?</i>. Rebuilt a test set from scratch following the original protocol as closely as possible, and found every model dropped by a substantial margin, while the <b>ranking</b> was almost perfectly preserved. Read both halves: the drop is the community overfitting, and the preserved ranking is why benchmarks remained useful anyway.</p></div>
+
+<p>Part XIII §13 established contamination. Here is what it does to the practice of comparing
+systems.</p>
+
+<div class="box def">
+  <span class="label">Three ways a benchmark stops measuring what it did</span>
+  <p><b>Contamination.</b> The test items are in the training corpus. Part XIII §13 measured the
+  inflation; the specific problem here is that for a model whose corpus is unpublished, nobody
+  outside can check.</p>
+  <p><b>Saturation.</b> Scores approach the ceiling, so the remaining headroom is label noise
+  (Part XIII §9) and the differences between systems are differences in how they handle
+  mislabelled items.</p>
+  <p><b>Community overfitting.</b> Everyone tunes against the same public test set for years.
+  No individual did anything wrong; collectively the field ran §20's search with thousands of
+  configurations and no held-out data. The leaderboard is the validation set.</p>
+</div>
+
+<div class="box why">
+  <span class="label">Why the strongest available check is a calendar</span>
+  <p>You cannot search a corpus you cannot see. The substitutes, in descending order of strength:</p>
+  <p><b>Evaluate on material created after the training cutoff.</b> Contamination is impossible
+  by construction. This is the only strong evidence available, it decays as time passes, and it
+  needs continuous work to maintain.</p>
+  <p><b>Build a fresh equivalent</b> of an existing benchmark (same task, same difficulty, new
+  items), and report the gap. A model that scores well on the old and poorly on the new has told
+  you something specific.</p>
+  <p><b>Test for completion.</b> Prompt with the first part of a benchmark item and see whether
+  the model continues it verbatim. Catches memorisation, misses paraphrase.</p>
+  <p>None of these is free, which is why the honest position is usually to state what you did
+  check, and that the rest is unverified.</p>
+</div>
+
+<h3><span class="num">§23</span> Evaluating output with no right answer</h3>
+
+<p>Everything above assumes a label to compare against. Summaries, translations, explanations and
+generated code have no single correct output, and the evaluation problem changes shape.</p>
+
+<div class="box def">
+  <span class="label">Four approaches, with what each buys and costs</span>
+  <p><b>Reference overlap</b>: compare against one or more human-written answers by $n$-gram
+  overlap. Cheap, reproducible, and correlates weakly with quality: it penalises a good answer
+  phrased differently and rewards a bad one phrased conventionally.</p>
+  <p><b>Human judgement.</b> The standard everything else is validated against. Expensive, slow,
+  and it is a measurement with all of Part XIII §5's properties: it needs a guideline,
+  agreement statistics and adjudication.</p>
+  <p><b>Model judgement.</b> §24.</p>
+  <p><b>Task-grounded.</b> Where the output has a consequence you can check: does the code pass
+  its tests, does the query return the right rows, does the proof verify. By far the most
+  reliable when available, and available more often than people look for.</p>
+</div>
+
+<div class="box why">
+  <span class="label">Why to reach for a grounded proxy first</span>
+  <p>The generic instinct is to grade quality directly. The better instinct is to ask whether
+  the output feeds anything with a decidable outcome.</p>
+  <p>Generated code has tests. A summary can be evaluated by whether a reader who saw only the
+  summary answers questions correctly. A retrieval system can be evaluated by whether the
+  downstream answer improved. Each replaces a judgement with a measurement, and Part XIII §6's
+  warning applies in reverse: these are proxies, they should be named as proxies, and they are
+  still better than a similarity score against one reference.</p>
+</div>
+
+<h3><span class="num">§24</span> Model-as-judge</h3>
+
+<div class="readnow"><span class="label">Go and read</span><p><span class="src">Zheng et al. (2023)</span>, <i>Judging LLM-as-a-judge with MT-Bench and Chatbot Arena</i>. The paper that measured the practice instead of assuming it: agreement between a model judge and human preference, and the biases (position, verbosity, self-preference) quantified rather than waved at. Read §3 on the biases and note that the headline agreement number is computed <b>after</b> the mitigations.</p></div>
+
+<p>Use a strong model to grade outputs. It is fast, cheap, reproducible, and it has a set of
+biases specific enough to be worth listing.</p>
+
+<div class="box pitfall">
+  <span class="label">Pitfall: the known biases, all measurable</span>
+  <p><b>Position.</b> Presented with two answers, judges favour one position. <i>Check:</i>
+  present both orders and compare: the disagreement rate is the bias.</p>
+  <p><b>Length.</b> Judges prefer longer answers, roughly independent of content. <i>Check:</i>
+  correlate score with length.</p>
+  <p><b>Self-preference.</b> A judge tends to prefer output from itself or its family.
+  <i>Check:</i> use a judge from a different family than any system being compared.</p>
+  <p><b>Style over substance.</b> Confident, well-formatted, fluent wrong answers score well.
+  <i>Check:</i> the calibration of the judge against human labels on items where the answer is
+  verifiably wrong.</p>
+</div>
+
+<div class="box why">
+  <span class="label">Why it is usable anyway, under one condition</span>
+  <p>The condition is that <b>the judge is itself validated</b>, on your task, against human
+  labels, with the agreement reported.</p>
+  <p>That converts an unexamined assumption into a measurement: "our judge agrees with human
+  annotators 84% of the time on a sample of 300, against 91% inter-human agreement" is a usable
+  statement. It bounds what any judged comparison can establish, and it is exactly Part XIII
+  §5's apparatus applied to an automated annotator.</p>
+  <p>Without that validation you have a number produced by a process nobody has checked, being
+  used to decide which system is better. The cost of checking is a few hundred human labels
+  once.</p>
+</div>
+
+<h3><span class="num">§25</span> What a leaderboard is</h3>
+
+<p>A short section, because the conclusion follows from §§19–24 and is worth stating in one
+place.</p>
+
+<div class="box why">
+  <span class="label">Why a rank is weaker evidence than it looks</span>
+  <p>A leaderboard position is a single number, from a single run, on a fixed public test set,
+  selected as the best of an unreported search, on a benchmark that may be contaminated,
+  saturated, or collectively overfitted.</p>
+  <p>Each of §§19–22 removes some of its evidential value; together they remove most of it for
+  differences of a point or two. That is not an argument against benchmarks: they made the
+  field comparable and they are why progress was measurable at all. It is an argument for
+  reading a small gap as <b>weak evidence</b> rather than as a result.</p>
+  <p>The practical question to ask of any comparison, and it is the one Part V has been building
+  toward: <b>what would have to be true for this difference to be noise?</b> Usually: one seed,
+  an untuned baseline, a large search, and a test set the whole field has been tuning against.
+  If all four hold, the difference is noise until shown otherwise.</p>
+</div>

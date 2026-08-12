@@ -1,0 +1,130 @@
+<h2><span class="part-kicker">Part A</span>The ordering that is not there</h2>
+
+<p class="mvt">The nodes of a graph arrive in some order, and that order is an artefact of how the
+data was written down. A model that reads the order is learning something about the file format.
+This movement establishes the requirement precisely, builds the smallest architecture that meets
+it, and measures what meeting it is worth.</p>
+
+<h3><span class="num">§1</span> The symmetry, and where it comes from</h3>
+
+<div class="box def">
+  <span class="label">Invariance and equivariance</span>
+  <p>Let <span class="m">$g$</span> be a transformation of the input: here, a permutation of the
+  node labels. A function is <b>invariant</b> if
+  <span class="m">$f(g \cdot x) = f(x)$</span>, and <b>equivariant</b> if
+  <span class="m">$f(g \cdot x) = g \cdot f(x)$</span>.</p>
+  <p>A graph-level prediction should be invariant: relabelling the nodes cannot change whether a
+  molecule is soluble. A node-level prediction should be equivariant: relabelling the nodes permutes
+  the predictions the same way. Almost every architecture in this part is a stack of equivariant
+  layers finished by an invariant readout, and that is the whole design pattern.</p>
+</div>
+
+<div class="box why">
+  <span class="label">Why this is the same argument as Part X's</span>
+  <p>Part X §9 established that convolution is translation-equivariant and priced what that buys:
+  parameters shared across positions, and a sample not needed for every location.</p>
+  <p>The general statement is that <b>an architecture is a claim about which transformations leave
+  the answer unchanged</b>, and the parameter saving is the price the claim is worth. Convolution
+  claims translation. A graph network claims permutation. A point-cloud network claims rotation. Part
+  XXV §45 said the model family is a prior about the shape of the function; this movement says which
+  prior, and how to build it in.</p>
+</div>
+
+<h3><span class="num">§2</span> Sets first</h3>
+
+<div class="box def">
+  <span class="label">The general form of an invariant function on a set</span>
+  <p>Any permutation-invariant function of a set can be written</p>
+  <p class="m">$$f(\{x_1, \dots, x_n\}) = \rho\!\left(\sum_{i} \phi(x_i)\right)$$</p>
+  <p>for some <span class="m">$\phi$</span> and <span class="m">$\rho$</span>. Encode each element,
+  <b>sum</b>, then decode. The sum is doing all the work: it is the simplest operation that does not
+  care about order.</p>
+  <p>Mean and max are also invariant and are not equivalent. Sum can count and the other two cannot:
+  a set of ten identical elements and a set of one give the same mean. Max is robust to the tail
+  and discards multiplicity entirely. Which one you choose is a claim about what distinguishes your
+  inputs, and §16's expressivity results turn on it.</p>
+  <p><b>The caveat that goes with "any".</b> The claim is unconditional only if <span class="m">$\phi$</span>
+  is free to have any output dimension you like. Wagstaff et al. (2019) show that an exact
+  representation of every continuous invariant function on sets of size <span class="m">$n$</span>
+  needs a latent dimension of at least <span class="m">$n$</span>, and the construction fails
+  outright on sets whose size is unbounded. In practice a fixed, finite width is chosen, which makes
+  the representation approximate rather than exact, the same trade movement A returns to for the
+  symmetry itself.</p>
+</div>
+
+<h3><span class="num">§3</span> A graph is a set with structure</h3>
+
+<div class="box def">
+  <span class="label">The objects</span>
+  <p>A graph is a set of nodes, a set of edges, and features on either or both. Its adjacency matrix
+  <span class="m">$A$</span> depends on the node ordering; permuting the nodes by
+  <span class="m">$P$</span> sends <span class="m">$A \mapsto P A P^{\top}$</span>, which is a
+  similarity transform.</p>
+  <p>That last fact is useful immediately: any function of <span class="m">$A$</span> invariant
+  under similarity (its eigenvalues, its trace, the trace of any power) is automatically
+  permutation-invariant. The spectrum is the classical invariant, and Figure 1 uses it. Part XXVII §26 says what it is: the eigenvalues of a graph's Laplacian order its eigenvectors by how much they disagree across edges, which is exactly what frequency means on a line.</p>
+</div>
+
+<h3><span class="num">§4</span> What goes wrong without it</h3>
+
+<div class="box shapes">
+  <span class="label">Three costs of ignoring the symmetry</span>
+  <p><b>Sample efficiency.</b> A model reading a fixed ordering must learn the same fact once per
+  ordering it meets, and there are <span class="m">$n!$</span> of them.</p>
+  <p><b>Variable size.</b> A flattened adjacency matrix has a fixed dimension, so a model trained on
+  nine-node graphs cannot read a ten-node one at all. Every architecture in movement B handles any
+  size.</p>
+  <p><b>Guarantee.</b> Even a model that has learned the symmetry approximately can violate it on an
+  input it has not seen, and there is no way to check. A model that is invariant by construction
+  cannot.</p>
+</div>
+
+<h3><span class="num">§5</span> Measured</h3>
+
+<figure>
+  <img src="figures/gg/01-permutation.svg" alt="Accuracy of three models on graphs presented in the training ordering and relabelled">
+  <figcaption><b>Figure 1.</b> Nine-node graphs labelled by whether they contain enough triangles:
+  a property that is invariant and is not a sum over the adjacency entries. Given three thousand
+  training graphs, each in its own arbitrary ordering, the dense model scores <b>0.937</b> on
+  graphs in the ordering it trained on and <b>0.940</b> on the same graphs relabelled: relabelling
+  costs nothing measurable, so with enough examples the symmetry is learned from the data. What it
+  does not do is learn it <i>exactly</i>: permutation-augmented, the dense model reaches
+  <b>0.951</b> on the training ordering and <b>0.947</b> relabelled, while the model that is
+  invariant by construction, reading the adjacency spectrum, reaches <b>1.000</b> on both.</figcaption>
+</figure>
+
+<div class="box intuition">
+  <span class="label">The right reading of that</span>
+  <p>A symmetry is not something a model is incapable of learning. It is something a model spends
+  capacity and data learning, imperfectly, when it could have been given it for nothing.</p>
+  <p>The gap here is six points of accuracy on a task where the invariant model is exact. On a
+  larger symmetry group, with less data, or where the consequence of an inconsistent prediction is
+  serious, that gap is the argument for the rest of this part.</p>
+</div>
+
+<h3><span class="num">§6</span> Invariant features, and their ceiling</h3>
+
+<div class="box shapes">
+  <span class="label">Hand-built invariants, and why they are not the end</span>
+  <p><b>The spectrum.</b> Eigenvalues of the adjacency or Laplacian. Invariant, informative, and
+  Figure 1's readout.</p>
+  <p><b>Counts.</b> Degrees, triangles, small subgraph counts. Invariant and interpretable.</p>
+  <p><b>Sorted anything.</b> Sorting is the cheapest way to discard an order.</p>
+  <p>The limitation is that these are chosen in advance. Two graphs with the same spectrum can
+  differ in ways that matter (cospectral non-isomorphic graphs exist), and no fixed feature set
+  adapts to the task. Movement B's answer is to <b>learn</b> the invariant function instead, and
+  movement C's is that the learned family has a ceiling too.</p>
+</div>
+
+<h3><span class="num">§7</span> What movement A establishes</h3>
+
+<div class="box intuition">
+  <span class="label">Three things</span>
+  <p><b>An architecture is a claim about a symmetry</b>, and Part X's convolution is the special
+  case for translation. Equivariant layers with an invariant readout is the pattern.</p>
+  <p><b>Sum, mean and max are different claims.</b> Only sum can count, which §16 shows is not a
+  detail.</p>
+  <p><b>Building the symmetry in is exact; learning it is not.</b> Figure 1 measures the difference
+  as 1.000 on relabelled graphs against 0.947 for the permutation-augmented dense model; and the
+  model that learned it approximately can still be inconsistent on an input nobody checked.</p>
+</div>

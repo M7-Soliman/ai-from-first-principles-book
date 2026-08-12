@@ -1,0 +1,258 @@
+<h2><span class="part-kicker">Part D</span>Stopping, and sharing</h2>
+
+<h3><span class="num">§13</span> Early stopping</h3>
+
+<div class="sixty">
+  <span class="label">In 60 seconds</span>
+  <p>Watch validation error while you train, keep the parameters from the best point, and
+  stop when it has not improved for a while. It costs one extra evaluation per epoch and no
+  change to the objective, it needs no hyperparameter chosen in advance, and it is
+  probably the most-used regulariser in the field.</p>
+</div>
+
+<p>The procedure is trivial and the reason it works is not.</p>
+
+<div class="box def">
+  <span class="label">Early stopping</span>
+  <ol class="tight">
+    <li>Evaluate on a validation set every epoch.</li>
+    <li>Whenever it improves, <b>save the parameters</b>.</li>
+    <li>Stop after $p$ epochs with no improvement (the <b>patience</b>).</li>
+    <li>Return the saved parameters, not the final ones.</li>
+  </ol>
+  <p>Step 2 is the one people omit, and without it the procedure does nothing: you stop at
+  a worse point than you passed through.</p>
+</div>
+
+<div class="box why">
+  <span class="label">Why it is unusual among regularisers</span>
+  <p>Every method in Part B requires choosing a strength before training and re-training to
+  change it. Early stopping <b>chooses its own strength</b>, by measurement, during the one
+  run you were doing anyway.</p>
+  <p>That is close to free. The costs are honest but small: a validation set held out of
+  training, one evaluation per epoch, and the memory to keep a copy of the best parameters.
+  Set against re-training a model five times to sweep $\alpha$, it is a bargain, and it is
+  why it is nearly universal.</p>
+  <p>It also composes with everything else here, which not all of these do.</p>
+</div>
+
+<h4>Reclaiming the split</h4>
+
+<p>Early stopping was bought with a real cost: a slice of the data spent watching rather
+than training. Once step 3 has fired, call the number of updates at the saved point
+$i^*$; there is no reason to leave that watching slice idle in the model you actually
+ship, and there are two ways to get it back.</p>
+
+<div class="box def">
+  <span class="label">Two ways to retrain on everything</span>
+  <p><b>Retrain from scratch.</b> Reinitialise, pool the training and validation sets, and
+  train for $i^*$ <i>updates</i>, not epochs. The pooled set has a different number of
+  examples per epoch than the run that produced $i^*$, and it was the count of gradient
+  steps, not passes over the data, that decided how far §14's shrinkage had travelled.</p>
+  <p><b>Continue from where you stopped.</b> Keep the parameters from the original run, fold
+  the validation examples into the training set, and keep training, with nothing held out
+  to watch any more, until the loss on those now-unheld-out examples falls to the value the
+  training objective had already reached at $i^*$. That threshold is a number you measured
+  during the first run; the second run is training until it catches up to it on data the
+  model has not yet been fitted to.</p>
+</div>
+
+<div class="box pitfall">
+  <span class="label">Pitfall: the second strategy is not guaranteed to stop</span>
+  <p>The first strategy always terminates: $i^*$ steps is $i^*$ steps, known in advance.
+  The second stops when a measured quantity crosses a threshold, and nothing guarantees it
+  ever will. Pooling in the validation data changes the loss landscape slightly, and the
+  validation loss on it can in principle approach the target asymptotically without crossing
+  it; a real implementation needs its own patience-style escape hatch, on top of the one
+  from §13's procedure.</p>
+  <p>Neither option is free: both spend the compute of a full second run, and the first also
+  discards the parameters the original run produced, having used that run only to measure
+  $i^*$. Whether the reclaimed data is worth a second full training pass is a judgement call:
+  strongest when the validation slice was a real fraction of what little data you had, weak
+  when data was never the bottleneck.</p>
+</div>
+
+<h3><span class="num">§14</span> Early stopping <i>is</i> weight decay</h3>
+
+<p>Now the result that makes this part cohere. Early stopping looks procedural, a stopping
+rule, nothing to do with the objective. It turns out to traverse the same family of
+solutions as $L^2$.</p>
+
+<p>The argument is short if you have §4. On a quadratic loss, gradient descent from
+$\mathbf{w} = \mathbf{0}$ with rate $\epsilon$ moves in the eigenbasis independently per
+direction, and after $\tau$ steps has covered a fraction</p>
+
+$$1 - (1 - \epsilon\lambda_i)^{\tau}$$
+
+<p>of the distance to the unregularized optimum in direction $i$. Compare that against
+§4's ridge result, $\lambda_i/(\lambda_i + \alpha)$. Both are functions that rise from 0 to
+1 as curvature grows; both delete flat directions and keep sharp ones; and setting</p>
+
+$$\alpha \approx \frac{1}{\tau\epsilon}$$
+
+<p>lines the two families up. <b>Training for fewer steps is applying a stronger
+penalty.</b></p>
+
+<figure>
+  <img src="figures/rg/05-early-stopping.svg" alt="Kept-fraction curves for early stopping and ridge, and their coefficients compared">
+  <figcaption><b>Figure 5.</b> Left: the exact curves, solid is early stopping at four
+  stopping points, dashed is ridge at the matched $\alpha$. Same shape, same ordering, same
+  direction of travel. Right: a <b>real gradient-descent trajectory</b> plotted against a
+  <b>real ridge path</b>, coefficient by coefficient, with the diagonal for reference.
+  <b>The correspondence is close but not exact</b>; the largest gap in kept fraction is
+  up to ~0.23, in the transition region where a direction is half-learned.</figcaption>
+</figure>
+
+<div class="box pitfall">
+  <span class="label">Pitfall: "equivalent" is doing work in that sentence</span>
+  <p>This result is often stated as an equivalence and it is worth being precise, because
+  the figure above is the measurement rather than the slogan.</p>
+  <p>What is true: both methods traverse a <b>one-parameter family of solutions in the same
+  order</b>, shrinking low-curvature directions first, and they agree closely at both ends:
+  a barely-trained model and a heavily-penalised one really are near-identical, and so are a
+  fully-trained model and an unpenalised one.</p>
+  <p>What is not true: that they produce the same weights at matched settings. In the middle
+  of the range they differ by up to 23% of a direction's magnitude, and the derivation
+  assumed a quadratic loss, which a neural network's is not.</p>
+  <p>The useful reading is directional rather than numerical: <b>if you are already using
+  early stopping, you are already regularizing</b>, and adding weight decay on top is adding
+  to a total you had not counted, as in §12's Try it.</p>
+</div>
+
+<div class="box intuition">
+  <span class="label">Intuition: why the order is the same</span>
+  <p>Both methods delete flat directions first, for the same underlying reason, and it is
+  worth seeing that it is one reason rather than two coincidences.</p>
+  <p><b>Gradient descent</b> moves fastest where the gradient is largest, which is where
+  curvature is highest. A sharp direction is traversed in a handful of steps; a flat one
+  takes thousands. Stop early and the flat ones are still near zero, not because you
+  penalised them, but because you did not wait.</p>
+  <p><b>Ridge</b> compares each direction's curvature against $\alpha$ and erases the ones
+  that lose.</p>
+  <p>Same ordering, arrived at by opposite routes: one by patience, one by decree. And the
+  quantity doing the ordering in both is the curvature, which is Part I's eigenvalues
+  turning up for the fourth time.</p>
+</div>
+
+<h3><span class="num">§15</span> Parameter tying and sharing</h3>
+
+<p>A different kind of preference: rather than pulling weights toward zero, pull them
+toward <b>each other</b>.</p>
+
+<p><b>Tying</b> adds a penalty $\|\mathbf{w}^{(A)} - \mathbf{w}^{(B)}\|_2^2$ between two
+models, expressing a belief that two related tasks should have similar solutions.
+<b>Sharing</b> goes further and makes them the same parameters, not similar but identical.</p>
+
+<div class="box why">
+  <span class="label">Why sharing is the most important regulariser in this book</span>
+  <p>Sharing is a stronger statement than any penalty, and its effect on capacity is not
+  incremental.</p>
+  <p>A penalty says "these weights should be small". Sharing says "<b>these weights are the
+  same weight</b>", which removes parameters outright rather than constraining them. A
+  convolutional layer applying one $3\times3$ filter across a million pixel positions has
+  nine parameters where a fully connected layer would have millions.</p>
+  <p>And the preference it encodes is a real fact about images: <b>an edge detector that
+  works in the top-left corner works in the bottom-right</b>. That is translation
+  invariance, and it is true of photographs in a way that no generic smallness preference
+  could capture. Part VI §7's theorem said the winning method is the one whose assumptions
+  match the problem; convolution is the clearest instance in the field.</p>
+  <p>The same move gives recurrence its parameter savings (one transition matrix applied at
+  every time step, expressing that the rules of a sequence do not change with position) and
+  Part X and Part XI are, from this angle, two long studies of what to share.</p>
+</div>
+
+<p>Worth noticing: sharing is regularization by §1's definition. It raises training error,
+since a shared-weight model cannot fit everything an unshared one can, and it is not
+usually taught as regularization at all. It is taught as architecture. That is the same
+thing seen from a different chair, and Part VI §20's recipe said so: the model family is
+where your assumptions live.</p>
+
+<h3><span class="num">§16</span> Multi-task learning</h3>
+
+<p>Sharing weights across <i>layers</i> was §15. Sharing them across <b>tasks</b> is the
+same mechanism pointed in a different direction, and it is one of the few regularisers that
+gets stronger the more you ask of it.</p>
+
+<p>The arrangement: several tasks, one model, with the early layers shared and a small
+task-specific head on top of each. Every task's gradient updates the shared trunk.</p>
+
+<div class="box intuition">
+  <span class="label">Intuition: a representation that has to serve several masters</span>
+  <p>A trunk trained on one task may latch onto anything that predicts that task, including
+  accidents of the dataset. A trunk that must simultaneously support four tasks cannot
+  afford to: a feature that helps one and is useless for the others earns less of the
+  representation's capacity than one that helps all four.</p>
+  <p>So the shared layers are pushed toward <b>factors that genuinely underlie the data</b>
+  rather than toward whatever correlates with one label. That is a preference in §1's sense,
+  and it is a strong one, because it comes from the other tasks rather than from a generic
+  taste for small weights.</p>
+  <p>It is also the statistical argument in disguise. Each task contributes its own examples
+  to the shared parameters, so the trunk is effectively fitted on the union of all the
+  datasets, meaning more data for the shared part, which by §9 is the trade nothing else offers.</p>
+</div>
+
+<div class="box pitfall">
+  <span class="label">Pitfall: the assumption can be false, and then it costs you</span>
+  <p>Multi-task learning assumes the tasks <b>share underlying structure</b>. When they do
+  not, the shared trunk is pulled in conflicting directions and every task ends up worse
+  than it would have been alone, an effect with the unlovely name <i>negative transfer</i>.</p>
+  <p>The symptom is that the multi-task model underperforms single-task baselines on
+  <i>every</i> task at once, which is diagnostic: a genuine capacity problem would not be so
+  uniform. The check is the one this part keeps returning to: train the single-task
+  baselines, properly tuned, and compare. Part VI §11 insisted on that for a reason.</p>
+</div>
+
+<h3><span class="num">§17</span> Semi-supervised learning</h3>
+
+<p>Labels are expensive and unlabelled data is usually abundant. Semi-supervised learning
+uses both, and the reason it counts as regularization is worth being precise about.</p>
+
+<p>Unlabelled data carries no information about $p(y \mid \mathbf{x})$; that is what
+"unlabelled" means. What it carries is information about $p(\mathbf{x})$: where the data
+lives, how it clusters, what its manifold looks like.</p>
+
+<div class="box why">
+  <span class="label">Why that helps at all</span>
+  <p>It helps only under an assumption, and the assumption is worth stating because it is
+  the whole method.</p>
+  <p><b>The structure of $p(\mathbf{x})$ must be informative about $p(y \mid \mathbf{x})$.</b>
+  Concretely: that points in the same cluster tend to share a label, or that the decision
+  boundary lies in a low-density region rather than through the middle of a cluster.</p>
+  <p>If that is true, unlabelled data constrains the classifier: it tells you where the
+  boundary may not go, and it does so using data that cost nothing. If it is false, the
+  unlabelled data is noise dressed as a prior, and it will hurt.</p>
+  <p>Part VI §2 already made half of this argument: the chain rule factors
+  $p(\mathbf{x}, y) = p(y \mid \mathbf{x})p(\mathbf{x})$, so learning about one factor is
+  learning about the joint. Semi-supervised learning is that identity used deliberately.</p>
+</div>
+
+<p>The modern form is self-supervised pretraining, and it is the same idea at scale: invent
+a task from unlabelled data (predict a masked word, predict a rotated patch), then train a
+representation on it, then fine-tune on the small labelled set you actually have. Part VI §2
+noted that a language model's whole training signal is manufactured this way.</p>
+
+<p>Which makes semi-supervised learning the regulariser with the largest practical footprint
+in the modern field, and the one that looks least like a regulariser. It fits §1's
+definition exactly: it does not reduce training error on the labelled task, and it reduces
+generalisation error, by constraining the representation with information from somewhere
+else.</p>
+
+<div class="box try">
+  <span class="label">Try it</span>
+  <p>You train with early stopping at epoch 40 out of a planned 400, learning rate $10^{-2}$.
+  A colleague suggests adding weight decay. Estimate the penalty you are already applying,
+  and say what you would do.</p>
+</div>
+
+<p><b>Answer.</b> By §14, $\alpha \approx 1/(\tau\epsilon)$. With $\tau = 40$ epochs and
+$\epsilon = 10^{-2}$, using epochs as the step unit, which is rough but the right order,
+that is $\alpha \approx 1/(40 \times 0.01) = 2.5$.</p>
+<p>That is not a small penalty. Stopping at 40 of 400 epochs means the run was terminated
+after a tenth of its intended course, which is a strong statement about how little of the
+flat-direction structure you wanted.</p>
+<p><b>What to do:</b> not "add weight decay and see", because you would be adding to an
+unmeasured 2.5 and any small $\alpha$ you tried would be invisible. Either sweep weight
+decay <i>with early stopping disabled</i>, so you are measuring one knob, or accept that
+early stopping is already the regulariser and tune the patience instead. The failure mode
+this avoids is the common one: two regularisers, each looking ineffective, because each is
+being tested in the shadow of the other.</p>

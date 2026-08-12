@@ -1,0 +1,215 @@
+<h2><span class="part-kicker">Part F</span>Search with a learned model</h2>
+
+<p class="mvt">Everything in this part was invented for problems with a written-down state space and a
+computable goal test. Modern systems have neither: the proposal is a sample from a network, the
+evaluation is another network, and both are wrong in correlated ways. This movement is what survives
+the translation, what does not, and the one number that decides whether searching is worth doing at
+all.</p>
+
+<h3><span class="num">§38</span> The shape almost everything has</h3>
+
+<div class="box shapes">
+  <span class="label">Propose, search, verify</span>
+  <p><b>A generator</b> proposes candidates: whole answers, next steps, programs, actions. This is
+  the learned policy, and it defines the branching factor.</p>
+  <p><b>A search procedure</b> decides which proposals to extend and which to abandon. Sampling
+  <span class="m">$k$</span> independent candidates is the degenerate case: a tree of depth one. Beam
+  search over reasoning steps and MCTS over partial solutions are the non-degenerate ones.</p>
+  <p><b>A verifier</b> scores candidates, and the search uses the score. It may be a real checker (a
+  compiler, a test suite, a proof assistant) or a learned model, and the difference between those two
+  is the largest single fact in this movement.</p>
+</div>
+
+<p>Reading it this way makes the classical questions apply again, and they are questions nobody asks
+of these systems. What is the branching factor, and is it the generator's temperature? What is the
+depth, and does the evaluation work at intermediate depths or only at the end? Is the selection rule
+admissible in any sense: that is, can it discard a candidate that would have been best? For
+sampling-and-selecting the answer to the last one is <b>yes, routinely</b>, and §41 measures the
+consequence.</p>
+
+<h3><span class="num">§39</span> The degenerate case, which is most of the field</h3>
+
+<div class="box shapes">
+  <span class="label">Three things you can do with <span class="m">$k$</span> samples</span>
+  <p><b>Best-of-<span class="m">$n$</span>.</b> Sample <span class="m">$k$</span>, score each with a
+  verifier, return the best. Requires a verifier and inherits its errors exactly.</p>
+  <p><b>Self-consistency.</b> Sample <span class="m">$k$</span>, return the most common final answer.
+  Requires no verifier at all, and works because independent errors scatter while a correct derivation
+  concentrates. It fails precisely when errors are <i>not</i> independent: when the model has a
+  systematic misconception it reproduces every time, majority voting amplifies it. This is the same
+  distinction as Part VIII §18's ensembles: averaging removes variance, never bias.</p>
+  <p><b>Pass@<span class="m">$k$</span>.</b> Report success if <i>any</i> of the
+  <span class="m">$k$</span> is correct. This is not a method (there is no selection rule); it is the
+  ceiling that a perfect selector would reach, and it belongs on every plot as the upper bound the
+  other two are being measured against. Reporting pass@<span class="m">$k$</span> as a capability
+  number is the most common measurement error in this area.</p>
+</div>
+
+<h3><span class="num">§40</span> Verifiers</h3>
+
+<div class="box def">
+  <span class="label">Two kinds, and the asymmetry that makes them useful</span>
+  <p>A <b>sound</b> verifier never accepts a wrong answer; a <b>complete</b> one never rejects a right
+  one. A compiler, a test suite and a proof checker are sound and incomplete, and soundness is what
+  makes search over their outputs work: false positives are what search converts into confident
+  errors, and false negatives merely cost samples.</p>
+  <p>An <b>outcome</b> verifier scores a finished answer. A <b>process</b> verifier scores each
+  intermediate step. Only the second can guide a search that expands partial solutions, because only
+  the second has an opinion about an unfinished one, which is why step-level supervision is worth its
+  much greater labelling cost, and why systems that cannot afford it are stuck with the depth-one tree
+  of §39.</p>
+</div>
+
+<div class="box why">
+  <span class="label">Verification is easier than generation, sometimes</span>
+  <p>The premise underneath all of this is that checking is cheaper than producing. It is exactly true
+  for problems in NP, approximately true for code with tests and for arithmetic, and <b>false</b> for
+  open-ended questions where "is this a good answer" is as hard as writing one.</p>
+  <p>The mistake to avoid is assuming the premise holds because the pipeline has a box labelled
+  verifier. When the verifier is a network trained on the same data as the generator, its errors are
+  correlated with the generator's: it is convinced by exactly the answers the generator is most
+  confident about, right or wrong. Independent error is the entire value of a verifier, and a learned
+  one supplies less of it than its accuracy suggests.</p>
+</div>
+
+<h3><span class="num">§41</span> How good a verifier has to be</h3>
+
+<figure>
+  <img src="figures/se/08-verifier.svg" alt="Solve rate against measured verifier accuracy for several candidate counts, most curves crossing below the first-sample baseline, beside the break-even accuracy rising with the number of candidates">
+  <figcaption><b>Figure 8.</b> A simulated candidate population: base solve rate 0.34, and errors
+  either ordinary or <i>attractive</i>, the same wrong answer the generator keeps producing, which a
+  verifier trained on the same distribution finds convincing. Verifier accuracy is <b>measured</b> as
+  the fraction of correct/incorrect pairs ranked the right way round, not set. At accuracy 0.672 the
+  solve rate peaks at <span class="m">$k=4$</span> (0.432) and falls to 0.295 by
+  <span class="m">$k=32$</span>. The break-even accuracy (where selecting equals taking the first
+  sample) is <b>0.49 at <span class="m">$k=2$</span> and 0.71 at <span class="m">$k=32$</span></b>.
+  The population is a model, and the relationship rather than the constant is what transfers.</figcaption>
+</figure>
+
+<div class="box why">
+  <span class="label">More candidates raises the bar for the verifier, it does not lower it</span>
+  <p>This is the counter-intuitive result and the reason the figure exists. The instinct is that
+  sampling more gives the verifier more to work with, so a mediocre verifier should do better with a
+  larger <span class="m">$k$</span>. The measurement says the opposite: <b>0.49, 0.56, 0.63, 0.68,
+  0.71</b> as <span class="m">$k$</span> goes 2, 4, 8, 16, 32.</p>
+  <p>The mechanism is simple once seen. Sampling more candidates surfaces more of everything,
+  including more copies of the one wrong answer the verifier likes best. Selection takes a maximum,
+  and a maximum over more draws finds the tail, which is the failure mode when the tail is the
+  verifier's blind spot. It is the same arithmetic as reward hacking under KL-free optimisation in
+  Part XXI: optimising harder against an imperfect judge finds the judge's errors, and
+  <span class="m">$k$</span> <i>is</i> how hard you are optimising.</p>
+  <p><b>What to do with this.</b> Measure the break-even before scaling <span class="m">$k$</span>,
+  not after. If solve rate peaks at <span class="m">$k=4$</span> and declines, that is not noise and
+  the fix is not more samples: it is a better verifier, or a selection rule that does not take a hard
+  maximum. Majority voting among <i>verifier-accepted</i> candidates is the cheap mitigation, because
+  it stops the tail from winning outright.</p>
+</div>
+
+<h3><span class="num">§42</span> Test-time compute is a search budget</h3>
+
+<div class="box why">
+  <span class="label">An old quantity with a new name</span>
+  <p>Spending more computation at the moment of use is the oldest idea in this part: it is the node
+  budget. What is new is that the proposal distribution is learned, so the budget can be spent along
+  several axes (more samples, longer chains, more steps of a tree search, more rounds of revision)
+  and they are not interchangeable.</p>
+  <p>Three results from earlier in this part predict what happens as the budget grows, and all three
+  have been rediscovered in the reasoning-model literature. <b>Figure 6:</b> the tuning that was right
+  at a small budget is wrong at a large one, and a badly tuned search does not improve with compute at
+  all. <b>Figure 4:</b> a wider search maximises the proxy more exactly, which helps only while the
+  proxy is good. <b>Figure 8:</b> selection quality must improve with the budget or the budget hurts.
+  A system that gets worse with more thinking is not paradoxical; it is one of these three, and the
+  three are distinguishable by measurement.</p>
+</div>
+
+<h3><span class="num">§43</span> Search inside the model, and around it</h3>
+
+<div class="box why">
+  <span class="label">Two places to put it, with different properties</span>
+  <p><b>Around</b> the model, search is explicit: a program samples, scores and selects, and every
+  quantity in this part is inspectable. You can count nodes, log the branching factor, swap the
+  selection rule, and prove things about the result given assumptions about the parts.</p>
+  <p><b>Inside</b> the model, a long chain of tokens can implement backtracking, case analysis and
+  self-correction, learned rather than programmed. This is more flexible (the model decides how much
+  to spend and on what) and it is not inspectable in any of the ways above. There is no node count,
+  no admissibility, and no way to bound the answer's quality.</p>
+  <p>The engineering point is that these compose rather than compete, and they fail differently. An
+  internal search that goes wrong produces a confident wrong answer with a fluent justification. An
+  external search that goes wrong produces a number you can plot against a budget. When something has
+  to be checkable (which is most of the cases where any of this matters), the external structure is
+  what makes the checking possible, and it is worth keeping even when the internal version is
+  stronger on average.</p>
+</div>
+
+<h3><span class="num">§44</span> When not to search</h3>
+
+<div class="box try">
+  <span class="label">Four questions, in order, before adding search to anything</span>
+  <p><b>Is there a verifier with errors independent of the generator's?</b> If not, §41 says the
+  search will find the correlated failure, and more budget makes it worse. A real checker (tests, a
+  type system, an interpreter) answers this yes and a same-family reward model usually answers it no.</p>
+  <p><b>Does the ceiling justify the cost?</b> Compute pass@<span class="m">$k$</span> first. It is the
+  best any selection rule could do, it costs one run to measure, and if it is close to pass@1 the
+  generator cannot solve the problem and no search will make it.</p>
+  <p><b>Can partial solutions be evaluated?</b> If not, every tree search degenerates to sampling and
+  the tree machinery is decoration.</p>
+  <p><b>Is the budget better spent on the generator?</b> §33's lesson runs both ways: search amplifies
+  a policy, and amplifying a stronger policy is cheaper. A fixed compute budget has to be split, and
+  the split is an empirical question that is almost never measured because the two halves usually
+  belong to different teams.</p>
+</div>
+
+<h3><span class="num">§45</span> What to carry forward</h3>
+
+<div class="box intuition">
+  <span class="label">Six things</span>
+  <p><b>A heuristic buys less than you think, and buys it late.</b> Figure 1 measures a perfect
+  heuristic at 4.0× on a grid, with half a perfect one worth 1% of the saving, because A* must
+  expand everything with <span class="m">$f\lt C^*$</span> and only exactness prunes the optimal
+  corridor.</p>
+  <p><b>A bound describes the worst case, not the behaviour.</b> Figure 2 measures 1.25× where the
+  guarantee permitted 8×. Choose the weight by measuring, not by deciding what you can tolerate.</p>
+  <p><b>Admissible is not consistent.</b> Figure 3 measures 59% of expansions as re-expansions at
+  sparse coverage. A learned heuristic is the sparse inconsistent kind, so closing states forfeits
+  optimality and not closing them forfeits the running time: pick knowingly.</p>
+  <p><b>Ordering beats the pruning rule.</b> Figure 7 measures perfect ordering at exactly the
+  Knuth–Moore count, <span class="m">$b^{d/2}$</span>, worth a doubling of depth, and most of it is
+  available from cheap approximations.</p>
+  <p><b>The bound's tightness is the algorithm.</b> Figure 5 measures two valid bounds differing by
+  19× at <span class="m">$n=18$</span>, one of which does not finish at all beyond it. Validity is
+  correctness; tightness is whether it works.</p>
+  <p><b>More samples raises the bar for the verifier.</b> Figure 8 measures break-even accuracy rising
+  from 0.49 to 0.71 as <span class="m">$k$</span> goes 2 to 32. Measure it before scaling, because
+  past it the extra compute is buying worse answers.</p>
+</div>
+
+<div class="box why">
+  <span class="label">What this part deliberately leaves out</span>
+  <p>Propositional and first-order logic, unification and resolution theorem proving, knowledge
+  representation and ontologies, SAT and SMT solving, constraint propagation and arc consistency, and
+  STRIPS-style classical planning with planning graphs and hierarchical task networks.</p>
+  <p>All are real and several are beautiful. They are excluded because this book is organised around
+  what a practitioner needs rather than around the field's history, and none of them is load-bearing
+  for building, training or reasoning about modern systems. The half of the tradition that <i>is</i>
+  load-bearing (state-space search, admissibility, bounds, ordering, sampling-based planning and
+  search against a verifier) is the half that is here. Where to read the rest is in the sources.</p>
+</div>
+
+<div class="sixty">
+  <span class="label">Sixty seconds</span>
+  <p>Search is how a system spends more computation on a harder question, and every version of it is
+  the same algorithm with a different rule for what comes off the frontier next. A heuristic that never
+  overestimates makes A* optimal, and the proof is three lines; what it does not tell you is how much
+  work you save, which turns out to be far less than advertised and to arrive only when the heuristic
+  is nearly exact. Give up optimality deliberately and you get a bound, which will be far looser than
+  what actually happens. When the space is too big to hold, you keep the best few and accept that a
+  wider beam is sometimes a worse answer because your objective is not what you wanted; or you keep a
+  bound and throw away regions unexamined, where the bound's tightness rather than its validity is the
+  whole performance story. In continuous spaces you stop enumerating and start sampling, which buys
+  probabilistic completeness and nothing else. Against an adversary, pruning is exact and free, and the
+  order in which you try moves is worth a doubling of search depth, more than any evaluation function
+  ever was. And in the modern form, where the proposals come from a network and the scoring comes from
+  another one, the number that decides everything is how good the verifier is: sampling more candidates
+  raises the accuracy it must have, because a maximum over more draws finds the tail, and the tail is
+  where a verifier trained on the same data as the generator is wrong.</p>
+</div>

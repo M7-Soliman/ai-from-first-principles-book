@@ -1,0 +1,268 @@
+<h2><span class="part-kicker">Part D</span>Testing, and how it goes wrong</h2>
+
+<h3><span class="num">§11</span> Hypothesis testing</h3>
+
+<div class="sixty">
+  <span class="label">In 60 seconds</span>
+  <p>Assume nothing is going on: the <b>null hypothesis</b>. Compute how surprising your
+  data would be under that assumption. If it is surprising enough, reject the assumption.
+  That is the whole procedure, and its logic is proof by contradiction with the certainty
+  replaced by a probability.</p>
+</div>
+
+<p>The structure is always the same:</p>
+
+<ol>
+  <li>State a <b>null hypothesis</b> $H_0$, typically "there is no difference".</li>
+  <li>Choose a <b>test statistic</b> that measures departure from it.</li>
+  <li>Work out that statistic's distribution <i>assuming $H_0$ is true</i>.</li>
+  <li>Compute where your observed value falls in that distribution.</li>
+</ol>
+
+<p>That structure has a peculiar shape, and it is worth asking why before accepting it. You
+are made to assume the opposite of what you believe, and then permitted only to argue
+against it. Why not simply estimate whether the effect is real?</p>
+
+<div class="box intuition">
+  <span class="label">Intuition: you can only compute probabilities under a specific claim</span>
+  <p>The reason is arithmetic rather than philosophy. To calculate anything you need a
+  distribution, and "there is no difference" pins one down exactly: the two groups came from
+  the same population, so you know precisely how the statistic behaves. It is a single,
+  fully specified world you can compute in.</p>
+  <p>"There is a difference" specifies nothing. A difference of what size? The alternative
+  is not one hypothesis but an infinite family, and you cannot compute a probability under
+  a family. So the test is built on the only hypothesis concrete enough to calculate with,
+  and the calculation runs in the direction that hypothesis allows.</p>
+  <p>The logic is proof by contradiction with the certainty softened. In mathematics you
+  assume the opposite and derive an impossibility. Here you assume the opposite and derive
+  something merely <i>very unlikely</i>, and treat that as grounds to abandon the
+  assumption.</p>
+</div>
+
+<p>Which forces an asymmetry that causes more misreading than anything else in this part.
+<b>The procedure can reject the null. It can never accept it.</b> A contradiction refutes an
+assumption; the failure to find one establishes nothing, because you may simply not have
+looked hard enough.</p>
+
+<p>So "we did not reject $H_0$" means only that this experiment did not produce evidence
+against it. It does not mean the null is true, and it does not mean the effect is absent. It
+is the verdict "not proven" rather than "innocent", and the reason it gets read as the
+stronger claim is that people want an answer to a question the procedure was never built to
+answer. Section 13 gives that failure its proper name: an underpowered study returns "not
+proven" almost regardless of what is true.</p>
+
+<div class="box def">
+  <span class="label">Definition: p-value</span>
+  <p>The <b>p-value</b> is the probability of observing a result at least as extreme as
+  yours, <b>if the null hypothesis were true</b>.</p>
+</div>
+
+<p>Every clause in that sentence is load-bearing, and §12 is about what happens when they
+are dropped. Note in particular the direction of the conditioning: it is the probability
+of <b>the data given the hypothesis</b>, never the hypothesis given the data. Part II §7
+warned that those two are different quantities, and Part II §22 measured how far apart they can be.
+The p-value sits on the side you can compute; the number you wanted is on the side you
+cannot reach without a prior.</p>
+
+<figure>
+  <img src="figures/st/06-pvalues.svg" alt="p-value histograms with no effect and with a real effect">
+  <figcaption><b>Figure 6.</b> Left: six thousand comparisons of two identical populations.
+  The p-values are <b>uniform</b> (every value equally likely), and about 5% land below
+  0.05 by construction. That is not a flaw; it is the definition. Right: with a real
+  difference present, p-values pile up near zero. The test works by making the second
+  picture distinguishable from the first.</figcaption>
+</figure>
+
+<h3><span class="num">§12</span> What a p-value is not</h3>
+
+<div class="sixty">
+  <span class="label">In 60 seconds</span>
+  <p>Run one test at the 5% level and you have a 5% false-positive rate. Run twenty
+  independent tests and the chance of at least one false positive is about 64%. Run enough
+  and a false positive is essentially guaranteed. <b>Hyperparameter search is multiple
+  testing</b>, and almost nobody treats it that way.</p>
+</div>
+
+<div class="readnow"><span class="label">Go and read</span><p><span class="src">Wasserstein &amp; Lazar (2016)</span>, <i>The ASA statement on p-values</i>. Two pages in which a professional body states plainly what a p-value is not, having concluded that the misuse was serious enough to warrant an official position. Read it and then reread any paper you have recently trusted.</p></div>
+
+<div class="box pitfall">
+  <span class="label">Pitfall: four wrong readings of $p = 0.03$</span>
+  <p><b>"There is a 3% chance the null hypothesis is true."</b> No. The p-value is computed
+  <i>assuming</i> the null is true; it cannot also be a probability about it. Getting from
+  one to the other requires a prior and Bayes' rule (Part II §21, and §17 below).</p>
+  <p><b>"There is a 97% chance the effect is real."</b> Same error, restated.</p>
+  <p><b>"The effect is large."</b> No. A p-value conflates <b>effect size</b>
+  (the actual magnitude of a difference, often expressed in standard deviations, e.g.
+  Cohen's $d = (\mu_A - \mu_B)/\sigma$) with sample size. A trivial difference becomes
+  significant with enough data; an enormous one stays non-significant without it.
+  <b>Always report the effect size separately.</b></p>
+  <p><b>"$p = 0.06$ means there is no effect."</b> No. Failing to reject is not evidence of
+  absence; it may only mean the study was too small to see anything, which is §13.</p>
+</div>
+
+<div class="box history">
+  <span class="label">History: the 0.05 threshold was a casual suggestion</span>
+  <p>The convention that $p < 0.05$ constitutes evidence traces to Ronald Fisher in the
+  <span class="year">1920</span>s, and he proposed it far more loosely than its later career
+  suggests, as a convenient rule of thumb, roughly the two-standard-deviation point, with
+  the explicit expectation that researchers would use judgement and that a single experiment
+  settles nothing.</p>
+  <p>It hardened into a bright line anyway, largely through textbooks and journal policy. By
+  the late twentieth century, results on one side of 0.05 were publishable and results on the
+  other side frequently were not, which created an obvious and enormous incentive to end up
+  on the correct side.</p>
+  <p>The consequences arrived in the <span class="year">2010</span>s as the <b>replication
+  crisis</b>: large coordinated efforts to repeat well-known published findings, across
+  psychology, medicine and economics, succeeded well under half the time. In <span
+  class="year">2016</span> the American Statistical Association took the unusual step of
+  issuing a formal statement on the misuse of p-values, and in <span class="year">2019</span>
+  hundreds of statisticians signed a call to abandon the notion of statistical significance
+  as a threshold entirely.</p>
+  <p>The relevance to this field is direct. Machine learning has the same incentive
+  structure (a number must beat a benchmark to be publishable), and considerably weaker
+  statistical hygiene.</p>
+</div>
+
+<h3><span class="num">§13</span> Power, and the studies that cannot see</h3>
+
+<div class="box def">
+  <span class="label">Definition: power</span>
+  <p><b>Power</b> is the probability of detecting an effect that is genuinely there. It
+  rises with the size of the effect and with the sample size, and it is the property most
+  often neglected.</p>
+</div>
+
+<p>There are two ways for a test to be wrong, and they trade against each other:</p>
+
+<table class="compact">
+  <thead><tr><th></th><th>$H_0$ is true</th><th>$H_0$ is false</th></tr></thead>
+  <tbody>
+    <tr><td><b>Reject</b></td><td>Type I error: a false alarm, at rate $\alpha$</td><td>correct detection, at rate = power</td></tr>
+    <tr><td><b>Do not reject</b></td><td>correct</td><td>Type II error: a miss</td></tr>
+  </tbody>
+</table>
+
+<figure>
+  <img src="figures/st/07-power.svg" alt="Power curves against effect size for three sample sizes">
+  <figcaption><b>Figure 7.</b> Simulated power against true effect size. A study with
+  $n = 10$ misses a genuine half-standard-deviation effect the large majority of the time.
+  <b>An underpowered study that finds nothing has established nothing</b>, and, worse, one
+  that does find something has probably overestimated it, since only the luckiest samples
+  cleared the threshold.</figcaption>
+</figure>
+
+<h3><span class="num">§14</span> Multiple comparisons</h3>
+
+<div class="readnow"><span class="label">Go and read</span><p><span class="src">Benjamini &amp; Hochberg (1995)</span>, <i>Controlling the false discovery rate</i>. The practical alternative to Bonferroni when you are screening hundreds of hypotheses and cannot afford its severity. Then <span class="src">Ioannidis (2005)</span>, <i>Why most published research findings are false</i>, which combines this section, low power and publication incentives into an argument about an entire literature. It applies to benchmark-driven fields exactly as written.</p></div>
+
+<p>The arithmetic is unforgiving. With $k$ independent tests each at level $\alpha$, the
+probability of at least one false positive is</p>
+
+$$1 - (1-\alpha)^k$$
+
+<p>which for $\alpha = 0.05$ reaches 40% by $k = 10$, 64% by $k = 20$, and 92% by
+$k = 50$.</p>
+
+<figure>
+  <img src="figures/st/08-multiple-comparisons.svg" alt="False positive probability rising with k, and the best-of-k statistic drifting upward">
+  <figcaption><b>Figure 8.</b> Left: the probability of at least one false positive against
+  the number of tests. Right, and more directly relevant: the <b>best</b> score among $k$
+  candidates, when every candidate is genuinely worthless. Simply taking the maximum drags
+  the reported number upward. The winner of a large search looks good <i>because</i> it won
+  a large search.</figcaption>
+</figure>
+
+<div class="box why">
+  <span class="label">Why this matters: you are already doing this</span>
+  <p>Every one of these is multiple testing wearing a different name:</p>
+  <ul class="tight">
+    <li><b>Hyperparameter search.</b> Two hundred configurations, report the best. That is
+    two hundred tests and one selected maximum.</li>
+    <li><b>Architecture search.</b> Same, with a larger space.</li>
+    <li><b>Trying several random seeds and reporting the good one.</b> Same, and harder to
+    defend.</li>
+    <li><b>Benchmark leaderboards.</b> Hundreds of groups evaluating on one test set. The
+    field as a whole is running an enormous uncorrected search, and the leader is partly
+    selected for luck.</li>
+  </ul>
+  <p>The corrections are simple. <b>Bonferroni</b> (divide your threshold by $k$) is crude
+  and conservative but takes one line. Better: hold out a fresh evaluation set for the
+  <i>selected</i> model only, so the reported number was not part of the search.</p>
+</div>
+
+<h3><span class="num">§15</span> Test set reuse</h3>
+
+<div class="readnow"><span class="label">Go and read</span><p><span class="src">Dwork et al. (2015)</span>, <i>The reusable holdout: preserving validity in adaptive data analysis</i>. The formal treatment of this section's problem, and unusually it comes with a <i>mechanism</i> rather than a warning: a way of answering queries against a holdout set that survives adaptive reuse, at a stated cost in accuracy.</p></div>
+
+<p>The most common form of this failure in practice, and the one with the least excuse.</p>
+
+<p>The rule is that a test set is used once. In reality it is used to compare architectures,
+then to tune a learning rate, then again after a bug fix, then once more for the final
+table. Each look leaks a little information from test set into model, and the reported
+number drifts upward while true performance does not move at all.</p>
+
+<figure>
+  <img src="figures/st/09-test-set-reuse.svg" alt="Optimism growing as more models are evaluated against test sets of the same size">
+  <figcaption><b>Figure 9.</b> A simulation in which <b>every model is genuinely 70%
+  accurate</b>: there is nothing to find. Each round scores 20 fresh candidates on a
+  500-example test set and keeps the running best; the reported accuracy climbs steadily
+  above the truth as more candidates accumulate. (This models the selection effect of test-set
+  reuse, the max-over-many-looks mechanism of §14, rather than one single fixed set with
+  correlated per-example errors across candidates; the direction and rough size of the
+  optimism are the same either way.) The models did not improve. The reporting did.</figcaption>
+</figure>
+
+<div class="box intuition">
+  <span class="label">Intuition: selection is a channel</span>
+  <p>Every time you look at the test set and let it change a decision, you have moved
+  information from it into your model. Do that enough and the test set stops measuring
+  generalisation and starts measuring how hard you searched.</p>
+  <p>The clean discipline: <b>validation set for every decision, test set once at the very
+  end.</b> If you must consult the test set repeatedly, treat the final number as an upper
+  bound rather than an estimate, and say so.</p>
+</div>
+
+<h3><span class="num">§16</span> Comparing two models honestly</h3>
+
+<p>The practical procedure, assembled from the sections above.</p>
+
+<div class="box def">
+  <span class="label">A defensible comparison</span>
+  <ol class="tight">
+    <li><b>Report the effect size.</b> Not just "A beat B"; by how much.</li>
+    <li><b>Report an interval</b> on the difference. Bootstrap it if no formula exists (§10).</li>
+    <li><b>Use a paired comparison</b> where possible. Evaluate both models on the
+    <i>same</i> examples and analyse the per-example differences, which removes the variance
+    due to which examples you drew, which is usually the dominant term.</li>
+    <li><b>Account for the search.</b> Say how many configurations were tried, and evaluate
+    the final choice on data that took no part in choosing it.</li>
+    <li><b>Vary the seeds.</b> Run each model several times. If the seed-to-seed spread
+    exceeds the gap between models, you have not shown a difference.</li>
+  </ol>
+</div>
+
+<div class="box pitfall">
+  <span class="label">Pitfall: the unpaired comparison wastes most of your data</span>
+  <p>Comparing two accuracy numbers as though they were independent samples throws away the
+  fact that both were measured on the same examples.</p>
+  <p>Some test examples are simply hard, and both models fail them; some are easy, and both
+  succeed. That shared difficulty is variance common to both measurements, and a paired
+  analysis cancels it exactly. In practice, pairing frequently shrinks the interval on the
+  <i>difference</i> by enough to change the conclusion, from the same data, at no cost.</p>
+</div>
+
+<div class="box try">
+  <span class="label">Try it</span>
+  <p>You try 40 hyperparameter configurations and report the best validation accuracy. Under
+  a null in which all 40 are genuinely identical, is that number an unbiased estimate of the
+  configuration's true accuracy? If not, which direction is it wrong?</p>
+</div>
+
+<p><b>Answer.</b> It is <b>biased upward</b>, and substantially.</p>
+<p>Each configuration's measured accuracy is its true accuracy plus noise. Taking the
+maximum over 40 selects for large positive noise as much as for genuine quality, and with all
+40 identical, it selects <i>purely</i> for noise. The expected maximum of 40 draws sits well
+above their common mean, which is exactly the right panel of Figure 8.</p>
+<p>This is why the winner of a large search reliably underperforms its validation score when
+finally tested. The fix is not to search less; it is to evaluate the selected model on data
+that had no part in selecting it.</p>

@@ -1,0 +1,211 @@
+<h2><span class="part-kicker">Build</span>The project</h2>
+
+<p class="lede">Ten to fourteen hours. You write a message-passing library from the scatter-add
+upward, then use it to reproduce this part's two structural limits and the one exact impossibility
+theorem in the book, and to find out whether the graph you were handed was carrying anything.</p>
+
+<h3><span class="num">P.1</span> What you are building</h3>
+
+<p><b><code>looplib</code></b>: a message-passing implementation on edge lists, with the three
+aggregators, the standard normalisations, a colour-refinement checker, and a validation harness
+that knows the difference between a transductive and an inductive split.</p>
+
+<p>The rule: <b>numpy only, and every model checked for invariance before it is trained</b>. The
+permutation test is three lines and it catches a class of bug that trains cleanly and is silently
+wrong.</p>
+
+<h3><span class="num">P.2</span> Stage 1: the loop</h3>
+
+<ol>
+  <li>Implement gather-and-scatter aggregation on an edge list, with sum, mean and max.</li>
+  <li>Build one layer: transform self, add transformed aggregate, squash.</li>
+  <li>Write the permutation test and run it on your layer.</li>
+  <li>Deliberately break invariance (index a node by position somewhere), and confirm the test
+  catches it.</li>
+</ol>
+
+<p><b>Deliverable:</b> the layer, the test, and the broken version that fails it. Step four is the
+one that makes step three a check rather than a ritual.</p>
+
+<h3><span class="num">P.3</span> Stage 2: what the aggregator decides</h3>
+
+<ol>
+  <li>Build two tasks: one whose label depends on a node's degree, one whose does not.</li>
+  <li>Fit all three aggregators on both, several seeds each.</li>
+  <li>Report paired differences with spreads.</li>
+</ol>
+
+<p><b>Deliverable:</b> a six-cell table with error bars. The claim that sum is injective on
+multisets and the others are not is a theorem; what it is worth on your task is a measurement.</p>
+
+<h3><span class="num">P.4</span> Stage 3: the collapse</h3>
+
+<ol>
+  <li>Sweep depth from one to twenty-four, measuring accuracy and the mean pairwise distance
+  between representations.</li>
+  <li>Reproduce Figure 2's shape, then repeat with the symmetric normalisation and state precisely
+  what differs.</li>
+  <li>Add residual connections, then initial-feature re-injection, and re-measure both curves.</li>
+  <li>Report the paired accuracy difference between the peak depth and the deepest, with its
+  standard error.</li>
+</ol>
+
+<p><b>Deliverable:</b> the two curves for each variant, and the paired comparison. Say for each
+repair whether it delayed the collapse or removed it.</p>
+
+<h3><span class="num">P.5</span> Stage 4: the ceiling</h3>
+
+<ol>
+  <li>Implement colour refinement and use it to test a pair of graphs for distinguishability.</li>
+  <li>Construct the two 2-regular graphs and confirm your trained model gives them identical
+  outputs, to zero, not to a tolerance.</li>
+  <li>Add a structural feature the loop cannot compute and confirm they separate.</li>
+  <li>Add random node identifiers instead, and measure both the accuracy gain and the variance
+  across draws of the identifiers on a fixed input.</li>
+</ol>
+
+<p><b>Deliverable:</b> the zero, the separation, and the variance in step four. That last number is
+the price of the expressivity, and it is usually left unquoted.</p>
+
+<h3><span class="num">P.6</span> Stage 5: distance</h3>
+
+<ol>
+  <li>Measure influence share along a path and across a joined pair of trees, reproducing
+  Figure 4.</li>
+  <li>Build a task requiring a six-hop dependency and measure accuracy against depth.</li>
+  <li>Add a virtual node, then full attention with a structural encoding, and re-measure, including
+  memory.</li>
+</ol>
+
+<p><b>Deliverable:</b> the accuracy-against-depth curve with its peak, and the two rewiring results
+with their costs. Then answer in a paragraph whether the rewired graph is still the object the
+question was about.</p>
+
+<h3><span class="num">P.7</span> Stage 6: the honest evaluation</h3>
+
+<ol>
+  <li>Write down your predictions first, in a file, before running anything.</li>
+  <li>Take a node-classification dataset. Measure homophily. Fit a features-only model, label
+  propagation, and a two-layer network.</li>
+  <li>Evaluate under a random node split and under a genuinely inductive one, and report both.</li>
+  <li>Repeat everything over ten seeds and report the spread beside every number.</li>
+  <li>For link prediction, score against uniform and against distance-two negatives.</li>
+  <li>Score your predictions against the outcomes.</li>
+</ol>
+
+<p><b>Deliverable:</b> the full table with spreads, and the scored predictions. If the features-only
+baseline matches the graph model, say so plainly: that is the most useful result this stage can
+produce and the one least often reported.</p>
+
+<h3><span class="num">P.8</span> Stage 7: geometry</h3>
+
+<ol>
+  <li>Build a rotation-invariant target on point clouds. Fit a distance-only model and a
+  coordinate model with rotation augmentation, across training sizes.</li>
+  <li>Reproduce Figure 5's shape and report where the gap sits at each size.</li>
+  <li>Implement the scalar-and-vector update and verify equivariance by rotating an input.</li>
+  <li>Build a chiral target and confirm the distance-only model cannot represent it.</li>
+</ol>
+
+<p><b>Deliverable:</b> the gap-against-size curve and the two symmetry checks. Step four is the
+cleanest demonstration in this part that a symmetry is an assumption and can be asserted
+wrongly.</p>
+
+<h3><span class="num">P.9</span> Stretch</h3>
+
+<ul>
+  <li><b>Neighbour sampling</b> on a graph too large for memory, with the variance it introduces
+  measured against depth.</li>
+  <li><b>A heterophilous benchmark</b>, with and without separating self from neighbours.</li>
+  <li><b>Higher-order message passing</b> on pairs, with its cost curve.</li>
+  <li><b>A knowledge-graph scorer</b>, evaluated filtered and unfiltered.</li>
+  <li><b>Temporal graphs</b>, split by time, against Part XXV §36's result.</li>
+  <li><b>An audit</b> of a graph system you actually run.</li>
+</ul>
+
+<h3><span class="num">P.10</span> Done when</h3>
+
+<ul class="checklist">
+  <li>Your layer passes the permutation test and your deliberately broken one fails it.</li>
+  <li>You have a paired measurement of what the aggregator choice is worth on two tasks.</li>
+  <li>You have an accuracy-against-depth curve with a peak, and the distance curve beside it.</li>
+  <li>You can say for each over-smoothing repair whether it delayed the collapse or removed it.</li>
+  <li>Your two regular graphs receive identical outputs to exactly zero.</li>
+  <li>You have quoted the variance random identifiers introduce, not only the accuracy they buy.</li>
+  <li>You have measured influence share falling with distance on two topologies.</li>
+  <li>You have a homophily number for your dataset.</li>
+  <li>You have a features-only baseline and a label-propagation baseline, tuned as hard as the
+  model.</li>
+  <li>You have both a transductive and an inductive number for the same dataset.</li>
+  <li>You have link-prediction scores against two different negative samplers.</li>
+  <li>Every number you report has a spread beside it.</li>
+  <li>You wrote predictions down before Stage 6 and scored them afterwards.</li>
+  <li>Your README says whether the edges were carrying anything.</li>
+</ul>
+
+<div class="box why">
+  <span class="label">Why this project</span>
+  <p>Graph learning is the area of this book where published comparisons are least reliable, and
+  the causes are all things this project makes you measure: absent baselines, leaked splits,
+  benchmark noise larger than the effect, and a metric that moves with how the negatives were
+  drawn.</p>
+  <p>Stage 4 is here for a different reason. It is the one place in the book where you can watch a
+  proved impossibility happen in a running program: not a tendency, not a bound that turns out
+  vacuous, but a difference that is exactly zero because the two computations are the same
+  computation.</p>
+</div>
+
+<h2 class="nobreak"><span class="part-kicker">Assess</span>Checkpoint</h2>
+
+<ul class="checklist">
+  <li>Say what a set lacks that a sequence has, and what follows for architecture.</li>
+  <li>Distinguish invariance from equivariance and give a task needing each.</li>
+  <li>Explain why augmentation cannot substitute for permutation invariance, with the count.</li>
+  <li>Give the general form of a permutation-invariant function on a set.</li>
+  <li>Say what Figure 1 measured for the invariant and the augmented model on relabelled data.</li>
+  <li>Name three things a graph can encode that a table cannot.</li>
+  <li>Write the message-passing loop in one line and name its three choices.</li>
+  <li>Say which aggregator is injective on multisets and why that matters.</li>
+  <li>Explain why depth on a graph is reach rather than capacity.</li>
+  <li>Define over-smoothing and state it precisely for both normalisations.</li>
+  <li>Say where Figure 2's accuracy peaked and how far it fell by depth twenty-four.</li>
+  <li>Name four repairs for over-smoothing and what each concedes.</li>
+  <li>Say what graph a transformer is a message-passing network on.</li>
+  <li>State the relationship between message passing and colour refinement.</li>
+  <li>Say why Figure 3's difference is zero rather than small.</li>
+  <li>Name three things a message-passing network cannot count.</li>
+  <li>Give three ways past the expressivity bound and the cost of each.</li>
+  <li>Define over-squashing and say why it is the opposite constraint from over-smoothing.</li>
+  <li>Give the factor by which source influence fell along Figure 4's path.</li>
+  <li>Say what rewiring buys and what question it leaves open.</li>
+  <li>Distinguish transductive from inductive evaluation and say which is easier.</li>
+  <li>Explain how a random node split leaks, and what makes the leak large.</li>
+  <li>Say why test edges must be removed from the message-passing graph.</li>
+  <li>Explain why negative sampling sets the difficulty of link prediction.</li>
+  <li>Say what the readout choice claims about whether graph size is real.</li>
+  <li>Describe the filtered ranking convention and the defect it repairs.</li>
+  <li>Define a group and name the four that matter in this part.</li>
+  <li>Say why declaring E(3) rather than SE(3) can be a modelling error.</li>
+  <li>Explain why a distance-only network is invariant for free, and what it cannot do.</li>
+  <li>Give Figure 5's gap at its widest and at 3,200 examples, and read both.</li>
+  <li>Write the equivariant vector update and say why it rotates correctly.</li>
+  <li>Say where higher-order equivariant features pay and where they do not.</li>
+  <li>Give the three checks that decide whether you have a graph problem at all.</li>
+  <li>Name the four baselines a graph result must report.</li>
+  <li>Give four reasons published graph comparisons are unusually unreliable.</li>
+  <li>Say what homophily predicts about an architecture's suitability.</li>
+</ul>
+
+<div class="box fw">
+  <span class="label">The framework, and the symmetry</span>
+  <p>Dataset, model family, loss, optimiser. Part XXV said the family is a prior about the shape of
+  the function; this part says what kind of prior that can be. <b>An architecture is the declaration
+  of a group</b>: the transformations under which the answer is required not to change.</p>
+  <p>Convolution declares translation. Message passing declares permutation. A molecular network
+  declares permutation and rigid motion together. The declaration is worth samples, because a
+  constraint is information that does not have to be learned, and Figure 5 measures the exchange
+  rate: the gap widens from 0.004 to 0.073 as both models leave the weak-data regime, then narrows
+  to 0.039 by 3,200 examples, and does not close. Which leaves the choice where it belongs: not on
+  which architecture is fashionable, but on which transformations genuinely leave your answer
+  alone.</p>
+</div>

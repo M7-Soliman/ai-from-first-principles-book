@@ -1,0 +1,154 @@
+<h2><span class="part-kicker">Part B</span>Distributions over functions</h2>
+
+<p class="mvt">A Gaussian process is the case where all of this is exact: a posterior over functions
+in closed form, with intervals that widen where the data stops and a marginal likelihood that
+selects the model without a validation set. It does not scale, and it is the standard everything in
+movement C is approximating.</p>
+
+<h3><span class="num">§8</span> A prior over functions</h3>
+
+<div class="box def">
+  <span class="label">The object</span>
+  <p>A <b>Gaussian process</b> is a distribution over functions such that any finite set of
+  function values is jointly Gaussian. It is specified by a mean function, usually zero, and a
+  covariance function <span class="m">$k(x, x')$</span> saying how correlated the values at two
+  inputs are.</p>
+  <p>The shift in viewpoint is the whole idea. Parts VI to XX put a distribution over
+  <i>parameters</i> and derived predictions from it. Here the distribution is over
+  <b>functions</b> directly, and no parameters appear.</p>
+</div>
+
+<div class="box intuition">
+  <span class="label">What the kernel encodes</span>
+  <p>The kernel is the assumption. A squared-exponential kernel says nearby inputs have similar
+  outputs and the function is very smooth. A Matérn kernel says the same with a controlled amount
+  of roughness. A periodic kernel says the function repeats.</p>
+  <p>The <b>length-scale</b> says how far "nearby" reaches, and it is the single most consequential
+  number: too short and the posterior reverts to the prior between every pair of points, too long
+  and the model cannot represent the variation it needs to.</p>
+  <p>Part VI §15's kernels appeared as a computational trick for making a linear method non-linear.
+  This is the same object read as a statement about which functions are plausible, and it is the
+  more useful reading.</p>
+</div>
+
+<h3><span class="num">§9</span> The posterior, in closed form</h3>
+
+<div class="readnow"><span class="label">Go and read</span><p><span class="src">Rasmussen &amp; Williams (2006)</span>, <i>Gaussian Processes for Machine Learning</i>. Free online, and chapter 2 derives exactly the posterior below, worked through with more patience than any second-hand treatment manages, including the numerically stable Cholesky route this section only asserts. Chapter 5 is where §11's marginal likelihood comes from: read it for the log-determinant term earned as a complexity penalty rather than stated as one.</p></div>
+
+<div class="box def">
+  <span class="label">Conditioning a joint Gaussian</span>
+  <p>With observations <span class="m">$\mathbf{y}$</span> at inputs <span class="m">$X$</span> and
+  noise <span class="m">$\sigma^2$</span>, write <span class="m">$K = k(X,X)$</span> for the
+  training covariances, <span class="m">$K_* = k(X_*,X)$</span> for the covariance between the new
+  points and the training points, and <span class="m">$K_{**} = k(X_*,X_*)$</span> for the
+  covariance among the new points themselves. The posterior at
+  <span class="m">$X_*$</span> is then Gaussian with</p>
+  <p class="m">$$\boldsymbol{\mu}_* = K_{*}\left(K + \sigma^2 I\right)^{-1}\mathbf{y}, \qquad \Sigma_* = K_{**} - K_{*}\left(K + \sigma^2 I\right)^{-1}K_{*}^{\top}$$</p>
+  <p>Two things are worth noticing. The variance <span class="m">$\Sigma_*$</span> does not depend
+  on <span class="m">$\mathbf{y}$</span> at all: only on <i>where</i> you observed, not what you
+  saw. And the whole thing is Part I's linear algebra: a Cholesky factorisation and two triangular
+  solves, which is also why the cost is cubic in the number of observations.</p>
+</div>
+
+<h3><span class="num">§10</span> What the intervals do</h3>
+
+<figure>
+  <img src="figures/uq/02-gaussian-process.svg" alt="Gaussian process posterior mean and 95 percent predictive interval, with a gap in the observations">
+  <figcaption><b>Figure 2.</b> Observations on two intervals with a gap between them. The posterior
+  standard deviation is <b>0.181</b> where there is data, <b>0.822</b> in the gap, and <b>0.862</b>
+  beyond the observations entirely: the interval widens exactly where the evidence stops, without
+  anyone specifying that behaviour. Measured coverage of the nominal 95% interval is <b>0.979</b>:
+  slightly conservative, because the kernel's smoothness assumption is not the true function's.
+  </figcaption>
+</figure>
+
+<div class="box why">
+  <span class="label">The property no method in movement C reproduces cheaply</span>
+  <p>Growing uncertainty away from the data is what people want from uncertainty quantification and
+  what most cheap approximations fail to deliver. Here it falls out of the algebra:
+  <span class="m">$\Sigma_*$</span> reverts to the prior covariance
+  <span class="m">$K_{**}$</span> as the correlation with observed points goes to zero.</p>
+  <p>Note also the over-coverage. The measured 0.979 against a nominal 0.95 is not a flaw: it is
+  the model being honest about an assumption it holds and the truth does not exactly satisfy. A
+  method that came in at 0.93 would be worse in a way that matters more.</p>
+</div>
+
+<h3><span class="num">§11</span> Choosing the kernel by marginal likelihood</h3>
+
+<div class="box def">
+  <span class="label">Model selection without a validation set</span>
+  <p>The <b>marginal likelihood</b> integrates over all functions the prior allows:</p>
+  <p class="m">$$\log p(\mathbf{y} \mid X, \theta) = -\tfrac{1}{2}\mathbf{y}^{\top}K_\theta^{-1}\mathbf{y} - \tfrac{1}{2}\log|K_\theta| - \tfrac{n}{2}\log 2\pi$$</p>
+  <p>Maximise it over the kernel's hyperparameters. The first term rewards fitting the data; the
+  second, the log determinant, penalises a kernel that could have explained many datasets. It is
+  Occam's razor arriving as a determinant rather than as a preference.</p>
+  <p>This is genuinely different from Part VI §10's cross-validation: no data is held out, and the
+  complexity penalty is derived rather than tuned. It is also less robust, because it trusts the
+  model class entirely: if the kernel is wrong, the marginal likelihood optimises within a wrong
+  family and reports no distress.</p>
+</div>
+
+<h3><span class="num">§12</span> The cost, and what is done about it</h3>
+
+<div class="box shapes">
+  <span class="label">Cubic, and the standard escapes</span>
+  <p>Inverting an <span class="m">$n \times n$</span> matrix is
+  <span class="m">$O(n^3)$</span> time and <span class="m">$O(n^2)$</span> memory. At
+  <span class="m">$n = 10^4$</span> that is uncomfortable; at <span class="m">$10^6$</span> it is
+  out of the question.</p>
+  <p><b>Inducing points.</b> Summarise the data by <span class="m">$m \ll n$</span> pseudo-inputs
+  whose locations are learned, giving <span class="m">$O(nm^2)$</span>. The variational form makes
+  this a proper approximation with a bound rather than a heuristic.</p>
+  <p><b>Structure.</b> On a grid, or with a separable kernel, the algebra factorises.</p>
+  <p><b>Random features.</b> Approximate the kernel by an explicit finite feature map, turning the
+  process back into Bayesian linear regression, which is Part XXIII §25's random-features model,
+  arriving from the other direction.</p>
+</div>
+
+<h3><span class="num">§13</span> Bayesian optimisation</h3>
+
+<div class="box def">
+  <span class="label">Using uncertainty to decide where to look</span>
+  <p>To optimise an expensive function, fit a Gaussian process to what you have and choose the next
+  point by an <b>acquisition function</b> trading the posterior mean against its variance: expected
+  improvement, upper confidence bound, or the probability of improvement.</p>
+  <p>This is the formal version of Part XIV §18's model-based hyperparameter search, and it is the
+  clearest case in the book of an uncertainty estimate being <i>used</i> rather than reported: the
+  variance is not decoration, it is the term that decides where to sample.</p>
+</div>
+
+<div class="box pitfall">
+  <span class="label">Pitfall: it is only as good as the kernel</span>
+  <p>Bayesian optimisation with a badly chosen length-scale explores nearly at random or fixates on
+  one region. Its reputation for sample efficiency is earned in low dimension with a well-matched
+  kernel, and Part XIV §16's finding that random search is a strong baseline is not a contradiction:
+  it is what happens when those conditions do not hold.</p>
+</div>
+
+<h3><span class="num">§14</span> Where this belongs</h3>
+
+<div class="box shapes">
+  <span class="label">When a Gaussian process is the right instrument</span>
+  <p><b>Few observations, expensive to obtain.</b> Experimental design, hyperparameter search,
+  materials and drug screening. Hundreds of points, not millions.</p>
+  <p><b>Smoothness is a real assumption</b>, not a convenience.</p>
+  <p><b>The uncertainty is load-bearing</b>: you will act on it, as in §13.</p>
+  <p>And when it is not: high-dimensional structured inputs, large <span class="m">$n$</span>, or
+  problems where the function is genuinely discontinuous. The failure there is not slowness but a
+  kernel that cannot represent the truth, at which point the intervals are confidently wrong.</p>
+</div>
+
+<h3><span class="num">§15</span> What movement B establishes</h3>
+
+<div class="box intuition">
+  <span class="label">Three things</span>
+  <p><b>Exact Bayesian uncertainty over functions is available, in closed form</b>, and it does the
+  thing people want: Figure 2's posterior sd is 0.181 where there is data and 0.862 where there is
+  none.</p>
+  <p><b>The posterior variance does not depend on the observed values</b>, only on where you
+  observed. Uncertainty is a statement about coverage of the input space, which is why it grows
+  away from the data and why no amount of agreement among your labels reduces it there.</p>
+  <p><b>The cost is cubic and the assumption is the kernel.</b> Everything in movement C trades
+  exactness for scale, and the question to ask of each is which of Figure 2's properties
+  survives.</p>
+</div>

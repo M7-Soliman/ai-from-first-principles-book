@@ -1,0 +1,140 @@
+<h2><span class="part-kicker">Part A</span>What a joint distribution factorises into</h2>
+
+<p class="mvt">A probabilistic model is a joint distribution over everything you care about. Written
+out in full it is unusable, and every method in this part exists because of one fact: real joint
+distributions factorise, and the factorisation is a set of claims about independence you can state,
+draw, and check.</p>
+
+<h3><span class="num">§1</span> The object, and why it is intractable</h3>
+
+<div class="box def">
+  <span class="label">Where the difficulty comes from</span>
+  <p>A joint distribution over <span class="m">$n$</span> binary variables has
+  <span class="m">$2^n - 1$</span> free parameters. At <span class="m">$n = 40$</span> that is a
+  table larger than any machine will hold, and you would need more data than exists to estimate one
+  entry of it.</p>
+  <p>So the question is never "what is the joint" but <b>what structure does it have</b>. Every
+  model in this book is an answer: a claim that the joint is a product of small factors, and that
+  most of the <span class="m">$2^n$</span> degrees of freedom were never there.</p>
+</div>
+
+<h3><span class="num">§2</span> Factorisation is the whole idea</h3>
+
+<div class="box why">
+  <span class="label">The chain rule, and then an assumption</span>
+  <p>The chain rule is free and unhelpful: any joint equals
+  <span class="m">$\prod_i p(x_i \mid x_1, \dots, x_{i-1})$</span>, and the last factor is as big as
+  the original problem.</p>
+  <p>It becomes useful when you assert that each factor depends on only a few of its predecessors:</p>
+  <p class="m">$$p(x_1, \dots, x_n) \;=\; \prod_{i} p\!\left(x_i \mid \mathrm{pa}(i)\right)$$</p>
+  <p>Now the parameter count is exponential in the largest parent set rather than in
+  <span class="m">$n$</span>. That is the entire economics of the subject, and everything that
+  follows is either exploiting the structure or paying for its absence.</p>
+</div>
+
+<h3><span class="num">§3</span> Directed models</h3>
+
+<div class="box def">
+  <span class="label">A graph is a factorisation</span>
+  <p>Draw a node per variable and an arrow from each parent to each child. The graph must be
+  acyclic. The joint is the product above, and the graph and the factorisation are the same
+  object written two ways.</p>
+  <p><b>What an arrow does and does not mean.</b> It licenses a dependence; it does not assert
+  one. And it is not by itself a causal claim: Part XXII spent a whole part on the difference,
+  and the graphs look identical. What makes a directed model causal is the additional commitment
+  that intervening on a node deletes its incoming arrows, which is a statement about the world
+  and not about the factorisation.</p>
+</div>
+
+<h3><span class="num">§4</span> Conditional independence, read off the graph</h3>
+
+<div class="box def">
+  <span class="label">Three shapes, and one of them is the surprising one</span>
+  <p><b>Chain</b> <span class="m">$X \to Y \to Z$</span>. <span class="m">$X$</span> and
+  <span class="m">$Z$</span> are dependent, and conditioning on <span class="m">$Y$</span> makes
+  them independent. Information flows along the path and <span class="m">$Y$</span> blocks it.</p>
+  <p><b>Fork</b> <span class="m">$X \leftarrow Y \to Z$</span>. Same: dependent, and conditioning on
+  the common cause separates them. This is Part XXII's confounder.</p>
+  <p><b>Collider</b> <span class="m">$X \to Y \leftarrow Z$</span>. Here it inverts.
+  <span class="m">$X$</span> and <span class="m">$Z$</span> are independent, and conditioning on
+  <span class="m">$Y$</span> makes them <b>dependent</b>. Learning the effect ties its causes
+  together: if the alarm rang and it was not a burglar, it was an earthquake.</p>
+  <p><b>d-separation</b> chains these rules along every path. Two sets of variables are independent
+  given a third exactly when every path between them is blocked, and the check is graph-theoretic:
+  no distributions, no integrals, just paths.</p>
+</div>
+
+<h3><span class="num">§5</span> Measured</h3>
+
+<figure>
+  <img src="figures/pb/01-dseparation.svg" alt="Correlation between two variables before and after conditioning, for a chain, a collider and a collider's descendant">
+  <figcaption><b>Figure 1.</b> Two hundred thousand samples from each structure, with the
+  conditional correlation measured within narrow strata of the conditioning variable. In the chain,
+  <span class="m">$X$</span> and <span class="m">$Z$</span> correlate <b>+0.576</b> and conditioning
+  on <span class="m">$Y$</span> takes it to <b>+0.038</b>. In the collider the causes are
+  independent at <b>+0.004</b>, and conditioning on their common effect makes them correlate
+  <b>&minus;0.758</b>. Conditioning on a <i>descendant</i> of the collider rather than the collider
+  itself does the same thing more weakly, at <b>&minus;0.423</b>.</figcaption>
+</figure>
+
+<div class="box pitfall">
+  <span class="label">Pitfall: the collider is why "control for more things" is wrong</span>
+  <p>The instinct that conditioning on more variables can only help is exactly false, and Figure 1
+  is the measurement. Conditioning on a collider, or on anything downstream of one, manufactures a
+  correlation between variables that had none.</p>
+  <p>This is Part XXII §4's finding arriving from the other direction: there it was a threat to a
+  causal estimate, here it is a property of the factorisation. And note the third bar: the damage
+  does not require conditioning on the collider itself. Selecting your sample on any consequence of
+  two independent causes is enough, which is how it happens in practice, silently, through the
+  choice of who ends up in the dataset.</p>
+</div>
+
+<h3><span class="num">§6</span> Undirected models, and what they buy</h3>
+
+<div class="box def">
+  <span class="label">When there is no natural direction</span>
+  <p>For pixels in an image or atoms in a lattice there is no parent and no child, only mutual
+  influence. An undirected model writes the joint as a product of non-negative factors over cliques,
+  divided by a normalising constant:</p>
+  <p class="m">$$p(\mathbf{x}) \;=\; \frac{1}{Z} \prod_{c} \psi_c(\mathbf{x}_c),
+  \qquad Z = \sum_{\mathbf{x}} \prod_c \psi_c(\mathbf{x}_c)$$</p>
+  <p>Independence is simpler to read than in the directed case: two nodes are independent given a
+  set that separates them in the graph, with no collider exception. What you pay for that is
+  <span class="m">$Z$</span>: a sum over every configuration, which is Part XVI §2's normalising
+  constant and the reason energy-based models are hard.</p>
+</div>
+
+<div class="box shapes">
+  <span class="label">Neither language contains the other</span>
+  <p>A collider's independence structure cannot be drawn undirected. A four-cycle's cannot be drawn
+  directed without adding an edge. So the two formalisms overlap and neither is more general, which
+  is worth knowing before spending an afternoon converting one to the other.</p>
+</div>
+
+<h3><span class="num">§7</span> Plates, and the models you already know</h3>
+
+<div class="box shapes">
+  <span class="label">Most of this book, in this notation</span>
+  <p>A <b>plate</b> is a box drawn around a subgraph with a count, meaning "repeat this". It is how
+  a model with a million observations fits on a page, and it makes the shared structure visible.</p>
+  <p><b>Naive Bayes</b> is a class variable with a plate of conditionally independent features.
+  <b>A mixture model</b> is a latent assignment per observation and shared component parameters.
+  <b>An HMM</b> is a chain of latent states each emitting an observation. <b>A VAE</b> is a latent
+  vector per observation with a shared decoder (Part XVI §18, drawn).</p>
+  <p>Writing a model this way is not decoration. It tells you immediately which variables are
+  independent given which others, and therefore which of the next movement's algorithms apply.</p>
+</div>
+
+<h3><span class="num">§8</span> What movement A establishes</h3>
+
+<div class="box intuition">
+  <span class="label">Three things</span>
+  <p><b>A model is a factorisation, and a graph is a picture of one.</b> The parameter count goes
+  from exponential in the number of variables to exponential in the largest parent set, and that
+  gap is why the subject exists.</p>
+  <p><b>Independence is readable from the structure</b> without touching a distribution, by
+  d-separation.</p>
+  <p><b>Conditioning creates dependence as well as removing it.</b> Figure 1 measures a collider
+  turning +0.004 into &minus;0.758, and a descendant of one doing the same thing at &minus;0.423,
+  which is why "adjust for everything you measured" is not a safe default.</p>
+</div>

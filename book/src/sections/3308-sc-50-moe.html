@@ -1,0 +1,104 @@
+<h2><span class="part-kicker">Part E</span>Conditional computation</h2>
+
+<h3><span class="num">§29</span> Not every parameter for every token</h3>
+
+<div class="box def">
+  <span class="label">The idea</span>
+  <p>Everything so far applies every parameter to every input. <b>Conditional computation</b>
+  breaks that: the model has many parameters and each input activates only a few, so capacity and
+  cost per token stop being the same quantity.</p>
+  <p>The source book calls this <b>dynamic structure</b> and proposes it as an inference speedup:
+  a cascade of classifiers, a gater choosing among experts. What it did not anticipate is that the
+  same mechanism would be used to make <b>training</b> capacity cheap, which is the modern use.</p>
+</div>
+
+<h3><span class="num">§30</span> Mixture of experts</h3>
+
+<div class="box def">
+  <span class="label">The construction</span>
+  <p>Replace a feed-forward block with $E$ copies, the <b>experts</b>, and a small <b>router</b>
+  that scores them for each token. Each token is sent to its top $k$ experts, usually $k=1$ or 2,
+  and the outputs are combined weighted by the router's scores.</p>
+  <p>The parameter count multiplies by roughly $E$; the compute per token multiplies by $k$. With
+  $E=64$ and $k=2$ that is <b>64 times the parameters</b> for twice the arithmetic, and it is why
+  the headline parameter counts of large models decoupled from their cost.</p>
+  <p>The feed-forward is the block that gets replaced because it holds most of the parameters:
+  Part XII's finding, and drill C1's <b>67%</b>, arriving as a design decision.</p>
+</div>
+
+<div class="box why">
+  <span class="label">Why the router has to be discrete, and what that breaks</span>
+  <p>Averaging all experts would defeat the point: the saving comes from <b>not computing</b> the
+  ones you skip. So the routing is a hard top-$k$ selection, which is not differentiable.</p>
+  <p>The standard resolution is to weight each chosen expert's output by its router probability, so
+  the gradient reaches the router through the <b>magnitude</b> of a selection that was itself
+  discrete. It works, and it means the router is trained by a signal that never tells it about the
+  experts it did not choose. That asymmetry is the source of §31's problem.</p>
+</div>
+
+<h3><span class="num">§31</span> Load balancing</h3>
+
+<div class="readnow"><span class="label">Go and read</span><p><span class="src">Fedus, Zoph &amp; Shazeer (2022)</span>, <i>Switch transformers</i>. Top-1 routing, the auxiliary balancing loss and the capacity factor, all in §2.2. Worth reading for how directly it discusses dropped tokens, a number that is central here and is rarely reported by work that builds on it.</p></div>
+
+<figure>
+  <img src="figures/sc/07-moe.svg" alt="Expert load distribution with and without an auxiliary balancing loss, and tokens dropped against capacity factor">
+  <figcaption><b>Figure 7.</b> Eight experts, top-1 routing, measured. Without a balancing term the
+  busiest expert takes <b>43.4%</b> of the tokens and the quietest <b>1.3%</b>; with one, 13.9% and
+  11.0%, a max-to-mean ratio of <b>3.47</b> against <b>1.12</b>. Right: the consequence at a fixed
+  capacity. At capacity factor 1.0, <b>46.9%</b> of tokens are dropped without the balancing loss
+  and <b>3.1%</b> with it.</figcaption>
+</figure>
+
+<div class="box why">
+  <span class="label">Why routers collapse without being told not to</span>
+  <p>Nothing in the loss rewards using all the experts. An expert that receives more tokens gets
+  more gradient, improves faster, and is therefore chosen more often, a positive feedback loop
+  that ends with a few experts doing everything and the rest untrained.</p>
+  <p>This is Part XIII §30's feedback loop, in the interior of a model: the router's choices shape
+  the data each expert sees, which shapes how good each expert becomes, which shapes the router's
+  choices.</p>
+  <p>The fix is an <b>auxiliary loss</b> that penalises imbalance: typically the product of the
+  fraction of tokens routed to each expert and the mean router probability for it, summed over
+  experts, which is minimised when both are uniform. It is added to the training loss with a small
+  coefficient, and that coefficient is a real hyperparameter: too small and the router collapses,
+  too large and it routes randomly, which discards the specialisation that was the point.</p>
+</div>
+
+<div class="box pitfall">
+  <span class="label">Pitfall: capacity factor, and tokens that are silently dropped</span>
+  <p>For the computation to be batched, each expert is given a fixed buffer: capacity factor $\times$
+  (tokens / experts). If more tokens route to an expert than fit, the overflow is <b>dropped</b>:
+  passed through by the residual connection with no expert applied at all.</p>
+  <p>So a capacity factor of 1.0 with a slightly imbalanced router silently discards a fraction of
+  the computation, and the loss curve shows a mild degradation with no indication of the cause.
+  The number to log is the <b>drop rate</b>, and it is not on by default in most implementations.</p>
+  <p>Capacity factors above 1 buy safety with wasted memory and compute. The alternative (dropless
+  routing, which sorts tokens by expert and uses variable-size grouped matrix multiplies) removes
+  the problem at the cost of a much more complicated kernel, and is what current implementations
+  do.</p>
+</div>
+
+<h3><span class="num">§32</span> What it actually buys, and what it costs</h3>
+
+<div class="box def">
+  <span class="label">The honest accounting</span>
+  <p><b>Buys:</b> more parameters at constant compute per token. Empirically a sparse model matches
+  a dense one of similar <b>total</b> compute while having far more capacity, so at a fixed
+  training budget it reaches a lower loss.</p>
+  <p><b>Costs, all of which are usually understated:</b></p>
+  <ul class="tight">
+    <li><b>Memory does not shrink.</b> Every expert must be resident somewhere. A model that is
+    cheap per token still occupies its full parameter count, so it needs the same hardware to hold
+    as a dense model of the same size.</li>
+    <li><b>An all-to-all per MoE layer.</b> Tokens must be shipped to whichever device holds their
+    expert, and the results shipped back. This is the most demanding communication pattern in this
+    part, twice per MoE layer.</li>
+    <li><b>Load imbalance is a runtime tax</b>, not only a quality issue: the step waits for the
+    busiest expert.</li>
+    <li><b>Fine-tuning is harder</b>, and sparse models are more prone to overfitting on small
+    downstream sets, because the effective capacity per token is high and the data is not.</li>
+  </ul>
+  <p>The summary that survives: MoE converts <b>memory and interconnect</b> into <b>capacity</b>.
+  It is a good trade when you have the first two and want the third, and it is not a free
+  improvement in any dimension.</p>
+</div>

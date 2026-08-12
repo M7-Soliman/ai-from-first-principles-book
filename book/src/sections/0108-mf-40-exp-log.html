@@ -1,0 +1,408 @@
+<h2><span class="part-kicker">Part D</span>Exponentials and logarithms</h2>
+
+<p class="lede">If you skip one part of this document, do not let it be this one.
+Logarithms appear in every loss function in machine learning, and exponentials build
+every activation and every probability distribution you will meet.</p>
+
+<h3><span class="num">§9</span> Exponentials and the number $e$</h3>
+<aside class="mnote"><b>Ahead:</b> $e^x$ builds the sigmoid (§18), the softmax (Part II §20) and the Gaussian (Part II §15). Three of the most-used objects in the field, one function.</aside>
+
+<p>An exponential function has the variable <b>in the exponent</b>:</p>
+
+$$f(x) = 2^x, \qquad f(x) = e^x, \qquad f(x) = 10^x$$
+
+<p>That is a different species from $x^2$, where the variable is in the base. The
+distinction is worth stating aloud because the two are easy to conflate and behave
+completely differently.</p>
+
+<h4>What makes exponential growth different</h4>
+
+<p>A polynomial adds a fixed amount of "shape" as $x$ grows. An exponential
+<b>multiplies</b> by a fixed factor for every unit step. Each step of $2^x$ doubles the
+previous value, forever.</p>
+
+<p>That distinction sounds mild and is not, because human intuition for growth is
+additive and simply does not extend. Everyone can extrapolate a savings account that
+gains ten pounds a month. Almost nobody can extrapolate one that doubles, and the failure
+is not a lack of arithmetic; it is that the answer feels wrong even after you have
+computed it.</p>
+
+<p>Take a sheet of paper and fold it in half. Fold it again, and again. After ten folds
+you have a thick little block, about the height of a paperback. Guess how tall it is after
+fifty folds. Whatever number came to mind is too small by an enormous margin: fifty folds
+of ordinary paper stands about $1.1 \times 10^{11}$ metres tall, which is three quarters of
+the way from here to the sun. Nothing about that calculation is subtle; it is
+$0.1\,\text{mm} \times 2^{50}$, and you can check it on a phone, but the answer is
+unbelievable anyway, and it stays unbelievable after you have checked it.
+That gap between the arithmetic and the intuition <i>is</i> the thing to take from this
+section.</p>
+
+<p>The practical version of the same fact is what Figure 2 shows. Compare $x^3$ and $e^x$
+at $x = 5$: the cube is 125, the exponential about 148, close enough to argue about. At
+$x = 20$ the cube is 8,000 and the exponential is around 485 million. At $x = 100$ the
+cube is a million and the exponential has forty-four digits. The exponential does not win
+by being bigger at the start. It wins because it is <i>gaining</i> faster, and it keeps
+being true forever, against any polynomial you care to name. Whenever you see a paper
+claim an algorithm is exponential in some quantity, this is what is being asserted: not
+that it is slow now, but that no improvement in hardware will ever matter.</p>
+
+<figure>
+  <img src="figures/mf/03-growth-rates.svg" alt="Polynomial and exponential growth on linear and log scales">
+  <figcaption><b>Figure 2.</b> Left: $x^2$ and $x^3$ look respectable until $e^x$
+  arrives and leaves them flat against the axis. <b>Exponential growth eventually beats
+  every polynomial</b>, no matter the degree. Right: on a log scale (where each tick is
+  a factor of ten), the exponential becomes a straight line. That is the signature of
+  exponential behaviour, and it is why log axes are used so often.</figcaption>
+</figure>
+
+<h4>The number $e$</h4>
+
+<div class="box history">
+  <span class="label">History: $e$ was found in a bank, not a laboratory</span>
+  <p>In <span class="year">1683</span> Jacob Bernoulli was working on compound interest.
+  If a bank pays 100% annual interest compounded once, a unit of money becomes 2. Compound
+  it twice a year and you get 2.25. Monthly: about 2.61. Daily: about 2.71.</p>
+  <p>Bernoulli asked what happens if you compound <i>continuously</i>, infinitely often,
+  infinitesimally. The answer does not run away to infinity. It converges to a specific
+  number a little over 2.718, and he could show it was between 2 and 3 without being able
+  to say what it was.</p>
+  <p>Euler pinned it down in the <span class="year">1720s</span>, computed it to eighteen
+  decimal places, proved it irrational, and gave it the letter $e$, probably just
+  because it was the next vowel available after $a$, though the coincidence with his own
+  name has been noticed by everybody since.</p>
+  <p>The relevant point for this book: $e$ is what shows up when growth is proportional
+  to current size. That is why it governs interest, populations, decay, and why it is
+  the natural base for anything about rates.</p>
+</div>
+
+<p>$e \approx 2.71828\ldots$, an irrational number like $\pi$. Every treatment of it
+raises the same reasonable objection: why this ugly number rather than a clean base
+like 2 or 10?</p>
+
+<p>The answer is a single property, and it is the reason $e$ is everywhere in
+calculus:</p>
+
+$$\frac{d}{dx} e^x = e^x$$
+
+<p>Before the intuition box makes that precise, it is worth sitting with how strange the
+statement is. It says the function's steepness, at every point, equals the function's
+height at that point. Where the curve is at height 5, it is rising at a rate of 5. Where
+it is at height 1000, it is rising at 1000. The curve is chasing itself: the higher it
+gets, the faster it climbs, and the faster it climbs the higher it gets. No other function
+does this except multiples of this one, and that uniqueness is not a curiosity; it is
+essentially the definition of $e$.</p>
+
+<p>Where it comes from is easier to see if you think about growth rather than curves. A
+population where every individual reproduces at the same per-capita rate grows faster when
+there are more individuals, in exact proportion to how many there are. Money at compound
+interest earns more when there is more of it, in exact proportion. Both are the sentence
+"the rate of increase equals the current amount, times a constant"; and the function
+satisfying that sentence is $e^{kt}$. Bernoulli found the number in a bank because banks
+are where that sentence was first written down carefully, but the number was never really
+about banking.</p>
+
+<div class="box intuition">
+  <span class="label">Intuition: $e^x$ is its own derivative</span>
+  <p>$e^x$ is the unique function whose rate of change equals its current value. At any
+  point on the curve, the steepness is exactly the height.</p>
+  <p>This is not an aesthetic nicety; it makes $e$ the natural base for anything
+  involving rates. Growth that is proportional to current size, which describes
+  compound interest, population growth, radioactive decay and a great deal else, is
+  described by $e$ with no correction factors. Other bases work but drag a constant
+  along: $\frac{d}{dx}2^x = 2^x \ln 2$. That stray $\ln 2$ is the price of not using
+  $e$, and $e$ is defined precisely to make it disappear.</p>
+</div>
+
+<p>The rules from §4 apply unchanged, and they are worth restating in exponential
+form:</p>
+
+$$e^a \cdot e^b = e^{a+b}, \qquad \frac{e^a}{e^b} = e^{a-b}, \qquad (e^a)^b = e^{ab}, \qquad e^0 = 1$$
+
+<p>Two facts to internalise now, because they are load-bearing later:</p>
+
+<ul>
+  <li><b>$e^x$ is always strictly positive</b>, for every real $x$. Never zero, never
+  negative. This is exactly why softmax works: exponentiating anything gives you a
+  legal probability weight.</li>
+  <li><b>$e^{-x} = 1/e^x$</b>, so a negative exponent means "small". As $x$ grows,
+  $e^{-x}$ collapses toward zero very fast.</li>
+</ul>
+
+<h3><span class="num">§10</span> Logarithms</h3>
+
+<div class="sixty">
+  <span class="label">In 60 seconds</span>
+  <p>A logarithm is an <b>exponent, retrieved</b>: $\log_b(y)$ answers "what power of $b$
+  gives $y$?" Its defining property is that it <b>turns multiplication into
+  addition</b>, which is why every likelihood in machine learning gets a log wrapped
+  around it, and why the notation survives four centuries after the arithmetic it was
+  invented to save.</p>
+</div>
+
+<div class="box history">
+  <span class="label">History: invented to spare astronomers their lives</span>
+  <p>In <span class="year">1614</span> John Napier, a Scottish laird with an interest in
+  mathematics and a reputation for eccentricity, published a table that changed
+  professional computation.</p>
+  <p>The problem he was solving was brutally practical. Astronomy and navigation required
+  multiplying six- and seven-digit numbers, by hand, thousands of times. A single
+  multiplication took minutes and could go wrong silently. Napier's insight was that if
+  you tabulate numbers by their exponents, <b>multiplication becomes addition</b>, and
+  addition is fast, and its errors are obvious.</p>
+  <p>He coined the name from Greek: <i>logos</i> (ratio) and <i>arithmos</i> (number).
+  Henry Briggs visited him in <span class="year">1615</span>, suggested basing the tables
+  on powers of ten, and spent years computing them.</p>
+  <p>The effect was immediate and enormous. Laplace later wrote that logarithms, by
+  shortening the labours, <b>doubled the life of the astronomer</b>, and spared him the
+  errors and distaste of long calculations.</p>
+  <p>Four hundred years on, §11 will show that machine learning takes logarithms of its
+  likelihoods for a version of the same reason: products are hostile to computation, and
+  sums are not. The hardware changed. The trick did not.</p>
+</div>
+
+<div class="box def">
+  <span class="label">Definition: logarithm</span>
+  <p>$\log_b(y)$ answers the question: <b>what power of $b$ gives $y$?</b></p>
+  <p>$$\log_b(y) = x \quad \text{means exactly} \quad b^x = y$$</p>
+</div>
+
+<p>That is the whole idea. A logarithm is an exponent, retrieved. $\log_2(8) = 3$
+because $2^3 = 8$. $\log_{10}(1000) = 3$ because $10^3 = 1000$.</p>
+
+<p>Logarithms have a reputation for difficulty that they do not deserve, and the reason
+is worth naming: the question is phrased backwards from the direction people find
+natural. You are comfortable being handed 2 and 3 and asked for $2^3$: that is a
+computation, and you can just do it. A logarithm hands you 2 and 8 and asks what the
+exponent was. Same three numbers, same relationship, different unknown. It feels harder
+in exactly the way that "what times 7 gives 56" feels harder than "what is 7 times 8",
+which is to say not harder at all once you notice that it is the same fact being read from
+the other end.</p>
+
+<p>The intuition that makes logs feel like something rather than a rule is this:
+<b>a logarithm measures how many digits a number has</b>. Not exactly, but close enough
+to be useful and exact enough to be right. $\log_{10}$ of 1000 is 3, of 10,000 is 4, of a
+million is 6, and each of those is one less than the digit count, because each new digit
+means another multiplication by ten. So when someone says a quantity is "five orders of
+magnitude larger", they are saying its log is bigger by five, and they are describing a
+factor of 100,000 with a single small number.</p>
+
+<p>That is the real service logarithms perform, and it is not primarily algebraic. They
+take a range of numbers that is unmanageably wide and compress it into one you can hold in
+your head and draw on a page. Sound intensities across the audible range span about
+thirteen factors of ten, which is why we speak in decibels. Earthquake energies span a
+similar spread, which is why we speak of magnitudes. Model losses in this book will run
+from thousands down to $10^{-8}$ in a single training run, which is why every loss curve
+you will ever see is plotted on a log axis. A logarithm is a change of unit from "how
+many" to "how many times bigger", and the second unit is very often the one that matches
+what you actually want to know.</p>
+
+<p>So logs and exponentials are inverse functions, in exactly the §7 sense:</p>
+
+$$\ln(e^x) = x, \qquad e^{\ln x} = x \;\; (x > 0)$$
+
+<figure>
+  <img src="figures/mf/04-exp-log-inverse.svg" alt="Exponential and logarithm curves mirrored across the line y equals x">
+  <figcaption><b>Figure 3.</b> $e^x$ and $\ln x$ reflected across the dashed line
+  $y = x$. That mirror symmetry <i>is</i> what being inverse functions means: swap
+  every input with its output and one curve becomes the other. Note the point $(0,1)$ on
+  one maps to $(1,0)$ on the other.</figcaption>
+</figure>
+
+<h4>Which base?</h4>
+
+<ul class="tight">
+  <li><b>$\ln$</b>: natural log, base $e$. The default in mathematics and machine
+  learning. When a paper writes $\log$ with no base, assume $\ln$.</li>
+  <li><b>$\log_2$</b>: base 2. Used in information theory, where the unit is bits.</li>
+  <li><b>$\log_{10}$</b>: base 10. Used in engineering and for plot axes.</li>
+</ul>
+
+<p>They differ only by a constant multiple, so switching base never changes where a
+function is minimised, which is why nobody frets about it during optimisation.</p>
+
+<h4>The three rules (and they are the whole point)</h4>
+
+$$\boxed{\;\log(ab) = \log a + \log b\;}$$
+$$\log\!\left(\frac{a}{b}\right) = \log a - \log b, \qquad \log(a^n) = n \log a$$
+
+<p>The first rule is the important one, and it is worth understanding rather than
+memorising. Logs are exponents; multiplying powers adds exponents; therefore taking the
+log of a product adds the logs. The rule is inherited directly from
+$e^a \cdot e^b = e^{a+b}$.</p>
+
+<p>Walk it through once with numbers and it stops being a rule at all. Take
+$100 \times 1000$. In log terms that is $10^2 \times 10^3$, and multiplying powers of ten
+just piles up the zeros: two zeros followed by three more is five, giving $10^5$. The
+exponents added ($2 + 3 = 5$), not because of a theorem but because that is what
+multiplying does to counts of factors. Now write the same sentence in log notation and
+you have $\log(100 \times 1000) = \log 100 + \log 1000$. Nothing was proved. The rule is
+the observation, restated.</p>
+
+<p>Which also explains why the three rules are the ones they are, and why there is no
+fourth. Exponents have exactly three behaviours (they add when you multiply, subtract
+when you divide, and scale when you raise to a power), so a logarithm, being an exponent,
+inherits exactly those three and nothing else. If you ever find yourself trying to
+remember whether some log identity exists, ask what it would say about exponents. If the
+exponent version is not one of those three, the log version does not exist either.</p>
+
+<div class="box intuition">
+  <span class="label">Intuition: logarithms turn multiplication into addition</span>
+  <p>That single sentence is why logarithms exist, why they were invented in the 1600s
+  to make astronomical calculation tractable, and why every likelihood in machine
+  learning is wrapped in one.</p>
+  <p>Multiplication is hard: it grows numbers explosively and destroys numerical
+  precision. Addition is easy. A logarithm is a translator between the two.</p>
+</div>
+
+<div class="box pitfall">
+  <span class="label">Pitfall: there is no rule for $\log(a + b)$</span>
+  <p>$\log(a+b)$ does <b>not</b> simplify. Not to $\log a + \log b$, not to anything.
+  The rules are about products, quotients, and powers; never sums.</p>
+  <p>Test it: $\log_{10}(10 + 90) = \log_{10}(100) = 2$, while
+  $\log_{10}(10) + \log_{10}(90) \approx 1 + 1.95 = 2.95$. Not equal.</p>
+  <p>This is why the "log-sum-exp" trick from Part II needs a whole named technique:
+  the log of a sum genuinely is awkward, and there is no algebraic escape.</p>
+</div>
+
+<h4>Values worth knowing on sight</h4>
+
+<table class="compact">
+  <thead><tr><th>Expression</th><th>Value</th><th>Because</th></tr></thead>
+  <tbody>
+    <tr><td>$\ln(1)$</td><td>$0$</td><td>$e^0 = 1$. Any log of 1 is 0.</td></tr>
+    <tr><td>$\ln(e)$</td><td>$1$</td><td>$e^1 = e$</td></tr>
+    <tr><td>$\ln(x)$ for $x < 1$</td><td>negative</td><td>you need a negative power to get below 1</td></tr>
+    <tr><td>$\ln(0)$</td><td>$-\infty$</td><td>undefined; approached as a limit</td></tr>
+    <tr><td>$\ln(\text{negative})$</td><td>undefined</td><td>no real power of $e$ is negative</td></tr>
+    <tr><td>$\log_2(1024)$</td><td>$10$</td><td>$2^{10} = 1024$</td></tr>
+  </tbody>
+</table>
+
+<p>The third row is the one that matters most in practice: <b>the log of a probability is
+always negative</b>, since probabilities lie in $[0,1]$. That is precisely why loss
+functions carry a minus sign out front, to turn a negative log-probability into a
+positive quantity you can minimise.</p>
+
+<h3><span class="num">§11</span> Why machine learning lives in log space</h3>
+
+<div class="sixty">
+  <span class="label">In 60 seconds</span>
+  <p>Likelihoods are products over every training example, and products of probabilities
+  underflow to exactly zero within a few dozen terms. Taking a log turns the product into
+  a sum, which computers handle without complaint. It is legal because $\log$ is
+  monotonic, so the location of the maximum does not move, and it makes derivatives
+  simpler as a bonus. This is why you see <b>log-likelihood</b>, <b>log-softmax</b> and
+  <b>cross-entropy</b> everywhere.</p>
+</div>
+
+<p>Now the payoff, and it justifies the whole part.</p>
+
+<p>Here is the situation this section resolves. You have a model and a dataset, and you
+want a single number saying how well the model explains the data. The natural construction
+is to ask what probability the model assigns to everything you observed, all of it, at
+once. If the examples are independent, the probability of seeing all of them is the
+product of the individual probabilities (the same rule that makes the chance of three
+heads in a row $\tfrac12 \times \tfrac12 \times \tfrac12$). That product is called the
+<b>likelihood</b>, and maximising it is a completely reasonable definition of "fit the
+model to the data".</p>
+
+<p>It is also, taken literally, unrunnable. Everything below is the story of why, and of
+the one-line fix that the entire field uses without comment.</p>
+
+<h4>Reason 1: products underflow, sums do not</h4>
+
+<p>A model's likelihood over a dataset is a product over every example:</p>
+
+$$L = \prod_{i=1}^{m} p(x^{(i)})$$
+
+<p>Every factor is a probability, hence at most 1. Multiply ten thousand of them and the
+result is astronomically small, far below what a computer can represent, so it becomes
+exactly zero and all information is destroyed.</p>
+
+<p>It is worth appreciating how fast this happens, because "astronomically small" invites
+you to imagine some remote edge case. Suppose your model is doing well and assigns each
+example a probability of $0.9$ (better than most real models manage). Multiply $0.9$ by
+itself a thousand times and you get about $10^{-46}$. Ten thousand times and you get
+$10^{-458}$, which a 64-bit float cannot represent at all; it stores exactly zero. Your
+excellent model and a catastrophically bad one now both score zero, and no comparison
+between them is possible. This is not a rare failure at the boundary. It is the ordinary
+outcome on any dataset worth training on.</p>
+
+<p>And the failure is silent, which is worse. Nothing raises an exception. There is no
+warning. The number simply becomes zero, the optimiser sees a flat landscape in every
+direction, and training does nothing while appearing to run. A great deal of this book's
+attention to numerical detail traces back to failures with exactly that shape: arithmetic
+that ran, produced a number, and was believed.</p>
+
+<figure>
+  <img src="figures/mf/05-log-products.svg" alt="Product of probabilities underflowing versus the sum of logs staying stable">
+  <figcaption><b>Figure 4.</b> Left: multiplying copies of $0.5$ together, log scale. By
+  term 53 the product has dropped below machine epsilon ($2.2 \times 10^{-16}$, dashed
+  line), float64's precision floor near 1, and it only keeps shrinking from there; real
+  datasets have thousands of examples, not sixty, so the loss of precision shown here is
+  far worse in practice. Right: the log of the same quantity is a straight line that
+  stays perfectly well-behaved. Same information, no catastrophe.</figcaption>
+</figure>
+
+<p>Applying $\log$ converts that product into a sum, by the first rule of §10:</p>
+
+$$\log L = \sum_{i=1}^{m} \log p(x^{(i)})$$
+
+<p>A sum of ten thousand moderate negative numbers is entirely unremarkable to a
+computer. <b>This is the single reason every likelihood in machine learning appears as a
+log-likelihood.</b> It is not theoretical elegance; it is that the alternative does not
+run.</p>
+
+<h4>Reason 2: the maximum does not move</h4>
+
+<p>Taking a log is legitimate only because $\log$ is <b>monotonically increasing</b>:
+bigger input, bigger output, always. So whatever maximises $L$ also maximises $\log L$.
+The location of the optimum is untouched; only the numbers are made manageable.</p>
+
+<div class="box intuition">
+  <span class="label">Intuition: why monotonic transformations are free</span>
+  <p>If you rank a set of numbers and then apply any strictly increasing function to all
+  of them, the ranking is unchanged. Since optimisation only cares <i>which</i> input is
+  best (the $\arg\min$ of §2, not the $\min$), you may apply any monotonic transform
+  that makes the arithmetic easier.</p>
+  <p>This is the same licence that lets people minimise squared error instead of error,
+  and it is used constantly and usually without comment.</p>
+</div>
+
+<h4>Reason 3: derivatives get simpler</h4>
+
+<p>Differentiating a product of $m$ terms requires the product rule $m$ times and
+produces an unmanageable expression. Differentiating a sum means differentiating each
+term independently, since the derivative of a sum is the sum of the derivatives. Since
+training <i>is</i> repeated differentiation, this alone would justify the log.</p>
+
+<div class="box why">
+  <span class="label">Why deep learning cares: where you will actually see this</span>
+  <p>Every one of these is the same idea:</p>
+  <ul class="tight">
+    <li><b>Cross-entropy loss</b> is $-\log$ of the probability assigned to the correct answer.</li>
+    <li><b>Log-likelihood</b> is what maximum likelihood estimation maximises.</li>
+    <li><b>Log-softmax</b> is computed directly rather than as $\log$ of softmax, for stability.</li>
+    <li><b>Log-sum-exp</b> is the standard trick for summing in log space without leaving it.</li>
+    <li><b>Perplexity</b>, the standard language model metric, is an exponentiated average log-probability.</li>
+  </ul>
+  <p>When Part II §26 derives cross-entropy loss from maximum likelihood, the very
+  first move is taking a log of a product. That step is this section.</p>
+</div>
+
+<div class="box try">
+  <span class="label">Try it</span>
+  <p>(a) Simplify $\ln(e^{3x})$. &nbsp; (b) Simplify $\ln\!\left(\frac{a^2 b}{c}\right)$
+  into separate logs. &nbsp; (c) A model assigns probabilities $0.1$, $0.2$, $0.5$ to
+  three independent examples. Compute the likelihood and the log-likelihood. &nbsp;
+  (d) Solve $e^{2x} = 7$ for $x$.</p>
+</div>
+
+<p><b>Answers.</b> (a) $3x$: the log and the exponential cancel outright.</p>
+<p>(b) $2\ln a + \ln b - \ln c$. Product becomes sum, quotient becomes difference, the
+power comes down as a coefficient.</p>
+<p>(c) Likelihood $= 0.1 \times 0.2 \times 0.5 = 0.01$. Log-likelihood
+$= \ln(0.1) + \ln(0.2) + \ln(0.5) \approx -2.303 - 1.609 - 0.693 = -4.605$. Confirm:
+$\ln(0.01) \approx -4.605$. ✓ Both routes agree, but with ten thousand examples only
+the second one survives.</p>
+<p>(d) Take $\ln$ of both sides: $2x = \ln 7$, so $x = \frac{\ln 7}{2} \approx 0.973$.</p>

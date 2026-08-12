@@ -1,0 +1,162 @@
+<h2><span class="part-kicker">Part B</span>Conditioning</h2>
+
+<h3><span class="num">§5</span> The condition number</h3>
+
+<div class="sixty">
+  <span class="label">In 60 seconds</span>
+  <p>The condition number is an <b>amplification factor</b>: how much a small error in the
+  input becomes a large error in the output. It is a property of the <i>problem</i>, not of
+  your code; a badly conditioned problem cannot be rescued by a better algorithm. For a
+  matrix it is $\kappa(A) = \sigma_{\max}/\sigma_{\min}$, the ratio of largest to smallest
+  singular value.</p>
+</div>
+
+<div class="readnow"><span class="label">Go and read</span><p><span class="src">Turing (1948)</span>, <i>Rounding-off errors in matrix processes</i>. Where the condition number was named, and (more importantly) where the property of the <i>problem</i> was first separated from the behaviour of the <i>algorithm</i>. That distinction is §6's whole subject, and it is worth seeing it being drawn for the first time by someone who had no prior vocabulary for it.</p></div>
+
+<p>Part I §13 introduced this and moved on quickly. Here it gets the treatment it
+deserves, because it is the concept that explains most of what goes wrong in numerical
+work.</p>
+
+<div class="box def">
+  <span class="label">Definition: condition number</span>
+  <p>For solving $A\mathbf{x} = \mathbf{b}$, the condition number is</p>
+  <p>$$\kappa(A) = \frac{\sigma_{\max}(A)}{\sigma_{\min}(A)}$$</p>
+  <p>and it bounds how badly a relative error in $\mathbf{b}$ can be amplified into a
+  relative error in $\mathbf{x}$:</p>
+  <p>$$\frac{\|\delta\mathbf{x}\|}{\|\mathbf{x}\|} \;\leq\; \kappa(A)\, \frac{\|\delta\mathbf{b}\|}{\|\mathbf{b}\|}$$</p>
+</div>
+
+<p>Read the inequality as a budget. You start with about 16 good digits. Multiply the
+input error by $\kappa$ and you find how many you keep: <b>a condition number of $10^{k}$
+costs you roughly $k$ digits</b>. At $\kappa = 10^{16}$ you have none left, and the
+computed answer carries no information about the true one.</p>
+
+<figure>
+  <img src="figures/nc/03-conditioning.svg" alt="Measured solution error against condition number, tracking the predicted bound">
+  <figcaption><b>Figure 3.</b> Forty randomly generated systems with condition numbers
+  spanning twelve orders of magnitude. Each was perturbed by a relative input error of
+  $10^{-10}$ and solved. The dashed line is the predicted bound, $\kappa$ times the input
+  error. The measured errors track it. This is not an analogy: the amplification factor is
+  literally the multiplier.</figcaption>
+</figure>
+
+<div class="box intuition">
+  <span class="label">Intuition: geometrically, how squashed is the transformation?</span>
+  <p>Part I §19 showed that every matrix maps the unit sphere to an ellipsoid, and the
+  singular values are its semi-axis lengths. So $\kappa$ is the ratio of the longest axis
+  to the shortest, or <b>how far from spherical the ellipsoid is</b>.</p>
+  <p>A near-spherical map is well conditioned: every direction is treated comparably, and
+  inverting it is stable. A very flat ellipsoid means some direction was nearly collapsed,
+  and undoing that collapse means multiplying by a huge number, which multiplies the
+  error in that direction by the same huge number.</p>
+  <p>An infinitely flat ellipsoid is a singular matrix, with $\kappa = \infty$. Ill
+  conditioning is simply <b>proximity to singular</b>, measured.</p>
+</div>
+
+<h3><span class="num">§6</span> Conditioning versus stability</h3>
+
+<p>Two different things that are routinely conflated, and separating them tells you where
+to look when an answer is wrong.</p>
+
+<table>
+  <thead><tr><th></th><th>Conditioning</th><th>Stability</th></tr></thead>
+  <tbody>
+    <tr><td><b>Property of</b></td><td>the <i>problem</i></td><td>the <i>algorithm</i></td></tr>
+    <tr><td><b>Asks</b></td><td>does the true answer depend sensitively on the inputs?</td><td>does this procedure add much error beyond what the problem forces?</td></tr>
+    <tr><td><b>If bad</b></td><td>no algorithm can help</td><td>a different algorithm can help</td></tr>
+    <tr><td><b>Example</b></td><td>nearly parallel columns</td><td>forming $A^\top A$ rather than using QR</td></tr>
+  </tbody>
+</table>
+
+<p>The combination you want is a <b>stable algorithm on a well-conditioned problem</b>.
+A stable algorithm on a badly conditioned problem returns a poor answer and there is
+nothing wrong with your code; the question itself was fragile. An unstable algorithm on
+a well-conditioned problem is the case worth catching, because it is entirely your fault
+and entirely fixable.</p>
+
+<div class="box def">
+  <span class="label">Backward stability</span>
+  <p>An algorithm is <b>backward stable</b> if its computed answer is the <i>exact</i>
+  answer to a slightly perturbed version of your problem.</p>
+  <p>This is the standard the good algorithms meet, and it is a subtle idea worth sitting
+  with. It does not promise the answer is close to correct; it promises the algorithm
+  introduced no more error than a tiny wobble in the input would have. Combined with the
+  condition number, that gives the complete accuracy story:
+  <b>error $\approx$ stability $\times$ conditioning.</b></p>
+</div>
+
+<div class="box history">
+  <span class="label">History: Turing named it, in a paper about rounding errors</span>
+  <p>In <span class="year">1948</span> Alan Turing published a paper on rounding errors in
+  matrix computation, motivated by the very practical question of whether the new
+  electronic machines could be trusted to solve linear systems.</p>
+  <p>In it he introduced the term <b>condition number</b> and the idea it names: that some
+  systems are intrinsically sensitive, so that no amount of care in the calculation can
+  produce a trustworthy answer. He distinguished this from errors introduced by the method
+  itself, the conditioning-versus-stability split above, drawn at the very beginning of
+  the subject.</p>
+  <p>The framing was developed substantially by James Wilkinson in the <span
+  class="year">1960</span>s, whose backward error analysis gave the field its modern
+  vocabulary. But the concept, and the word, are Turing's, from the same few years as the
+  Bayesian codebreaking in Part II §21 and the machine that bears his name.</p>
+</div>
+
+<h3><span class="num">§7</span> Where conditioning bites in learning</h3>
+
+<p>This is not a numerical-analysis footnote. Conditioning explains several things about
+machine learning that otherwise look like folklore.</p>
+
+<h4>1. Correlated features</h4>
+
+<p>Two features that are nearly duplicates make the data matrix have two nearly parallel
+columns. Nearly parallel columns mean a tiny smallest singular value, which means a huge
+$\kappa$, which means the fitted coefficients are wildly sensitive to noise. The model may
+predict well and its coefficients are meaningless, with one large positive weight cancelling
+one large negative weight, with the split between them decided by rounding.</p>
+
+<p>This is why <b>regularization stabilises coefficients</b>. Adding $\lambda\|\mathbf{w}\|^2$
+adds $\lambda$ to every eigenvalue of the relevant matrix, which lifts the smallest one off
+the floor and cuts $\kappa$ directly. The statistical story about overfitting and the
+numerical story about conditioning are the same fact.</p>
+
+<h4>2. Unscaled features</h4>
+
+<p>One feature in metres and another in milligrams gives columns of wildly different
+magnitude, and hence a large $\kappa$ before any real structure is involved. This is the
+numerical reason for standardising inputs, and not merely because it "helps convergence"; it removes an artificial ill-conditioning you introduced by choosing units.</p>
+
+<h4>3. The optimisation landscape</h4>
+
+<p>The most important case, and the subject of §10. The curvature of a loss surface is
+described by a matrix, and <b>the condition number of that matrix controls how badly
+gradient descent zigzags.</b> A ratio of 1 means circular contours and a direct path to
+the minimum. A ratio of 1000 means a long narrow valley, in which the gradient points
+mostly across the valley rather than along it, and progress is agonising.</p>
+
+<div class="box why">
+  <span class="label">Why this matters: it is the reason modern optimisers exist</span>
+  <p>Momentum, RMSProp, Adam and every other method in §15–17 is, from one angle, a device
+  for coping with bad conditioning. They do different things (accumulate velocity,
+  rescale per parameter, estimate curvature) but the problem they are all solving is the
+  one this section describes.</p>
+  <p>Likewise batch normalisation, careful initialisation, and residual connections all
+  improve conditioning of the optimisation problem, whatever else they also do. Once you
+  see this, a large chunk of deep learning practice stops looking like a bag of tricks and
+  starts looking like one idea applied repeatedly.</p>
+</div>
+
+<div class="box try">
+  <span class="label">Try it</span>
+  <p>A matrix has singular values $\{4, 2, 10^{-7}\}$. What is $\kappa$, roughly how many
+  digits of accuracy do you expect to lose, and what does that tiny singular value mean
+  geometrically?</p>
+</div>
+
+<p><b>Answer.</b> $\kappa = 4 / 10^{-7} = 4 \times 10^{7}$, so expect to lose about
+<b>seven or eight digits</b>, leaving perhaps eight of the original sixteen. Usable, but
+you should not trust the result past that.</p>
+<p>Geometrically, the matrix squashes one direction by a factor of ten million. It is very
+nearly rank-deficient: it almost destroys that direction entirely, and recovering anything
+along it requires multiplying by $10^7$, which multiplies whatever error is there by
+$10^7$ too. If the smallest singular value were exactly zero the matrix would be singular;
+$10^{-7}$ means it is close enough that the distinction barely matters in practice.</p>

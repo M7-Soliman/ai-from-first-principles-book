@@ -1,0 +1,172 @@
+<h2><span class="part-kicker">Part C</span>Turning inference into optimisation</h2>
+
+<p class="mvt">When the posterior cannot be computed, pick a family of distributions you can compute
+with and find the member closest to it. That converts inference into optimisation, which this book
+already knows how to do, and it commits you to a specific, measurable kind of wrongness.</p>
+
+<h3><span class="num">§17</span> The idea</h3>
+
+<div class="box def">
+  <span class="label">Approximate by choosing</span>
+  <p>Choose a family <span class="m">$\mathcal{Q}$</span> and solve</p>
+  <p class="m">$$q^* \;=\; \arg\min_{q \in \mathcal{Q}} \; \mathrm{KL}\!\left(q \,\|\, p(\cdot \mid \mathbf{x})\right)$$</p>
+  <p>The trade is explicit and it is the only trade in the movement: a richer family is closer to
+  the posterior and more expensive to optimise. And unlike the sampling methods of movement D, the
+  answer is <b>biased and does not become unbiased with more compute</b>: running longer converges
+  to the best member of the family, which is not the posterior.</p>
+</div>
+
+<h3><span class="num">§18</span> The evidence lower bound</h3>
+
+<div class="box def">
+  <span class="label">Why the objective is computable when the KL is not</span>
+  <p>The KL above contains <span class="m">$\log p(\mathbf{x})$</span>, which is the quantity you
+  could not compute in the first place. But it is a constant in <span class="m">$q$</span>, and
+  rearranging gives</p>
+  <p class="m">$$\log p(\mathbf{x}) \;=\; \underbrace{\mathbb{E}_q\!\left[\log p(\mathbf{x}, \mathbf{z})\right] + \mathbb{H}[q]}_{\text{ELBO}(q)} \;+\; \mathrm{KL}\!\left(q \,\|\, p(\mathbf{z}\mid\mathbf{x})\right)$$</p>
+  <p>Both terms on the right are what you want: the KL is non-negative, so the ELBO is a lower
+  bound on the evidence, and maximising it is exactly minimising the KL. The gap between them is
+  the KL, so <b>the bound's looseness is the approximation error</b>, which sounds useful and is
+  not, because you cannot measure the gap without the thing you were approximating.</p>
+</div>
+
+<div class="box why">
+  <span class="label">The same inequality, three times in this book</span>
+  <p>EM's guarantee (§15) is this bound with an exact E step. Part XVI §15's derivation of the VAE
+  is this bound with a neural encoder. And the importance-weighted variants of §26 are this bound
+  with a tighter estimator. One inequality, and recognising it is most of what makes the literature
+  navigable.</p>
+</div>
+
+<h3><span class="num">§19</span> Mean field</h3>
+
+<div class="box def">
+  <span class="label">The simplest family, and the standard one</span>
+  <p>Assume the approximate posterior factorises completely:
+  <span class="m">$q(\mathbf{z}) = \prod_i q_i(z_i)$</span>. Then coordinate ascent has a closed
+  form (each factor's optimum is the exponentiated expected log-joint under the others), and the
+  updates cycle until the ELBO stops moving.</p>
+  <p>It is cheap, it is what "variational inference" means without qualification in most papers,
+  and the assumption it makes is precisely the one the posterior usually violates: that the latent
+  variables are independent given the data.</p>
+</div>
+
+<h3><span class="num">§20</span> What it gets wrong</h3>
+
+<figure>
+  <img src="figures/pb/04-meanfield.svg" alt="Left: marginal standard deviation from mean-field against posterior correlation, with the predicted curve. Right: true and mean-field contours at correlation 0.9">
+  <figcaption><b>Figure 4.</b> A two-dimensional Gaussian posterior with unit marginals and
+  correlation <span class="m">$\rho$</span>, where the mean-field solution has a closed form.
+  <b>Left:</b> the fitted marginal standard deviation is exactly
+  <span class="m">$\sqrt{1-\rho^2}$</span>: the closed form matches to
+  <b>1.1&times;10<sup>&minus;16</sup></b>, and gradient ascent on the ELBO lands on the same curve
+  independently. At <span class="m">$\rho = 0.9$</span> mean-field reports a standard deviation of
+  <b>0.436</b> where the truth is <b>1.000</b>. <b>Right:</b> the two densities at that correlation.
+  The approximation is inside the true contours in every direction.</figcaption>
+</figure>
+
+<div class="box why">
+  <span class="label">Not a bug, and not fixable by optimising harder</span>
+  <p>The mean is right. The <b>variance is too small</b>, by a factor that has a closed form and is
+  severe long before the correlation looks extreme: at <span class="m">$\rho = 0.9$</span> the
+  reported uncertainty is 44% of the truth.</p>
+  <p>It is a property of the objective, not of the optimiser. Figure 4's gradient ascent finds the
+  same answer as the closed form, so there is no better solution being missed. A variational
+  posterior <b>is systematically overconfident</b>, and any decision made from its credible
+  intervals inherits that, which is why Part XXIV's calibration check belongs on the output of one.</p>
+</div>
+
+<h3><span class="num">§21</span> The direction of the KL</h3>
+
+<div class="box def">
+  <span class="label">Two divergences, two failure modes</span>
+  <p><b>Reverse KL</b>, <span class="m">$\mathrm{KL}(q\|p)$</span>, is what the ELBO minimises. It
+  is infinite wherever <span class="m">$q$</span> has mass and <span class="m">$p$</span> does not,
+  so <span class="m">$q$</span> avoids <span class="m">$p$</span>'s low-probability regions: it is
+  <b>mode-seeking</b> and under-disperses.</p>
+  <p><b>Forward KL</b>, <span class="m">$\mathrm{KL}(p\|q)$</span>, is infinite wherever
+  <span class="m">$p$</span> has mass and <span class="m">$q$</span> does not, so
+  <span class="m">$q$</span> must cover everything: it is <b>mass-covering</b> and over-disperses
+  across modes. It is also usually not computable, because it needs expectations under
+  <span class="m">$p$</span>.</p>
+  <p>One correction, because the folk version of this is too strong. For a Gaussian target with a
+  factorised Gaussian family the forward KL recovers the true marginals <i>exactly</i>: it does not
+  over-disperse. Over-dispersion needs a target the family cannot represent, a multimodal one being
+  the standard case. The asymmetry is real; where it shows up is narrower than usually stated.</p>
+</div>
+
+<h3><span class="num">§22</span> Amortisation, and the VAE recalled</h3>
+
+<div class="box def">
+  <span class="label">Fitting one network instead of one posterior each</span>
+  <p>Classical variational inference optimises free parameters per data point. <b>Amortised</b>
+  inference trains a network mapping each observation to its approximate posterior's parameters, so
+  a new point costs a forward pass instead of an optimisation.</p>
+  <p>That is Part XVI §18's encoder, and this movement is what it was doing. The reparameterisation
+  trick of Part XVI §16 exists because the ELBO's gradient with respect to the encoder needs to pass
+  through a sampling step.</p>
+  <p>The cost has a name: the <b>amortisation gap</b>, the difference between the network's output
+  and the best member of the family for that point. It adds to §20's gap rather than replacing it,
+  so a VAE's posterior is overconfident twice over.</p>
+</div>
+
+<h3><span class="num">§23</span> Beyond mean field</h3>
+
+<div class="box shapes">
+  <span class="label">Four ways to buy back the dependence, and what each costs</span>
+  <p><b>Structured approximations</b> keep some of the posterior's graph (a chain, say) and
+  factorise the rest. Cheap, and the gain is exactly the dependence you kept.</p>
+  <p><b>Full-covariance Gaussians</b> fix Figure 4's problem entirely for a Gaussian posterior, at
+  quadratic parameters in the latent dimension.</p>
+  <p><b>Normalising flows</b> transform a simple distribution through invertible maps, giving an
+  expressive family with a tractable density. Part XVI §21.</p>
+  <p><b>Tighter bounds</b> from importance weighting: averaging several weighted samples inside the
+  logarithm gives a bound that approaches the true evidence as the sample count grows, at
+  proportional cost.</p>
+</div>
+
+<p>Two more standard approximations sit outside that list because they are not enrichments of the
+mean-field family: they are different <b>procedures</b> for building an approximate posterior, and
+each buys accuracy in a different currency: one trades the coordinate-ascent loop for a single
+optimisation, the other trades the ELBO's one global objective for many small local ones.</p>
+
+<div class="box def">
+  <span class="label">Laplace and expectation propagation</span>
+  <p><b>The Laplace approximation</b> fits a Gaussian at the mode instead of anywhere else. Find
+  <span class="m">$z^\star = \arg\max_z \log p(z \mid \mathbf{x})$</span> by gradient ascent (Part 0
+  §24's algorithm, run uphill), then match the curvature there:</p>
+  <p class="m">$$q(z) \;=\; \mathcal{N}\!\left(z^\star,\, H^{-1}\right), \qquad H \;=\; -\nabla^2_z
+  \log p(z \mid \mathbf{x})\big|_{z^\star}$$</p>
+  <p>which is the second-order Taylor expansion of the log-posterior about its peak, exponentiated.
+  One mode-finding optimisation and one Hessian replace mean field's coordinate-ascent loop entirely,
+  cheaper than CAVI, and exact whenever the true posterior already is Gaussian. It is also blind by
+  construction to anything curvature at a single point cannot see: a second mode, or a skew the
+  quadratic cannot represent. Part XXIV §18 runs the identical construction on a network's weight
+  posterior instead of a latent one (same Hessian, same blindness), which is why Laplace is usually
+  the first uncertainty a fitted model gets, before any heavier machinery from this movement is
+  built.</p>
+  <p><b>Expectation propagation</b> keeps full-covariance mean field's global-Gaussian ambition but
+  changes how the fit is found. Rather than one KL against the whole posterior, it works factor by
+  factor: hold the current approximation fixed everywhere except one factor, substitute the true
+  factor back in, and <b>moment-match</b>: set the approximation's mean and covariance to match this
+  "tilted" distribution exactly, which is a local, computable instance of the <i>forward</i> KL's
+  mass-covering behaviour from §21, not the ELBO's reverse KL. Cycle over factors until the messages
+  stop moving. There is no global objective EP is guaranteed to decrease, so unlike CAVI it can
+  oscillate rather than converge, but where it does converge it typically recovers the marginal
+  variance mean field under-reports, because no single factor is ever asked to cover the whole
+  posterior's mass at once. It is §12's forward–backward generalised: once §11's treewidth rules out
+  exact message passing, EP passes moment-matched messages instead of exact ones.</p>
+</div>
+
+<h3><span class="num">§24</span> What movement C establishes</h3>
+
+<div class="box intuition">
+  <span class="label">Three things</span>
+  <p><b>Inference becomes optimisation by choosing a family</b>, and one inequality (the ELBO)
+  underlies EM, the VAE and every variational method in the literature.</p>
+  <p><b>The error does not go away with compute.</b> More iterations converge to the best member of
+  a family that does not contain the posterior.</p>
+  <p><b>The wrongness has a direction and it is overconfidence.</b> Figure 4 measures a standard
+  deviation of 0.436 against a true 1.000, exactly <span class="m">$\sqrt{1-\rho^2}$</span>, and
+  the optimiser is not the problem.</p>
+</div>

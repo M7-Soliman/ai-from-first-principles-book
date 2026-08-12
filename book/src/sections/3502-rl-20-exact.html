@@ -1,0 +1,101 @@
+<h2><span class="part-kicker">Part B</span>Solving it exactly</h2>
+
+<p class="lede">When the model is known and the state space is small, the problem is solved: completely, with a convergence rate you can compute in advance. It is worth doing this case
+properly, because every approximate method later is a sampled version of one of these.</p>
+
+<h3><span class="num">§9</span> Policy evaluation</h3>
+
+<div class="box def">
+  <span class="label">Two ways, and they are not equivalent in cost</span>
+  <p><b>Directly.</b> §5's equation is linear: $(I - \gamma P_\pi)V = r_\pi$, so
+  $V^\pi = (I - \gamma P_\pi)^{-1} r_\pi$. Exact, and $O(|\mathcal{S}|^3)$.</p>
+  <p><b>Iteratively.</b> Apply the Bellman operator repeatedly. Each sweep is
+  $O(|\mathcal{S}|^2)$ and the error falls geometrically, so a few dozen sweeps beat a matrix
+  inverse as soon as the state space is at all large.</p>
+  <p>The matrix inverse exists because $\gamma < 1$ guarantees $I - \gamma P_\pi$ is invertible.
+  That is the same fact that makes the iteration converge, seen from the other side.</p>
+</div>
+
+<h3><span class="num">§10</span> Policy iteration</h3>
+
+<div class="box def">
+  <span class="label">Evaluate, improve, repeat</span>
+  <p>Evaluate $\pi$ to get $V^\pi$. Then improve: $\pi'(s) = \arg\max_a [r(s,a) + \gamma \sum_{s'}
+  p(s'\mid s,a)V^\pi(s')]$. Repeat.</p>
+  <p>The <b>policy improvement theorem</b> guarantees $V^{\pi'} \geq V^\pi$ at every state, with
+  strict improvement somewhere unless $\pi$ is already optimal. So the sequence of policies improves
+  monotonically, the number of deterministic policies is finite, and the algorithm therefore
+  terminates at the optimum <b>exactly</b>, usually in a handful of iterations.</p>
+</div>
+
+<h3><span class="num">§11</span> Value iteration</h3>
+
+<div class="box def">
+  <span class="label">Do not wait for evaluation to finish</span>
+  <p>$$V_{k+1}(s) = \max_a \Big[r(s,a) + \gamma \sum_{s'} p(s'\mid s,a) V_k(s')\Big]$$</p>
+  <p>One sweep, no inner loop. This is policy iteration with evaluation truncated to a single
+  step, and it converges to $V^*$ from any starting point, including a deliberately silly
+  one.</p>
+  <p>The two are ends of a spectrum. Evaluate to convergence and it is policy iteration; evaluate
+  once and it is value iteration; anything between is <b>modified policy iteration</b>, and in
+  practice a few evaluation sweeps per improvement is faster than either extreme.</p>
+</div>
+
+<h3><span class="num">§12</span> Why it converges, and how fast</h3>
+
+<figure>
+  <img src="figures/rl/01-contraction.svg" alt="Error against sweep for four discount factors on log axes, and the measured per-sweep error ratio against gamma">
+  <figcaption><b>Figure 1.</b> Value iteration on a random 40-state MDP. The error falls
+  geometrically, and the measured ratio per sweep matches $\gamma$ to within
+  <b>2×10<sup>−6</sup></b> at every discount tested. The rate is not approximately $\gamma$; it is
+  $\gamma$.</figcaption>
+</figure>
+
+<div class="box why">
+  <span class="label">The contraction argument, in three lines</span>
+  <p>Let $T$ be the Bellman optimality operator. For any $U, V$,</p>
+  <p>$$\|TU - TV\|_\infty \leq \gamma \|U - V\|_\infty$$</p>
+  <p>because a max of sums differs by at most the largest difference of the terms, and every term
+  carries a factor $\gamma$. So $T$ is a <b>contraction</b> in the max norm with modulus $\gamma$,
+  and Banach's fixed-point theorem gives the rest: a unique fixed point, convergence from anywhere,
+  at a geometric rate.</p>
+  <p>The rate is what makes this practical rather than merely reassuring. To reach accuracy
+  $\epsilon$ takes about $\log \epsilon / \log \gamma$ sweeps: <b>132</b> at $\gamma = 0.9$ and
+  <b>1,375</b> at $\gamma = 0.99$ for six decimal places. Long horizons are expensive in a way you
+  can compute before starting.</p>
+  <p>This is also the deepest reason $\gamma$ appears at all. It is not primarily a preference for
+  the present; it is the parameter that makes the whole apparatus a contraction, and everything
+  downstream inherits its guarantee.</p>
+</div>
+
+<h3><span class="num">§13</span> Why exact methods do not scale</h3>
+
+<div class="box def">
+  <span class="label">Three walls, and they arrive together</span>
+  <p><b>The state space.</b> A sweep touches every state. Backgammon has around $10^{20}$
+  positions; a robot with twelve continuous joints has none you can enumerate at all. Part VI §21's
+  curse of dimensionality, arriving where it is fatal rather than inconvenient.</p>
+  <p><b>The model.</b> Every method here needs $p(s'\mid s,a)$ in closed form. For most problems
+  worth solving, nobody has it.</p>
+  <p><b>The horizon.</b> Even with both, §12's rate says a long horizon costs sweeps in proportion
+  to $1/(1-\gamma)$.</p>
+  <p>Movement C removes the first two by <b>sampling</b> instead of sweeping and by learning from
+  transitions instead of from a model. Everything it gains it pays for in the guarantees this
+  movement had.</p>
+</div>
+
+<h3><span class="num">§14</span> What survives</h3>
+
+<div class="box intuition">
+  <span class="label">Three things to carry into the approximate case</span>
+  <p><b>The Bellman equation is the target.</b> Every method in movement C is a way of solving it
+  from samples. When one of them misbehaves, the question is always which term is being estimated
+  badly.</p>
+  <p><b>The contraction is the reason anything converges</b>, and it is exactly what function
+  approximation breaks (§21). Knowing that the guarantee came from $\gamma$-contraction in the
+  <b>max norm</b> tells you why a method minimising squared error in a <i>different</i> norm has no
+  such guarantee.</p>
+  <p><b>Generalised policy iteration is the shape of every algorithm here.</b> Something estimates
+  values, something improves the policy against them, and the two chase each other. Q-learning,
+  actor–critic and PPO are all this pattern with different approximations in the two boxes.</p>
+</div>

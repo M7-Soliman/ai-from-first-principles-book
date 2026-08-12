@@ -1,0 +1,131 @@
+<h2><span class="part-kicker">Part C</span>Sparsity and pruning</h2>
+
+<p class="lede">Remove weights entirely. The idea is old, the accuracy results are genuinely good,
+and the speedups mostly do not exist, which is a lesson about the difference between arithmetic and
+time.</p>
+
+<h3><span class="num">§17</span> Pruning</h3>
+
+<div class="box def">
+  <span class="label">The procedure, and the surprising part</span>
+  <p>Train a network, remove the weights that matter least, fine-tune what remains, repeat. The
+  standard criterion is <b>magnitude</b> (remove the smallest), which is crude and hard to beat.</p>
+  <p>The surprising part is how much can go. Removing 80–90% of the weights of a well-trained
+  network, with fine-tuning between rounds, typically costs very little accuracy. That is a real
+  statement about how overparameterised these models are, and it is worth taking seriously
+  independently of whether it makes anything faster.</p>
+</div>
+
+<h3><span class="num">§18</span> The lottery ticket</h3>
+
+<div class="readnow"><span class="label">Go and read</span><p><span class="src">Frankle &amp; Carbin (2019)</span>, <i>The lottery ticket hypothesis</i>. Read the reset step carefully, because it is the whole claim: the survivors go back to their <i>original</i> values, and a fresh random initialisation does not work. Then read the follow-up on rewinding to an early step rather than to initialisation, which is what made the result hold at scale.</p></div>
+
+<div class="box def">
+  <span class="label">The claim, and its careful form</span>
+  <p>Within a randomly initialised network there exist sparse subnetworks ("winning tickets")
+  that, trained <b>from the original initialisation</b>, match the full network's accuracy in
+  comparable time.</p>
+  <p>The procedure that finds one: train, prune, <b>reset the survivors to their original
+  values</b>, retrain. The reset is the whole content of the claim: resetting to a <i>new</i>
+  random initialisation does not work, so the specific initial values matter.</p>
+  <p>Two qualifications that the result is often quoted without. The tickets are found by training
+  the full network first, so this is not a way to train cheaply. And at larger scales the original
+  procedure needed modification: rewinding to an early training step rather than to
+  initialisation.</p>
+</div>
+
+<h3><span class="num">§19</span> Structured against unstructured</h3>
+
+<figure>
+  <img src="figures/ef/05-sparsity.svg" alt="Measured speedup against percentage of weights zeroed for a dense array and a sparse kernel, with the FLOP count's promise">
+  <figcaption><b>Figure 5.</b> A 2048×2048 matrix multiply, timed on the machine behind this build
+  (Apple M2, OpenBLAS, scipy's CSR kernel; re-run this before trusting the multiples on different
+  hardware). Zeroing weights in a dense array gives a speedup of about <b>1.0×</b> at every sparsity
+  level (0.9–1.1× measured), the flat line, and that flatness is what travels across hardware. A
+  CSR sparse kernel is <b>slower</b> than dense below roughly three-quarters sparsity, then rises
+  steeply: <b>31×</b> at 95% and <b>147×</b> at 99% here, on some hardware short of the FLOP
+  count's promise, on this one past it, because both dense and sparse kernel performance are
+  library- and machine-specific.</figcaption>
+</figure>
+
+<div class="box def">
+  <span class="label">Two kinds</span>
+  <p><b>Unstructured</b>: any weight may be removed. Best accuracy at a given sparsity, because the
+  choice is unconstrained.</p>
+  <p><b>Structured</b>: remove whole rows, columns, channels, heads or layers. Worse accuracy at the
+  same nominal sparsity, and it produces a <b>genuinely smaller dense</b> model, one that is faster
+  on any hardware with no special support.</p>
+</div>
+
+<div class="box why">
+  <span class="label">Why the FLOP count is the wrong measure</span>
+  <p>The figure's flat line is the point. A zero stored in a dense array is a number like any other:
+  it is loaded from memory, multiplied and added. Nothing about it is cheaper.</p>
+  <p>To exploit it you must change the <b>format</b>, and a sparse format pays for the arithmetic it
+  skips with index storage and irregular memory access. The measured crossover sits somewhere in the
+  high-sparsity regime (on the hardware behind Figure 5, between one half and three-quarters zeroed),
+  and exactly where is a property of the library and the machine, not of the model. It is worse on
+  hardware built for dense throughput because irregular access defeats exactly what that hardware is
+  optimised for.</p>
+  <p>Then §3 delivers the harder blow: even where a sparse kernel wins on arithmetic, decode is
+  <b>memory-bound</b>, and a sparse format may move <i>more</i> bytes than a dense one, the values
+  plus their indices. Removing FLOPs from an operation that was not FLOP-limited buys nothing.</p>
+</div>
+
+<h3><span class="num">§20</span> The pattern that works</h3>
+
+<div class="box def">
+  <span class="label">2:4 semi-structured sparsity</span>
+  <p>Require exactly two of every four consecutive weights to be zero. Regular enough that hardware
+  can be built for it (the two survivors of each group carry a two-bit position index apiece, four
+  bits of metadata per group of four, and the access pattern is predictable) and unstructured
+  enough to choose which two.</p>
+  <p>It delivers close to the theoretical 2× on hardware with support for it, at 50% sparsity, with
+  a modest accuracy cost after fine-tuning. That is far less sparsity than the 90% of §17, and it is
+  the sparsity that actually runs faster.</p>
+  <p>The general lesson is worth extracting because it recurs: <b>a constraint that makes the
+  pattern predictable is worth more than the freedom it costs.</b> The same trade appears in
+  structured pruning, in grouped-query attention (§4), and in block-sparse attention.</p>
+</div>
+
+<h3><span class="num">§21</span> What to prune</h3>
+
+<div class="box def">
+  <span class="label">Larger units, and what each removes</span>
+  <p><b>Attention heads.</b> A substantial fraction can be removed with little loss, evidence about
+  redundancy as much as a technique.</p>
+  <p><b>Layers.</b> Whole blocks, particularly in the middle of deep stacks, can often go. Crude and
+  effective, and it produces a smaller dense model.</p>
+  <p><b>Width.</b> Remove hidden units from the feed-forward blocks, which is where the parameters
+  are (Part XII §15's two thirds).</p>
+  <p>All three are structured by construction, which is why they are what deployed systems actually
+  use.</p>
+</div>
+
+<h3><span class="num">§22</span> Against quantization</h3>
+
+<div class="box why">
+  <span class="label">Why quantization won</span>
+  <p>Both reduce the model. Quantization reduces <b>bytes per weight</b>, which is the binding
+  constraint (§3), on hardware that already supports the format, with no change to the shape of any
+  operation. Unstructured pruning reduces <b>weight count</b>, which is not binding, and needs a
+  format change to realise anything.</p>
+  <p>So at equal compression, 4-bit quantization is straightforwardly faster and 90% unstructured
+  sparsity is straightforwardly not. That is the whole reason one is ubiquitous and the other is
+  mostly a research topic, and it is a fact about memory systems rather than about either
+  method.</p>
+  <p>They compose: a 4-bit 2:4-sparse model is smaller than either alone. The accuracy costs add up
+  faster than the compression does, which is worth measuring rather than assuming.</p>
+</div>
+
+<h3><span class="num">§23</span> What survives</h3>
+
+<div class="box intuition">
+  <span class="label">Three things</span>
+  <p><b>Networks are enormously overparameterised</b>, and pruning is the cleanest demonstration.
+  That fact is worth carrying even if you never prune anything.</p>
+  <p><b>Structure beats sparsity.</b> The pattern that runs fast is 50% and regular, not 90% and
+  free.</p>
+  <p><b>Measure time, not FLOPs.</b> The figure's flat line took ten lines of code to produce and
+  contradicts a great deal of published arithmetic.</p>
+</div>

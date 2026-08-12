@@ -1,0 +1,212 @@
+<h2><span class="part-kicker">Part D</span>Making it train</h2>
+
+<h3><span class="num">§21</span> Causal masking, and the thing Part XI could not have</h3>
+
+<div class="sixty">
+  <span class="label">In 60 seconds</span>
+  <p>To predict the next token, a position must not see it. Set the scores for future positions
+  to $-\infty$ before the softmax and every position is trained on its own prefix:
+  <b>simultaneously, in one forward pass</b>. Part XI §28 called this impossible for
+  recurrence, and it is the largest single reason transformers displaced it.</p>
+</div>
+
+<p>The mask is trivial to state. Before the softmax, replace $s_{ij}$ with $-\infty$ wherever
+$j > i$. The softmax sends those to exactly zero, so position $i$'s output depends only on
+positions $\leq i$.</p>
+
+<div class="box why">
+  <span class="label">Why this is the whole efficiency argument</span>
+  <p>Consider training on a sequence of 2,048 tokens.</p>
+  <p>A <b>recurrent</b> model must compute $\mathbf{h}^{(1)}$ before $\mathbf{h}^{(2)}$, and so
+  on: 2,048 sequential steps, each a small matrix multiplication. The hardware sits idle waiting
+  for the previous step.</p>
+  <p>A <b>masked transformer</b> computes all 2,048 positions in <i>one</i> pass, because
+  position $i$'s computation never consults position $i-1$'s <i>output</i>; it consults
+  position $i-1$'s input, which is already known. One large matrix multiplication, which is what
+  accelerators do.</p>
+  <p>And every position supplies a training signal. A 2,048-token sequence is 2,048 next-token
+  predictions, all computed at once, all contributing gradient. This is why the same hardware
+  trains a transformer on orders of magnitude more text than a recurrent model of similar size,
+  and Part XVII is about what follows from that.</p>
+</div>
+
+<div class="box pitfall">
+  <span class="label">Pitfall: the mask is the correctness boundary of the whole model</span>
+  <p>An off-by-one in the mask lets each position see the token it is predicting. The result is
+  a training loss that falls delightfully to near zero and a model that generates nonsense: it
+  learned to copy the answer it was shown.</p>
+  <p>This is the single most common serious bug in an implementation, and it does not raise.
+  Part IX §29's ladder has the test: <b>a masked model must be unable to fit</b> beyond the
+  entropy of the data. A loss that goes to zero on natural text is not a triumph.</p>
+  <p>The direct check is better still: change a token at position $j$ and confirm that outputs
+  at positions $< j$ are <b>bit-identical</b>. This part's project makes it a required
+  deliverable.</p>
+</div>
+
+<h3><span class="num">§22</span> Initialisation, and what depth does to it</h3>
+
+<p>Part VII §11 derived the variance-preserving initialisation and Part IX §16 completed it.
+Transformers need one addition, and §16's residual-stream reading says why.</p>
+
+<p>Every sublayer <b>adds</b> to the stream. If each contributes variance $v$, the stream's
+variance after $L$ blocks is $O(Lv)$: it grows with depth, and by 100 blocks the input
+embedding is a negligible fraction of what the model is reading.</p>
+
+<div class="box def">
+  <span class="label">Residual scaling</span>
+  <p>Scale the output projection of each sublayer by $1/\sqrt{2L}$ for $L$ blocks, two
+  sublayers each. The contributions then sum to $O(1)$ rather than $O(L)$.</p>
+  <p>Equivalently, initialise the <b>final</b> projection of each sublayer near zero, so that at
+  initialisation every block is close to the identity and the network starts as a very deep
+  linear pass-through. Both are in wide use and they are the same idea.</p>
+</div>
+
+<div class="box why">
+  <span class="label">Why starting at the identity is the recurring answer</span>
+  <p>Part X §23's residual block asked the layer to learn the <i>difference</i> from the
+  identity, so that a block doing nothing is what an untrained block already does. This is the
+  same move, applied at initialisation rather than in the architecture.</p>
+  <p>A network that begins as the identity has a well-behaved gradient at every depth on the
+  first step, and grows its own nonlinearity as training proceeds. That principle (<b>start at
+  something trivial and provably stable, then depart from it</b>) has now produced residual
+  connections, this initialisation, and §17's pre-norm. It is worth carrying as a design
+  heuristic in its own right.</p>
+</div>
+
+<h3><span class="num">§23</span> The optimiser, and what transfers</h3>
+
+<p>Transformers are trained with AdamW essentially universally, and the reason is sharper than
+"it works better".</p>
+
+<div class="box why">
+  <span class="label">Why plain SGD is not competitive here, unusually</span>
+  <p>For convolutional networks, SGD with momentum is competitive with Adam and often
+  generalises better. For transformers the gap is large and consistent, and the leading
+  explanation is <b>heterogeneity</b>.</p>
+  <p>A transformer contains an embedding table whose rows are updated only when their token
+  appears, LayerNorm gains, attention projections and feedforward matrices: quantities whose
+  gradients differ in scale by orders of magnitude. Part III §16's per-parameter step size is
+  exactly the remedy for that, and Part XI §14 already showed Adam rescuing a model that plain
+  SGD could not train.</p>
+  <p>The <b>W</b> matters too. Part III §17's framework box distinguished $L^2$ regularization
+  from decoupled weight decay, and with an adaptive optimiser they are different operations.
+  Every large transformer uses the decoupled form.</p>
+</div>
+
+<div class="box def">
+  <span class="label">The settings, and the ones with reasons</span>
+  <ul class="tight">
+    <li><b>$\beta_2 = 0.95$</b> rather than the usual $0.999$ at large scale. A shorter memory
+    for the second moment reacts faster to the gradient-scale changes that cause §25's loss
+    spikes.</li>
+    <li><b>Weight decay on matrices only.</b> Not on LayerNorm gains, not on biases, usually not
+    on embeddings. Decaying a normalisation gain toward zero is decaying the layer toward
+    outputting nothing.</li>
+    <li><b>Gradient clipping at 1.0</b>, always. Part XI §13's argument survives intact:
+    transformers have loss spikes and clipping is what makes them survivable.</li>
+    <li><b>Cosine decay with a short warmup.</b> Warmup is still standard even with pre-norm:
+    §17 removed the necessity, not the benefit.</li>
+  </ul>
+</div>
+
+<div class="box why">
+  <span class="label">Why the learning rate is the one that will not transfer</span>
+  <p>Tune hyperparameters on a small model and most transfer to a large one. The learning rate
+  does not: the optimum falls as width grows, so a rate tuned at $d = 256$ is unstable at
+  $d = 4096$, and the standard practice was to re-tune at every scale, at a cost that grows
+  with the thing you are tuning.</p>
+  <p>This is a solved problem and the solution is worth knowing exists. Under a
+  <b>maximal-update parameterisation</b>, initialisation scales and per-layer learning rates are
+  set so that the optimal rate is <i>invariant</i> to width. You tune once, small, and transfer.
+  Part XVII treats it properly; it is mentioned here because it is the answer to a question this
+  section otherwise leaves hanging.</p>
+</div>
+
+<h3><span class="num">§24</span> Regularization, and how little of it there is</h3>
+
+<p>The original transformer used dropout at 0.1 throughout and label smoothing at 0.1. Large
+modern language models frequently use <b>neither</b>, and the reason is Part VIII §1's
+definition applied honestly.</p>
+
+<div class="box why">
+  <span class="label">Why the regularization disappeared</span>
+  <p>Part VIII exists because models overfit. A model trained for a single pass over a corpus
+  larger than it can memorise <b>does not overfit</b>: training and validation loss stay
+  together, because no example is seen twice.</p>
+  <p>In that regime dropout is pure cost: it removes capacity from a model that is
+  underfitting, and Part VIII §22's accumulation pitfall applies with nothing on the other side
+  of the ledger. So it was dropped, and the pattern to take from it is Part VIII §22's ordering:
+  <b>diagnose before treating</b>. Regularization treats variance. Single-epoch training on a
+  vast corpus does not have a variance problem.</p>
+  <p>Where the data is small or repeated, dropout comes straight back, and fine-tuning, which
+  is exactly that regime, uses it routinely.</p>
+</div>
+
+<p><b>Stochastic depth</b>, dropping whole blocks at random, is the transformer-specific
+variant that survived in vision, and §16's residual-stream reading explains why it is coherent:
+if a block is an addend, omitting it is a smaller intervention than omitting a stage would be.</p>
+
+<h3><span class="num">§25</span> What breaks</h3>
+
+<p>Three failures specific to this architecture, each with a measurable signature.</p>
+
+<div class="box pitfall">
+  <span class="label">Pitfall: loss spikes</span>
+  <p>Training proceeds smoothly for thousands of steps and the loss jumps by a large factor in
+  one step. Sometimes it recovers over hundreds of steps; sometimes it never does.</p>
+  <p>The mechanism is Part IX §9's cliff. The associated signature is a sudden growth in the
+  attention logits (the scores before the softmax) which saturates it, which zeroes its
+  gradient (§4), which leaves the layer stuck.</p>
+  <p>The standard mitigations are all about keeping the logits bounded: <b>QK normalisation</b>,
+  which normalises queries and keys before the dot product; a lower $\beta_2$; and clipping. Log
+  the maximum attention logit: it is one number per layer and it moves <i>before</i> the loss
+  does.</p>
+</div>
+
+<div class="box pitfall">
+  <span class="label">Pitfall: attention entropy collapse</span>
+  <p>§4 showed the softmax saturating at initialisation if the scores are not scaled. The same
+  thing can happen <b>during training</b>: the logits grow, the entropy of the attention
+  distribution falls toward zero, and heads become hard pointers with no gradient.</p>
+  <p>It is cheap to watch. The entropy of each head's attention distribution is a scalar per head
+  per layer, and a head whose entropy has collapsed to near zero has stopped learning where to
+  look.</p>
+</div>
+
+<h3><span class="num">§26</span> Rank collapse, and what the skip connections are really for</h3>
+
+<p>The third failure is the most interesting, because it establishes that one of §14's
+components is not optional.</p>
+
+<p>Pure self-attention, stacked, converges to a rank-one representation: every position's vector
+becomes the same vector, exponentially fast in depth. The model loses the ability to distinguish
+positions at all.</p>
+
+<figure>
+  <img src="figures/at/08-rank-collapse.svg" alt="Effective rank of the representation against depth, with and without skip connections">
+  <figcaption><b>Figure 8.</b> Random self-attention layers applied repeatedly to a
+  64-position, 32-dimensional input. Without skip connections the effective rank falls from
+  about 17 to <b>1.00</b> by depth 32: the top singular direction holds <b>100%</b> of the
+  spectrum, so every position holds the same vector. With skip connections the effective rank is
+  <b>21.4</b> and the top direction holds 14.5%.</figcaption>
+</figure>
+
+<div class="box why">
+  <span class="label">Why attention alone collapses, and why the residual stops it</span>
+  <p>Attention's output is a <b>convex combination</b> of the values: each output lies inside
+  the convex hull of its inputs. Applying that repeatedly is an averaging process, and averaging
+  applied over and over converges to a constant. This is Part XI §11's power method wearing
+  different clothes: repeated application of a stochastic operator drives everything to its
+  leading eigenvector.</p>
+  <p>The residual connection breaks it because $\mathbf{x} + f(\mathbf{x})$ is <b>not</b> a
+  convex combination: the original vector is preserved in full and the averaged version is
+  added on top. The differences between positions survive to every depth.</p>
+  <p>So skip connections in a transformer are doing two separate jobs, and only one of them was
+  in Part X §23. They shorten the gradient path, as there. And they <b>prevent the forward
+  representation from degenerating</b>, which is a statement about expressiveness rather than
+  optimisation: a transformer without them does not merely train badly, it computes something
+  trivial.</p>
+  <p>The feedforward layers help for the same reason: they are not convex combinations either,
+  which is a second answer to §15's question about why two thirds of the model is the part
+  nobody discusses.</p>
+</div>

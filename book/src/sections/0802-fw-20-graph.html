@@ -1,0 +1,285 @@
+<h2><span class="part-kicker">Part B</span>The graph</h2>
+
+<p class="lede">One idea explains nearly every autograd behaviour, every autograd error, and
+most of the memory a training run consumes: <b>as your code executes, the library records
+what it did.</b> This part is about that recording: what goes into it, when it is thrown
+away, and how to stop it.</p>
+
+<h3><span class="num">§4</span> <code>requires_grad</code>, and what it spreads to</h3>
+
+<div class="sixty">
+  <span class="label">In 60 seconds</span>
+  <p>Marking a tensor <code>requires_grad=True</code> says "I want derivatives with respect
+  to this". The flag is <b>contagious</b>: any result computed from a tracked tensor is
+  itself tracked, and remembers the operation that produced it. Following those links
+  backwards from the loss is the chain rule of Part 0 §17, organised.</p>
+</div>
+
+<p>By default a tensor is inert. It holds numbers and nothing else:</p>
+
+<pre><code>x = torch.tensor(<span class="n">2.0</span>)
+y = x * <span class="n">3</span>
+y.grad_fn                  <span class="c"># None -- nothing was recorded</span>
+</code></pre>
+
+<p>Set the flag and the same arithmetic starts leaving a trail:</p>
+
+<pre><code>x = torch.tensor(<span class="n">2.0</span>, requires_grad=<span class="k">True</span>)
+y = x * <span class="n">3</span>
+y.requires_grad            <span class="c"># True        -- it spread</span>
+y.grad_fn                  <span class="c"># &lt;MulBackward0&gt;  -- and it remembers how</span>
+</code></pre>
+
+<p>The spreading is the important half. You never mark intermediate values; you mark the
+<b>parameters</b>, and everything downstream inherits tracking because it depends on them.
+That is why <code>nn.Linear</code> sets the flag on its weight and bias and on nothing else:
+those are the only things being learned, and the rest follows.</p>
+
+<div class="box intuition">
+  <span class="label">Intuition: the flag answers "is this on the path to a parameter?"</span>
+  <p>A tensor has <code>requires_grad=True</code> exactly when it was computed, however
+  indirectly, from something being learned. Data does not require grad. Labels do not.
+  Activations do, because they descend from weights.</p>
+  <p>So the flag is not a property you assign to things; it is a fact about the dependency
+  structure, computed for you. The only ones you set by hand are the roots.</p>
+</div>
+
+<h3><span class="num">§5</span> The graph, seen</h3>
+
+<div class="readnow"><span class="label">Go and read</span><p><span class="src">Paszke et al. (2019)</span>, <i>PyTorch: an imperative style, high-performance deep learning library</i>. The design paper for the library you are learning, and worth reading for the argument rather than the API. It is an explicit defence of building the graph <i>as the code runs</i>, against the then-dominant approach of declaring it first, and it is candid about what that choice gives up. Read it against <span class="src">Abadi et al. (2016)</span> on TensorFlow, which made the opposite call. Either alone reads as inevitable; the pair makes the design space visible.</p></div>
+
+<p>Take the model from Part 0 §24 (one weight, one bias, a sigmoid and a squared error)
+and ask PyTorch what it recorded.</p>
+
+<pre><code>w = torch.tensor(<span class="n">0.5</span>, requires_grad=<span class="k">True</span>)
+b = torch.tensor(<span class="n">0.0</span>, requires_grad=<span class="k">True</span>)
+x = torch.tensor(<span class="n">2.0</span>)
+
+z     = w * x + b
+y_hat = torch.sigmoid(z)
+loss  = (y_hat - torch.tensor(<span class="n">1.0</span>)) ** <span class="n">2</span>
+</code></pre>
+
+<figure>
+  <img src="figures/fw/01-graph.svg" alt="The computational graph PyTorch recorded, read out of grad_fn links">
+  <figcaption><b>Figure 1.</b> Not a diagram of how autograd works; <b>the actual graph</b>,
+  obtained by walking <code>loss.grad_fn.next_functions</code> and printing what was found.
+  Seven nodes, six edges. The orange leaves are where gradients come to rest, one per
+  parameter; PyTorch calls those nodes <code>AccumulateGrad</code>, and accumulate is
+  precisely what they do. Arrows show the direction the forward pass went;
+  <code>backward()</code> traverses them in reverse.</figcaption>
+</figure>
+
+<p>Read the chain against Part 0 §24's three factors. <code>Pow</code> is
+$\partial L/\partial \hat{y} = 2(\hat{y}-y)$. <code>Sigmoid</code> is
+$\sigma(z)(1-\sigma(z))$. <code>Mul</code> is $\partial z/\partial w = x$. The multiplication
+of those factors that you did by hand is the reverse traversal of this graph, and the two
+<code>AccumulateGrad</code> nodes are where the answers were written down.</p>
+
+<div class="box def">
+  <span class="label">Definition: leaf and non-leaf</span>
+  <p>A <b>leaf</b> is a tracked tensor you created directly, rather than one computed from
+  others. Parameters are leaves; activations are not.</p>
+  <p><code>t.is_leaf</code> reports which. It matters because <b>only leaves get a
+  <code>.grad</code></b>.</p>
+</div>
+
+<pre><code>x = torch.tensor(<span class="n">2.0</span>, requires_grad=<span class="k">True</span>)
+y = x * <span class="n">3</span>
+y.backward()
+
+x.is_leaf, y.is_leaf       <span class="c"># True, False</span>
+x.grad                     <span class="c"># tensor(3.)</span>
+y.grad                     <span class="c"># None  -- and a warning</span>
+</code></pre>
+
+<p>That <code>None</code> surprises people, and the reason is economy. In a real network
+there are millions of intermediate tensors and a few thousand parameters. Storing a gradient
+for every intermediate would multiply memory for no benefit, because you are never going to
+update an activation; you update weights. So autograd computes intermediate gradients,
+passes them backwards, and discards them.</p>
+
+<p>If you genuinely want one, ask before the backward pass:</p>
+
+<pre><code>y = x * <span class="n">3</span>
+y.retain_grad()            <span class="c"># keep this one</span>
+y.backward()
+y.grad                     <span class="c"># tensor(1.)</span>
+</code></pre>
+
+<h3><span class="num">§6</span> What <code>backward()</code> does, and what it destroys</h3>
+
+<p>Calling <code>backward()</code> on a scalar does three things: it seeds the output
+gradient with 1, walks the graph in reverse topological order accumulating into every
+<code>.grad</code>, and then <b>frees the intermediate values it saved</b>.</p>
+
+<p>That third step is not a detail. It is why this fails:</p>
+
+<pre><code>y = x * <span class="n">3</span>
+y.backward()
+y.backward()               <span class="c"># RuntimeError: Trying to backward through the graph</span>
+                           <span class="c"># a second time ...</span>
+</code></pre>
+
+<p>The error is not saying you may not differentiate twice. It is saying the values needed
+to do so are gone. Passing <code>retain_graph=True</code> to the first call keeps them, at
+the cost of the memory Figure 2 measures.</p>
+
+<h4>Why anything needs saving at all</h4>
+
+<p>Part VII §17 makes the general argument; here it is concretely. To send a gradient back
+through $y = \sigma(z)$ you need $\sigma'(z) = \sigma(z)(1-\sigma(z))$, which requires the
+<i>value</i> $\sigma(z)$ computed on the way forward. Through a matrix multiply
+$\mathbf{h} = W\mathbf{x}$ you need $\mathbf{x}$ to compute the gradient with respect to
+$W$. Every operation's backward needs some input or output of its forward.</p>
+
+<p>So a forward pass through a deep network leaves behind one saved tensor per operation,
+per example in the batch, and they must all survive until the backward pass reaches them.</p>
+
+<figure>
+  <img src="figures/fw/02-memory.svg" alt="Activation memory retained by the graph, against batch size and against depth">
+  <figcaption><b>Figure 2.</b> Measured, not estimated: the bytes were counted by walking
+  the real graph and totalling every tensor autograd had saved. <b>Left</b>, and the
+  surprise: against batch size the curve is <i>flat and then linear</i>, not linear
+  throughout. At width 512 a batch of 1 already costs 5.1 MB, and raising the batch
+  <i>128-fold</i> to 128 only reaches 8 MB. <b>Right</b>: against depth it is linear all
+  the way down, with no flat region at all.</figcaption>
+</figure>
+
+<p>That left-hand shape is worth stopping on, because it contradicts the tidy rule people
+usually carry, that training memory is batch × depth × width.</p>
+
+<p>The graph is holding <b>two different kinds of thing</b>, and only one of them scales
+with the batch.</p>
+
+<ul>
+  <li><b>Activations:</b> one per operation per example. These are linear in batch size,
+  and they are what everyone means by "activation memory".</li>
+  <li><b>Parameters:</b> because equation 3 of Part VII §14 computes
+  $\partial L/\partial W$ from the layer's <i>input</i>, and equation 2 needs $W$ itself to
+  push the gradient backward. So the weight matrices are saved too, and a weight matrix does
+  not care how many examples you sent through it.</li>
+</ul>
+
+<p>Which term dominates is a race between $\text{batch} \times \text{width}$ and
+$\text{width}^2$. At width 512 a single layer's weights are 262,144 numbers while one
+example's activations are 512, so the parameters win by a factor of 512, and the batch has
+to grow enormously before it matters. At width 64 with a batch of 256 the balance has
+tipped the other way.</p>
+
+<div class="box why">
+  <span class="label">Why the correction matters in practice</span>
+  <p>"Halve the batch" is the standard first move against an out-of-memory error, and this
+  figure says <b>when it will work and when it will not</b>.</p>
+  <p>On a wide model at a small batch (the left of those curves), halving the batch buys
+  almost nothing, because you are not paying for the batch. People do it anyway, watch memory
+  barely move, and conclude something exotic is wrong. Nothing is: the memory was in the
+  weights and the saved copies autograd needs of them.</p>
+  <p>On the linear stretch it works exactly as advertised. So the useful diagnostic is to
+  halve the batch <i>once</i> and see whether memory follows. If it does, you are activation-
+  bound and can keep going. If it does not, the lever you need is a smaller model, gradient
+  checkpointing, or lower precision (Part III §1).</p>
+</div>
+
+<div class="box why">
+  <span class="label">Why this is the memory model to carry</span>
+  <p>Model parameters are usually the <i>smaller</i> half of what a training run holds. A
+  network with ten million parameters occupies 40 MB in float32, which is trivial. Its activations,
+  at a batch of 256 and a depth of fifty, can be many gigabytes, because they scale with
+  batch size and the parameters do not.</p>
+  <p>Three consequences follow, and all three are standard practice:</p>
+  <ul class="tight">
+    <li><b>Inference needs far less memory than training</b>, because with no backward pass
+    nothing has to be saved. That is what <code>torch.no_grad()</code> exploits.</li>
+    <li><b>Halving the batch halves the activation term,</b> but only that term, which is
+    why the figure above says to check that memory actually followed.</li>
+    <li><b>Gradient checkpointing</b> (Part VII §17) throws activations away and
+    recomputes them during the backward pass, trading time for memory. It is only a sensible
+    trade because of the scaling this figure shows.</li>
+  </ul>
+</div>
+
+<h3><span class="num">§7</span> Stopping the gradient</h3>
+
+<p>Three tools, doing three different things, routinely confused.</p>
+
+<table>
+  <thead><tr><th>Tool</th><th>Effect</th><th>Use when</th></tr></thead>
+  <tbody>
+    <tr><td><code>torch.no_grad()</code></td><td>records nothing inside the block</td><td>evaluating, or updating weights by hand</td></tr>
+    <tr><td><code>t.detach()</code></td><td>returns a copy with the parent link cut</td><td>you want the value but not its history</td></tr>
+    <tr><td><code>p.requires_grad_(False)</code></td><td>stops tracking a parameter permanently</td><td>freezing part of a model</td></tr>
+  </tbody>
+</table>
+
+<p>The distinction that matters: <code>no_grad</code> is about a <i>region of code</i>,
+<code>detach</code> is about a <i>single tensor</i>, and <code>requires_grad_</code> is about
+a <i>parameter for the rest of its life</i>.</p>
+
+<p><code>torch.inference_mode()</code> is a stricter sibling of <code>no_grad()</code>,
+now the recommended default for pure evaluation: it also disables the version-counter
+bookkeeping that the in-place checks below rely on, since nothing built under it will ever
+be backpropagated through, which buys a further speedup at the cost of a tensor made under
+it being unusable if you later try to feed it into a graph that does need gradients.</p>
+
+<pre><code><span class="c"># evaluating: no graph needed, so build none</span>
+<span class="k">with</span> torch.no_grad():
+    preds = model(X_val)
+
+<span class="c"># freezing a pretrained backbone, training only the head</span>
+<span class="k">for</span> p <span class="k">in</span> model.backbone.parameters():
+    p.requires_grad_(<span class="k">False</span>)
+
+<span class="c"># logging a value without keeping its graph alive</span>
+history.append(loss.detach())      <span class="c"># or loss.item(), per section 3</span>
+</code></pre>
+
+<h4>In-place operations, and why they are not simply banned</h4>
+
+<p>Any method ending in an underscore modifies its tensor in place:
+<code>x.add_(1)</code>, <code>x.mul_(2)</code>, <code>x.relu_()</code>. They save memory,
+and they can corrupt a backward pass by overwriting a value some operation still needs.</p>
+
+<p>PyTorch does not forbid them. It <b>version-counts</b> every tensor and raises if a saved
+value was modified before it was used:</p>
+
+<pre><code>a = torch.randn(<span class="n">3</span>, requires_grad=<span class="k">True</span>)
+b = torch.sigmoid(a)
+b.mul_(<span class="n">2</span>)                    <span class="c"># overwrite sigmoid's output ...</span>
+b.sum().backward()
+<span class="o">### RuntimeError: one of the variables needed for gradient computation</span>
+<span class="o">### has been modified by an inplace operation ... is at version 1;</span>
+<span class="o">### expected version 0 instead.</span>
+</code></pre>
+
+<p>But the same pattern on a different operation is fine:</p>
+
+<pre><code>b = a * <span class="n">3</span>                   <span class="c"># multiplication's backward needs the OTHER operand,</span>
+b.mul_(<span class="n">2</span>)                    <span class="c"># not its own output</span>
+b.sum().backward()          <span class="c"># no error</span>
+</code></pre>
+
+<p>That contrast is the whole rule. In-place is dangerous exactly when the overwritten value
+is one a backward pass depends on, and which values those are depends on the operation. The
+library cannot forbid the pattern without losing a real memory saving, so it detects the
+failure instead, which is a considerably better bargain than your own engine in Part VII
+§21 offers, since that one would silently return a wrong gradient.</p>
+
+<div class="box try">
+  <span class="label">Try it</span>
+  <p>You write an evaluation loop that runs correctly but uses far more memory than training
+  did, and eventually runs out. The loop is:</p>
+  <p><code>for xb, yb in val_dl: preds.append(model(xb))</code></p>
+  <p>What is wrong, and what are the two independent fixes?</p>
+</div>
+
+<p><b>Answer.</b> Every <code>model(xb)</code> is computed with grad tracking on, so each
+appended prediction drags its whole graph (all the saved activations of §6) into the list.
+Nothing is ever freed, so memory grows with the number of batches. Training did not have
+this problem because <code>backward()</code> freed each graph immediately.</p>
+<p><b>Fix one:</b> wrap the loop in <code>with torch.no_grad():</code> so no graph is built
+at all. This is the right answer, and it is also faster.</p>
+<p><b>Fix two:</b> append <code>model(xb).detach()</code>, which cuts the link so the graph
+can be collected. This works but still pays to build the graph first. The two compose, and in
+practice you use the first; the reason to know both is that the second is what you need when
+only <i>part</i> of a computation should be excluded.</p>

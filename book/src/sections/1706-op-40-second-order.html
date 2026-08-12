@@ -1,0 +1,242 @@
+<h2><span class="part-kicker">Part D</span>Second order, properly</h2>
+
+<p class="lede">Part III §12 gave four reasons nobody uses Newton's method at scale and moved
+on. That was the right call at the time and it left three well-known methods unexamined. They
+are worth having: one of them is the standard tool for the largest problems that <i>are</i>
+solved this way, and understanding why they lose here sharpens the reasons the first-order
+methods win.</p>
+
+<h3><span class="num">§19</span> Newton's method, damped</h3>
+
+<p>The update from Part III §11 is $\boldsymbol{\theta}^* = \boldsymbol{\theta}_0 - H^{-1}\nabla
+J(\boldsymbol{\theta}_0)$, and it is exact for a quadratic with positive definite $H$. §8 gave
+the objection that matters here: in deep learning $H$ is <b>not</b> positive definite, most
+critical points are saddles, and at a saddle the negative eigenvalues make $H^{-1}$ point some
+components of the update <b>uphill</b>.</p>
+
+<p>The standard repair is to add a constant along the diagonal.</p>
+
+<div class="box def">
+  <span class="label">The damped, or regularized, Newton update</span>
+  <p>$$\boldsymbol{\theta}^* = \boldsymbol{\theta}_0 - \big[H(\boldsymbol{\theta}_0) + \alpha I\big]^{-1}\nabla J(\boldsymbol{\theta}_0)$$</p>
+  <p>Adding $\alpha$ to every eigenvalue. Choose $\alpha$ larger than the most negative
+  eigenvalue and every direction becomes a descent direction again. This is the
+  <b>Levenberg–Marquardt</b> algorithm, from 1944 and 1963.</p>
+</div>
+
+<div class="box why">
+  <span class="label">Why this expression should look familiar</span>
+  <p>$[H + \alpha I]^{-1}$ is exactly the operator Part VIII §4 derived for ridge regression,
+  where it produced the shrinkage factor $\lambda_i/(\lambda_i + \alpha)$ on each
+  eigendirection.</p>
+  <p>The same algebra is doing two apparently unrelated jobs. In Part VIII the objective was
+  <b>statistical</b>: shrink the directions the data does not constrain, so the fit does not
+  chase noise. Here it is <b>numerical</b>: lift the negative and near-zero curvatures, so the
+  step is well defined and points downhill.</p>
+  <p>The connection is not a coincidence. Both are the same complaint about the same matrix (that some of its eigenvalues are too small to trust) and the fix is the same in both cases
+  because "too small to trust" and "too small to invert" are the same condition. It is worth
+  noticing that the identical two-line change is called <i>regularisation</i> in one chapter
+  and <i>damping</i> in another, and that neither field usually mentions the other.</p>
+</div>
+
+<p>The repair works while the negative eigenvalues are near zero. It fails, informatively, when
+they are not.</p>
+
+<p>Watch what happens as $\alpha$ grows. The matrix $H + \alpha I$ becomes increasingly
+dominated by $\alpha I$, so its inverse tends to $\frac{1}{\alpha}I$, and the update tends to</p>
+
+$$\boldsymbol{\theta}^* \;\longrightarrow\; \boldsymbol{\theta}_0 - \frac{1}{\alpha}\nabla J(\boldsymbol{\theta}_0)$$
+
+<p>which is plain gradient descent with learning rate $1/\alpha$. So damping does not merely
+fix Newton's method; it <b>interpolates between Newton's method and gradient descent</b>, with
+$\alpha$ as the dial.</p>
+
+<p>And that gives the failure in one sentence. Where the curvature is strongly negative, the
+$\alpha$ required to make the step valid is large, large enough that the update is
+essentially gradient descent with a small learning rate. <b>Newton's method, corrected enough
+to be safe here, takes smaller steps than a well-tuned gradient method</b>, at $O(k^3)$ per
+iteration and with the whole Hessian recomputed each time.</p>
+
+<p>Together with §5's measurement (that a second-order step amplifies gradient noise tenfold,
+so you need batches two orders of magnitude larger) the case is closed. Three independent
+objections, any one of which would be enough.</p>
+
+<h3><span class="num">§20</span> Conjugate gradients</h3>
+
+<div class="sixty">
+  <span class="label">In 60 seconds</span>
+  <p>Steepest descent with an exact line search zigzags, and the zigzag is not bad luck; it
+  is <b>forced</b> by the line search. Each new direction is necessarily orthogonal to the
+  last, which is precisely the property that undoes the previous step's progress. Conjugate
+  gradients picks directions that do not undo each other, and reaches the exact minimum of a
+  quadratic in $n$ dimensions in at most $n$ steps, using only gradients.</p>
+</div>
+
+<p>Start with the diagnosis, which is the interesting part. Part III §13 introduced line
+search: from the current point, move along a direction and go to the lowest point on that
+line. Do that repeatedly along the gradient and you get the familiar zigzag. Here is why it is
+unavoidable.</p>
+
+<div class="box worked">
+  <span class="label">Worked: the line search creates the zigzag</span>
+  <p>Let $\mathbf{d}_{t-1}$ be the previous search direction. At the point where the line
+  search stopped, you are at the minimum along that line, so the directional derivative there
+  is zero:</p>
+  <p>$$\nabla J(\boldsymbol{\theta}) \cdot \mathbf{d}_{t-1} = 0$$</p>
+  <p>The next steepest-descent direction is $\mathbf{d}_t = -\nabla J(\boldsymbol{\theta})$.
+  So $\mathbf{d}_t \cdot \mathbf{d}_{t-1} = 0$: <b>the new direction is exactly orthogonal to
+  the old one.</b> Every time.</p>
+  <p>Now the damage. Moving along $\mathbf{d}_t$ changes the objective, and there is nothing
+  keeping you at the minimum with respect to $\mathbf{d}_{t-1}$ while you do it. So you leave
+  it, and a later iteration has to come back and re-minimise along $\mathbf{d}_{t-1}$ again.
+  <b>By following the gradient at the end of each line search you are systematically undoing
+  work you already did.</b></p>
+</div>
+
+<p>The fix is to ask for a different relationship between consecutive directions. Orthogonality
+is the wrong requirement; what you want is that moving along $\mathbf{d}_t$ does not spoil the
+minimisation along $\mathbf{d}_{t-1}$. That condition has a name.</p>
+
+<div class="box def">
+  <span class="label">Conjugacy</span>
+  <p>Two directions are <b>conjugate</b> with respect to $H$ when</p>
+  <p>$$\mathbf{d}_t^\top H\,\mathbf{d}_{t-1} = 0$$</p>
+  <p>Orthogonality is this with $H = I$. Conjugacy is orthogonality <i>in the geometry the
+  Hessian defines</i>, which is the geometry the objective actually has.</p>
+  <p>Build the new direction by adding back a measured amount of the old one:</p>
+  <p>$$\mathbf{d}_t = -\nabla J(\boldsymbol{\theta}_t) + \beta_t \mathbf{d}_{t-1}$$</p>
+  <p>and the remarkable fact is that the right $\beta_t$ can be computed from gradients alone,
+  with <b>no access to $H$ whatever</b>. Two standard choices:</p>
+  <p>$$\beta_t^{\text{FR}} = \frac{\nabla J(\boldsymbol{\theta}_t)^\top \nabla J(\boldsymbol{\theta}_t)}
+  {\nabla J(\boldsymbol{\theta}_{t-1})^\top \nabla J(\boldsymbol{\theta}_{t-1})}
+  \qquad
+  \beta_t^{\text{PR}} = \frac{\big(\nabla J(\boldsymbol{\theta}_t) - \nabla J(\boldsymbol{\theta}_{t-1})\big)^\top \nabla J(\boldsymbol{\theta}_t)}
+  {\nabla J(\boldsymbol{\theta}_{t-1})^\top \nabla J(\boldsymbol{\theta}_{t-1})}$$</p>
+  <p>Fletcher–Reeves on the left, Polak–Ribière on the right.</p>
+</div>
+
+<p>That $\beta_t$ needs only gradient inner products is what makes the method viable. The naive
+route to conjugacy runs through the eigenvectors of $H$, which would cost more than Newton's
+method and defeat the purpose entirely.</p>
+
+<p>The payoff: on a quadratic surface, conjugate directions guarantee that the gradient along
+previous directions does not grow, so you stay at the minimum along everything you have
+already searched. Each line search therefore finishes a dimension permanently, and in $k$
+dimensions the method needs <b>at most $k$ line searches</b>.</p>
+
+<figure>
+  <img src="figures/op/08-conjugate.svg" alt="Residual against iteration for steepest descent and conjugate gradients at two condition numbers">
+  <figcaption><b>Figure 8.</b> A twelve-dimensional quadratic, solved two ways at two
+  conditionings. Left, $\kappa = 10$: conjugate gradients reaches a residual of
+  $2.1\times10^{-13}$ at <b>exactly</b> iteration 12 and stops improving because it is done,
+  while steepest descent with exact line search is still at $3.7\times10^{-3}$ after twice as
+  many steps. Right, $\kappa = 1000$: the finite-termination property is <b>destroyed by
+  rounding error</b>: at iteration 12 the residual is still $0.44$, and CG needs 17 steps to
+  reach $10^{-10}$. It still beats steepest descent, which after 24 steps has barely
+  moved. The exact digits above the rounding floor are BLAS-dependent (the pitfall below
+  explains why) and will drift slightly on different hardware; the order of magnitude and the
+  step counts do not.</figcaption>
+</figure>
+
+<div class="box pitfall">
+  <span class="label">Pitfall: "terminates in $n$ steps" is a theorem about exact arithmetic</span>
+  <p>The right panel is the caveat that textbooks state and implementations rediscover.
+  Conjugacy is maintained by a recurrence, and in floating point the recurrence drifts. At
+  $\kappa = 1000$ the directions have lost enough conjugacy by iteration 12 that the guarantee
+  is simply gone.</p>
+  <p>This is Part III §6's distinction doing real work: the <b>algorithm</b> is exact, the
+  <b>implementation</b> is not, and the gap widens with the condition number. It is why serious
+  CG codes reorthogonalise or restart, and why "$n$ iterations" should be read as an
+  optimistic bound rather than a schedule.</p>
+</div>
+
+<p>On non-quadratic objectives (that is, on anything you would train) the conjugate
+directions no longer keep you at previous minima, so <b>nonlinear conjugate gradients</b>
+periodically <b>resets</b>, throwing away $\beta$ and starting again from the plain gradient,
+typically every few iterations. It works reasonably on neural networks, and it works better if
+you run a few SGD iterations first to get somewhere sensible. Minibatch versions exist and
+have been used successfully, which is not obvious given §5's warning: CG uses gradient
+differences, and differences of noisy quantities are noisier still.</p>
+
+<h3><span class="num">§21</span> BFGS and its limited-memory form</h3>
+
+<div class="readnow"><span class="label">Go and read</span><p><span class="src">Martens (2010)</span>, <i>Deep learning via Hessian-free optimization</i>. The most serious attempt to make second-order methods work at scale, and it works by never forming $H$: Hessian-vector products for the curvature, conjugate gradients for the solve, §§20 and 21 assembled into a real optimiser. It is also where the sparse initialisation of §16 comes from. It did not displace SGD, and the reasons are §5's batch-size measurement and §8's saddles, which makes reading it a good way to understand why those two results matter.</p></div>
+
+<p>Conjugate gradients avoids $H^{-1}$ by never forming it. The <b>quasi-Newton</b> family
+takes the other route: build an approximation to $H^{-1}$ directly, and improve it as you go.
+Broyden–Fletcher–Goldfarb–Shanno is the prominent member.</p>
+
+<p>Keep a matrix $M_t \approx H^{-1}$, refined by low-rank updates from the gradients you have
+already computed. Each iteration takes $\boldsymbol{\rho}_t = M_t \mathbf{g}_t$ as its
+direction and a line search for the distance.</p>
+
+<div class="box why">
+  <span class="label">Why BFGS can afford a sloppier line search than CG</span>
+  <p>This is the practical difference between the two and it is easy to miss.</p>
+  <p>Conjugate gradients depends on the line search finding a point <b>very close</b> to the
+  true minimum along the line, as the conjugacy argument assumes. A sloppy line search breaks
+  the property the method is built on.</p>
+  <p>BFGS does not. Its second-order information lives in $M_t$, which is accumulated from
+  gradient differences regardless of where along each line you stopped. So it can spend far
+  less effort per line search, and since line searches are where the function evaluations go,
+  that is a real saving.</p>
+</div>
+
+<p>The obstacle is memory. $M$ is $n \times n$, so BFGS costs $O(n^2)$ storage, which for a
+model with millions of parameters is not merely expensive but impossible: a million
+parameters would need a $10^{12}$-entry matrix.</p>
+
+<p><b>L-BFGS</b> removes it with one assumption: rather than carrying $M^{(t-1)}$ forward,
+assume it is the identity at the start of each step and apply the updates from there. With
+exact line searches the resulting directions are mutually conjugate (so it recovers CG's
+property) and unlike CG it stays well-behaved when the line search is only approximate, which
+is BFGS's advantage retained. The storage-free version can be extended by keeping a handful of
+the update vectors, at $O(n)$ per step rather than $O(n^2)$.</p>
+
+<div class="box fw">
+  <span class="label">In the framework: L-BFGS has a different API, and the reason is §20</span>
+  <p>Every optimiser in Part III §17 followed the same five statements. L-BFGS does not, and
+  the difference is not arbitrary: it falls directly out of the line search.</p>
+<pre><code>opt = torch.optim.LBFGS(model.parameters(), lr=<span class="n">1.0</span>, max_iter=<span class="n">20</span>,
+                        history_size=<span class="n">100</span>,
+                        line_search_fn=<span class="s">"strong_wolfe"</span>)   <span class="c"># default is None</span>
+
+<span class="k">def</span> closure():
+    opt.zero_grad()
+    loss = F.mse_loss(model(x), y)
+    loss.backward()
+    <span class="k">return</span> loss
+
+opt.step(closure)          <span class="c"># &lt;- step() takes a function, not nothing</span>
+</code></pre>
+  <p><b>What each piece corresponds to.</b> <code>history_size</code> is the number of update
+  vectors kept, the $O(n)$-per-step extension at the end of §21; set it to zero and you have
+  the storage-free version. <code>max_iter</code> is how many inner iterations one
+  <code>step()</code> performs, because a single L-BFGS step already contains a loop. Fitting a
+  three-parameter regression, one <code>step()</code> called the closure <b>eight times</b> and
+  took the loss from 2.54 to $7.1\times10^{-3}$, a whole optimisation, inside one call.</p>
+  <p>Note the last argument. <b>PyTorch's default is <code>line_search_fn=None</code></b>,
+  which means no line search at all: it takes a fixed step of size <code>lr</code> and relies
+  on heuristics. Given that §20 and §21 are entirely about what the line search buys, running
+  L-BFGS without one and then concluding it does not work well is a common and avoidable
+  mistake.</p>
+  <p><b>Why it is designed that way.</b> A line search must evaluate the objective at
+  <i>several trial points along the direction</i> before deciding how far to go. Every other
+  optimiser here uses the gradient autograd already deposited and needs nothing else, hence
+  <code>opt.step()</code> with no arguments. L-BFGS has to re-run the forward and backward pass
+  itself, at points you have not visited, so you must hand it something it can <b>call</b>.
+  That is the closure. The unusual API is the line search made visible.</p>
+  <p><b>What breaks.</b> Three things, in the order people hit them.</p>
+  <p>Forgetting <code>zero_grad()</code> <i>inside</i> the closure. It runs many times per
+  <code>step()</code>, so gradients accumulate across trial points and the search direction is
+  nonsense, Part III §17's accumulation trap, with the frequency multiplied.</p>
+  <p>Using it with minibatches. The line search assumes the objective is the same function
+  each time it is evaluated; with a different batch per call it is not, and the search is
+  minimising a function that changes underneath it. <b>L-BFGS is a full-batch method</b>, and
+  the closure must see the same data on every call within a step.</p>
+  <p>Expecting it on a large model. $O(n)$ per step with <code>history_size=100</code> means
+  a hundred copies of the parameter vector. That is fine for the problems L-BFGS is right for
+  (small full-batch fits, physics-informed networks, style transfer, calibrating a handful
+  of parameters) and not for anything with millions of weights, which is the whole content of
+  §21's memory objection.</p>
+</div>

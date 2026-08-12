@@ -1,0 +1,233 @@
+<h2><span class="part-kicker">Part C</span>Estimating an effect</h2>
+
+<p class="mvt">Movement B says when an effect is identifiable. Identification is not estimation:
+knowing that a quantity is a function of the observable distribution leaves the question of how
+to compute it from a finite sample, and the answer has failure modes of its own. This movement
+builds the estimators and measures where each one stops working.</p>
+
+<h3><span class="num">§16</span> The randomised experiment</h3>
+
+<div class="box why">
+  <span class="label">What randomisation actually does</span>
+  <p>Assigning treatment by a coin flip deletes the equation that produced it and replaces it with
+  noise independent of everything else. That is <span class="m">$\mathrm{do}(X)$</span> performed
+  physically rather than symbolically: every backdoor path is severed at the source, including
+  paths through variables nobody thought to measure or knew existed.</p>
+  <p>This is why the randomised experiment is the standard against which everything else in this
+  movement is judged. It does not need the graph to be right. It does not need the confounders to
+  be measured. It does not even need them to be <i>known</i>.</p>
+</div>
+
+<div class="box shapes">
+  <span class="label">What it still does not give you</span>
+  <p><b>External validity.</b> The effect is estimated on whoever was enrolled, under the
+  conditions of the trial. Generalising to another population is a separate assumption, and Part
+  XIII §2's frame problem is the same issue.</p>
+  <p><b>Compliance.</b> Randomising assignment is not randomising receipt. If people do not take
+  what they were assigned, the clean quantity is the effect of <i>being assigned</i>, and §26's
+  instruments are the standard route from one to the other.</p>
+  <p><b>Anything about individuals.</b> A trial estimates an average. §33 is what that conceals.</p>
+  <p>An A/B test, Part XIV §25's leaderboards and the deployment machinery of Part XXI §35, is a
+  randomised experiment, and inherits all three limitations along with the guarantee.</p>
+</div>
+
+<h3><span class="num">§17</span> Adjustment, and the estimator that follows</h3>
+
+<div class="box def">
+  <span class="label">From the formula to a procedure</span>
+  <p>The backdoor formula
+  <span class="m">$p(y \mid \mathrm{do}(x)) = \sum_z p(y \mid x, z) p(z)$</span> becomes, for the
+  average effect of a binary treatment,</p>
+  <p class="m">$$\tau = \mathbb{E}_Z\big[\, \mathbb{E}[Y \mid T=1, Z] - \mathbb{E}[Y \mid T=0, Z] \,\big]$$</p>
+  <p>which suggests an algorithm: fit a model of the outcome given treatment and covariates,
+  predict each unit both ways, and average the difference. This is <b>g-computation</b>, or the
+  <b>outcome-model</b> approach.</p>
+  <p>Every regression tool in this book applies to that inner model, and Part XIV's diagnostics
+  apply to fitting it. What none of them check is whether <span class="m">$Z$</span> satisfies the
+  backdoor criterion, which is the part that decides whether the number means anything.</p>
+</div>
+
+<div class="box pitfall">
+  <span class="label">Pitfall: the coefficient is not the effect</span>
+  <p>Reading the treatment coefficient off a regression of <span class="m">$Y$</span> on
+  <span class="m">$T$</span> and <span class="m">$Z$</span> gives the right answer only when the
+  model is linear and correctly specified with no treatment–covariate interaction. With
+  interactions the coefficient is a weighted average of subgroup effects with weights nobody chose,
+  and it can differ from the quantity you wanted.</p>
+  <p>Predicting both ways and averaging is barely more work and does not have this problem. Do
+  that.</p>
+</div>
+
+<h3><span class="num">§18</span> The propensity score</h3>
+
+<div class="box def">
+  <span class="label">One number instead of many</span>
+  <p>The <b>propensity score</b> is <span class="m">$e(z) = p(T = 1 \mid Z = z)$</span>: the
+  probability of treatment given the covariates.</p>
+  <p>Its theorem is that it is a <b>balancing score</b>: conditioning on <span class="m">$e(Z)$</span>
+  alone suffices whenever conditioning on all of <span class="m">$Z$</span> would. A
+  high-dimensional adjustment problem collapses to a one-dimensional one.</p>
+  <p>The catch is that <span class="m">$e(\cdot)$</span> must be estimated, and the guarantee is
+  about the true score rather than your estimate of it.</p>
+</div>
+
+<h3><span class="num">§19</span> Matching, weighting, and what each assumes</h3>
+
+<div class="box shapes">
+  <span class="label">Three ways to use the score</span>
+  <p><b>Matching.</b> Pair each treated unit with a control of similar score and compare within
+  pairs. Transparent, discards data, and the estimand shifts to whoever could be matched.</p>
+  <p><b>Stratification.</b> Bin on the score, estimate within bins, average. Crude and robust.</p>
+  <p><b>Inverse-probability weighting.</b> Weight each unit by
+  <span class="m">$1/e$</span> if treated and <span class="m">$1/(1-e)$</span> if not,
+  reconstructing the population that would have existed under random assignment. Uses all the
+  data, and has the variance problem §20 measures.</p>
+  <p>All three assume the same thing: that the score was estimated from a set satisfying the
+  backdoor criterion. None of them repairs an unmeasured confounder, and the apparent
+  sophistication of the machinery is a common route to forgetting that.</p>
+</div>
+
+<h3><span class="num">§20</span> Overlap, and where adjustment stops working</h3>
+
+<figure>
+  <img src="figures/ci/03-overlap.svg" alt="Propensity score distributions by treatment group under good and poor overlap, and estimator error against confounder strength">
+  <figcaption><b>Figure 3.</b> As the confounder drives treatment more strongly, the treated and
+  control propensity distributions separate and there is progressively nobody to compare with. The
+  effective sample size falls from <b>0.96</b> of the data to <b>0.04</b>. Note which error moves
+  first: the standard deviation rises from 0.066 to <b>0.791</b> while the bias stays under 0.03
+  until the very end. The estimator does not quietly lie: it becomes visibly
+  unstable.</figcaption>
+</figure>
+
+<div class="box def">
+  <span class="label">Positivity</span>
+  <p><b>Positivity</b> (or overlap) is the requirement that every unit have a genuine chance of
+  either treatment: <span class="m">$0 < e(z) < 1$</span> for all <span class="m">$z$</span> that
+  occur.</p>
+  <p>It is one of the three assumptions any adjustment estimate rests on, alongside <b>no
+  unmeasured confounding</b> (§12) and <b>consistency</b>: that the treatment is well enough
+  defined for "the outcome under treatment" to name one thing.</p>
+  <p>Unlike the other two, positivity is <b>checkable</b>. Plot the score by treatment group and
+  look, which is the left panel. Doing so should be automatic and mostly is not.</p>
+  <p>A reader arriving from the potential-outcomes tradition (the
+  <span class="m">$Y_1, Y_0$</span> notation already used from §33 on) will know this trio under
+  different names: no unmeasured confounding is <b>ignorability</b>, and consistency together
+  with no interference between units' outcomes is the <b>SUTVA</b> (stable unit treatment value
+  assumption) that the whole notation presupposes. Same three assumptions, graph vocabulary on
+  one side and potential-outcomes vocabulary on the other.</p>
+</div>
+
+<div class="box why">
+  <span class="label">The good news in the right panel</span>
+  <p>Variance rising before bias is the friendly failure mode. It means a positivity problem
+  announces itself in the confidence interval rather than hiding in the point estimate: the
+  opposite of confounding, which is silent.</p>
+  <p>This is also why the standard fix is dangerous. Clipping the weights, or trimming units with
+  extreme scores, restores a tight interval by discarding the units that were carrying the warning.
+  The next section measures what that trade costs.</p>
+</div>
+
+<h3><span class="num">§21</span> Doubly robust estimation</h3>
+
+<div class="box def">
+  <span class="label">Two chances to be right</span>
+  <p>The <b>augmented inverse-probability weighted</b> estimator combines the outcome model
+  <span class="m">$\hat{m}_t(z)$</span> and the propensity model
+  <span class="m">$\hat{e}(z)$</span>:</p>
+  <p class="m">$$\hat{\tau} = \frac{1}{n}\sum_i \left[ \hat{m}_1(z_i) - \hat{m}_0(z_i) + \frac{t_i\,(y_i - \hat{m}_1(z_i))}{\hat{e}(z_i)} - \frac{(1-t_i)\,(y_i - \hat{m}_0(z_i))}{1 - \hat{e}(z_i)} \right]$$</p>
+  <p>The first term is g-computation. The rest is a correction weighted by the propensity, applied
+  to the outcome model's residuals. The property, which the name refers to: it is consistent if
+  <b>either</b> model is correct, not both.</p>
+</div>
+
+<figure>
+  <img src="figures/ci/04-doubly-robust.svg" alt="Estimated effect for four combinations of correct and incorrect models, and bias and variance against the weight clip">
+  <figcaption><b>Figure 4.</b> Left: the property, tested directly against a true effect of
+  <b>+2.00</b>. Correct outcome model only, <b>+2.0015</b>. Correct propensity model only,
+  <b>+2.0010</b>. Both correct, <b>+2.0012</b>. Both wrong, <b>+2.9831</b>: a bias of nearly half
+  the effect. Right: the same estimator where positivity fails. Loosening the weight clip from
+  0.05 to 0.001 cuts the bias from <b>0.187</b> to <b>0.045</b> and raises the standard deviation
+  from <b>0.050</b> to <b>0.215</b>. The remedy for the variance is itself a bias.</figcaption>
+</figure>
+
+<div class="box why">
+  <span class="label">What the right panel was not built to show</span>
+  <p>It exists because the left panel's third bar refused to come out right. With the original
+  design the correct-propensity arm carried a bias of +0.109, and the property says it should carry
+  none. Increasing the sample size twenty-five-fold did not move it, which ruled out sampling
+  noise and pointed at something structural.</p>
+  <p>It was the weight clip. About 1.6% of units had a true propensity above 0.98, clipping them
+  reweighted the population, and the reweighting was the bias. Loosening the clip removed it and
+  quadrupled the variance. That trade-off is now the right panel, and it is more useful than the
+  clean version of the figure would have been: the estimator's theoretical property survives, and
+  the thing every practitioner does to make it usable is what breaks it.</p>
+</div>
+
+<div class="box pitfall">
+  <span class="label">Pitfall: "doubly robust" is not "robust"</span>
+  <p>Two chances is better than one and it is not a guarantee. The fourth bar, both models wrong,
+  is the common case in practice, where the covariates are many, the functional forms unknown, and
+  neither model was ever going to be exactly right. The estimator carries a bias of +0.98 there and
+  reports it with a standard deviation of 0.042, which is to say confidently.</p>
+  <p>The honest reading: doubly robust buys you a second chance at a specification you cannot
+  verify. It does not buy you a way to skip §12.</p>
+</div>
+
+<div class="readnow"><span class="label">Go and read</span><p><span class="src">Chernozhukov et
+al. (2018)</span>, <i>Double/debiased machine learning</i>. How to use flexible models for the
+nuisance functions in a doubly robust estimator without their regularisation bias contaminating
+the effect estimate. Cross-fitting is the mechanism, and it is the same honest-splitting idea as
+the causal forest (§33).</p></div>
+
+<h3><span class="num">§22</span> Sensitivity analysis</h3>
+
+<p>No unmeasured confounding is untestable. That does not make it unexaminable: you can ask how
+strong an unmeasured confounder would have to be to overturn your conclusion, and report the
+answer.</p>
+
+<div class="box def">
+  <span class="label">The question to answer, and how to report it</span>
+  <p>For an estimated effect and an assumed confounder <span class="m">$U$</span>, sweep two
+  quantities (how strongly <span class="m">$U$</span> predicts treatment, and how strongly it
+  predicts outcome) and find the contour at which the effect crosses zero or loses significance.</p>
+  <p>The output is a statement of the form: <i>an unmeasured confounder would need to be about as
+  strongly associated with both treatment and outcome as</i> <span class="m">$Z_3$</span>
+  <i>is, to explain this result away</i>. That is checkable against domain knowledge in a way that
+  the raw estimate is not.</p>
+  <p>This is the same move as Part XXI §32's safety case: when an assumption cannot be verified,
+  state what would have to be true for it to fail, and let a reader who knows the domain judge.</p>
+</div>
+
+<h3><span class="num">§23</span> What goes wrong in practice</h3>
+
+<div class="box shapes">
+  <span class="label">In roughly the order of frequency</span>
+  <p><b>Adjusting for a descendant of the treatment.</b> Mediators and colliders included in the
+  covariate set because they were available and predictive. §12's first condition, violated.</p>
+  <p><b>Positivity ignored.</b> Nobody plotted the score. The interval is tight because the
+  estimator quietly extrapolated into regions with no data.</p>
+  <p><b>The estimand left unstated.</b> Average effect over whom? Everyone, the treated, the
+  matched? Matching changes it, weighting changes it, trimming changes it, and the three answers
+  can differ substantially.</p>
+  <p><b>The model fitted on the outcome.</b> Selecting covariates by how much they improve
+  prediction of <span class="m">$Y$</span> selects colliders and mediators efficiently. This is the
+  exact point at which machine-learning instincts are actively harmful.</p>
+  <p><b>The assumption never written down.</b> Most common of all, and the one that makes the
+  others undetectable in review.</p>
+</div>
+
+<h3><span class="num">§24</span> What movement C establishes</h3>
+
+<div class="box intuition">
+  <span class="label">Three things</span>
+  <p><b>Identification and estimation are separate problems.</b> Movement B decides whether a
+  number exists; this movement decides whether you can compute it from a finite sample, and the
+  answer can be no for reasons of overlap even when identification holds.</p>
+  <p><b>Positivity is the assumption you can check</b>, and it fails loudly: Figure 3's variance
+  rises twelvefold while the bias stays flat. Plot the propensity distributions. It takes one line
+  and it is the highest-yield diagnostic in the movement.</p>
+  <p><b>Two chances at a specification is not a guarantee.</b> Figure 4's estimator is exact when
+  either model is right and carries a bias of +0.98 when neither is, and the practical fix for its
+  variance reintroduces bias of its own. Every route here still runs through an assumption no
+  estimator can test.</p>
+</div>

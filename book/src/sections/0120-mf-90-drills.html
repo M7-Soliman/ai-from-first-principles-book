@@ -1,0 +1,326 @@
+<h2><span class="part-kicker">Practice</span>Drills</h2>
+
+<p class="lede">Thirty-eight problems. This is the part that actually rebuilds fluency: reading
+the sections gives you recognition, and only working problems gives you the ability to
+<i>do</i> it. If you are short on time, skip the reading and do these.</p>
+
+<p>Work them on paper before looking. The answers are immediately below each, which
+makes it very easy to cheat yourself.</p>
+
+<h3><span class="num">Tier 0</span> Estimate first</h3>
+
+<div class="drill">
+  <div class="head"><span class="tier est">Estimate</span>E1 &middot; The size of a layer</div>
+  <p>A layer with 1,000 inputs and 1,000 outputs. Before computing anything, write down three numbers: how many parameters it has, how many multiply&ndash;adds one example costs, and how many megabytes the parameters occupy at float32.</p>
+  <div class="ans"><b>Answer.</b> One million, one million, and 4&nbsp;MB. The first two are the same number because a dense layer does one multiply&ndash;add per parameter per example, which is the single most useful fact in this whole arithmetic, and the reason a parameter count tells you the compute cost for free. <i>Score yourself: within a factor of two is a pass, and an order of magnitude out is worth understanding before you go on.</i></div>
+</div>
+
+<h3><span class="num">Tier 1</span> Algebra and functions: rebuild the reflexes</h3>
+
+<div class="drill">
+  <div class="head"><span class="tier warm">Warm</span>W1 · Expand</div>
+  <p>Expand $(2x + 3)^2$.</p>
+  <div class="ans"><b>Answer.</b> $4x^2 + 12x + 9$. The cross term is $2 \cdot 2x \cdot 3
+  = 12x$, the piece people drop.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier warm">Warm</span>W2 · Factor</div>
+  <p>Factor $x^2 - 5x + 6$.</p>
+  <div class="ans"><b>Answer.</b> $(x-2)(x-3)$. Find two numbers multiplying to 6 and
+  adding to $-5$.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier warm">Warm</span>W3 · Spot the error</div>
+  <p>Which of these are wrong? (a) $\sqrt{a^2} = a$ &nbsp; (b) $(a+b)^2 = a^2+b^2$
+  &nbsp; (c) $\frac{a+b}{c} = \frac{a}{c}+\frac{b}{c}$ &nbsp; (d) $\frac{a}{b+c} = \frac{a}{b}+\frac{a}{c}$</p>
+  <div class="ans"><b>Answer.</b> (b) and (d) are wrong. (c) is fine: splitting over a
+  common <i>denominator</i> is legal. (a) is subtly wrong too: $\sqrt{a^2} = |a|$, since
+  $\sqrt{(-3)^2} = 3$, not $-3$.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier warm">Warm</span>W4 · Exponent rules</div>
+  <p>Simplify $\dfrac{x^5 \cdot x^{-2}}{x^{3}}$.</p>
+  <div class="ans"><b>Answer.</b> $x^{5-2-3} = x^0 = 1$.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier warm">Warm</span>W5 · Solve</div>
+  <p>Solve $5 - 2x = 3x + 15$.</p>
+  <div class="ans"><b>Answer.</b> $5 - 15 = 3x + 2x$, so $-10 = 5x$ and $x = -2$.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier warm">Warm</span>W6 · Composition</div>
+  <p>$f(x) = 3x$, $g(x) = x + 4$. Find $f(g(1))$ and $g(f(1))$.</p>
+  <div class="ans"><b>Answer.</b> $f(g(1)) = f(5) = 15$. &nbsp; $g(f(1)) = g(3) = 7$.
+  Order matters.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier warm">Warm</span>W7 · Inverse</div>
+  <p>Find the inverse of $f(x) = 3x - 6$.</p>
+  <div class="ans"><b>Answer.</b> Set $y = 3x-6$, solve for $x$: $x = \frac{y+6}{3}$. So
+  $f^{-1}(x) = \frac{x+6}{3}$. Check: $f^{-1}(f(4)) = f^{-1}(6) = 4$. ✓</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier warm">Warm</span>W8 · Domain</div>
+  <p>What is the domain of $f(x) = \ln(x - 2)$?</p>
+  <div class="ans"><b>Answer.</b> $x > 2$. The log needs a strictly positive argument, so
+  $x - 2 > 0$.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier warm">Warm</span>W9 · Log rules</div>
+  <p>Write $\ln\!\left(\frac{x^3 y}{z^2}\right)$ as separate logs.</p>
+  <div class="ans"><b>Answer.</b> $3\ln x + \ln y - 2\ln z$.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier warm">Warm</span>W10 · Log values</div>
+  <p>Without a calculator: $\ln(1)$, $\ln(e^4)$, $\log_2(32)$, $\log_{10}(0.01)$.</p>
+  <div class="ans"><b>Answer.</b> $0$; &nbsp; $4$; &nbsp; $5$ (since $2^5=32$); &nbsp;
+  $-2$ (since $10^{-2} = 0.01$).</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier warm">Warm</span>W11 · Solve with logs</div>
+  <p>Solve $3e^{2x} = 24$.</p>
+  <div class="ans"><b>Answer.</b> $e^{2x} = 8$, so $2x = \ln 8$ and
+  $x = \frac{\ln 8}{2} \approx 1.040$.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier warm">Warm</span>W12 · Summation</div>
+  <p>Compute $\sum_{i=1}^{4} (2i - 1)$.</p>
+  <div class="ans"><b>Answer.</b> $1 + 3 + 5 + 7 = 16$. (The first four odd numbers sum
+  to $4^2$; that pattern always holds.)</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier warm">Warm</span>W13 · Product to sum</div>
+  <p>Rewrite $\ln\left(\prod_{i=1}^{n} p_i\right)$ as a sum, and say why anyone bothers.</p>
+  <div class="ans"><b>Answer.</b> $\sum_{i=1}^n \ln p_i$. Because the product of many
+  probabilities underflows to zero in floating point, while the sum of their logs stays
+  perfectly well-behaved (§11).</div>
+</div>
+
+<h3><span class="num">Tier 2</span> Derivatives: the core skill</h3>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C1 · Power rule</div>
+  <p>Differentiate: (a) $x^7$ &nbsp; (b) $3x^4 - 2x + 9$ &nbsp; (c) $\frac{1}{x^2}$
+  &nbsp; (d) $\sqrt{x}$</p>
+  <div class="ans"><b>Answer.</b> (a) $7x^6$. (b) $12x^3 - 2$. (c) Rewrite as $x^{-2}$:
+  $-2x^{-3} = -\frac{2}{x^3}$. (d) $x^{1/2} \to \frac12 x^{-1/2} =
+  \frac{1}{2\sqrt x}$.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C2 · From the definition</div>
+  <p>Compute the derivative of $f(x) = 3x^2$ using the limit definition. Do not use the
+  power rule.</p>
+  <div class="ans"><b>Answer.</b> $\frac{3(x+h)^2 - 3x^2}{h} = \frac{6xh + 3h^2}{h} =
+  6x + 3h$. As $h \to 0$ this gives $6x$. Matches the power rule, as it must.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C3 · Product rule</div>
+  <p>Differentiate $y = x^2 e^x$.</p>
+  <div class="ans"><b>Answer.</b> $f'g + fg' = 2x e^x + x^2 e^x = e^x(2x + x^2)$.
+  Factoring out $e^x$ is standard practice and makes later work easier.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C4 · Quotient rule</div>
+  <p>Differentiate $y = \dfrac{x}{x+1}$.</p>
+  <div class="ans"><b>Answer.</b> $\dfrac{(1)(x+1) - (x)(1)}{(x+1)^2} =
+  \dfrac{1}{(x+1)^2}$.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C5 · Chain rule, basic</div>
+  <p>Differentiate: (a) $(5x+2)^4$ &nbsp; (b) $e^{4x}$ &nbsp; (c) $\ln(x^2+1)$</p>
+  <div class="ans"><b>Answer.</b> (a) $4(5x+2)^3 \cdot 5 = 20(5x+2)^3$. (b) $4e^{4x}$.
+  (c) $\frac{2x}{x^2+1}$.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C6 · Chain rule, nested twice</div>
+  <p>Differentiate $y = e^{(x^2+1)^3}$.</p>
+  <div class="ans"><b>Answer.</b> Three layers. Outer $e^\square$ keeps itself:
+  $e^{(x^2+1)^3}$. Next layer $\square^3 \to 3(x^2+1)^2$. Innermost $x^2+1 \to 2x$.
+  Multiply: $e^{(x^2+1)^3} \cdot 3(x^2+1)^2 \cdot 2x = 6x(x^2+1)^2 e^{(x^2+1)^3}$.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C7 · Derive the sigmoid derivative</div>
+  <p>Show that $\sigma'(x) = \sigma(x)(1-\sigma(x))$, starting from
+  $\sigma(x) = (1+e^{-x})^{-1}$.</p>
+  <div class="ans"><b>Answer.</b> See the worked example in §18. The key move is
+  splitting $\frac{e^{-x}}{(1+e^{-x})^2}$ into
+  $\frac{1}{1+e^{-x}} \cdot \frac{e^{-x}}{1+e^{-x}}$ and recognising the second factor as
+  $1 - \sigma(x)$. Do it yourself before rereading.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C8 · Softplus</div>
+  <p>Show that the derivative of $\ln(1+e^x)$ is the sigmoid.</p>
+  <div class="ans"><b>Answer.</b> Chain rule gives $\frac{e^x}{1+e^x}$. Divide top and
+  bottom by $e^x$: $\frac{1}{1 + e^{-x}} = \sigma(x)$.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C9 · Critical points</div>
+  <p>Find and classify the critical points of $f(x) = 2x^3 - 9x^2 + 12x$.</p>
+  <div class="ans"><b>Answer.</b> $f' = 6x^2 - 18x + 12 = 6(x-1)(x-2)$, zero at $x=1,2$.
+  $f'' = 12x - 18$. At $x=1$: $f''=-6 <0$, local max. At $x=2$: $f''=6>0$, local
+  min.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C10 · Minimise</div>
+  <p>Find the value of $x$ minimising $f(x) = (x-4)^2 + 3$.</p>
+  <div class="ans"><b>Answer.</b> $f' = 2(x-4) = 0$ gives $x = 4$. $f'' = 2 > 0$,
+  confirming a minimum. The minimum <i>value</i> is 3, but the $\arg\min$ is 4 (§2's
+  distinction), in practice.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C11 · Partial derivatives</div>
+  <p>For $f(x,y) = 3x^2y + y^3 - 2x$, find $\partial f/\partial x$ and
+  $\partial f/\partial y$.</p>
+  <div class="ans"><b>Answer.</b> $\partial f/\partial x = 6xy - 2$ (the $y^3$ is
+  constant here). $\partial f/\partial y = 3x^2 + 3y^2$ (the $-2x$ is constant
+  here).</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C12 · Gradient</div>
+  <p>Find $\nabla f$ at $(1,2)$ for $f(x,y) = x^2 + xy + y^2$.</p>
+  <div class="ans"><b>Answer.</b> $\partial f/\partial x = 2x + y$;
+  $\partial f/\partial y = x + 2y$. At $(1,2)$: $\nabla f = (4, 5)$.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C13 · One descent step</div>
+  <p>Minimise $f(x,y) = x^2 + 2y^2$ from $(2, 1)$ with $\alpha = 0.1$. Take one step.</p>
+  <div class="ans"><b>Answer.</b> $\nabla f = (2x, 4y) = (4, 4)$. Update:
+  $(2,1) - 0.1(4,4) = (1.6, 0.6)$. Loss went from $4 + 2 = 6$ to
+  $2.56 + 0.72 = 3.28$. ✓</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C14 · Backprop by hand</div>
+  <p>Model $\hat y = \sigma(wx)$ with $x=1$, $w=0$, target $y=1$, loss
+  $(\hat y - y)^2$. Compute $\partial L/\partial w$.</p>
+  <div class="ans"><b>Answer.</b> $z = 0$, $\hat y = \sigma(0) = 0.5$.
+  $\partial L/\partial \hat y = 2(0.5-1) = -1$. $\partial \hat y/\partial z =
+  0.5(0.5) = 0.25$. $\partial z/\partial w = x = 1$. Product: $-0.25$. Negative, so
+  gradient descent increases $w$, correct, since raising $w$ pushes $\hat y$ toward the
+  target of 1.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C15 · Numerical derivative</div>
+  <p>Implement <code>numerical_derivative(f, x, h)</code> using the central difference
+  $\frac{f(x+h)-f(x-h)}{2h}$. Test against the known derivative of $x^2$.</p>
+  <div class="ans"><b>Answer.</b> Central difference is far more accurate than the
+  forward version; its error shrinks like $h^2$ rather than $h$. Best accuracy comes
+  around $h \approx 10^{-5}$; smaller $h$ makes it <i>worse</i>, because subtracting two
+  nearly equal numbers destroys precision (§26).</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C16 · Gradient check</div>
+  <p>Implement <code>gradient_check(f, grad_f, x)</code>: compare an analytic gradient
+  against a numerical one, component by component.</p>
+  <div class="ans"><b>Answer.</b> Perturb one coordinate at a time. Compare with relative
+  error $\frac{|a-n|}{\max(|a|,|n|)}$: below about $10^{-6}$ means agreement. <b>This is
+  a genuine professional technique:</b> it is how you verify hand-written backprop, and
+  it will catch real bugs in your Part VII project.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C17 · Stable sigmoid</div>
+  <p>Implement a sigmoid that survives $x = -1000$ and $x = 1000$.</p>
+  <div class="ans"><b>Answer.</b> Branch on sign: for $x \geq 0$ use
+  $1/(1+e^{-x})$; for $x < 0$ use $e^x/(1+e^x)$. Either way you only ever exponentiate a
+  non-positive number, which cannot overflow.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C18 · Gradient descent, coded</div>
+  <p>Implement <code>gradient_descent(grad_f, start, lr, steps)</code> returning the full
+  path. Run it on $f(x,y) = x^2 + 10y^2$ with $\alpha = 0.01, 0.05, 0.2$.</p>
+  <div class="ans"><b>Answer.</b> You should reproduce Figure 11: crawl, converge,
+  diverge. The elongated bowl also shows the zigzag caused by unequal curvature in the
+  two directions; that is ill-conditioning, and it is exactly what momentum in Part IX
+  fixes.</div>
+</div>
+
+<h3><span class="num">Tier 3</span> Stretch</h3>
+
+<div class="drill">
+  <div class="head"><span class="tier stretch">Stretch</span>S1 · Chain of four</div>
+  <p>Differentiate $y = \sigma(\ln(x^2+1))$.</p>
+  <div class="ans"><b>Answer.</b> Let $u = \ln(x^2+1)$. Then
+  $\frac{dy}{dx} = \sigma(u)(1-\sigma(u)) \cdot \frac{2x}{x^2+1}$. Leave it in terms of
+  $u$; expanding buys nothing and invites errors.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier stretch">Stretch</span>S2 · Log-derivative trick</div>
+  <p>Show that $\frac{d}{dx}\ln f(x) = \frac{f'(x)}{f(x)}$, and use it to differentiate
+  $y = \ln(x^2 e^{3x})$ easily.</p>
+  <div class="ans"><b>Answer.</b> The identity is the chain rule with outer $\ln$. For the
+  example, simplify <i>first</i>: $\ln(x^2 e^{3x}) = 2\ln x + 3x$, whose derivative is
+  $\frac{2}{x} + 3$. Simplifying with log rules before differentiating is almost always
+  faster than brute force.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier stretch">Stretch</span>S3 · Why squared error</div>
+  <p>Show that $\frac{d}{dx}|x|$ is undefined at 0 but $\frac{d}{dx}x^2$ is fine
+  everywhere. Connect this to why losses are usually squared.</p>
+  <div class="ans"><b>Answer.</b> $|x|$ has slope $-1$ on the left and $+1$ on the right,
+  so no tangent exists at 0, making a corner. $x^2$ has derivative $2x$, smooth everywhere and
+  conveniently zero at the minimum. Since optimisation means repeated differentiation,
+  smoothness is worth a lot. This is the same argument Part I §14 makes for the
+  squared $L^2$ norm.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier stretch">Stretch</span>S4 · Vanishing gradients, quantified</div>
+  <p>The sigmoid's derivative peaks at $0.25$. If a 10-layer network multiplies one such
+  factor per layer, what is the largest possible gradient scale at layer 1?</p>
+  <div class="ans"><b>Answer.</b> $0.25^{10} \approx 9.5 \times 10^{-7}$, and that is
+  the <i>best</i> case, assuming every unit sits at its most favourable point. In
+  practice it is far smaller. Early layers effectively stop learning. This single
+  calculation explains why deep sigmoid networks failed for years, and why ReLU (whose
+  derivative is exactly 1 where active) changed things.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier stretch">Stretch</span>S5 · Derive linear regression</div>
+  <p>For $L(w) = \sum_i (wx_i - y_i)^2$, find the $w$ minimising it, by hand.</p>
+  <div class="ans"><b>Answer.</b> $\frac{dL}{dw} = \sum_i 2(wx_i - y_i)x_i = 0$. Expand:
+  $w\sum_i x_i^2 = \sum_i x_i y_i$, so $w = \frac{\sum_i x_i y_i}{\sum_i x_i^2}$. You have
+  just derived one-dimensional least squares from calculus alone, and Part VI opens by
+  generalising exactly this.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier stretch">Stretch</span>S6 · Two-layer backprop</div>
+  <p>For $\hat y = \sigma(w_2 \sigma(w_1 x))$ with squared error loss, derive
+  $\partial L/\partial w_1$ by hand. Then verify it with a gradient check.</p>
+  <div class="ans"><b>Answer.</b> Write $a = \sigma(w_1x)$ and $\hat y = \sigma(w_2 a)$.
+  Then
+  $\frac{\partial L}{\partial w_1} = 2(\hat y - y)\cdot \hat y(1-\hat y) \cdot w_2 \cdot
+  a(1-a) \cdot x$, five factors, one per link in the chain. Note the two
+  $\sigma(1-\sigma)$ terms multiplying together: that is S4's vanishing gradient
+  appearing in a concrete two-layer network.</div>
+</div>

@@ -1,0 +1,126 @@
+<h2><span class="part-kicker">Part B</span>Autoregressive models</h2>
+
+<p class="lede">The one family that gets an exact likelihood with no approximation anywhere. The
+price is paid entirely at sampling time, and it is a price that does not go away with better
+hardware.</p>
+
+<h3><span class="num">§8</span> The chain rule as a model</h3>
+
+<div class="box def">
+  <span class="label">Factorising the joint</span>
+  <p>Part II §8's chain rule is exact for any distribution over any ordered variables:</p>
+  <p>$$p(\mathbf{x}) = \prod_{i=1}^{n} p(x_i \mid x_1, \ldots, x_{i-1})$$</p>
+  <p>No assumption has been made. Model each conditional with a network and you have a generative
+  model of the whole thing, whose log-likelihood is a sum of ordinary cross-entropies (the same
+  loss from Part II §25, applied $n$ times).</p>
+  <p>Each conditional normalises over <b>one</b> variable. For a discrete variable that is a
+  softmax over its values, which is a sum of a few hundred terms rather than an integral over a
+  hundred thousand dimensions. This is how the family escapes §2's problem, and it is the whole
+  trick.</p>
+</div>
+
+<div class="box why">
+  <span class="label">Why this is the same object as Part XI</span>
+  <p>A language model <i>is</i> this. Part XI §7 read the RNN as a graphical model over a
+  sequence; Part XII built a better architecture for the same factorisation. Nothing in the
+  probabilistic content changed between those parts and this one: only which network computes the
+  conditionals.</p>
+  <p>Which means every autoregressive language model is a generative model in the full sense of
+  §1: it assigns a probability to any sequence, it can be sampled from, and its training objective
+  is exact maximum likelihood with no bound and no approximation. That is unusual company, and
+  §42 is why it matters less than it sounds.</p>
+</div>
+
+<h3><span class="num">§9</span> Ordering</h3>
+
+<div class="box pitfall">
+  <span class="label">Pitfall: the factorisation is exact, the model is not</span>
+  <p>The chain rule holds for <b>any</b> ordering, so it is tempting to conclude the ordering does
+  not matter. It does not matter to the mathematics and it matters a great deal to the model.</p>
+  <p>With finite capacity, some conditionals are easier to learn than others. Text left-to-right
+  is easy because that is the direction the dependencies run; text right-to-left is measurably
+  harder for the same architecture. Images have no natural order at all, and raster order, which
+  is what everyone used, makes the pixel above a neighbour in the data and a distant ancestor in
+  the factorisation.</p>
+  <p>So an autoregressive model carries an inductive bias that has nothing to do with the
+  distribution and everything to do with the arbitrary order you imposed. This is the family's
+  quiet weakness, and it is why it never dominated images the way it dominated text.</p>
+</div>
+
+<h3><span class="num">§10</span> Masking, and training in one pass</h3>
+
+<div class="box def">
+  <span class="label">All positions at once</span>
+  <p>Computing $n$ conditionals looks like $n$ forward passes. It is one, because during training
+  the true prefix is already known: feed the whole sequence, and use a <b>causal mask</b>
+  (Part XII §21) so position $i$ cannot see anything after it.</p>
+  <p>Every conditional is then computed in parallel, from the true history rather than the model's
+  own output. This is teacher forcing (Part XI §9), and it is the reason these models train
+  efficiently at all.</p>
+</div>
+
+<h3><span class="num">§11</span> Sampling, and the asymmetry that does not go away</h3>
+
+<figure>
+  <img src="figures/gn/01-autoregressive.svg" alt="Wall clock for one parallel pass and for one pass per position, against sequence length, and their ratio">
+  <figcaption><b>Figure 1.</b> A four-layer transformer stack, doing the identical arithmetic two
+  ways, timed on this machine (CPU, 4 threads: expect different absolute numbers on other
+  hardware). Training is one pass over all positions and stays nearly flat. Sampling is one pass
+  per position: <b>37 ms</b> at length 16 rising to <b>6.16 s</b> at length 256. The ratio grows
+  from <b>16×</b> to <b>403×</b>, and it keeps growing with length.</figcaption>
+</figure>
+
+<div class="box why">
+  <span class="label">Why this is structural rather than an engineering problem</span>
+  <p>The figure is not measuring wasted FLOPs. Position $i+1$ requires $x_i$ as input, and $x_i$
+  does not exist until position $i$ has been sampled. The dependency is in the <b>definition of
+  the model</b>, and no amount of parallel hardware removes a data dependency.</p>
+  <p>Caching helps with the constant and not with the structure: a key–value cache makes each step
+  cheap, and there are still $n$ of them, strictly ordered. Speculative decoding guesses several
+  steps with a small model and verifies them with the large one, which is a real speedup and still
+  bounded by the same chain.</p>
+  <p>This asymmetry is the single most consequential fact about deploying these models, and it is
+  worth seeing measured rather than asserted. It is also the contrast that makes §29 interesting:
+  a diffusion model's sampling cost is set by the number of denoising steps, which is a
+  <b>choice</b>, not by the size of what is being generated.</p>
+</div>
+
+<h3><span class="num">§12</span> Exposure bias</h3>
+
+<div class="box def">
+  <span class="label">Trained on truth, run on its own output</span>
+  <p>Training conditions every prediction on the <b>true</b> prefix. Sampling conditions on the
+  model's own previous outputs, which contain its own errors. The model has never been trained on
+  the inputs it will actually see.</p>
+  <p>Part XI §10 introduced this. The consequence is compounding: an unlikely token shifts the
+  context into a region the model saw rarely, which makes the next token worse.</p>
+</div>
+
+<div class="box why">
+  <span class="label">Why the standard remedies are decoding strategies, not training fixes</span>
+  <p>Scheduled sampling and related training-time fixes were tried and are not widely used;
+  they break the parallel training of §10, which is the family's main advantage.</p>
+  <p>What is used instead operates at sampling time and works by <b>refusing to sample the tail</b>:
+  top-$k$, nucleus sampling and temperature below one. All three narrow the distribution before
+  drawing from it.</p>
+  <p>It is worth being clear about what this means. These are not approximations to sampling from
+  the model; they sample from a <b>different, sharper distribution</b>, deliberately. The model
+  assigns more probability to the tail than we want realised, and the standard practice is to
+  overrule it. That is a strange position for a family whose selling point is an exact likelihood,
+  and §42 revisits it.</p>
+</div>
+
+<h3><span class="num">§13</span> What this family is good at</h3>
+
+<div class="box def">
+  <span class="label">The honest summary</span>
+  <p><b>Strengths.</b> Exact likelihood, stable maximum-likelihood training with no adversary and
+  no bound, mode covering by construction (§4), arbitrary architectures and a factorisation that
+  handles variable-length data natively.</p>
+  <p><b>Weaknesses.</b> Sequential sampling (§11), an arbitrary ordering that becomes an inductive
+  bias (§9), exposure bias (§12) and no latent representation: there is no $\mathbf{z}$ to
+  manipulate, so the controllability that latent-variable models offer is absent.</p>
+  <p>The pattern across domains is consistent: this family won wherever the data has a natural
+  order and lost wherever it does not. Text, audio and code are ordered. Images are not, and there
+  the next three movements took over.</p>
+</div>

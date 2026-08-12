@@ -1,0 +1,315 @@
+<h2><span class="part-kicker">Practice</span>Drills</h2>
+
+<p class="lede">Thirty-six problems. Most of this is arithmetic you can do before requesting any
+hardware, and two of them measure a technique failing to deliver what its FLOP count promises.</p>
+
+<h3><span class="num">Tier 0</span> Estimate first</h3>
+
+<div class="drill">
+  <div class="head"><span class="tier est">Estimate</span>E1 &middot; What decides your token rate</div>
+  <p>A 7-billion-parameter model in fp16, generating tokens one at a time. Write down the memory bandwidth needed to reach 30 tokens per second.</p>
+  <div class="ans"><b>Answer.</b> <b>420&nbsp;GB/s</b>: every weight is read once per token, so 14&nbsp;GB &times; 30. Generation is memory-bound, not compute-bound, which is why quantization buys speed almost proportionally and why a faster matrix unit buys nothing at batch size one. <i>Score yourself: within a factor of two is a pass, and an order of magnitude out is worth understanding before you go on.</i></div>
+</div>
+
+<h3><span class="num">Tier 1</span> Warm-up</h3>
+
+<div class="drill">
+  <div class="head"><span class="tier warm">Warm</span>W1 · Two regimes</div>
+  <p>Name them and say why conflating them is an error.</p>
+  <div class="ans"><b>Answer.</b> Prefill processes the prompt in one parallel pass; decode
+  generates one token at a time. Different bottlenecks, different optimisations, different costs. A
+  2,000-token prompt and a 200-token answer is one parallel pass and two hundred sequential
+  ones.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier warm">Warm</span>W2 · Arithmetic intensity</div>
+  <p>Define it, and give it for generating one token.</p>
+  <div class="ans"><b>Answer.</b> FLOPs per byte moved. Generating one token does two FLOPs per
+  weight and reads every weight once, so it is 1, against a hardware ridge point of several
+  hundred. The machine runs at a fraction of a per cent of its arithmetic capability.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier warm">Warm</span>W3 · Why quantization helps</div>
+  <p>Decode is memory-bound. What follows for quantization and for pruning?</p>
+  <div class="ans"><b>Answer.</b> Quantization moves fewer bytes, which is the binding constraint,
+  so it helps proportionally. Unstructured pruning removes arithmetic, which was not binding, so it
+  helps not at all unless the format changes.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier warm">Warm</span>W4 · The cache</div>
+  <p>Write the KV cache size and say what it is linear in.</p>
+  <div class="ans"><b>Answer.</b> $2 \cdot B \cdot T \cdot L \cdot H \cdot D \cdot$ bytes. Linear
+  in both context and batch, which is why it, and not the weights, limits how many users
+  fit.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier warm">Warm</span>W5 · Outliers</div>
+  <p>Why do a few large weights hurt everyone?</p>
+  <div class="ans"><b>Answer.</b> The step size is set by the range, and the range is set by the
+  largest value in the group. A handful of outliers inflate it, and every ordinary weight loses
+  precision to accommodate them.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier warm">Warm</span>W6 · What 2:4 buys</div>
+  <p>Why is 50% structured sparsity faster than 90% unstructured?</p>
+  <div class="ans"><b>Answer.</b> Because the pattern is regular enough for hardware to exploit: a
+  two-bit position index per surviving weight, four bits of metadata per group of four, and a
+  predictable access pattern. Unstructured zeros in a dense array cost exactly as much as any other
+  number.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier warm">Warm</span>W7 · Dark knowledge</div>
+  <p>What does a soft target carry that a label does not, and why raise the temperature?</p>
+  <div class="ans"><b>Answer.</b> The relative ordering over the <b>wrong</b> answers, a statement
+  about the structure of the problem. A confident teacher's distribution is nearly one-hot, so
+  raising $T$ is what makes that ordering numerically visible to the loss.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier warm">Warm</span>W8 · Why LoRA costs nothing to serve</div>
+  <p>And what it gives up by merging.</p>
+  <div class="ans"><b>Answer.</b> $BA$ can be folded into $W_0$, giving an ordinary dense matrix.
+  Merging gives up multi-tenancy: unmerged adapters let one base model serve many adaptations in a
+  single batch, which is where the throughput comes from.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier warm">Warm</span>W9 · Speculative decoding is exact</div>
+  <p>Why is it not an approximation?</p>
+  <div class="ans"><b>Answer.</b> The rejection rule (accept with probability $\min(1, p/q)$ and
+  otherwise sample from the normalised positive part of $p - q$) makes the output distribution
+  exactly the target model's.</div>
+</div>
+
+<h3><span class="num">Tier 2</span> Core</h3>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C1 · The roofline</div>
+  <p>Implement arithmetic intensity and the roofline. Find the batch size at which a model of your
+  choosing stops being memory-bound.</p>
+  <div class="ans"><b>Answer.</b> It is the ridge point, and it is usually in the hundreds. Below
+  it, throughput is linear in batch size for free; above it, batching buys nothing more.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C2 · Predict tokens per second</div>
+  <p>Estimate decode speed from model size, bytes per weight and memory bandwidth alone. Then
+  compare to a real measurement if you have one.</p>
+  <div class="ans"><b>Answer.</b> Usually within a factor of two, with no benchmarking. The gap is
+  the thing worth investigating: it is cache traffic, kernel overhead, or a batch you did not
+  account for.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C3 · When the cache overtakes the model</div>
+  <p>Compute the context length at which the KV cache equals the weights, for multi-head,
+  grouped-query and multi-query attention.</p>
+  <div class="ans"><b>Answer.</b> Tens of thousands of tokens for multi-head, and the head-count
+  factor moves it out proportionally. Then compute concurrent sequences on a real device size;
+  that number is the one that decides serving cost.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C4 · Quantization, three granularities</div>
+  <p>Implement per-tensor, per-channel and per-group symmetric quantization. Measure the error on a
+  weight matrix with a heavy tail across bit widths.</p>
+  <div class="ans"><b>Answer.</b> Granularity buys more than an extra bit does, at the same storage.
+  Then count the scales: at group 128 in 4 bits they add about 3%, which should be in any honest
+  comparison.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C5 · Find the outliers</div>
+  <p>Detect outlier channels, then quantize with the scales computed <b>excluding</b> them and the
+  outliers kept exact. Compare to quantizing everything.</p>
+  <div class="ans"><b>Answer.</b> A large improvement, and note the trap: quantizing the whole
+  matrix and then overwriting the outlier columns does almost nothing, because the scales were
+  already inflated. The scales are the mechanism.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C6 · Weight error is the wrong metric</div>
+  <p>Train a small model. Quantize it at several bit widths and plot both the weight error and the
+  <b>loss</b>. Compare their shapes.</p>
+  <div class="ans"><b>Answer.</b> Weight error grows smoothly; loss stays flat and then falls off a
+  cliff. Choosing a bit width from the first picks the wrong one.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C7 · Sparse is bigger</div>
+  <p>Compute dense and CSR storage for a pruned matrix across sparsity levels. Find the crossover
+  at which the sparse format finally becomes smaller.</p>
+  <div class="ans"><b>Answer.</b> Around two thirds sparsity, because each non-zero carries an index
+  several times its own size. Below that, removing half the weights makes the file
+  <i>larger</i>.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C8 · Time it</div>
+  <p>Time a dense matrix multiply with 0%, 50%, 90% and 99% of the weights zeroed, then time a
+  sparse-kernel version. Plot both against the speedup the FLOP count promises.</p>
+  <div class="ans"><b>Answer.</b> The dense line is flat at 1.0×, the whole point. The sparse
+  kernel is slower until very high sparsity. Use the minimum of many runs rather than the mean;
+  timing noise here is one-sided.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C9 · 2:4</div>
+  <p>Implement it and confirm exactly half the weights survive and that they are the two largest in
+  each group of four. Compare its accuracy cost to unstructured pruning at the same 50%.</p>
+  <div class="ans"><b>Answer.</b> Unstructured wins slightly on accuracy and loses entirely on
+  speed. That trade, a constraint that makes the pattern predictable, is worth more than the
+  freedom it costs.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C10 · Prune and recover</div>
+  <p>Prune a trained model to 50%, 80% and 95%, fine-tuning after each. Plot accuracy against
+  sparsity, with and without the fine-tuning step.</p>
+  <div class="ans"><b>Answer.</b> The fine-tuning is doing most of the work, and iterative pruning
+  beats one-shot at the same final sparsity. Both are evidence about overparameterisation rather
+  than about speed.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C11 · Temperature and dark knowledge</div>
+  <p>Measure the entropy of a trained teacher's output at $T \in \{1, 2, 4, 8\}$, and check that the
+  ordering of the wrong answers is preserved.</p>
+  <div class="ans"><b>Answer.</b> Near zero at $T=1$: the information is there and numerically
+  invisible. Raising $T$ exposes it without changing the ranking, which is exactly what
+  distillation needs.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C12 · Distil, and the control</div>
+  <p>Distil a teacher into a small student. Then train the <b>same student directly</b> on the same
+  data. Report both.</p>
+  <div class="ans"><b>Answer.</b> The gap is what the teacher was worth. This control is routinely
+  omitted, and without it a distillation result says nothing about distillation.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C13 · Distil with no labels</div>
+  <p>Repeat C12 using unlabelled data and the teacher's outputs alone.</p>
+  <div class="ans"><b>Answer.</b> It works, which is the practical claim: distillation needs
+  unlabelled data rather than labelled, and unlabelled data is what you have.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C14 · Self-distillation</div>
+  <p>Distil a model into an identical architecture and compare to the teacher.</p>
+  <div class="ans"><b>Answer.</b> Often better, with nothing compressed and no new data. Sit with
+  how strange that is: the explanations are partial, and it is usually presented as though they
+  were not.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C15 · LoRA, implemented</div>
+  <p>Implement it, confirm the model starts exactly at $W_0$, and confirm the merged and unmerged
+  forms compute the same function to machine precision.</p>
+  <div class="ans"><b>Answer.</b> The zero initialisation of $B$ is what gives the first property;
+  the merge identity is what gives zero inference cost. Both are one line and both are worth
+  checking rather than assuming.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C16 · Is the update low rank</div>
+  <p>Fine-tune a model fully, take the SVD of each weight delta, and report the rank needed for 90%
+  and for 99% of the energy. Compare to a random matrix of the same shape.</p>
+  <div class="ans"><b>Answer.</b> The spectrum decays sharply, and the 99% figure is several times
+  the 90% one. Quote both: energy is not effect, and the 90% number alone overstates the
+  case.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C17 · Rank and placement</div>
+  <p>Sweep LoRA rank, and separately compare applying it to attention projections only against all
+  linear layers at matched parameter count.</p>
+  <div class="ans"><b>Answer.</b> Placement usually matters more than rank. Matching the parameter
+  count is what makes the comparison fair, and it is frequently not done.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C18 · Batching, measured</div>
+  <p>Compute the throughput gain from batching under the roofline, and find where it stops being
+  linear.</p>
+  <div class="ans"><b>Answer.</b> Linear up to the ridge, flat after it. Two orders of magnitude of
+  utilisation live in that first stretch, which is why batching is not one optimisation among
+  several.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C19 · Paging</div>
+  <p>Given a realistic distribution of generation lengths, compute the cache wasted by reserving the
+  maximum, and by paging into blocks.</p>
+  <div class="ans"><b>Answer.</b> The great majority against a few per cent. That recovered memory
+  is concurrency, and concurrency is throughput.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C20 · The cost model</div>
+  <p>Price a request end to end. Compare the cost of an input token to an output token, and check
+  how each scales with batch size.</p>
+  <div class="ans"><b>Answer.</b> Output tokens cost far more, and the decode term is divided by the
+  batch while the prefill term is not. That asymmetry is the shape of commercial pricing.</div>
+</div>
+
+<h3><span class="num">Tier 3</span> Stretch</h3>
+
+<div class="drill">
+  <div class="head"><span class="tier stretch">Stretch</span>S1 · GPTQ, in miniature</div>
+  <p>Quantize a matrix column by column, adjusting the remaining columns after each to compensate
+  for the error introduced. Compare to independent rounding at the same bit width.</p>
+  <div class="ans"><b>Answer.</b> Error compensation beats error minimisation, which is the
+  insight: accept the rounding and fix its downstream effect rather than rounding better.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier stretch">Stretch</span>S2 · Quantize the cache</div>
+  <p>Quantize keys and values to 8 and 4 bits separately and measure the effect on a long
+  generation.</p>
+  <div class="ans"><b>Answer.</b> Keys are more sensitive, because they enter a softmax. And note
+  that cache error <b>accumulates</b> over a generation where weight error is applied once, so a
+  short-sequence measurement understates it.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier stretch">Stretch</span>S3 · Speculative decoding, end to end</div>
+  <p>Train three drafts of increasing size. Measure the acceptance rate under the exact rejection
+  rule and compute the implied speedup for each.</p>
+  <div class="ans"><b>Answer.</b> The best draft is small <b>and</b> close, and the product is what
+  matters. Verify separately that the output distribution is unchanged: that is the property that
+  makes the technique free rather than a trade.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier stretch">Stretch</span>S4 · Serve many adapters</div>
+  <p>Hold one base model and several LoRA pairs. Serve a batch containing requests for different
+  adapters and compare throughput to running separate merged models.</p>
+  <div class="ans"><b>Answer.</b> Far better, because the base multiply is shared across the whole
+  batch. Then measure the per-sequence correction's cost: it is a low-intensity operation, so it is
+  more expensive than its FLOP count suggests.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier stretch">Stretch</span>S5 · Continuous batching</div>
+  <p>Simulate a queue with a realistic spread of generation lengths. Compare static and continuous
+  batching on throughput and on p95 latency.</p>
+  <div class="ans"><b>Answer.</b> Several times the throughput at the same latency, from scheduling
+  alone. Report percentiles, not means: the distribution is heavily skewed.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier stretch">Stretch</span>S6 · Stack them</div>
+  <p>Apply 4-bit quantization, 2:4 sparsity and distillation to one model. Measure the size,
+  the speed and the loss after each, in every order.</p>
+  <div class="ans"><b>Answer.</b> The compressions multiply and the accuracy costs add up faster
+  than that. Order matters, and the combination is worth measuring rather than assuming from the
+  individual results.</div>
+</div>

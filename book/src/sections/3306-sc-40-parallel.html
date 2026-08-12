@@ -1,0 +1,193 @@
+<h2><span class="part-kicker">Part D</span>Parallelism</h2>
+
+<p class="lede">Four ways to split a training job across devices, each cutting along a different
+axis, each with a communication pattern that decides where it stops working.</p>
+
+<h3><span class="num">§21</span> Data parallelism</h3>
+
+<div class="box def">
+  <span class="label">Split the batch</span>
+  <p>Every device holds a full copy of the model and processes a different slice of the batch. The
+  gradients are averaged across devices, an <b>all-reduce</b>, and every device applies the same
+  update, so the copies stay identical.</p>
+  <p>It is the simplest thing that works, it is what every framework does by default, and it is
+  the only form of parallelism that requires no change to the model.</p>
+</div>
+
+<div class="box def">
+  <span class="label">The all-reduce, and what it costs</span>
+  <p>A ring all-reduce over $W$ devices moves $2N \cdot \frac{W-1}{W}$ values per device: about
+  <b>twice the model size</b>, and, crucially, <b>independent of the batch</b>.</p>
+  <p>So the communication is a constant per step and the compute is proportional to the tokens
+  each device processes. The ratio of the two is the whole story.</p>
+</div>
+
+<h3><span class="num">§22</span> Why it stops scaling</h3>
+
+<figure>
+  <img src="figures/sc/05-dataparallel.svg" alt="Fraction of step time spent computing, against interconnect bandwidth and against tokens per device">
+  <figcaption><b>Figure 5.</b> A 7-billion-parameter model in bf16, data-parallel across $W=8$
+  devices: one ring all-reduce moves <b>24.5 GB</b> per step whatever the batch size; that figure
+  is for $W=8$ and scales with $W$, but the constancy against batch does not. At 25 Gb/s with
+  1,024 tokens per device only <b>1.8%</b> of the step is computing; at 900 Gb/s with 16,384
+  tokens per device it is <b>91.3%</b>. The lever is tokens per device, not the number of
+  devices.</figcaption>
+</figure>
+
+<div class="box why">
+  <span class="label">Why strong scaling fails and weak scaling works</span>
+  <p><b>Strong scaling</b> (fix the total batch, add devices) shrinks the compute per device
+  while the communication stays fixed. Efficiency falls, and past a point adding devices makes the
+  step slower.</p>
+  <p><b>Weak scaling</b> (add devices <i>and</i> grow the batch to match) keeps the per-device
+  work constant, so efficiency holds. This is why large runs use enormous total batch sizes: not
+  because a large batch optimises better (§39 says it does not, past a point), but because it is
+  the only way to keep the devices busy.</p>
+  <p>The two remedies are visible in the figure. Better interconnect moves the curve left.
+  <b>Overlapping</b> communication with computation (starting the all-reduce for early layers'
+  gradients while later layers are still computing) hides much of it, and is why gradient buckets
+  exist.</p>
+</div>
+
+<h3><span class="num">§23</span> Tensor parallelism</h3>
+
+<div class="box def">
+  <span class="label">Split the matrices</span>
+  <p>Cut individual weight matrices across devices. For a feed-forward block, split the first
+  matrix by <b>columns</b> and the second by <b>rows</b>: each device computes a slice of the
+  hidden dimension independently, and a single all-reduce at the end sums the partial outputs.</p>
+  <p>Attention splits naturally by <b>heads</b>, which is the same pattern: the heads are already
+  independent (Part XII §12) and only the output projection needs combining.</p>
+</div>
+
+<div class="box pitfall">
+  <span class="label">Pitfall: it communicates inside every layer</span>
+  <p>Data parallelism communicates once per step. Tensor parallelism communicates <b>twice per
+  layer</b>, on the critical path, with everything waiting.</p>
+  <p>That volume is proportional to (batch × context × width) rather than to the model size, and it
+  cannot be overlapped with anything because the next operation needs the result. So tensor
+  parallelism is used <b>within a node</b>, across devices joined by a fast local interconnect, and
+  essentially never across nodes. The degree is typically 8, because that is how many devices share
+  a board.</p>
+</div>
+
+<h3><span class="num">§24</span> Pipeline parallelism</h3>
+
+<figure>
+  <img src="figures/sc/06-pipeline.svg" alt="Percentage of time idle against number of microbatches for several pipeline depths, and microbatches needed to bring the bubble down to ten per cent">
+  <figcaption><b>Figure 6.</b> The bubble is exact arithmetic: with $P$ stages and $M$
+  microbatches a fraction $(P-1)/(M+P-1)$ of the time is idle. At $P=8$ and $M=8$ that is
+  <b>46.7%</b>; bringing it down to 10% needs <b>63</b> microbatches (63 lands on exactly 10%; 64
+  is the first value strictly under it), and at $P=32$ it needs <b>279</b>.</figcaption>
+</figure>
+
+<div class="box def">
+  <span class="label">Split the layers</span>
+  <p>Give each device a contiguous block of layers. Activations flow forward from stage to stage
+  and gradients flow back. The communication is small (one activation tensor at each boundary),
+  which is why this is the form that works <b>across</b> nodes.</p>
+  <p>The problem is that stage $k$ cannot start until stage $k-1$ has produced something, so the
+  naive version has one device busy at a time. Splitting the batch into <b>microbatches</b> and
+  streaming them through fills the pipeline, and the figure is what is left over.</p>
+  <p>The same split is useful with no pipeline at all: compute several microbatches' forward and
+  backward passes and <b>sum</b> their gradients before a single optimiser step. That is
+  <b>gradient accumulation</b>: how a batch too large to fit in memory is trained as if it did,
+  spreading the same total arithmetic over several smaller calls instead of one wide one rather
+  than adding to it, and paying none of the bubble, because there is no stage boundary to wait
+  on.</p>
+</div>
+
+<div class="box why">
+  <span class="label">Why the bubble is the binding constraint</span>
+  <p>Filling and draining the pipeline costs $P-1$ slots regardless of $M$, so the idle fraction is
+  $(P-1)/(M+P-1)$, falling with more microbatches and never reaching zero.</p>
+  <p>And more microbatches is not free: every microbatch in flight holds its own activations, so
+  the memory cost grows with exactly the quantity that reduces the bubble. That tension is why
+  schedules matter. <b>1F1B</b> interleaves forward and backward passes so a microbatch's
+  activations are released as early as possible, holding roughly $P$ microbatches' worth rather
+  than $M$; <b>interleaved</b> schedules give each device several non-contiguous blocks of layers,
+  which shrinks the bubble further at the cost of more communication.</p>
+</div>
+
+<h3><span class="num">§25</span> Sequence and context parallelism</h3>
+
+<div class="box def">
+  <span class="label">Split the tokens</span>
+  <p>When the context is long enough that a single sequence's activations do not fit, split along
+  the <b>sequence</b> axis. Everything except attention is pointwise across positions and needs no
+  communication at all; attention needs each query to see every key, so the keys and values are
+  passed around the device ring while each device holds its own queries.</p>
+  <p>This is what makes contexts of hundreds of thousands of tokens possible, and its cost is a
+  communication volume that grows with the context, the same quadratic that §17's memory
+  discussion described, arriving as network traffic instead.</p>
+</div>
+
+<h3><span class="num">§26</span> Combining them</h3>
+
+<div class="readnow"><span class="label">Go and read</span><p><span class="src">Narayanan et al. (2021)</span>, <i>Efficient large-scale language model training on GPU clusters using Megatron-LM</i>. The clearest published account of choosing a parallel configuration by arithmetic rather than by experiment: a cost model, an enumeration, and measurements that confirm it. Then <span class="src">Shoeybi et al. (2019)</span> for the tensor-parallel split itself, which is short and concrete.</p></div>
+
+<div class="box def">
+  <span class="label">Which axis where</span>
+  <table class="compact">
+    <thead><tr><th>Form</th><th>Splits</th><th>Communicates</th><th>Where it lives</th></tr></thead>
+    <tbody>
+      <tr><td>Data</td><td>the batch</td><td>once per step, $\approx 2N$</td><td>across everything</td></tr>
+      <tr><td>Tensor</td><td>each matrix</td><td>twice per layer, on the critical path</td><td>within a node</td></tr>
+      <tr><td>Pipeline</td><td>the layers</td><td>one tensor per boundary</td><td>across nodes</td></tr>
+      <tr><td>Sequence</td><td>the positions</td><td>keys and values, in attention</td><td>within a node</td></tr>
+    </tbody>
+  </table>
+  <p>A large run uses all of them at once, and the assignment follows the communication column:
+  the chatty forms go where the wires are fast. A typical arrangement is tensor parallel 8 within a
+  node, pipeline parallel across a few nodes, and data parallel across everything else, with the
+  three degrees multiplying to the device count.</p>
+</div>
+
+<div class="box why">
+  <span class="label">Why this is a search over a small discrete space</span>
+  <p>The degrees must multiply to the number of devices, each choice has a different memory and
+  communication profile, and the objective (tokens per second at a fixed total batch) is
+  computable from the arithmetic in this movement plus a few measured bandwidths.</p>
+  <p>So the configuration is chosen by <b>enumerating</b> the factorisations and evaluating a cost
+  model, not by experiment. The space is small enough to search exhaustively, and doing so before
+  the run costs an hour and routinely finds a configuration twice as fast as the obvious one.</p>
+</div>
+
+<h3><span class="num">§27</span> Asynchronous SGD, and why it lost</h3>
+
+<div class="box history">
+  <span class="label">The approach the source book describes</span>
+  <p>The 2016 account of distributed training is <b>asynchronous</b> SGD with a parameter server:
+  workers read parameters without a lock, compute gradients, and apply them without a lock,
+  accepting that some updates overwrite others. It states that this "remains the primary strategy
+  for training large deep networks".</p>
+  <p>It is now essentially unused. The reason is not that the analysis was wrong (stale gradients
+  do cost less than the synchronisation they avoid, at moderate scale) but that the situation
+  changed underneath it.</p>
+  <p><b>Synchronous training got cheap.</b> Ring all-reduce made the communication scale with the
+  model rather than with the number of workers, and overlapping hid much of what remained. The cost
+  async was avoiding largely went away.</p>
+  <p><b>Asynchrony is a debugging nightmare.</b> A synchronous run is deterministic given a seed
+  and reproduces exactly. An async run does not, so a loss spike cannot be reproduced and every
+  Part XIV instrument becomes harder to use.</p>
+  <p><b>Staleness scales badly.</b> With thousands of workers the average gradient is many steps
+  out of date, and the effective learning rate has to fall to compensate, which cancels the
+  throughput it bought.</p>
+  <p>Worth keeping as a case where a correct engineering analysis was overtaken by a change in the
+  hardware it assumed, which is the most common way infrastructure advice expires.</p>
+</div>
+
+<h3><span class="num">§28</span> Failure, and checkpointing</h3>
+
+<div class="box def">
+  <span class="label">At scale, hardware failure is a scheduled event</span>
+  <p>With thousands of devices running for weeks, the mean time between failures is measured in
+  hours. A run that cannot survive losing a node will not finish.</p>
+  <p>The arithmetic that decides the checkpoint interval is standard: the expected cost is roughly
+  $\frac{T_c}{I} + \frac{I}{2 T_f}$ per unit time, for checkpoint cost $T_c$, interval $I$ and mean
+  time to failure $T_f$, minimised at $I = \sqrt{2 T_c T_f}$. It is worth computing rather than
+  guessing, because both extremes are expensive.</p>
+  <p>What must be saved is more than the weights: optimiser states, the data-loader position, the
+  RNG state and the schedule step. Anything omitted makes a resumed run differ from an
+  uninterrupted one, and the difference will be blamed on something else.</p>
+</div>

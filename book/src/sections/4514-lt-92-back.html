@@ -1,0 +1,200 @@
+<h2><span class="part-kicker">Build</span>The project</h2>
+
+<p class="lede">Ten to fourteen hours. You implement the bounds, measure them against the quantities
+they bound, and find the exact point at which they stop saying anything; then build the two things
+that still work when they have.</p>
+
+<h3><span class="num">P.1</span> What you are building</h3>
+
+<p><b><code>bounded</code></b>: a small library of generalisation bounds with a harness that
+evaluates each one against a measured gap, an exact VC-dimension calculator by enumeration, and an
+online learner with a regret tracker.</p>
+
+<p>The rule: <b>every bound gets evaluated as a number and compared with the thing it bounds</b>.
+A bound quoted symbolically is a claim; a bound quoted numerically next to the measured gap is a
+result, and this part exists because the two look very different.</p>
+
+<h3><span class="num">P.2</span> Stage 1: concentration</h3>
+
+<ol>
+  <li>Implement Hoeffding and Bernstein. Simulate the tail and confirm neither is violated.</li>
+  <li>Sweep the variance and find where the two cross.</li>
+  <li>Compute the sample size each demands for a target interval, and compare with the exact
+  binomial answer.</li>
+</ol>
+
+<p><b>Deliverable:</b> the tail plot, and the ratio of distribution-free to exact sample size. That
+ratio is the price of a guarantee that holds for every distribution.</p>
+
+<h3><span class="num">P.3</span> Stage 2: VC dimension, by enumeration</h3>
+
+<ol>
+  <li>Implement exact separability by linear programming.</li>
+  <li>Enumerate all <span class="m">$2^m$</span> labellings and find where shattering stops, for
+  linear classifiers in two and three dimensions.</li>
+  <li>Do it again for axis-aligned rectangles.</li>
+  <li>Implement Sauer's bound and check the dichotomy.</li>
+</ol>
+
+<p><b>Deliverable:</b> measured VC dimensions for two hypothesis classes, obtained without citing a
+theorem. The transition should be total, not gradual.</p>
+
+<h3><span class="num">P.4</span> Stage 3: the bound against the gap</h3>
+
+<ol>
+  <li>Measure the real generalisation gap for a linear classifier across sample sizes, and plot the
+  VC bound beside it.</li>
+  <li>Evaluate the same bound at three realistic network sizes. Handle the regime where the
+  dimension exceeds the sample without producing <code>nan</code>.</li>
+  <li>Train a network on randomly labelled data and report the training error.</li>
+</ol>
+
+<p><b>Deliverable:</b> the ratio table, and a one-paragraph statement of why step three forecloses
+a distribution-free repair. This is the argument the part is built around.</p>
+
+<h3><span class="num">P.5</span> Stage 4: past the threshold</h3>
+
+<ol>
+  <li>Build a random-feature regressor and sweep the feature count through
+  <span class="m">$p = n$</span>.</li>
+  <li>Locate the peak, and confirm the second descent goes below the classical optimum.</li>
+  <li>Add ridge regularization and sweep again.</li>
+  <li>Construct several exact interpolants of one underdetermined problem and compare their norms
+  and test errors.</li>
+  <li>Run gradient descent from zero and from a large random start.</li>
+</ol>
+
+<p><b>Deliverable:</b> the double-descent curve with and without ridge, and the interpolant table.
+Step five is the one to think about: the implicit bias is toward the initialisation, and
+minimum-norm is the special case of starting at the origin.</p>
+
+<h3><span class="num">P.6</span> Stage 5: no assumptions at all</h3>
+
+<ol>
+  <li>Implement regret, follow-the-leader and multiplicative weights.</li>
+  <li>Construct the sequence that gives the leader linear regret, and confirm multiplicative
+  weights is sublinear on it.</li>
+  <li>Sweep the learning rate and find where it degenerates back into the leader.</li>
+  <li>Convert to bandit feedback and measure the extra cost.</li>
+</ol>
+
+<p><b>Deliverable:</b> regret curves for both algorithms and both feedback models, with the
+<span class="m">$\sqrt{K}$</span> gap measured rather than quoted.</p>
+
+<h3><span class="num">P.7</span> Stage 6: when the distribution moves</h3>
+
+<ol>
+  <li>Implement importance weighting and run the shift sweep with a well-specified and a
+  misspecified model.</li>
+  <li>Measure the variance the weights add when they are not needed.</li>
+  <li>Implement label-shift correction by confusion-matrix inversion and recover a prior change you
+  set.</li>
+  <li>Build a spurious-correlation dataset. Train to minimise the average and then the worst group,
+  and report both by group.</li>
+</ol>
+
+<p><b>Deliverable:</b> the two-panel shift result, and the group table. Note whether your
+average-minimising model is below chance on the conflicting group.</p>
+
+<h3><span class="num">P.8</span> Stretch</h3>
+
+<ul>
+  <li><b>A PAC-Bayes bound</b> evaluated on a small trained network, with compression.</li>
+  <li><b>Stability of SGD</b>: two datasets differing in one point, divergence against steps.</li>
+  <li><b>Sharpness</b> measured, then defeated by layer rescaling.</li>
+  <li><b>Grokking</b> on modular arithmetic with weight decay.</li>
+  <li><b>Rademacher complexity</b> estimated for a real model by fitting random labels.</li>
+  <li><b>Your own worst group</b>, found by searching partitions and confirmed out of sample.</li>
+</ul>
+
+<h3><span class="num">P.9</span> Done when</h3>
+
+<ul class="checklist">
+  <li>You have simulated a tail and confirmed both bounds hold, and know the ratio.</li>
+  <li>You have measured a VC dimension for two hypothesis classes by enumeration.</li>
+  <li>You have a bound and a measured gap on the same axes, with the ratio stated.</li>
+  <li>You have evaluated a bound that comes out above 1, and can say why that is not fixable.</li>
+  <li>You have trained a model to zero error on random labels.</li>
+  <li>You have a double-descent curve, and the same curve with ridge.</li>
+  <li>You have four exact fits of one dataset with test errors spanning an order of magnitude.</li>
+  <li>You have defeated follow-the-leader and beaten it with multiplicative weights.</li>
+  <li>You have a covariate-shift correction that helps in one panel and does nothing in the
+  other.</li>
+  <li>Your README states one guarantee you believed applied to your own models and now know does
+  not.</li>
+</ul>
+
+<div class="box why">
+  <span class="label">Why this project</span>
+  <p>The bounds in this part are usually met as symbols and never evaluated. Evaluating them takes
+  one line each and changes what you think they are for: a VC bound is not a loose guarantee about
+  your network, it is not a guarantee about your network at all.</p>
+  <p>Stage 4 is the reason the part is here rather than in an appendix. The classical picture says
+  capacity past the interpolation threshold is a mistake, and the measurement says the best model
+  in the sweep is on the far side of it. Everything that has been proposed to explain that gap is
+  a statement about the algorithm, and you can watch the algorithm making the choice.</p>
+</div>
+
+<h2 class="nobreak"><span class="part-kicker">Assess</span>Checkpoint</h2>
+
+<ul class="checklist">
+  <li>Define true and empirical risk, and say why the gap is hard to bound.</li>
+  <li>State Hoeffding's inequality and say what information it uses.</li>
+  <li>State Bernstein's and say what it adds, and what it costs.</li>
+  <li>Say why McDiarmid is needed rather than Hoeffding for a supremum.</li>
+  <li>Derive the finite-class bound from Hoeffding and the union bound.</li>
+  <li>Explain why the penalty is logarithmic in the size of the class, and why that matters.</li>
+  <li>Say what "with probability <span class="m">$1-\delta$</span>" is a statement about.</li>
+  <li>State the three assumptions concentration needs and name where each fails.</li>
+  <li>Define PAC learnability and identify the demanding quantifier.</li>
+  <li>Define the growth function and say why it can be small for an infinite class.</li>
+  <li>Define shattering and VC dimension, with both quantifiers in the right place.</li>
+  <li>Give the VC dimension of linear classifiers and describe how to verify it.</li>
+  <li>State Sauer's lemma and explain the dichotomy it establishes.</li>
+  <li>Write the VC generalisation bound and identify each term.</li>
+  <li>State the fundamental theorem, including the lower bound, and say why the lower bound
+  matters.</li>
+  <li>Connect no free lunch to infinite VC dimension.</li>
+  <li>Define Rademacher complexity and give its two advantages over VC dimension.</li>
+  <li>Say how covering numbers recover the finite-class argument.</li>
+  <li>State the margin bound and explain why an infinite-dimensional kernel is not vacuous.</li>
+  <li>Define algorithmic stability and say what it bounds that uniform convergence does not.</li>
+  <li>Describe structural risk minimisation and where its penalty should come from.</li>
+  <li>State what each of the four tools assumes, and what it buys.</li>
+  <li>Define vacuity and give the value of the VC bound at a realistic network size.</li>
+  <li>Explain why the randomised-label experiment forecloses a distribution-free explanation.</li>
+  <li>Describe double descent and say what is special about <span class="m">$p = n$</span>.</li>
+  <li>Say why the second descent is a statement about the algorithm.</li>
+  <li>Define benign overfitting and say where it is understood and where it is not.</li>
+  <li>Define implicit regularization and give two cases where it is characterised exactly.</li>
+  <li>Give three objections to flatness as an explanation of generalisation.</li>
+  <li>Say what PAC-Bayes bounds have achieved and what they bound.</li>
+  <li>State the online protocol and define regret.</li>
+  <li>Say why regret can be negative.</li>
+  <li>Explain why follow-the-leader fails and what repairs it.</li>
+  <li>Give the regret of online gradient descent and say what the online-to-batch conversion
+  buys.</li>
+  <li>Describe multiplicative weights and locate the union bound in its guarantee.</li>
+  <li>Give the cost of bandit feedback relative to full information.</li>
+  <li>Say why the best fixed action is sometimes the wrong comparator.</li>
+  <li>Distinguish covariate, label and concept shift, and say which are correctable without
+  labels.</li>
+  <li>Write the importance-weighting identity and state the condition it needs.</li>
+  <li>Say when importance weighting does nothing, and why.</li>
+  <li>Describe label-shift correction from unlabelled data.</li>
+  <li>Define distributionally robust optimisation and say what decides whether it is useful.</li>
+  <li>Explain why below-chance accuracy on a group is a signature rather than a bad score.</li>
+  <li>Say what can and cannot be detected without labels.</li>
+</ul>
+
+<div class="box fw">
+  <span class="label">The framework, and where the guarantee attaches</span>
+  <p>Dataset, model family, loss, optimiser, then Part XXI's claim about what the result
+  establishes and Part XXII's estimand. This part says where a <i>guarantee</i> can attach to any
+  of them, and the answer is narrower than the framework suggests.</p>
+  <p>It cannot attach to the model family, because the family provably admits no useful
+  distribution-free bound at modern sizes. It attaches partially to the optimiser, and that is the
+  live research direction. Mostly, in practice, it does not attach at all: what you have is a
+  held-out set and Part XXI §27's arithmetic about how much that establishes. Knowing which of
+  those you are relying on is the difference between a guarantee and a habit.</p>
+</div>

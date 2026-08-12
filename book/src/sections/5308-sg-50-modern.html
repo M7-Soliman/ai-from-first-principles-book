@@ -1,0 +1,136 @@
+<h2><span class="part-kicker">Part E</span>Frequency in modern architectures</h2>
+
+<p class="mvt">Positional encodings are a frequency basis, the standard trick for extending a
+model's context is an edit to those frequencies, and the standard fix for spectral bias is to hand
+the network the basis rather than make it find one. Three constructions in current use that are
+this part's subject wearing different names.</p>
+
+<h3><span class="num">§33</span> Positional encoding is a frequency basis</h3>
+
+<div class="box def">
+  <span class="label">What Part XII §9 wrote down</span>
+  <p>The sinusoidal encoding gives position <span class="m">$p$</span> the vector with entries
+  <span class="m">$\sin(p/10000^{2i/d})$</span> and <span class="m">$\cos(p/10000^{2i/d})$</span>
+  for <span class="m">$i = 0 \dots d/2$</span>. That is <span class="m">$p$</span> written in a bank
+  of frequencies spaced geometrically from 1 down to
+  <span class="m">$10^{-4}$</span>, the first terms of a Fourier basis, evaluated at
+  <span class="m">$p$</span>.</p>
+  <p>The property that made it work is §8's: a shift becomes a phase change, and a phase change is a
+  rotation of each sine–cosine pair. So the encoding of
+  <span class="m">$p + k$</span> is a fixed linear function of the encoding of
+  <span class="m">$p$</span>, with a matrix depending only on <span class="m">$k$</span>. Relative
+  position is linearly available, which is the whole design goal.</p>
+</div>
+
+<div class="box why">
+  <span class="label">Why geometric spacing, and what the base sets</span>
+  <p>Geometric spacing covers many scales with few dimensions: the fast components resolve adjacent
+  positions, the slow ones distinguish the start of the sequence from the end. It is a wavelet-like
+  allocation rather than a uniform one, and it suits the data for the reason §27 gives: natural
+  sequences, like natural images, have most of their structure at low frequency.</p>
+  <p>The base (10,000 in the original) sets the slowest frequency, and therefore the longest
+  distance the encoding can distinguish before it wraps. §35 is what happens when that choice
+  becomes the binding constraint.</p>
+</div>
+
+<h3><span class="num">§34</span> Rotary embeddings</h3>
+
+<div class="box def">
+  <span class="label">The same idea moved inside the dot product</span>
+  <p>Rotary position embedding treats each pair of query and key dimensions as a point in the plane
+  and rotates it by an angle proportional to position: pair <span class="m">$i$</span> at position
+  <span class="m">$p$</span> is rotated by <span class="m">$p\theta_i$</span>, with
+  <span class="m">$\theta_i$</span> geometrically spaced as before.</p>
+  <p>Because rotations compose, the dot product between a query at <span class="m">$m$</span> and a
+  key at <span class="m">$n$</span> depends on <span class="m">$m - n$</span> alone. Relative
+  position is exact rather than approximately available, and nothing is added to the
+  representation, which is why it survives depth where an additive encoding fades.</p>
+</div>
+
+<h3><span class="num">§35</span> Extending context by changing frequencies</h3>
+
+<div class="box shapes">
+  <span class="label">Three edits, and what each assumes</span>
+  <p>A model trained at 4,096 positions has seen its slowest rotary component through part of one
+  cycle. Ask for 32,768 and that component is extrapolating, which is the failure mode.</p>
+  <p><b>Position interpolation.</b> Divide every position by the extension factor, so the new range
+  maps onto the trained one. Nothing extrapolates. The cost is that adjacent positions are now
+  closer in angle than any the model was trained on, so fine positional discrimination degrades.</p>
+  <p><b>Base scaling.</b> Increase the base, lowering every frequency. Same trade, applied
+  uniformly.</p>
+  <p><b>Frequency-dependent scaling.</b> Interpolate the low frequencies, which are the ones that
+  wrap, and leave the high ones alone, which carry local order and were fully trained. This works
+  better than either uniform option and the reason is §33's: the two ends of the bank were doing
+  different jobs.</p>
+  <p>All three are edits to a frequency bank. Recognising that is the difference between choosing
+  among them and copying a configuration.</p>
+</div>
+
+<h3><span class="num">§36</span> Fourier features</h3>
+
+<div class="box def">
+  <span class="label">The remedy for §29</span>
+  <p>Rather than feeding a coordinate <span class="m">$x$</span> to a network, feed
+  <span class="m">$[\sin(2\pi B x), \cos(2\pi B x)]$</span> for a bank of frequencies
+  <span class="m">$B$</span>. The network now has high-frequency functions available as linear
+  combinations of its inputs rather than something it must synthesise, and Figure 7's problem
+  largely disappears.</p>
+  <p>This is what makes coordinate networks work for images, signed distance functions and neural
+  radiance fields, all of which need fine spatial detail from a two- or three-number input. It is
+  also, read the other way, a statement about what §29 was measuring: the difficulty was never
+  capacity, it was the basis.</p>
+</div>
+
+<div class="box pitfall">
+  <span class="label">Pitfall: the bandwidth is now a hyperparameter</span>
+  <p>The bank's highest frequency sets the finest detail representable. Too low and the fit stays
+  blurry for the reason it was blurry before. Too high and the network fits noise immediately,
+  because you have removed exactly the bias that was protecting it.</p>
+  <p>Which is the honest description of the trick: it does not remove spectral bias, it moves the
+  cutoff into your control. Part XXIII §21's pattern again: the power is bought by giving up a
+  constraint, and the constraint was doing something.</p>
+</div>
+
+<h3><span class="num">§37</span> What the first layer learns</h3>
+
+<div class="box why">
+  <span class="label">A prediction this part can make about Part X</span>
+  <p>Part X §31 reports that the first layer of a trained vision network fills with oriented,
+  band-limited edge detectors resembling Gabor filters, and treats this as an empirical regularity.
+  §19 names them: band-pass filters at various orientations and scales.</p>
+  <p>Given §27's measurement, that is close to what an efficient linear code for natural images
+  should look like: a set of filters tiling frequency and orientation, each responding to a narrow
+  band. The network is not discovering something strange. It is finding the basis its input
+  statistics call for, which is also the basis the mammalian visual system uses, and both facts have
+  the same one-line explanation.</p>
+</div>
+
+<h3><span class="num">§38</span> Where the frequency view misleads</h3>
+
+<div class="box pitfall">
+  <span class="label">Four honest limits</span>
+  <p><b>Nonlinearity breaks it.</b> The convolution theorem is a statement about linear
+  time-invariant systems. A ReLU is neither, and the neat per-frequency story survives only within a
+  layer.</p>
+  <p><b>Attention is not shift-invariant</b>, so its natural basis is not frequency. Positional
+  encodings are frequency-based; the mechanism they feed is not.</p>
+  <p><b>Stationarity is assumed and often false.</b> A single spectrum describes a signal whose
+  statistics do not change. Speech, video and text all change constantly, which is why §23's
+  short-time analysis exists and why a global spectrum of a long recording says little.</p>
+  <p><b>A spectrum discards phase when you summarise it</b>, and by §18 that is where the content
+  is. Two images with the same power spectrum can look like anything.</p>
+</div>
+
+<h3><span class="num">§39</span> What movement E establishes</h3>
+
+<div class="box intuition">
+  <span class="label">Three things</span>
+  <p><b>Positional encodings are a frequency bank</b>, geometrically spaced, chosen so that a shift
+  acts linearly. Rotary embeddings move the same construction inside the dot product and make
+  relative position exact.</p>
+  <p><b>Context extension is an edit to that bank</b>, and the reason frequency-dependent scaling
+  beats uniform scaling is that the fast and slow components were doing different jobs.</p>
+  <p><b>Fourier features do not defeat spectral bias, they relocate it.</b> The cutoff becomes a
+  hyperparameter you set instead of a bias the optimiser imposes, and the bias was protecting you
+  from something.</p>
+</div>

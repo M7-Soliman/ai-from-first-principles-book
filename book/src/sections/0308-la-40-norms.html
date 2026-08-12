@@ -1,0 +1,327 @@
+<h2><span class="part-kicker">Part D</span>Measuring</h2>
+
+<h3><span class="num">§14</span> Norms</h3>
+
+<p>So far we can build vectors and transform them. We cannot yet say how <b>big</b> one
+is, and almost everything in machine learning is ultimately a size question. How large
+is this error? How far apart are these two points? How big are these weights? A
+<b>norm</b> is the tool that answers all of them.</p>
+
+<div class="box def">
+  <span class="label">Definition: the $L^p$ family</span>
+  <p>For $p \geq 1$, the $L^p$ norm of $\mathbf{x}$ is
+  $$\|\mathbf{x}\|_p = \left( \sum_i |x_i|^p \right)^{1/p}$$
+  Raise every entry's magnitude to the $p$, add them up, take the $p$-th root.</p>
+</div>
+
+<p>That formula defines a whole family, but three members do essentially all the work.</p>
+
+<p>The first thing to make peace with is that there is a family at all. It is reasonable
+to expect "how big is this vector" to have one answer, the way "how many entries does it
+have" does. It does not, and the reason is that size is not a property of the vector; it
+is a question you ask about the vector, and different questions have different answers.</p>
+
+<p>Consider getting from one street corner to another in a city laid out on a grid, three
+blocks east and four blocks north. How far is it? A bird flies five blocks. A taxi drives
+seven, because it cannot pass through buildings. A tired pedestrian who only cares about
+the longest single stretch says four. All three numbers are correct; they answer different
+questions, and the questions differ because the <b>constraints</b> differ. Those three
+answers are exactly $L^2$, $L^1$ and $L^\infty$ of the vector $(3,4)$.</p>
+
+<p>So choosing a norm is choosing what you mean by "big", and the choice has consequences
+rather than being a matter of taste. As §15 shows, penalising a model's weights under
+$L^2$ and under $L^1$ does not produce a slightly different model; it produces a
+qualitatively different one, dense in the first case and sparse in the second. The norm is
+part of the specification of the problem, not a detail of how you measure the answer.</p>
+
+<h4>$L^2$: Euclidean length, the default</h4>
+
+$$\|\mathbf{x}\|_2 = \sqrt{\sum_i x_i^2}$$
+
+<p>Ordinary straight-line distance. In two dimensions it <i>is</i> the Pythagorean
+theorem: $\|(3,4)\|_2 = \sqrt{9 + 16} = 5$. This is so common that the subscript is
+usually dropped; a bare $\|\mathbf{x}\|$ means $L^2$ unless stated otherwise.</p>
+
+<p>It has a compact form worth recognising instantly, since it appears constantly:</p>
+
+$$\|\mathbf{x}\|_2^2 = \mathbf{x}^\top \mathbf{x}$$
+
+<p>The <i>squared</i> $L^2$ norm is just a dot product of a vector with itself, with no
+square root in sight.</p>
+
+<div class="box why">
+  <span class="label">Why deep learning cares: the squared norm is preferred</span>
+  <p>You will see $\|\mathbf{x}\|_2^2$ far more often than $\|\mathbf{x}\|_2$, and
+  the reason is calculus rather than taste. The derivative of $\|\mathbf{x}\|_2^2$
+  with respect to $x_i$ is simply $2x_i$: each component's derivative depends only on
+  that component, and the expression is clean everywhere.</p>
+  <p>The unsquared norm is worse behaved on both counts. Its derivative involves
+  dividing by the norm itself, so every component's derivative depends on all the
+  others, and at $\mathbf{x} = \mathbf{0}$ the square root has a kink where the
+  derivative does not exist. Since optimization means differentiating over and over,
+  the squared version wins on convenience and on numerical safety. When you see a loss
+  function squaring things, this is usually why.</p>
+</div>
+
+<h4>$L^1$: sum of magnitudes</h4>
+
+$$\|\mathbf{x}\|_1 = \sum_i |x_i|$$
+
+<p>Also called the Manhattan or taxicab norm, because it measures distance the way a
+car navigates a grid of streets: you cannot cut diagonally, so you add the horizontal
+and vertical legs. $\|(3,4)\|_1 = 7$, against $5$ for $L^2$.</p>
+
+<p>$L^1$ has a property that makes it disproportionately important: it treats small
+values much more harshly than $L^2$ does. Moving a coordinate from $0.1$ to $0$ reduces
+the $L^1$ norm by exactly $0.1$, regardless of how large the other coordinates are.
+Under $L^2$, squaring makes $0.1$ contribute a mere $0.01$, so shrinking it is barely
+worth the optimizer's effort. The consequence is that <b>$L^1$ pushes values to exactly
+zero while $L^2$ merely makes them small</b>: this is the origin of sparsity, and the
+reason $L^1$ regularization performs feature selection while $L^2$ does not.</p>
+
+<h4>$L^\infty$: the largest entry</h4>
+
+$$\|\mathbf{x}\|_\infty = \max_i |x_i|$$
+
+<p>Take the limit as $p$ grows and the largest term dominates everything else, so the
+norm converges to that single biggest magnitude. Useful when you care about the worst
+case and nothing else: the largest error rather than the total error.</p>
+
+<figure>
+  <img src="figures/la/05-norm-balls.svg" alt="Unit balls for the L1, L2, and L-infinity norms">
+  <figcaption><b>Figure 5.</b> The <b>unit ball</b> of each norm, showing every point of size
+  exactly 1. The same vector has different lengths under different norms, so "distance"
+  is a choice rather than a fact. Note the corners of the $L^1$ diamond: they sit on
+  the axes, where one coordinate is zero. When an optimizer is pulled toward a small
+  $L^1$ norm, it is pulled toward those corners, and that is sparsity appearing as
+  geometry.</figcaption>
+</figure>
+
+<h4>Frobenius: the norm for matrices</h4>
+
+<p>To measure a whole matrix, flatten it and take $L^2$:</p>
+
+$$\|A\|_F = \sqrt{\sum_{i,j} A_{i,j}^2}$$
+
+<p>This is the $L^2$ norm wearing a different name because its argument happens to be
+rectangular. It is the standard way to measure the size of a weight matrix or the
+distance between two matrices.</p>
+
+<div class="box shapes">
+  <span class="label">Watch the shapes</span>
+  <p>Every norm eats a vector or a matrix and returns a single non-negative
+  <b>scalar</b>. $\mathbb{R}^{n} \to \mathbb{R}$, or $\mathbb{R}^{m \times n} \to
+  \mathbb{R}$. If you ever find yourself with a norm that still has axes, something has
+  gone wrong.</p>
+</div>
+
+<h4>What makes something a norm at all</h4>
+
+<p>Any function deserving the name must satisfy three conditions, all of which say
+something obvious about the word "size":</p>
+
+<ol>
+  <li><b>Zero only at zero.</b> $\|\mathbf{x}\| = 0$ exactly when $\mathbf{x} = \mathbf{0}$. Nothing but nothing has zero size.</li>
+  <li><b>Absolute scaling.</b> $\|c\mathbf{x}\| = |c|\,\|\mathbf{x}\|$. Doubling a vector doubles its size, and flipping its direction leaves size alone.</li>
+  <li><b>Triangle inequality.</b> $\|\mathbf{x} + \mathbf{y}\| \leq \|\mathbf{x}\| + \|\mathbf{y}\|$. A detour is never shorter than going direct.</li>
+</ol>
+
+<div class="box pitfall">
+  <span class="label">Pitfall: the "$L^0$ norm" is not a norm</span>
+  <p>You will encounter "$L^0$" used for the count of non-zero entries. It is a useful
+  quantity and a genuinely popular piece of notation, but it violates rule 2: doubling
+  a vector does not double its number of non-zeros, it leaves the count unchanged. It
+  is not a norm, and this is worth knowing because it explains a real practical fact:
+  optimizing the non-zero count directly is computationally intractable, and $L^1$ is
+  used as the tractable stand-in that produces sparsity anyway.</p>
+</div>
+
+<div class="box try">
+  <span class="label">Try it</span>
+  <p>For $\mathbf{x} = (1, -2, 0, 3)$, compute $\|\mathbf{x}\|_1$, $\|\mathbf{x}\|_2$
+  and $\|\mathbf{x}\|_\infty$. Which is largest, and is that ordering a coincidence?</p>
+</div>
+
+<p><b>Answer.</b> $\|\mathbf{x}\|_1 = 1 + 2 + 0 + 3 = 6$.
+$\|\mathbf{x}\|_2 = \sqrt{1 + 4 + 0 + 9} = \sqrt{14} \approx 3.74$.
+$\|\mathbf{x}\|_\infty = 3$. The ordering $L^1 \geq L^2 \geq L^\infty$ is not a
+coincidence; it holds for every vector. Larger $p$ concentrates more weight on the
+biggest entry and discounts the rest, so the measured size falls as $p$ rises.</p>
+
+<h3><span class="num">§15</span> Norms in practice: regularization and clipping</h3>
+
+<p>Norms are not a detour. They are how three of the most common techniques in
+practical deep learning are defined, and each one is a single norm doing a specific
+job.</p>
+
+<h4>Weight decay ($L^2$ regularization)</h4>
+
+<p>When a model memorises its training data instead of learning the pattern, one
+standard remedy is to add a penalty on the size of the weights:</p>
+
+$$\text{total loss} = \underbrace{\text{prediction error}}_{\text{fit the data}} + \underbrace{\lambda \|\mathbf{w}\|_2^2}_{\text{stay small}}$$
+
+<p>The optimizer now faces a trade-off it did not have before: fit the data, but not by
+using enormous weights. The scalar $\lambda$ sets the exchange rate. Large weights let
+a model produce wild swings from tiny input changes, which is what overfitting looks
+like mechanically, so penalising them constrains the model toward smoother
+behaviour.</p>
+
+<p>You will see this again in earnest in Part V §17–18, where it is derived properly and
+connected to a Bayesian prior. The linear algebra content is entirely contained in
+§14.</p>
+
+<h4>$L^1$ regularization and sparsity</h4>
+
+<p>Swap the penalty to $\lambda\|\mathbf{w}\|_1$ and the behaviour changes
+qualitatively. Rather than shrinking all weights toward small values, $L^1$ drives many
+of them to <b>exactly</b> zero, which amounts to the model deciding, on its own, that
+those features are not worth using. The geometric reason is visible in Figure 5: the
+$L^1$ ball has corners on the axes, and constrained optima have a strong tendency to
+land on corners.</p>
+
+<h4>Gradient clipping</h4>
+
+<p>During training, gradients occasionally explode: a single enormous update destroys
+a model that was training fine. The standard defence is a norm check: if the gradient's
+$L^2$ norm exceeds a threshold, rescale it back down to that threshold while keeping
+its direction unchanged.</p>
+
+<pre><code><span class="k">def</span> clip_by_norm(g, max_norm):
+    <span class="s">"""Cap the size of a gradient, preserve its direction."""</span>
+    n = np.linalg.norm(g)                <span class="c"># the L2 norm of the whole gradient</span>
+    <span class="k">if</span> n > max_norm:
+        g = g * (max_norm / n)           <span class="c"># rescale onto the sphere of radius max_norm</span>
+    <span class="k">return</span> g
+
+g = np.array([<span class="n">30.</span>, <span class="n">40.</span>])                  <span class="c"># norm 50 -- far too large</span>
+print(clip_by_norm(g, <span class="n">5.0</span>))            <span class="o">### [3. 4.]   same direction, norm now 5</span>
+</code></pre>
+
+<p>Notice that $(30, 40)$ and $(3, 4)$ point exactly the same way; dividing by the
+norm is precisely the operation that preserves direction while fixing length. This
+technique is close to mandatory when training recurrent networks, and you will meet it
+formally in Part XI §13.</p>
+
+<div class="box def">
+  <span class="label">The dot product and the angle between vectors</span>
+  <p>The dot product connects directly to the angle $\theta$ between two vectors:
+  $$\mathbf{x}^\top \mathbf{y} = \|\mathbf{x}\|_2 \|\mathbf{y}\|_2 \cos\theta$$
+  Dividing both sides by the two norms isolates the angle:
+  $$\cos\theta = \frac{\mathbf{x}^\top \mathbf{y}}{\|\mathbf{x}\|_2 \|\mathbf{y}\|_2}$$
+  This quantity is <b>cosine similarity</b>. It is 1 when the vectors point the same
+  way, −1 when they are antiparallel and 0 when they are perpendicular. The norms
+  cancel entirely, so it measures <i>direction</i> while ignoring magnitude.</p>
+</div>
+
+<div class="box intuition">
+  <span class="label">Intuition: normalising to unit length</span>
+  <p>Dividing any non-zero vector by its own norm produces a vector of length one
+  pointing the same way:
+  $$\hat{\mathbf{u}} = \frac{\mathbf{u}}{\|\mathbf{u}\|_2}$$
+  This separates a vector's two pieces of information (<i>which way</i> and <i>how
+  far</i>) and lets you keep one while discarding the other. Gradient clipping keeps
+  the direction and overrides the length. Cosine similarity, used everywhere in
+  embedding search, compares directions while ignoring lengths entirely. It is a small
+  operation that shows up constantly.</p>
+</div>
+
+<h2><span class="part-kicker">Part E</span>Special matrices</h2>
+
+<h3><span class="num">§16</span> Diagonal, symmetric, orthogonal</h3>
+
+<p>Most matrices have no structure worth exploiting. A few families have a great deal,
+and recognising them turns expensive operations into cheap ones. These three carry the
+chapter's remaining weight.</p>
+
+<h4>Diagonal</h4>
+
+<p>Zero everywhere off the main diagonal:</p>
+
+$$D = \begin{bmatrix} 2 & 0 & 0 \\ 0 & -1 & 0 \\ 0 & 0 & 0.5 \end{bmatrix}$$
+
+<p>Under the function view, a diagonal matrix independently scales each coordinate axis. It stretches $x$ by 2, flips and keeps $y$, and halves $z$. No mixing between axes at all, which
+is why everything about them is easy:</p>
+
+<ul class="tight">
+  <li>Multiplying: $D\mathbf{x}$ just scales entrywise. Cost $O(n)$ instead of $O(n^2)$.</li>
+  <li>Inverting: reciprocate the diagonal entries. Invertible exactly when none is zero.</li>
+  <li>Storing: $n$ numbers rather than $n^2$.</li>
+</ul>
+
+<p>A $10{,}000 \times 10{,}000$ diagonal matrix takes 10,000 numbers and inverts
+instantly, where a general one of that size takes a hundred million numbers and a
+serious computation. This is why so much effort goes into <i>making</i> matrices
+diagonal, which is exactly what §17 is about.</p>
+
+<h4>Symmetric</h4>
+
+<p>Equal to its own transpose, $A = A^\top$, so $A_{i,j} = A_{j,i}$ and the matrix is a
+mirror image across the diagonal:</p>
+
+$$A = \begin{bmatrix} 1 & 7 & 3 \\ 7 & 4 & -2 \\ 3 & -2 & 5 \end{bmatrix}$$
+
+<p>Symmetric matrices arise whenever the underlying quantity is inherently symmetric.
+Distance matrices are symmetric because the distance from $i$ to $j$ equals the
+distance from $j$ to $i$. Covariance matrices are symmetric because the covariance of
+$X$ with $Y$ equals that of $Y$ with $X$; covariance is the engine of PCA in §23.
+Hessians of twice-differentiable functions are symmetric, which is a fact Part III
+uses heavily.</p>
+
+<p>Symmetry buys an enormous amount, as §17 will show: symmetric matrices have real
+eigenvalues and perpendicular eigenvectors, which is emphatically not true in
+general.</p>
+
+<h4>Orthogonal</h4>
+
+<p>First, two supporting definitions. Two vectors are <b>orthogonal</b> when their dot
+product is zero, $\mathbf{u}^\top\mathbf{v} = 0$, which in two and three dimensions
+means exactly perpendicular. A set is <b>orthonormal</b> when its vectors are mutually
+orthogonal and each has length 1.</p>
+
+<div class="box def">
+  <span class="label">Definition: orthogonal matrix</span>
+  <p>A square matrix whose columns are orthonormal. Equivalently, and far more usefully:
+  $$Q^\top Q = Q Q^\top = I, \qquad \text{so} \qquad Q^{-1} = Q^\top$$</p>
+</div>
+
+<p>That last equality is the payoff and it is remarkable. <b>The inverse is the
+transpose.</b> Inverting a general $n \times n$ matrix is a substantial computation;
+inverting an orthogonal one is a relabelling of indices, essentially free and perfectly
+stable. Whenever you can arrange for a matrix to be orthogonal, you should.</p>
+
+<div class="box intuition">
+  <span class="label">Intuition: orthogonal matrices are rigid motions</span>
+  <p>Geometrically, an orthogonal matrix is a rotation, a reflection, or a combination
+  of the two. It never stretches, squashes, or shears; it moves space around without
+  deforming it. Two consequences follow directly, and both matter:</p>
+  <p><b>Lengths are preserved:</b> $\|Q\mathbf{x}\|_2 = \|\mathbf{x}\|_2$ for every
+  $\mathbf{x}$. <b>Angles are preserved</b> too. So an orthogonal transformation
+  changes your point of view without changing the geometry of what you are looking
+  at.</p>
+</div>
+
+<div class="box why">
+  <span class="label">Why deep learning cares</span>
+  <p>Length preservation is exactly the property that prevents signals from exploding
+  or vanishing as they pass through many layers. If every layer's weight matrix were
+  orthogonal, a signal would arrive at layer fifty with the same magnitude it had at
+  layer one. This is the motivation behind <b>orthogonal weight initialization</b>, and
+  it is one of the reasons deep networks became trainable at all: the vanishing and
+  exploding gradient problems of Part VII §18 and Part XI §12–13 are, in part, a story
+  about how far a network's weight matrices have drifted from orthogonality.</p>
+</div>
+
+<div class="box try">
+  <span class="label">Try it</span>
+  <p>Verify that $Q = \frac{1}{\sqrt{2}}\begin{bmatrix} 1 & -1 \\ 1 & 1 \end{bmatrix}$
+  is orthogonal. Then, without computing anything further, state $Q^{-1}$.</p>
+</div>
+
+<p><b>Answer.</b> Column 1 is $\frac{1}{\sqrt2}(1,1)$, with length
+$\sqrt{\frac12 + \frac12} = 1$. Column 2 is $\frac{1}{\sqrt2}(-1,1)$, also length 1.
+Their dot product is $\frac12(1 \cdot -1 + 1 \cdot 1) = 0$, so they are perpendicular.
+Orthonormal columns, therefore orthogonal.</p>
+<p>Hence $Q^{-1} = Q^\top = \frac{1}{\sqrt{2}}\begin{bmatrix} 1 & 1 \\ -1 & 1 \end{bmatrix}$,
+obtained with no arithmetic at all. Geometrically $Q$ rotates the plane by 45°, and its
+inverse rotates back by 45°, which is what the sign flip encodes.</p>

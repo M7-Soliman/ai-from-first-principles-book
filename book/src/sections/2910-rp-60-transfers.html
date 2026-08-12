@@ -1,0 +1,224 @@
+<h2><span class="part-kicker">Part F</span>What transfers</h2>
+
+<h3><span class="num">§37</span> Fine-tuning against linear probing</h3>
+
+<div class="box def">
+  <span class="label">Two ways to use a pretrained encoder</span>
+  <p><b>Linear probe.</b> Freeze the encoder, fit a linear model on its output. Cheap, needs few
+  labels, cannot exceed what the frozen representation already makes linearly available, and leaves
+  the encoder reusable for other tasks.</p>
+  <p><b>Fine-tune.</b> Update the encoder too. Higher ceiling, needs more labels, costs a full
+  training run, and produces a model specialised to one task.</p>
+  <p>The rule of thumb that survives contact: <b>probe when labels are scarce or the domain is
+  close; fine-tune when labels are plentiful or the domain is far.</b> Fine-tuning with few labels
+  on a large encoder is the case that goes wrong, because there is nothing to stop it destroying
+  the representation it started from.</p>
+</div>
+
+<div class="box why">
+  <span class="label">Why fine-tuning can be worse than a probe</span>
+  <p>Fine-tuning on a small labelled set distorts the pretrained features to fit it, and the
+  distortion is worst exactly where the labelled data is thin. In-distribution accuracy improves
+  and out-of-distribution accuracy falls, often below what the frozen probe achieved.</p>
+  <p>The cheap and effective fix is to probe first and fine-tune second: fit the linear head on the
+  frozen encoder, then unfreeze. The head starts sensible, so the initial gradients into the encoder
+  are small and it is not wrenched apart by a randomly-initialised classifier in the first hundred
+  steps.</p>
+  <p>Other controls with the same purpose: a much smaller learning rate for the encoder than for
+  the head, layer-wise decay so early layers move least, and simply freezing the early layers.</p>
+</div>
+
+<div class="box pitfall">
+  <span class="label">Pitfall: which layer</span>
+  <p>§2's warning, arriving where it costs money. The last layer is the most task-specific, so if
+  the downstream task differs from the pretraining task, the best features are usually <b>not</b>
+  at the end.</p>
+  <p>This is one sweep and it is worth running: probe every few layers and look. The result is
+  frequently a middle layer, and teams that never check pay for it silently.</p>
+</div>
+
+<h3><span class="num">§38</span> Zero-shot</h3>
+
+<div class="box def">
+  <span class="label">Classifying without a training example of the class</span>
+  <p>A shared space between images and text supports classification with no labelled images at
+  all. Encode candidate class names as text ("a photo of a dog"), encode the image, and take the
+  nearest.</p>
+  <p>What makes it possible is that the class was never a one-hot index. It is a <b>point in a
+  space</b>, described in a language the model already understands, so a class never seen during
+  training still has coordinates. This is §4's argument about distributed representations reaching
+  its most useful consequence.</p>
+</div>
+
+<div class="box pitfall">
+  <span class="label">Pitfall: "zero-shot" describes the labels, not the data</span>
+  <p>Zero-shot means no labelled examples of the <b>task</b>. It does not mean the model never saw
+  the concept: a corpus of hundreds of millions of image–text pairs contains a great many dogs,
+  with the word <i>dog</i> next to them.</p>
+  <p>So a zero-shot number is a claim about supervision, not about novelty, and Part XIII §13's
+  contamination question applies with force: for a model whose training corpus is unpublished,
+  nobody outside can establish what "unseen" meant.</p>
+  <p>Zero-shot accuracy is also unusually sensitive to the wording of the prompts, which is a
+  hyperparameter chosen on the test set unless you were careful. Part XIV §20's inflation, in a
+  setting where almost nobody reports the search.</p>
+</div>
+
+<p class="mnote">Zero-shot needs no labelled example of the class at all. <b>One-shot learning</b>,
+inferring a new class from exactly one, is a related but distinct problem, tackled by meta-learning
+methods this book does not treat.</p>
+
+<h3><span class="num">§39</span> Disentanglement, and what a decade established</h3>
+
+<div class="readnow"><span class="label">Go and read</span><p><span class="src">Locatello et al. (2019)</span>, <i>Challenging common assumptions in the unsupervised learning of disentangled representations</i>. An impossibility theorem and twelve thousand trained models, which is a rare combination. Read both halves: the proof settles what is achievable without supervision, and the empirical study shows random seeds mattered more than the choice of method and that good hyperparameters could not be selected without the ground truth you were trying to discover.</p></div>
+
+<p>ch15's central hypothesis was that an ideal representation separates the underlying causal
+factors of variation, with different directions for different causes. It is a compelling idea, it
+motivated a large literature, and the literature reached a definite conclusion.</p>
+
+<div class="box def">
+  <span class="label">The hypothesis</span>
+  <p>Data is generated by a small number of independent factors, for a face: pose, lighting,
+  expression, identity. A representation is <b>disentangled</b> if separate coordinates correspond
+  to separate factors, so that changing one changes one thing.</p>
+  <p>The appeal is real. A disentangled representation would make downstream prediction easy,
+  transfer well when the distribution over factors shifts, and be interpretable by construction.</p>
+</div>
+
+<div class="box why">
+  <span class="label">Why unsupervised disentanglement is impossible, and the argument is short</span>
+  <p>Let $\mathbf{z}$ be the true factors with independent components. Choose any invertible map
+  $\hat{\mathbf{z}} = h(\mathbf{z})$ whose components are also independent but which mixes the
+  original factors. Such maps exist in abundance for continuous variables.</p>
+  <p>Then $\mathbf{z}$ and $\hat{\mathbf{z}}$ induce <b>exactly the same distribution over the
+  observed data</b>. No objective computed from the data can prefer one to the other, because they
+  make identical predictions about everything you can measure.</p>
+  <p>So disentanglement is not merely hard without supervision or inductive bias. It is
+  <b>unidentifiable</b>: the information required to choose is not present in the data. This is
+  §8's rotation degeneracy, where the loss was invariant under rotations of a linear code, in its
+  general and much less escapable form.</p>
+  <p>A large empirical study accompanied the result: many models, many seeds, many metrics.
+  Disentanglement scores did not correlate reliably with downstream usefulness; random seeds
+  mattered more than the choice of method; and the hyperparameters that produced good scores could
+  not be selected without access to the ground-truth factors, which, in any real application, are
+  what you were trying to discover.</p>
+</div>
+
+<div class="box def">
+  <span class="label">What is left, and it is not nothing</span>
+  <p>The impossibility is about the <b>unsupervised</b> case with independent factors. Add
+  information and identifiability can return.</p>
+  <p><b>Weak supervision</b>, pairs of observations known to share a factor, is enough, and it is
+  exactly what §19's augmentation provides. <b>Temporal structure</b>, where factors change at
+  different rates, is enough. <b>Interventions</b>, where a factor is set rather than observed, are
+  enough and are the strongest of the three. <b>Non-independent factors with known structure</b>
+  can be enough.</p>
+  <p>The pattern is consistent: identifiability comes from information about the factors that is
+  not in the marginal distribution of the data. There is no free lunch here either, and the honest
+  summary of the decade is that the field stopped trying to get one.</p>
+</div>
+
+<div class="box history">
+  <span class="label">A hypothesis that failed usefully</span>
+  <p>Worth noting how this went, because the pattern recurs. The hypothesis was reasonable,
+  attracted serious effort, produced a real theoretical result, and was abandoned as originally
+  stated.</p>
+  <p>What survived is more useful than what was proposed. Interpretability moved from "make the
+  coordinates meaningful during training" to "find the meaningful directions in a representation
+  trained for something else", which is §34, and which works partly <i>because</i> it stopped
+  requiring the factors to be axis-aligned.</p>
+</div>
+
+<h3><span class="num">§40</span> Does scale improve representations</h3>
+
+<div class="box def">
+  <span class="label">What is observed</span>
+  <p>Representation quality, measured by linear-probe accuracy on held-out tasks, improves smoothly
+  with model size, data size and compute, over several orders of magnitude. The improvement is
+  reliable enough to plan around and it is the empirical basis for the whole pretrain-then-adapt
+  strategy.</p>
+  <p>Two qualifications belong with it. The curves are <b>power laws with diminishing returns</b>,
+  so each additional factor of accuracy costs a growing multiple of compute; and Part XVII takes up
+  where they bend. And what improves is quality <b>on the axes the objective rewarded</b>: a
+  larger contrastive model with colour-jitter augmentation is a larger model that has learned to
+  ignore colour more thoroughly.</p>
+</div>
+
+<div class="box pitfall">
+  <span class="label">Pitfall: scale does not fix the specification</span>
+  <p>Part XIII §34's finding, arriving here: scale improves precision and does not repair validity.
+  If the augmentation discarded the factor your task needs (§19), a model ten times larger discards
+  it more effectively. If the corpus underrepresents a population, a larger model represents that
+  population's absence more sharply.</p>
+  <p>The decisions that scale cannot revise are the ones about what the objective asks for. Those
+  are made once, cheaply, at the start, and they are the ones worth arguing about.</p>
+</div>
+
+<h3><span class="num">§41</span> The priors, revisited</h3>
+
+<div class="box def">
+  <span class="label">The assumptions that make representation learning possible at all</span>
+  <p>No free lunch (Part VI §7) says some assumption is required. These are the ones the field
+  actually uses, each now with a verdict.</p>
+  <table class="compact">
+    <thead><tr><th>Prior</th><th>Where it appears</th><th>Verdict</th></tr></thead>
+    <tbody>
+      <tr><td><b>Manifolds</b></td><td>§5, autoencoders</td><td>Load-bearing and well supported</td></tr>
+      <tr><td><b>Multiple factors</b></td><td>§4, distributed codes</td><td>Holds; separating them does not (§39)</td></tr>
+      <tr><td><b>Depth / hierarchy</b></td><td>Parts VII, X</td><td>Holds, and is why deep beats wide</td></tr>
+      <tr><td><b>Sparsity</b></td><td>§10, §33, §34</td><td>Holds, and became an interpretability tool</td></tr>
+      <tr><td><b>Shared factors across tasks</b></td><td>§37, §38</td><td>Holds; the basis of transfer</td></tr>
+      <tr><td><b>Smoothness</b></td><td>local methods, §6</td><td>True and insufficient alone</td></tr>
+      <tr><td><b>Causal factors</b></td><td>ch15's hypothesis</td><td>Not recoverable unsupervised (§39)</td></tr>
+      <tr><td><b>Temporal coherence</b></td><td>slow features</td><td>Superseded; survives as weak supervision</td></tr>
+      <tr><td><b>Simplicity of factor dependencies (linearity)</b></td><td>§8, §31</td><td>Holds as a
+      design target, not a free property: objectives are built so factors come out linearly
+      readable (§17–§23); a linear probe succeeding measures that construction, not a law of data</td></tr>
+      <tr><td><b>Natural clustering</b></td><td>§4's symbolic codes, §26</td><td>Holds for
+      category-like factors; high-dimensional geometry complicates it in practice: the same space
+      that clusters also produces hubs (§26)</td></tr>
+    </tbody>
+  </table>
+</div>
+
+<div class="box why">
+  <span class="label">Why the successful ones have something in common</span>
+  <p>The priors that held are statements about the <b>shape of the data</b>: it concentrates near
+  low-dimensional regions, it is generated by many factors, it is hierarchical, most features are
+  absent from most examples.</p>
+  <p>The one that failed is a statement about the <b>form of the solution</b>: that factors should
+  be axis-aligned in the learned code. Data can support the first kind of claim; nothing in it
+  selects a coordinate system. The distinction is worth carrying, because it predicts which
+  proposals of this shape are worth pursuing.</p>
+</div>
+
+<h3><span class="num">§42</span> What movements A to F establish</h3>
+
+<div class="box intuition">
+  <span class="label">The one thing</span>
+  <p><b>The objective decides what the representation keeps, and it decides exactly.</b></p>
+  <p>This part measured it four times. An augmentation that varies a factor removes that factor,
+  down to chance (§19). A loss invariant under rotation determines the code only up to rotation
+  (§8). A loss with no term pushing outward collapses to a point (§20). A sparsity penalty produces
+  features, and the same penalty applied to a trained network's activations produces interpretable
+  ones (§34).</p>
+  <p>None of these is a side effect. In each case the representation is the exact solution of the
+  problem posed, and the surprises came from the problem being subtly different from the one
+  intended.</p>
+  <p>So the question to ask of any representation-learning method is not "does it produce good
+  features" but <b>what does this objective require to be preserved, and what does it permit to be
+  discarded</b>. That question is answerable in advance, on paper, and it predicts the failures.</p>
+</div>
+
+<div class="box def">
+  <span class="label">Four results worth remembering as numbers</span>
+  <ul class="tight">
+    <li><b>Denoising is score estimation.</b> Cosine 0.9931 with the analytic score of the smoothed
+    density. Part XVI is built on it.</li>
+    <li><b>A probe's accuracy alone proves nothing.</b> An MLP probe scored 0.961 on the real
+    task and 0.952 on a control task with meaningless labels, selectivity 0.009.</li>
+    <li><b>The augmentation is the specification.</b> The factor the two views were allowed to
+    differ on fell to 0.140 against a chance rate of 0.125.</li>
+    <li><b>Sparsity buys capacity that does not exist.</b> Sixteen features stored in five
+    dimensions, at 99% sparsity.</li>
+  </ul>
+</div>

@@ -1,0 +1,299 @@
+<h2><span class="part-kicker">Practice</span>Drills</h2>
+
+<p class="lede">Thirty-one problems. A large share are measurements, because this part's central
+claims (that noise is a penalty, that early stopping tracks weight decay, that averaging
+cuts variance by $1/k$) are all checkable in a few lines, and checking them is far more
+convincing than the derivations.</p>
+
+<h3><span class="num">Tier 0</span> Estimate first</h3>
+
+<div class="drill">
+  <div class="head"><span class="tier est">Estimate</span>E1 &middot; What weight decay actually does</div>
+  <p>Weight decay of 10<sup>&minus;4</sup> at a learning rate of 0.1, with a weight receiving no gradient at all. Write down how many steps it takes for that weight to halve.</p>
+  <div class="ans"><b>Answer.</b> <b>About 69,000</b>: ln2 / (lr &times; &lambda;). Which is worth internalising: weight decay is a very slow force, so in a run of a few thousand steps it is barely acting, and in a run of a million it dominates any weight the data does not defend. <i>Score yourself: within a factor of two is a pass, and an order of magnitude out is worth understanding before you go on.</i></div>
+</div>
+
+<h3><span class="num">Tier 1</span> Warm-up</h3>
+
+<div class="drill">
+  <div class="head"><span class="tier warm">Warm</span>W1 · The definition</div>
+  <p>A change reduces both training and test error. Is it regularization?</p>
+  <div class="ans"><b>Answer.</b> No. Regularization reduces generalisation error <i>but not</i>
+  training error; the trade is the definition. A change that improves both is simply a
+  better model.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier warm">Warm</span>W2 · Which fraction survives</div>
+  <p>Ridge with $\alpha = 5$. A direction has curvature $\lambda = 500$; another has
+  $\lambda = 0.05$. What fraction of each is kept?</p>
+  <div class="ans"><b>Answer.</b> $500/505 = 0.990$ and $0.05/5.05 = 0.0099$. The sharp
+  direction is untouched; the flat one is erased. $L^2$ deletes what the data did not
+  determine.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier warm">Warm</span>W3 · Why $L^1$ reaches zero</div>
+  <p>In one sentence, why does $L^1$ produce exact zeros and $L^2$ not?</p>
+  <div class="ans"><b>Answer.</b> $L^2$'s gradient contribution $\alpha w$ vanishes as $w
+  \to 0$, so the push weakens exactly when it would need to finish; $L^1$'s is the constant
+  $\alpha\,\text{sign}(w)$, which does not.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier warm">Warm</span>W4 · Noise as penalty</div>
+  <p>You add input noise $\sigma = 0.2$ on $n = 500$ examples. What $L^2$ penalty is that
+  equivalent to?</p>
+  <div class="ans"><b>Answer.</b> $\alpha = n\sigma^2 = 500 \times 0.04 = 20$. Substantial,
+  and easy to apply without realising you have regularized at all.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier warm">Warm</span>W5 · Early stopping strength</div>
+  <p>You stop after $\tau = 200$ steps with $\epsilon = 0.01$. Roughly what $\alpha$?</p>
+  <div class="ans"><b>Answer.</b> $\alpha \approx 1/(\tau\epsilon) = 1/2 = 0.5$. Train
+  longer and the effective penalty falls.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier warm">Warm</span>W6 · A flip too far</div>
+  <p>You augment MNIST with horizontal flips. What goes wrong?</p>
+  <div class="ans"><b>Answer.</b> A flipped 2 is not a 2. The transformation does not
+  preserve the label, so you are teaching an invariance the task does not have. The model
+  trains fine and is quietly worse.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier warm">Warm</span>W7 · The rescaling</div>
+  <p>Dropout keeps a unit with probability $1-p$. Why divide the survivors by $1-p$?</p>
+  <div class="ans"><b>Answer.</b> So the expected input to the next layer is the same in
+  training and at test time. With inverted dropout, evaluation needs no adjustment: it
+  simply switches dropout off.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier warm">Warm</span>W8 · When bagging does nothing</div>
+  <p>You average 50 copies of an underfitting model. What happens?</p>
+  <div class="ans"><b>Answer.</b> Nothing, at fifty times the cost. Every member is wrong in
+  the same direction, so the errors are perfectly correlated and the ensemble equals a
+  single member. Bagging removes variance and bias is what you had.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier warm">Warm</span>W9 · Sharing versus penalising</div>
+  <p>How is parameter sharing a stronger statement than a tying penalty?</p>
+  <div class="ans"><b>Answer.</b> A penalty says two weights should be similar; sharing says
+  they are one weight. Sharing removes parameters outright, which is why a convolutional
+  filter has nine parameters where a dense layer would have millions.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier warm">Warm</span>W10 · Diagnose first</div>
+  <p>Training error 24%, test error 25%. Would you add dropout?</p>
+  <div class="ans"><b>Answer.</b> No. The gap is one point; this is bias, not variance, and
+  every technique in this part treats variance. Adding dropout makes it worse. Add capacity
+  or better features.</div>
+</div>
+
+<h3><span class="num">Tier 2</span> Core</h3>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C1 · Derive the shrinkage</div>
+  <p>From $\tilde{\mathbf{w}} = (H+\alpha I)^{-1}H\mathbf{w}^*$, show that in the eigenbasis
+  each coordinate is scaled by $\lambda_i/(\lambda_i+\alpha)$.</p>
+  <div class="ans"><b>Answer.</b> $H = Q\Lambda Q^\top$ with $Q$ orthogonal, so
+  $H + \alpha I = Q(\Lambda + \alpha I)Q^\top$ and its inverse is
+  $Q(\Lambda+\alpha I)^{-1}Q^\top$. The product telescopes to
+  $Q(\Lambda+\alpha I)^{-1}\Lambda Q^\top$, and both middle factors are diagonal, so in
+  coordinates $\mathbf{y} = Q^\top\mathbf{w}$ the system decouples entirely into
+  $\tilde{y}_i = \lambda_i y_i^*/(\lambda_i+\alpha)$.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C2 · Measure it</div>
+  <p>Fit ridge at several $\alpha$ on an ill-conditioned design. Divide each solution by the
+  unregularized one in the eigenbasis and plot against $\lambda$. Does it land on the
+  predicted curve?</p>
+  <div class="ans"><b>Answer.</b> It does: that is Figure 1's left panel, where the points
+  are measured and the curve is predicted. If yours does not, suspect that you compared in
+  the wrong basis: the decoupling only happens after rotating by $Q^\top$.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C3 · The U in $\alpha$</div>
+  <p>Sweep $\alpha$ over eight orders of magnitude on a problem with $n$ barely exceeding
+  $d$. How much does the best $\alpha$ beat $\alpha \to 0$?</p>
+  <div class="ans"><b>Answer.</b> On the setup behind Figure 1, by a factor of <b>6.1</b>.
+  The optimum is strictly interior, which is the whole claim: neither extreme is right.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C4 · Lasso by proximal gradient</div>
+  <p>Implement $L^1$ by taking a gradient step then soft-thresholding at $\epsilon\alpha$.
+  Confirm coefficients reach <b>exactly</b> zero, not merely small values.</p>
+  <div class="ans"><b>Answer.</b> Soft-thresholding is
+  $\text{sign}(w)\max(|w|-\epsilon\alpha, 0)$, and the $\max$ is what produces exact zeros:
+  a plain gradient step on $|w|$ oscillates around zero instead. Figure 2 measured 5 of 8
+  coefficients at exactly zero.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C5 · Paths</div>
+  <p>Plot coefficient paths for $L^1$ and $L^2$ against $\alpha$ on data where most features
+  are noise. What is qualitatively different?</p>
+  <div class="ans"><b>Answer.</b> $L^2$'s paths approach zero asymptotically and never
+  arrive; $L^1$'s hit zero at a finite $\alpha$ and stay. That is feature selection, and it
+  is why $L^1$ is used when you want to know <i>which</i> inputs matter.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C6 · Penalty equals constraint</div>
+  <p>For a given $\alpha$, find the $c$ such that constraining $\|\mathbf{w}\|_2 \leq c$
+  gives the same solution. Verify numerically.</p>
+  <div class="ans"><b>Answer.</b> $c = \|\tilde{\mathbf{w}}_\alpha\|_2$: solve the penalised
+  problem and read off the norm you landed at. The correspondence is monotone but not
+  linear: shrinking $c$ raises $\alpha$ faster than proportionally, because room you are
+  short of is worth more (Part III §19).</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C7 · Noise is a penalty</div>
+  <p>Fit a linear model on inputs corrupted with noise $\sigma$, averaged over many copies.
+  Compare against ridge with $\alpha = n\sigma^2$ on clean data.</p>
+  <div class="ans"><b>Answer.</b> They agree to about 1% across the range (Figure 4). The
+  cross-term vanishes because the noise has mean zero and is independent of the data, and
+  what survives is $\sigma^2\|\mathbf{w}\|^2$.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C8 · The kept-fraction of early stopping</div>
+  <p>Show that gradient descent from zero on a quadratic covers a fraction
+  $1-(1-\epsilon\lambda)^\tau$ of each eigen-direction after $\tau$ steps.</p>
+  <div class="ans"><b>Answer.</b> In the eigenbasis each coordinate obeys
+  $y_{t+1} = y_t - \epsilon\lambda(y_t - y^*)$, so $y^* - y_{t+1} = (1-\epsilon\lambda)(y^*-y_t)$.
+  Starting from $y_0 = 0$ the remaining distance is $(1-\epsilon\lambda)^\tau y^*$, so the
+  covered fraction is $1-(1-\epsilon\lambda)^\tau$.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C9 · How close is the equivalence</div>
+  <p>Plot $1-(1-\epsilon\lambda)^\tau$ against $\lambda/(\lambda+1/(\tau\epsilon))$ across
+  several decades of $\lambda$. Where do they differ most?</p>
+  <div class="ans"><b>Answer.</b> They agree closely at both ends and differ by up to about
+  <b>0.23</b> in the middle, where a direction is half-learned (measured in Figure 5). The
+  correspondence is one of shape and ordering, not identity, and it assumes a quadratic loss
+  besides.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C10 · Bagging algebra</div>
+  <p>Derive $\frac1k v + \frac{k-1}{k}c$ for the ensemble's expected squared error, and read
+  off both extremes.</p>
+  <div class="ans"><b>Answer.</b> Expand $\mathbb{E}[(\frac1k\sum\epsilon_i)^2]$ into $k$
+  variance terms and $k(k-1)$ covariance terms, each divided by $k^2$. At $c = v$ it is $v$:
+  no benefit. At $c = 0$ it is $v/k$. The benefit is the disagreement, and $c$ is a floor
+  no ensemble size can beat.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C11 · Measure the $1/k$</div>
+  <p>Average $k$ models fitted to independent samples and measure bias² and variance
+  separately against $k$.</p>
+  <div class="ans"><b>Answer.</b> Variance falls close to $1/k$ (Figure 6 measured a factor
+  of 39 over $k = 1$ to $50$), while bias² stays flat. If your variance explodes instead,
+  your members are numerically unstable: a high-degree polynomial on few points blows up
+  outside the data, which is how this figure was got wrong the first time.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C12 · Dropout by hand</div>
+  <p>Implement inverted dropout in a network you wrote yourself. Confirm the same mask is
+  used in the forward and backward pass.</p>
+  <div class="ans"><b>Answer.</b> The mask must be stored and reapplied on the way back: a
+  unit that was deleted contributed nothing, so it receives nothing. Using a fresh mask in
+  the backward pass computes the gradient of a different network than the one you evaluated,
+  and a gradient check catches it immediately.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C13 · The dropout U</div>
+  <p>Sweep $p$ from 0 to 0.8 on a model with a real generalisation gap. Report training and
+  test error.</p>
+  <div class="ans"><b>Answer.</b> Training error rises monotonically with $p$; test error
+  falls then rises. Figure 7 measured the optimum near $p = 0.4$ on that problem. Average
+  several seeds, as a single run's curve is too noisy to locate a minimum.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C14 · Build an adversarial example</div>
+  <p>Take a trained classifier, compute the gradient with respect to the <b>input</b>, and
+  step along its sign. Compare against a random perturbation of the same magnitude.</p>
+  <div class="ans"><b>Answer.</b> The gradient direction destroys accuracy at a perturbation
+  size where random noise does essentially nothing (Figure 8 measured chance accuracy at
+  $\epsilon = 0.10$ where random noise left 98.5%). The model is fragile in one direction out
+  of many, and it is not fragile in general.</div>
+</div>
+
+<h3><span class="num">Tier 3</span> Stretch</h3>
+
+<div class="drill">
+  <div class="head"><span class="tier stretch">Stretch</span>S1 · The whole equivalence, end to end</div>
+  <p>On one quadratic problem, produce four solutions: ridge at $\alpha$, gradient descent
+  stopped at $\tau = 1/(\alpha\epsilon)$, a fit on inputs with noise $\sigma =
+  \sqrt{\alpha/n}$, and a constrained fit at $c = \|\tilde{\mathbf{w}}_\alpha\|$. Report the
+  pairwise distances.</p>
+  <div class="ans"><b>Answer.</b> Ridge, noise and the constraint agree to within a percent
+  or so; early stopping agrees in ordering and drifts in the transition region. Producing
+  all four from one script is the most convincing form this part's argument can take.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier stretch">Stretch</span>S2 · Regularisers add</div>
+  <p>Apply input noise and weight decay together and measure the effective total. Does the
+  solution match ridge at $\alpha_{\text{noise}} + \alpha_{\text{explicit}}$?</p>
+  <div class="ans"><b>Answer.</b> For a linear model, yes: the two penalties are the same
+  quadratic form and their coefficients add. This is why stacking mild-looking regularisers
+  produces severe underfitting, and why sweeping one while another dominates looks like the
+  swept one having no effect.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier stretch">Stretch</span>S3 · Dropout as an ensemble, measured</div>
+  <p>Train with dropout. At test time, instead of switching it off, average predictions over
+  many random masks. How close is that to the deterministic answer?</p>
+  <div class="ans"><b>Answer.</b> Close, and it converges as you average more masks, which
+  is the evidence for the ensemble reading. The deterministic pass is an approximation to the
+  ensemble average that costs one forward pass instead of hundreds, and its accuracy is the
+  reason nobody does the sampling in practice.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier stretch">Stretch</span>S4 · Augmentation that is false</div>
+  <p>Deliberately augment with a transformation that does not preserve labels, such as vertical
+  flips on digits. Measure the damage against no augmentation.</p>
+  <div class="ans"><b>Answer.</b> Test accuracy falls, and the loss curve looks entirely
+  healthy while it does. That combination (trains fine, quietly worse) is the signature of
+  a false invariance, and the only reliable check is to look at the augmented examples and
+  ask whether the label still holds.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier stretch">Stretch</span>S5 · Adversarial training</div>
+  <p>Generate adversarial examples during training and include them. Measure robust accuracy,
+  clean accuracy, and wall-clock cost.</p>
+  <div class="ans"><b>Answer.</b> Robustness improves substantially, clean accuracy usually
+  falls a little, and each step costs roughly twice as much because building the attack needs
+  its own forward and backward pass. All three numbers belong in any claim about adversarial
+  training; reporting only the first is the standard way to overstate it.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier stretch">Stretch</span>S6 · Where the classical story breaks</div>
+  <p>Reproduce Part V §20's double descent, then apply weight decay at each width. What does
+  regularization do to the interpolation peak?</p>
+  <div class="ans"><b>Answer.</b> It flattens it: enough regularization removes the peak
+  entirely, which is why the phenomenon went unnoticed for so long: the default settings of
+  most solvers regularize it away. That is worth sitting with, because it means the classical
+  U-curve and double descent are not rival accounts of one experiment; they are what you see
+  at two different regularization strengths.</div>
+</div>

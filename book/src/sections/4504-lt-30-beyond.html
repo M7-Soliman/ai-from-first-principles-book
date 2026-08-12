@@ -1,0 +1,129 @@
+<h2><span class="part-kicker">Part C</span>Beyond counting</h2>
+
+<p class="mvt">VC dimension counts labellings and ignores everything else: the distribution, the
+scale of the weights, the margin, the algorithm. Each of those can be brought in, and each buys a
+tighter bound at the cost of some of the generality. This movement is the four standard ways, and
+they are the ones movement D finds still insufficient.</p>
+
+<h3><span class="num">§16</span> Rademacher complexity</h3>
+
+<div class="box def">
+  <span class="label">How well the class fits noise</span>
+  <p>Draw signs <span class="m">$\sigma_i \in \{-1, +1\}$</span> uniformly at random. The
+  <b>empirical Rademacher complexity</b> of <span class="m">$\mathcal{F}$</span> on a sample is</p>
+  <p class="m">$$\hat{\mathfrak{R}}_S(\mathcal{F}) = \mathbb{E}_\sigma \left[ \sup_{f \in \mathcal{F}} \frac{1}{n} \sum_{i=1}^n \sigma_i f(x_i) \right]$$</p>
+  <p>It measures how well the class can correlate with pure noise on the points you have. A class
+  that can fit any random labelling has complexity near its maximum; a restricted class cannot
+  chase the noise and has small complexity.</p>
+  <p>The bound that follows is
+  <span class="m">$R(f) \leq \hat{R}_S(f) + 2\hat{\mathfrak{R}}_S(\mathcal{F}) + 3\sqrt{\log(2/\delta)/2n}$</span>,
+  and it is proved with McDiarmid rather than Hoeffding, because the supremum is not an average.</p>
+</div>
+
+<div class="box why">
+  <span class="label">Two advantages over VC dimension</span>
+  <p><b>It is data-dependent.</b> The quantity is computed on the sample you actually have, so a
+  class that is enormous in principle but constrained on your data gets a small number. VC
+  dimension cannot express that, because it quantifies over all point sets.</p>
+  <p><b>It is computable.</b> Estimate it by sampling signs and fitting, which is exactly the
+  randomisation test of Part XIV, and the same procedure as the randomised-label experiments of
+  movement D. The bound and the diagnostic are the same measurement.</p>
+</div>
+
+<h3><span class="num">§17</span> Covering numbers</h3>
+
+<div class="box def">
+  <span class="label">Counting at a resolution</span>
+  <p>The <b>covering number</b> <span class="m">$N(\mathcal{F}, \varepsilon)$</span> is the fewest
+  functions needed so that every <span class="m">$f \in \mathcal{F}$</span> is within
+  <span class="m">$\varepsilon$</span> of one of them.</p>
+  <p>This recovers §4's finite-class argument for infinite classes: apply the union bound over the
+  cover, then pay <span class="m">$\varepsilon$</span> for the approximation. Chaining, summing
+  the argument over a sequence of resolutions, gives the sharpest of the classical bounds and
+  connects covering numbers to Rademacher complexity directly.</p>
+  <p>The reason to know this exists: it is the route by which the <b>scale</b> of the weights
+  enters. A class of networks with bounded weight norms has a covering number that depends on those
+  norms, which is how the norm-based bounds of §29 are built.</p>
+</div>
+
+<h3><span class="num">§18</span> Margins</h3>
+
+<div class="box intuition">
+  <span class="label">Confident correctness is worth more than bare correctness</span>
+  <p>Two classifiers with identical training error are not equally trustworthy if one scrapes past
+  every point and the other clears them all comfortably. The <b>margin</b> makes that precise, and
+  the margin bound replaces the training error with the fraction of points classified correctly
+  <i>by at least</i> <span class="m">$\gamma$</span>, plus a term that shrinks as
+  <span class="m">$\gamma$</span> grows.</p>
+  <p>The consequence is a bound that does not depend on the dimension at all: only on the margin
+  and the data's scale. This is why a support vector machine with a kernel mapping into an
+  infinite-dimensional space is not vacuous: the VC dimension is infinite and the margin bound
+  does not care.</p>
+  <p>Part VI §14's maximum-margin objective was presented as a geometric choice. This is the
+  theorem that makes it a statistical one.</p>
+</div>
+
+<h3><span class="num">§19</span> Algorithmic stability</h3>
+
+<div class="box def">
+  <span class="label">Bounding the algorithm instead of the class</span>
+  <p>An algorithm is <b>uniformly stable</b> with parameter <span class="m">$\beta$</span> if
+  replacing one training point changes its loss on any input by at most
+  <span class="m">$\beta$</span>. A stable algorithm generalises, with expected gap at most
+  <span class="m">$\beta$</span>, and no hypothesis class appears anywhere in the statement.</p>
+  <p>This is a genuinely different move. Uniform convergence bounds every hypothesis the class
+  contains; stability bounds the one the algorithm returns. Since the algorithm may never visit
+  most of the class, the second can be far smaller.</p>
+  <p>Known results: strongly convex empirical risk minimisation is stable with
+  <span class="m">$\beta = O(1/n)$</span>, and stochastic gradient descent is stable for a limited
+  number of steps. Both are the shape movement D needs, properties of the <i>procedure</i>, and
+  neither yet reaches the regime where deep networks are trained.</p>
+</div>
+
+<h3><span class="num">§20</span> Structural risk minimisation</h3>
+
+<div class="box def">
+  <span class="label">Choosing the class as part of the problem</span>
+  <p>Order a nested family <span class="m">$\mathcal{H}_1 \subset \mathcal{H}_2 \subset \cdots$</span>
+  by complexity, and minimise empirical risk plus the complexity penalty for the class you chose:</p>
+  <p class="m">$$\hat{h} = \arg\min_{k,\; h \in \mathcal{H}_k} \; \hat{R}_S(h) + \mathrm{pen}(k, n)$$</p>
+  <p>The resulting guarantee is competitive with the best class in the family, chosen with
+  hindsight. It is the theoretical statement of what Part VIII called regularization and Part XIV
+  called model selection, and the reason both work.</p>
+</div>
+
+<div class="box why">
+  <span class="label">Where the penalty comes from matters</span>
+  <p>Derived from a bound, the penalty is a guarantee. Chosen by cross-validation, it is a
+  hyperparameter, better in practice, and it carries Part XIV §20's selection bias, because you
+  picked the winner of a search.</p>
+  <p>Almost all real work does the second and reports it as though it were the first.</p>
+</div>
+
+<h3><span class="num">§21</span> What all four have in common</h3>
+
+<div class="box shapes">
+  <span class="label">The same trade, four times</span>
+  <p><b>VC dimension</b>: assumes nothing, applies to every distribution and algorithm, gives the
+  loosest bound.</p>
+  <p><b>Rademacher</b>: assumes the distribution you sampled from, tightens accordingly.</p>
+  <p><b>Margin and covering</b>: assume something about scale and separation.</p>
+  <p><b>Stability</b>: assumes a property of the algorithm and drops the class entirely.</p>
+  <p>Each step down the list buys tightness with an assumption. That is the only currency available,
+  and it is why §13's lower bound is not a wall you can climb by being cleverer: a
+  distribution-free, algorithm-free bound has a floor, and beating it requires giving up one of
+  those freedoms.</p>
+</div>
+
+<h3><span class="num">§22</span> What movement C establishes</h3>
+
+<div class="box intuition">
+  <span class="label">Three things</span>
+  <p><b>Tightness is bought with assumptions</b>, and the four standard tools are four different
+  purchases: the distribution, the scale, the margin, the algorithm.</p>
+  <p><b>Rademacher complexity is measurable</b>, and the measurement is the randomised-label
+  experiment: the bound and the diagnostic are the same procedure run for different purposes.</p>
+  <p><b>Stability is the shape that survives</b> into movement D, because it bounds the hypothesis
+  the algorithm returns rather than every hypothesis the class contains, and the gap between those
+  two is exactly where deep learning lives.</p>
+</div>

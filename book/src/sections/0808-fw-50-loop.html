@@ -1,0 +1,182 @@
+<h2><span class="part-kicker">Part E</span>The loop</h2>
+
+<h3><span class="num">§13</span> Five statements, in order</h3>
+
+<p>Everything assembles here. The loop is five statements, and each has a derivation behind
+it and a characteristic failure in front of it.</p>
+
+<pre><code><span class="k">for</span> xb, yb <span class="k">in</span> train_dl:
+    opt.zero_grad()                        <span class="c"># 1</span>
+    logits = model(xb)                     <span class="c"># 2</span>
+    loss   = F.cross_entropy(logits, yb)   <span class="c"># 3</span>
+    loss.backward()                        <span class="c"># 4</span>
+    opt.step()                             <span class="c"># 5</span>
+</code></pre>
+
+<table>
+  <thead><tr><th></th><th>What it does</th><th>If you omit it</th></tr></thead>
+  <tbody>
+    <tr><td><b>1</b> <code>zero_grad</code></td>
+        <td>clears <code>.grad</code>, which otherwise accumulates (Part VII §21)</td>
+        <td>you step on the sum of every batch so far; loss diverges within ~50 steps</td></tr>
+    <tr><td><b>2</b> forward</td>
+        <td>runs the model, building the graph of §5</td>
+        <td>n/a</td></tr>
+    <tr><td><b>3</b> loss</td>
+        <td>one scalar: Part II §26's negative log-likelihood</td>
+        <td>a non-scalar cannot be differentiated: see §16</td></tr>
+    <tr><td><b>4</b> <code>backward</code></td>
+        <td>reverse traversal, filling every <code>.grad</code></td>
+        <td>gradients stay <code>None</code>; the optimiser does nothing</td></tr>
+    <tr><td><b>5</b> <code>step</code></td>
+        <td>applies the update of Part III §16</td>
+        <td>gradients are computed and discarded; loss never moves</td></tr>
+  </tbody>
+</table>
+
+<p>The last two failures are worth distinguishing because they look identical from outside
+(a loss that does not move) and have opposite causes. Forgetting <code>backward()</code>
+means there is nothing to step on; forgetting <code>step()</code> means there is something
+and you ignored it. Printing one gradient norm separates them in a second.</p>
+
+<div class="box pitfall">
+  <span class="label">Pitfall: the order of 1 and 5 is not free</span>
+  <p><code>zero_grad()</code> may go at the top of the loop or immediately after
+  <code>step()</code>, and both are correct. What is <b>not</b> correct is putting it between
+  <code>backward()</code> and <code>step()</code>, which erases the gradients you just
+  computed and turns the optimiser into an expensive no-op.</p>
+  <p>Put it first. It reads as "begin a fresh accumulation", which is what it is.</p>
+</div>
+
+<h4>Gradient accumulation, which is the exception that proves the rule</h4>
+
+<p>Occasionally you want a batch larger than memory allows. The accumulation that
+<code>zero_grad</code> normally guards against is exactly the mechanism:</p>
+
+<pre><code><span class="k">for</span> i, (xb, yb) <span class="k">in</span> enumerate(train_dl):
+    loss = F.cross_entropy(model(xb), yb) / accum_steps
+    loss.backward()                        <span class="c"># adds into .grad</span>
+    <span class="k">if</span> (i + <span class="n">1</span>) % accum_steps == <span class="n">0</span>:
+        opt.step()
+        opt.zero_grad()                    <span class="c"># only now</span>
+</code></pre>
+
+<p>Four batches of 32 accumulate into the gradient of one batch of 128, at a quarter of the
+memory. The division by <code>accum_steps</code> matters: the loss is a <i>mean</i> over the
+batch, so summing four means gives four times the intended gradient unless you scale.</p>
+
+<p>Note what this reveals. The <code>+=</code> that Part VII §21 justified on correctness
+grounds (a value used twice must receive both contributions) turns out to also be the
+mechanism that lets a large model train on a small card. One design decision, two unrelated
+payoffs.</p>
+
+<h3><span class="num">§14</span> <code>train()</code> and <code>eval()</code></h3>
+
+<p>Two layers behave differently during training and evaluation, and the model has to be
+told which it is doing.</p>
+
+<table class="compact">
+  <thead><tr><th>Layer</th><th><code>train()</code></th><th><code>eval()</code></th></tr></thead>
+  <tbody>
+    <tr><td>Dropout</td><td>randomly zeroes units</td><td>disabled entirely</td></tr>
+    <tr><td>BatchNorm</td><td>uses this batch's statistics, updates running averages</td><td>uses the stored running averages</td></tr>
+  </tbody>
+</table>
+
+<figure>
+  <img src="figures/fw/04-train-eval.svg" alt="Output distribution for one fixed input across 2000 forward passes in train mode versus eval mode">
+  <figcaption><b>Figure 4.</b> One input, one set of weights, two thousand forward passes.
+  In <code>train()</code> mode a dropout layer deletes a different random half of the units
+  every time, so the output is a distribution with standard deviation 0.26. In
+  <code>eval()</code> mode dropout is disabled and every pass returns <b>the same number</b>,
+  as the measured standard deviation is zero to floating point. Forgetting the switch does
+  not raise anything; it silently makes your evaluation a random draw.</figcaption>
+</figure>
+
+<div class="box why">
+  <span class="label">Why this is the most under-reported bug in the field</span>
+  <p>The failure has three properties that make it unusually expensive.</p>
+  <p><b>It is silent.</b> No error, no warning, and the numbers look plausible.</p>
+  <p><b>It is biased downward.</b> Evaluating with dropout active means evaluating a
+  crippled model, so your reported accuracy is worse than the truth, which is the direction
+  that makes you distrust a model that was fine, and go looking for problems that do not
+  exist.</p>
+  <p><b>It is not reproducible.</b> Two evaluation runs of the same checkpoint give
+  different answers, and the natural conclusion (that something is wrong with the data
+  pipeline) is wrong.</p>
+  <p>Given Part V §16's insistence on paired comparisons and intervals, note what this does
+  to a comparison: it adds a variance term to one model and not necessarily the other, and
+  no amount of bootstrapping will reveal it because the bootstrap resamples the test set,
+  not the dropout mask.</p>
+</div>
+
+<p>The discipline is unglamorous and absolute: <b><code>model.train()</code> at the top of
+every training epoch, <code>model.eval()</code> before every evaluation.</b> Not once at the
+start, every time, because they alternate.</p>
+
+<p><code>eval()</code> and <code>no_grad()</code> are independent and you want both:
+<code>eval()</code> changes what layers <i>do</i>, <code>no_grad()</code> changes whether a
+graph is <i>built</i>. Neither implies the other.</p>
+
+<h3><span class="num">§15</span> Saving, loading, resuming</h3>
+
+<p>A model is its weights, and the weights are a dictionary.</p>
+
+<pre><code>torch.save(model.state_dict(), <span class="s">"model.pt"</span>)
+
+model = MLP(<span class="n">20</span>, <span class="n">64</span>, <span class="n">2</span>)                    <span class="c"># build the same architecture first</span>
+model.load_state_dict(torch.load(<span class="s">"model.pt"</span>))
+model.eval()
+</code></pre>
+
+<p><code>state_dict()</code> returns an ordinary dictionary mapping names to tensors:
+<code>'fc1.weight'</code>, <code>'fc1.bias'</code> and so on, exactly the names
+<code>named_parameters()</code> produced in §8, plus any buffers. It is inspectable, and
+inspecting it is often the fastest way to understand a checkpoint someone handed you.</p>
+
+<div class="box pitfall">
+  <span class="label">Pitfall: save the state dict, not the model</span>
+  <p><code>torch.save(model, "model.pt")</code> also works and you should not do it. It
+  pickles the Python object, which means the file contains a reference to your class
+  definition and will not load if you rename the file, move the class, or change the
+  library version.</p>
+  <p>The state dict contains only tensors and strings. It loads anywhere, and the cost is
+  that you must construct the architecture before loading into it, which is a feature,
+  because it forces the architecture to be written down somewhere other than a pickle.</p>
+</div>
+
+<h4>Resuming is more than the weights</h4>
+
+<p>To stop a run and continue it exactly, the weights are not enough. The optimiser has
+state (momentum and the squared-gradient average of Part III §16), and discarding it means
+restarting with an empty velocity, which shows up as a visible bump in the loss curve.</p>
+
+<pre><code>torch.save({
+    <span class="s">"epoch"</span>: epoch,
+    <span class="s">"model"</span>: model.state_dict(),
+    <span class="s">"opt"</span>:   opt.state_dict(),        <span class="c"># momentum and second-moment estimates</span>
+    <span class="s">"sched"</span>: sched.state_dict(),      <span class="c"># where the schedule had got to</span>
+}, <span class="s">"checkpoint.pt"</span>)
+</code></pre>
+
+<p>That the optimiser has a <code>state_dict</code> at all is a direct consequence of Part
+III §15: momentum is state carried between steps, which is why the optimiser had to be an
+object rather than a function. The checkpoint format is that design decision surfacing.</p>
+
+<div class="box try">
+  <span class="label">Try it</span>
+  <p>You train a model, save it, load it in a fresh script, and evaluate. The accuracy is
+  several points lower than what training reported, and differs slightly each time you run
+  the evaluation. Name the bug.</p>
+</div>
+
+<p><b>Answer.</b> <code>model.eval()</code> was not called after loading. A freshly
+constructed module is in <b>training mode by default</b>, so dropout is active during your
+evaluation, deleting a random half of the units on every forward pass.</p>
+<p>Both symptoms follow directly. <i>Lower</i> accuracy, because you are measuring a
+crippled model. <i>Different each time</i>, because the mask is redrawn on every pass:
+this is Figure 4's left-hand distribution, sampled once per evaluation.</p>
+<p>The reason it is worth being able to name from the symptoms alone: nothing in the error
+output points at it, and the natural first suspicion (that the checkpoint did not load
+correctly) is wrong. Checking the loaded weights would show them to be perfectly
+correct.</p>

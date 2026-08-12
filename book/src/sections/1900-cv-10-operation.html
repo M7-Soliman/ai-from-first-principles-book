@@ -1,0 +1,303 @@
+<h2><span class="part-kicker">Part A</span>The operation</h2>
+
+<h3><span class="num">§1</span> Why a dense layer is the wrong shape for an image</h3>
+
+<div class="sixty">
+  <span class="label">In 60 seconds</span>
+  <p>A dense layer connects every input to every output. On an image, that is not merely
+  expensive. It is <b>absurd</b>: one layer on a modest photograph would need more parameters
+  than every weight in an eight-billion-parameter language model. And the extravagance buys
+  nothing, because it
+  spends its capacity learning separately, at every position, a fact that is true everywhere.</p>
+</div>
+
+<p>Every network so far has been built from the layer of Part VII §5: multiply by a matrix,
+add a bias, apply a nonlinearity. That layer makes exactly one structural assumption, which
+is that it makes none. Every input may affect every output, and the model is left to
+discover from data which connections matter.</p>
+
+<p>For a 784-dimensional vector of handwritten-digit pixels, that is affordable. For a
+photograph it is not, and the arithmetic is worth doing rather than gesturing at.</p>
+
+<figure>
+  <img src="figures/cv/01-dense-vs-conv.svg" alt="Parameter count of a dense layer and a convolution against image size">
+  <figcaption><b>Figure 1.</b> One layer mapping a colour image to 64 feature maps. At
+  $224\times224$ (a standard input size) the dense layer needs
+  $4.83\times10^{11}$ parameters and the $3\times3$ convolution needs <b>1,728</b>. That
+  single dense layer would hold <b>sixty times</b> as many weights as an entire
+  eight-billion-parameter language model. Right: the ratio, whose log-log slope is measured
+  at <b>4.00</b>: the dense count grows as the fourth power of the image side, because both
+  the input and the output grow as the square.</figcaption>
+</figure>
+
+<p>The fourth power is the part to hold on to. Doubling the resolution of your images
+multiplies the dense layer by <b>sixteen</b>. There is no hardware trend that outruns that,
+and there never was.</p>
+
+<div class="box why">
+  <span class="label">Why the cost is the smaller objection</span>
+  <p>Suppose the parameters were free. The dense layer would still be the wrong model, for a
+  reason that has nothing to do with memory.</p>
+  <p>An edge detector that works in the top-left corner of an image works in the bottom-right
+  corner too. The physics does not change across the frame. But a dense layer has a separate
+  parameter for every (input pixel, output pixel) pair, so it must learn the edge detector
+  <b>independently at every position</b>, and it must see edges at every position in the
+  training data to do it.</p>
+  <p>That is Part VI §6's capacity argument arriving from an unfamiliar direction. The dense
+  layer's capacity is not too small; it is spent on the wrong thing. It is using millions of
+  parameters to express a fact that could be written down once, and it needs the data to pay
+  for every copy.</p>
+</div>
+
+<p>So the goal of this part is to build a layer that assumes something (specifically, that
+<b>a useful pattern is the same pattern wherever it appears</b>) and to be precise about
+what that assumption costs when it is wrong. Part VIII §3 said a regulariser is a preference
+expressed before you know which functions fit. An architecture is the same thing, stated more
+forcefully, and §11 will make that identification exact.</p>
+
+<h3><span class="num">§2</span> Convolution</h3>
+
+<div class="readnow"><span class="label">Go and read</span><p><span class="src">LeCun et al. (1998)</span>, <i>Gradient-based learning applied to document recognition</i>. The convolutional network, complete, from the group that built it, and worth reading for what it is <i>not</i>. There is no new mathematics here and no clever trick; there is a clearly stated architecture and a system that went on to read a tenth of the cheques in the United States. Read §II for the design and the rest for a reminder that this was engineering long before it was research.</p></div>
+
+<p>The operation predates its use here by a long way, and the cleanest way in is the one that
+motivated it.</p>
+
+<p>Suppose you are tracking something with a noisy sensor that reports a position $x(t)$ at
+every instant. Any single reading is unreliable, so you would rather report an average of
+several. But not a plain average: recent readings are more relevant, so you want a
+<b>weighted</b> average, with the weight depending on how old a measurement is. Write that
+weighting as $w(a)$, where $a$ is the age. Applying it at every moment gives a smoothed
+estimate</p>
+
+$$s(t) = \int x(a)\,w(t-a)\,da$$
+
+<p>and that operation is <b>convolution</b>, written $s = x * w$.</p>
+
+<div class="box def">
+  <span class="label">Discrete convolution, one and two dimensions</span>
+  <p>Computers sample time, so the integral becomes a sum:</p>
+  <p>$$s(t) = (x*w)(t) = \sum_{a=-\infty}^{\infty} x(a)\,w(t-a)$$</p>
+  <p>and with a two-dimensional image $I$ and a two-dimensional kernel $K$:</p>
+  <p>$$S(i,j) = (I*K)(i,j) = \sum_m \sum_n I(m,n)\,K(i-m,\,j-n)$$</p>
+  <p>The first argument is the <b>input</b>, the second the <b>kernel</b>, and the result the
+  <b>feature map</b>. The sums are infinite in principle and finite in practice, because
+  everything is zero outside the region you actually stored.</p>
+</div>
+
+<p>Two things about that definition deserve attention before anything is built on it.</p>
+
+<p><b>The kernel is not a smoother here.</b> In the sensor example $w$ had to be a probability
+density, or the result would not be an average at all. In a network the kernel is a set of
+<i>learned parameters</i> with no such constraint: it will happily be negative, and the
+useful ones usually are, because subtraction is how you detect a change. The operation is
+inherited; the interpretation is not.</p>
+
+<p><b>The index runs backwards.</b> In $K(i-m, j-n)$, as $m$ increases the index into the
+input increases and the index into the kernel <i>decreases</i>. The kernel is flipped. That
+is a real feature of the definition and it is about to be discarded.</p>
+
+<h3><span class="num">§3</span> Cross-correlation, and why everyone calls it convolution</h3>
+
+<p>Flipping the kernel buys exactly one property: <b>commutativity</b>, $I*K = K*I$. It is
+useful when writing proofs and irrelevant when writing networks, so essentially every library
+implements the unflipped version</p>
+
+$$S(i,j) = \sum_m \sum_n I(i+m,\,j+n)\,K(m,n)$$
+
+<p>which is properly called <b>cross-correlation</b>, and calls it convolution anyway. This
+book follows that convention and flags the difference where it matters.</p>
+
+<div class="box why">
+  <span class="label">Why the sloppiness is harmless here, and where it is not</span>
+  <p>The kernel is <b>learned</b>. An algorithm that flips will learn a kernel that is the
+  mirror image of what an algorithm that does not flip would learn, and the two networks
+  compute the same function. Nothing observable depends on the choice.</p>
+  <p>Nor is commutativity missed. Convolution is never used alone: it is composed with a
+  nonlinearity and other layers, and that composition does not commute regardless.</p>
+  <p>It does matter in two places. When you load <b>weights trained in another framework</b>
+  that made the other choice, a silently mirrored kernel is a real bug and a confusing one.
+  And when you are checking an implementation against a <b>signal-processing</b> reference,
+  which will flip, because in that field commutativity is load-bearing.</p>
+  <p>The general lesson is Part IV's: a name in a library is a historical artefact, not a
+  definition, and <code>conv2d</code> is the clearest example in the whole toolkit.</p>
+</div>
+
+<h3><span class="num">§4</span> Convolution is a matrix multiplication</h3>
+
+<div class="sixty">
+  <span class="label">In 60 seconds</span>
+  <p>Convolution is <b>linear</b>, so by Part I §4 it is multiplication by some matrix. That
+  matrix exists, it is enormous and almost entirely zero, and every one of its nonzero entries
+  is a copy of one of the handful of numbers in the kernel. Seeing it explicitly is the
+  shortest route to everything in this part: the parameter count, the backward pass, and what
+  "parameter sharing" actually constrains.</p>
+</div>
+
+<p>Nothing in §2's definition is nonlinear: the output is a sum of input values times fixed
+coefficients. So flatten the image into a vector and there must be a matrix $M$ with
+$\mathbf{s} = M\mathbf{x}$. Building it is a two-line exercise: for each output position,
+lay the kernel into a blank image at that offset and flatten the result into a row.</p>
+
+<figure>
+  <img src="figures/cv/02-toeplitz.svg" alt="The convolution matrix, and the two ways of computing the same output">
+  <figcaption><b>Figure 2.</b> A $3\times3$ kernel on an $8\times8$ image. Left: the nonzero
+  pattern of $M$: it is $36\times64$, so <b>2,304 entries, of which 324 are nonzero</b>
+  (14%), and those 324 take only <b>9 distinct values</b>, one per kernel element. Right: the
+  output computed by matrix multiplication and by <code>conv2d</code>, which agree to
+  $8.9\times10^{-16}$. The banded structure is the constraint made visible: each row is the
+  row above, shifted.</figcaption>
+</figure>
+
+<div class="box def">
+  <span class="label">Toeplitz, and doubly block circulant</span>
+  <p>A matrix in which each row is the row above shifted by one is <b>Toeplitz</b>. That is
+  the structure of $M$ for one-dimensional convolution, and it is exactly what "the same
+  operation at every position" means when written as a matrix.</p>
+  <p>In two dimensions the shift happens at two scales (within a row of the image, and from
+  one row to the next) and the resulting structure is called <b>doubly block circulant</b>.
+  Figure 2's stripes are it. The deviation of each row from a pure shift of its predecessor
+  was measured at exactly <b>zero</b>.</p>
+</div>
+
+<div class="box intuition">
+  <span class="label">Intuition: two constraints, and they do different jobs</span>
+  <p>$M$ is constrained in two independent ways, and it is worth separating them because §7
+  and §8 will price them separately.</p>
+  <p><b>It is sparse.</b> Most entries are zero, because the kernel is much smaller than the
+  image and an output pixel simply does not see most of the input. This is <b>sparse
+  interaction</b>, and on its own it would still leave you with 324 free parameters here.</p>
+  <p><b>Its nonzero entries repeat.</b> Only 9 distinct values appear among the 324. This is
+  <b>parameter sharing</b>, and it is what takes the count from 324 to 9.</p>
+  <p>You can have either without the other. A locally connected layer (§8) is sparse without
+  sharing. A recurrent network shares without being sparse. Convolution is both, and most
+  of its properties trace to one or the other rather than to the pair.</p>
+</div>
+
+<p>One consequence is immediate and will be used in §16. Because convolution is a matrix
+multiplication, <b>any algorithm that works with matrix multiplication works with
+convolution</b>, including backpropagation, which needs only $M^\top$. Real implementations
+specialise heavily for speed, but nothing in the theory requires it.</p>
+
+<h3><span class="num">§5</span> Padding, stride, and the arithmetic of size</h3>
+
+<p>Applied literally, convolution shrinks its input. A kernel of width $k$ has $k-1$ fewer
+valid positions than the image has pixels, so an image of width $m$ gives an output of width
+$m-k+1$. Stack layers and the shrinkage compounds until nothing is left: with a width-6
+kernel on a 16-pixel input you get three layers, and the last one cannot move.</p>
+
+<p>The fix is to pad the input with implicit zeros. Three settings have names.</p>
+
+<div class="box def">
+  <span class="label">Valid, same, and full</span>
+  <table class="compact">
+    <thead><tr><th>Padding</th><th>Output width</th><th>Property</th></tr></thead>
+    <tbody>
+      <tr><td><b>valid</b>: none</td><td>$m-k+1$</td>
+          <td>Every output pixel sees the same number of inputs. The representation shrinks,
+          which bounds the depth.</td></tr>
+      <tr><td><b>same</b>: $k-1$ zeros</td><td>$m$</td>
+          <td>Depth is unbounded. But border pixels influence fewer outputs than central ones,
+          so they are under-represented.</td></tr>
+      <tr><td><b>full</b>: $2(k-1)$ zeros</td><td>$m+k-1$</td>
+          <td>Every input pixel is visited $k$ times in each direction. Now the <i>output</i>
+          pixels near the border see fewer real inputs.</td></tr>
+    </tbody>
+  </table>
+  <p>The best setting for test accuracy is usually somewhere between valid and same, and
+  <code>same</code> is the near-universal default because unbounded depth is worth more than
+  the border effect costs.</p>
+</div>
+
+<p><b>Stride</b> is the second control. Rather than evaluating the kernel at every position,
+evaluate it every $s$ positions:</p>
+
+$$Z_{i,j,k} = \sum_{l,m,n} V_{l,\,(j-1)s+m,\,(k-1)s+n}\; K_{i,l,m,n}$$
+
+<p>which is mathematically identical to convolving with stride one and then throwing away all
+but every $s$-th output; this is computationally quite different, because the two-step version
+computes a large number of values in order to discard them.</p>
+
+<div class="box shapes">
+  <span class="label">The size formula, and the one number people get wrong</span>
+  <p>For input width $m$, kernel $k$, padding $p$ on each side, stride $s$ and dilation $d$
+  (§29):</p>
+  <p>$$\text{output width} = \left\lfloor \frac{m + 2p - d(k-1) - 1}{s} \right\rfloor + 1$$</p>
+  <p>Set $d=1$, $s=1$, $p=0$ and it collapses to $m-k+1$. Set $p=(k-1)/2$ with odd $k$ and it
+  gives $m$, which is why kernels are almost always odd-sized. An even kernel cannot be
+  padded symmetrically, so <code>same</code> padding has to put one more zero on one side than
+  the other, and your feature maps quietly drift half a pixel per layer.</p>
+  <p>The floor is where the errors live. With $s>1$ the last few columns can be dropped
+  entirely if they do not fill a whole stride, and no framework will warn you.</p>
+</div>
+
+<h3><span class="num">§6</span> Channels, and the shape bookkeeping</h3>
+
+<p>Two departures from §2 remain, and both are about the fact that real inputs are not a
+single grid of numbers.</p>
+
+<p><b>Many kernels at once.</b> One kernel extracts one kind of feature at many positions.
+You want many kinds, so a layer holds a stack of kernels and produces one feature map each.</p>
+
+<p><b>Many channels in.</b> A colour image has three values per pixel. The output of one
+convolutional layer has as many values per position as it had kernels. So the input is a grid
+of <i>vectors</i>, and a kernel must span all of them.</p>
+
+<div class="box def">
+  <span class="label">Multi-channel convolution</span>
+  <p>With a 4-D kernel tensor $K$, where $K_{i,l,m,n}$ is the weight from input channel $l$ to
+  output channel $i$ at offset $(m,n)$:</p>
+  <p>$$Z_{i,j,k} = \sum_{l,m,n} V_{l,\,j+m-1,\,k+n-1}\;K_{i,l,m,n}$$</p>
+  <p>Summed over input channels $l$ and over the spatial offsets $m,n$. The sum over $l$ is
+  the important one: <b>each output channel is a function of every input channel</b>, so a
+  convolutional layer is local in space and fully connected across channels.</p>
+</div>
+
+<div class="box shapes">
+  <span class="label">Shapes, once, properly</span>
+  <p>$$\underbrace{(N, C_{\text{in}}, H, W)}_{\text{input}} \;*\;
+     \underbrace{(C_{\text{out}}, C_{\text{in}}, k, k)}_{\text{kernel}} \;\longrightarrow\;
+     \underbrace{(N, C_{\text{out}}, H', W')}_{\text{output}}$$</p>
+  <p>Parameters: $C_{\text{out}} \times C_{\text{in}} \times k^2$, plus $C_{\text{out}}$
+  biases, one bias per output channel, shared across every position, which is the
+  natural choice when the kernel is shared across every position too. It is not the only
+  choice ch09 §9.5 records: a fixed-size input can instead take one bias per output position, and
+  the locally connected and tiled layers of §8 pair naturally with a per-unit or per-tile
+  bias, matching whatever sharing their weights use. This part builds only the shared,
+  per-channel case, which is what every architecture in it actually ships.</p>
+  <p>Multiply-accumulates: $N \times C_{\text{out}} \times C_{\text{in}} \times k^2 \times
+  H' \times W'$. Note which factors are in the parameter count and which are not: the spatial
+  size $H'W'$ costs <b>compute</b> and no <b>parameters</b>. That asymmetry is why a
+  convolutional network can be small and slow at the same time, and it catches people who
+  budget by parameter count.</p>
+</div>
+
+<div class="box pitfall">
+  <span class="label">Pitfall: channels-first and channels-last</span>
+  <p>PyTorch stores images as $(N, C, H, W)$; TensorFlow, most image libraries, and every
+  file format you will load from store them as $(N, H, W, C)$.</p>
+  <p>Both are defensible (channels-last has better memory locality for some kernels, which is
+  why PyTorch also offers it as a memory format) and the conversion is one
+  <code>permute</code>. The failure mode is that a $(32, 32, 3)$ array fed to a layer
+  expecting channels-first is interpreted as <b>32 channels of a $32\times3$ image</b>, which
+  is a perfectly valid tensor of the wrong thing. It does not raise. It trains. It produces a
+  model that is merely bad, and Part IV §17's debugging order exists for exactly this.</p>
+</div>
+
+<div class="box try">
+  <span class="label">Try it</span>
+  <p>A layer takes $(N, 64, 56, 56)$ and applies 128 kernels of size $3\times3$ with stride 1
+  and <code>same</code> padding. Give the output shape, the parameter count and the
+  multiply-accumulate count per image. Then say which of the three changes if you halve the
+  image size.</p>
+</div>
+
+<p><b>Answer.</b> Output $(N, 128, 56, 56)$: <code>same</code> padding preserves the spatial
+size and the channel count is set by the number of kernels.</p>
+<p>Parameters: $128 \times 64 \times 3 \times 3 = 73{,}728$, plus 128 biases: <b>73,856</b>.</p>
+<p>Multiply-accumulates: $128 \times 64 \times 9 \times 56 \times 56 =
+2.31\times10^{8}$ per image.</p>
+<p>Halving the image to $28\times28$ leaves the parameter count <b>completely unchanged</b>
+and divides the compute by four. That is the asymmetry above, and it is the reason a
+convolutional layer's cost cannot be read off its size: the same 73,856 parameters cost
+$2.3\times10^{8}$ operations at $56\times56$ and $1.5\times10^{10}$ at a full
+$448\times448$.</p>

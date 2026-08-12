@@ -1,0 +1,183 @@
+<h2><span class="part-kicker">Part C</span>Pooling, and its decline</h2>
+
+<h3><span class="num">§12</span> Pooling</h3>
+
+<div class="sixty">
+  <span class="label">In 60 seconds</span>
+  <p>Replace each neighbourhood of a feature map by a summary of it, usually the maximum.
+  The representation becomes approximately <b>invariant</b> to small translations, which is
+  useful whenever you care that a feature is present more than where it is. It also
+  downsamples, which is how a network's reach grows faster than §10's $\sqrt{L}$ allows.</p>
+</div>
+
+<p>A convolutional layer is conventionally three stages: convolve to get linear activations,
+apply a nonlinearity (the <b>detector</b> stage) and then pool. Some authors call each stage
+a layer, which is why "how many layers" is an ambiguous question and why parameter counts are
+a better unit.</p>
+
+<p>The pooling function replaces the output at a position with a summary of nearby outputs.
+<b>Max pooling</b> reports the largest value in a rectangle; average pooling the mean; other
+choices include the $L^2$ norm and a distance-weighted average.</p>
+
+<figure>
+  <img src="figures/cv/05-pooling.svg" alt="Relative change in representation as the input is translated, for several pooling schemes">
+  <figcaption><b>Figure 5.</b> Translation invariance, measured directly: how much the
+  representation changes when the input shifts, with <b>no compensating shift of the
+  reference</b>. Convolution alone changes by 1.4–1.5 at every shift: no invariance
+  whatever. Max pooling over $4\times4$ changes by <b>0.13</b> at one pixel, rising to 0.36 by
+  eight: invariant within its window and progressively less so beyond it. Global max pooling
+  changes by <b>0.005</b>: invariant to any translation at all.</figcaption>
+</figure>
+
+<p>Read the max-pool-4 curve carefully, because its <i>shape</i> is the claim. Invariance is
+not a property the layer either has or lacks; it is a property with a <b>range</b>, set by the
+pooling window, and it decays smoothly once you leave it.</p>
+
+<div class="box def">
+  <span class="label">Downsampling, and why it usually comes with pooling</span>
+  <p>Because pooling summarises a whole neighbourhood, you need not report one output per
+  input. Spacing the pooling regions $s$ pixels apart gives roughly $s$ times fewer outputs in
+  each direction.</p>
+  <p>That is a compute saving, a memory saving and (where the next layer's parameter count
+  depends on its input size) a parameter saving. It is also the main mechanism by which
+  receptive fields grow: after halving the resolution, every subsequent $3\times3$ kernel
+  covers twice as much of the original image.</p>
+  <p>Pooling and downsampling are separable. You can pool with stride one, which buys
+  invariance and no saving; and you can downsample without pooling, which §15 is about.</p>
+</div>
+
+<h3><span class="num">§13</span> Invariance against equivariance</h3>
+
+<p>These two words are used interchangeably in a great deal of writing, and they mean nearly
+opposite things.</p>
+
+<div class="box def">
+  <span class="label">The distinction, and how to measure each</span>
+  <p><b>Equivariant</b>: $f(g(\mathbf{x})) = g(f(\mathbf{x}))$. Move the input, the output
+  moves with it. Convolution, §9.</p>
+  <p><b>Invariant</b>: $f(g(\mathbf{x})) = f(\mathbf{x})$. Move the input, the output does not
+  change. Pooling, approximately; global pooling, nearly exactly.</p>
+  <p>The measurements differ by one detail. For equivariance you compare against the
+  <b>shifted</b> reference; for invariance against the <b>unshifted</b> one. Figure 3 does the
+  first and Figure 5 the second, and running the wrong comparison is a good way to conclude
+  that convolution is translation-invariant, which it emphatically is not.</p>
+</div>
+
+<div class="box intuition">
+  <span class="label">Intuition: a network needs both, in that order</span>
+  <p>The two properties are not competitors; they are stages.</p>
+  <p>The early layers should be <b>equivariant</b>. They are building a map of what is where,
+  and discarding position there would be throwing away the information later layers need to
+  assemble parts into wholes.</p>
+  <p>The output should be <b>invariant</b>. "There is a cat in this image" must not depend on
+  where the cat is.</p>
+  <p>So the architecture's job is to convert one into the other, gradually. Convolution
+  preserves position; pooling discards a little of it; enough alternations and you arrive at a
+  representation that knows what without knowing where. The <b>rate</b> of that conversion is
+  the real design decision, and pooling too aggressively too early is a standard way to
+  destroy a model that needs spatial precision.</p>
+</div>
+
+<h3><span class="num">§14</span> Learned invariance</h3>
+
+<p>Pooling over <b>spatial positions</b> gives invariance to translation, and only that. But
+nothing requires the pooled units to be spatial neighbours.</p>
+
+<p>Pool instead over the outputs of <b>several separately parameterised filters</b> at the same
+position, and the network can learn <i>which</i> transformation to be invariant to. Give three
+filters a chance to specialise on three orientations of the same shape, and the max over them
+responds whenever any one fires, an orientation-invariant detector, learned rather than
+designed. Maxout units are this idea in its general form.</p>
+
+<div class="box why">
+  <span class="label">Why this generalises §11's prior in a useful direction</span>
+  <p>Spatial pooling <b>hard-codes</b> invariance to translation. Cross-channel pooling
+  <b>parameterises</b> the invariance and lets the data choose it.</p>
+  <p>That is the correct response to §11's Try it. If your task has a symmetry the
+  architecture does not know, you can encode it by hand, learn it from augmented data, or give
+  the model the machinery to discover it. Cross-channel pooling is the third, and it is why
+  locally connected and tiled layers (§8) interact interestingly with max pooling: their
+  detector units are driven by different filters, so pooling across them can become invariant
+  to whatever those filters happen to differ by.</p>
+</div>
+
+<p>Pooling regions need not be fixed either. They can be <b>chosen per image</b>, by clustering
+the locations of interesting features; or a single pooling structure can be learned once and
+applied to everything.</p>
+
+<p>And varying the region size handles variable input sizes. If the last pooling layer always
+emits four summaries (one per quadrant, whatever the image size) then the classifier
+downstream always receives a fixed-length vector. That trick is why a convolutional network can
+accept images of different sizes at all, and its modern form is <b>global average pooling</b>:
+one number per channel, regardless of resolution.</p>
+
+<h3><span class="num">§15</span> Why modern architectures dropped it</h3>
+
+<div class="readnow"><span class="label">Go and read</span><p><span class="src">Springenberg et al. (2015)</span>, <i>Striving for simplicity: the all convolutional net</i>. The paper that removed pooling and found the network no worse, one of the cleanest ablations in vision, and the beginning of the end for an operation that was in every diagram. Then <span class="src">Zhang (2019)</span>, <i>Making convolutional networks shift-invariant again</i>, for the sting in the tail: downsampling by any means aliases, and the classical fix is a low-pass filter, rediscovered here about thirty years late.</p></div>
+
+<p>Pooling is in every diagram of a convolutional network and in rather few current ones. The
+change happened gradually and for reasons worth separating, because "pooling is obsolete" is
+too strong and "pooling is fine" is too complacent.</p>
+
+<div class="box def">
+  <span class="label">What replaced it</span>
+  <p><b>Strided convolution.</b> A convolution with stride 2 downsamples exactly as a pooling
+  layer with stride 2 does, and it <b>learns</b> how to summarise instead of taking a fixed
+  maximum. It costs parameters, which pooling does not, and it is the standard choice in the
+  body of a modern network.</p>
+  <p><b>Global average pooling at the end.</b> The final feature map is averaged to one number
+  per channel and fed straight to a classifier. This replaced the flatten-then-dense head of
+  early architectures, and it removed the majority of those networks' parameters: the dense
+  head, not the convolutions, was where the weights were.</p>
+</div>
+
+<div class="box why">
+  <span class="label">Why the change happened, and what was given up</span>
+  <p>Three reasons, in rough order of importance.</p>
+  <p><b>Invariance was being applied too early and too hard.</b> §11 said convolution and
+  pooling can cause underfitting when the prior is wrong, and tasks that need spatial precision
+  (segmentation, detection, pose) are exactly where max pooling hurts. Once those became
+  mainstream, an operation that throws away position by construction stopped looking free.</p>
+  <p><b>Learning beats specifying, given enough data.</b> This is the recurring 2010s lesson,
+  and downsampling is a small instance of it. Max is one summary statistic; a strided
+  convolution can learn a better one, and by the time datasets were large enough, it did.</p>
+  <p><b>Pooling interacts badly with reconstruction.</b> Any architecture that goes back up (autoencoders, segmentation decoders, generative models) needs to invert the downsampling,
+  and max pooling is not invertible in any natural way. Strided convolution has a clean
+  transpose (§27).</p>
+  <p>What was given up: pooling is <b>free</b>, has <b>no parameters</b>, and gives
+  invariance without needing to learn it. On small datasets that still matters, which is why
+  pooling has not vanished so much as retreated to the places where data is scarce and to the
+  very end of the network, where global average pooling is now near-universal.</p>
+</div>
+
+<div class="box pitfall">
+  <span class="label">Pitfall: strided convolution is not automatically shift-invariant either</span>
+  <p>Replacing max pooling with strided convolution loses a property that is easy not to
+  notice: it makes the network <b>more</b> sensitive to one-pixel shifts, not less.</p>
+  <p>Downsampling by any means is aliasing: Figure 5's stride curve is not flat. Shift the
+  input by one pixel and a stride-2 layer samples a different set of positions entirely.
+  Modern architectures that care about this add a low-pass filter before downsampling, which
+  is the classical signal-processing fix and was rediscovered here about thirty years
+  late.</p>
+</div>
+
+<div class="box try">
+  <span class="label">Try it</span>
+  <p>You are building a network to locate the tip of a surgical instrument in an endoscopy
+  frame, to within a few pixels. Your first draft is a standard classifier backbone: five
+  blocks, each convolution then $2\times2$ max pooling. What is wrong, and what is the
+  smallest fix?</p>
+</div>
+
+<p><b>Answer.</b> Five $2\times2$ poolings divide the resolution by $2^5 = 32$. A
+$512\times512$ frame arrives at the output as $16\times16$, so <b>one output pixel is 32
+input pixels</b> and "within a few pixels" is not expressible in the representation you have
+built. The architecture has thrown away the answer before the head sees it.</p>
+<p>Worse, §11's prior is actively wrong here. Pooling asserts that small translations should
+not change the representation, and small translations are <b>the entire output</b> of this
+task. You have told the model to ignore the thing you are asking it to report.</p>
+<p>The smallest fix is to stop downsampling so hard: keep two poolings rather than five and use
+dilated convolution (§29) to recover the receptive field you lose, which costs no parameters.
+The fuller fix is an encoder–decoder that downsamples and then comes back up, with skip
+connections carrying the high-resolution detail across (§27), which is what segmentation
+architectures do, and for exactly this reason.</p>

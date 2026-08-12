@@ -1,0 +1,192 @@
+<h2><span class="part-kicker">Part F</span>Evaluation</h2>
+
+<p class="lede">The source book ends its generative chapter by saying that designing ways to measure
+progress is as important a research problem as improving the models. A decade later that is still
+the most accurate sentence available.</p>
+
+<h3><span class="num">§40</span> Why this is unsolved</h3>
+
+<div class="box why">
+  <span class="label">What makes it structurally harder than classification</span>
+  <p>A classifier has a right answer per example, so accuracy is well defined and Part XIV's whole
+  apparatus applies. A generative model has no right answer for any individual sample: the
+  question is about a <b>distribution</b>, and you have samples from it rather than the thing
+  itself.</p>
+  <p>Three consequences compound. The quantity you want, a divergence between two distributions,
+  cannot be estimated well in high dimensions from samples. The quantity you can sometimes
+  compute, a likelihood, is not the one anyone cares about (§41). And the quantity people
+  actually use, how the samples look, is insensitive to the most important failure (§42).</p>
+</div>
+
+<h3><span class="num">§41</span> Likelihood, and what it fails to measure</h3>
+
+<div class="readnow"><span class="label">Go and read</span><p><span class="src">Theis, van den Oord &amp; Bethge (2016)</span>, <i>A note on the evaluation of generative models</i>. Short, and the most useful thing written on the subject. Establishes that log-likelihood, sample quality and nearest-neighbour checks are largely independent: a model can excel at any one while failing the others. Everything in this movement is downstream of it.</p></div>
+
+<figure>
+  <img src="figures/gn/07-likelihood-quality.svg" alt="Test log-likelihood and fraction of plausible samples for three models">
+  <figcaption><b>Figure 7.</b> Three models of the reference mixture. The one that <b>drops a mode
+  entirely</b> has by far the worst likelihood (<b>−6.36</b> against the exact model's −1.86) and
+  the <b>best</b> samples: 99.3% plausible, because everything it produces is real. The one that
+  adds 20% broad garbage keeps nearly all the likelihood (<b>−2.03</b>) and produces visibly wrong
+  samples 17.5% of the time. The two measurements disagree, in both directions.</figcaption>
+</figure>
+
+<div class="box pitfall">
+  <span class="label">Pitfall: four ways a likelihood misleads</span>
+  <p><b>It is dominated by the easy parts.</b> In a real-valued model, likelihood can be driven
+  arbitrarily high by assigning very low variance to components that barely vary: background
+  pixels, silence, padding. A model that does nothing but nail the trivial dimensions outscores one
+  that captures the interesting ones.</p>
+  <p><b>Mode dropping is punished far more than garbage.</b> Forward KL is infinite where the data
+  has mass and the model has none, and merely finite where the model has spurious mass. The figure
+  is this asymmetry, measured.</p>
+  <p><b>Preprocessing changes it.</b> Multiplying inputs by 0.1 raises the density by a factor of
+  $10^n$. Binarising an image dataset one way rather than another changes the number completely.
+  Two likelihoods are comparable only under <b>identical</b> preprocessing, which for a while meant
+  researchers shared the exact binarised file.</p>
+  <p><b>Most of the reported numbers are not likelihoods.</b> They are bounds (§17), or importance
+  estimates, or annealed-importance estimates whose error is unknown and one-sided. A bound and an
+  estimate cannot be compared without knowing the slack, and §17 measured a case where the bound
+  gets the ordering backwards.</p>
+</div>
+
+<h3><span class="num">§42</span> Sample quality, and what it fails to measure</h3>
+
+<div class="box why">
+  <span class="label">Why looking at samples cannot detect the important failure</span>
+  <p>The figure's middle model produces flawless samples and has dropped a third of the
+  distribution. §36's collapsed GAN produced 1 mode of 8, and every sample it produced was a
+  genuine mode.</p>
+  <p>The reason inspection fails is arithmetic. To notice that a mode is missing you must
+  <b>remember what should be there</b> and observe its absence across many samples. A human
+  inspecting a grid of images is well equipped to spot an implausible sample and badly equipped to
+  spot an absent category, and the difficulty grows with the number of modes. On data with
+  thousands of modes, dropping dozens is undetectable by eye.</p>
+  <p>This is why the field's most-used evaluation, look at some samples, is systematically blind
+  to the failure that most distinguishes the model families.</p>
+</div>
+
+<div class="box def">
+  <span class="label">The nearest-neighbour check, and why it is not optional</span>
+  <p>The opposite failure is memorisation: a model that reproduces training examples has perfect
+  sample quality and has learned nothing you wanted.</p>
+  <p>The minimum check is to show, for a sample, its nearest neighbours <b>in the training set</b>,
+  by a distance in a space where distance means something. It is weak, near-duplicates that are
+  not pixel-near will pass, and it is far better than nothing, and it is frequently omitted.</p>
+  <p>Part XIII §33's memorisation and Part XIII §15's deduplication both bear on this: a corpus with
+  duplicates produces a model that reproduces them, and the check will not flag it because the
+  duplicate is genuinely a distinct training row.</p>
+</div>
+
+<h3><span class="num">§43</span> Automatic sample metrics</h3>
+
+<div class="box def">
+  <span class="label">FID, and what it actually computes</span>
+  <p>Embed real and generated images with a fixed pretrained network, fit a Gaussian to each set of
+  embeddings, and report the Fréchet distance between the two Gaussians.</p>
+  <p>It correlates with human judgement better than anything before it and it is the field's
+  default. Its assumptions should be stated at least once: that the embedding preserves what
+  matters, and that <b>two Gaussians</b> summarise the distributions, a strong claim about
+  data whose whole interest is that it is multimodal.</p>
+</div>
+
+<div class="box pitfall">
+  <span class="label">Pitfall: FID's known defects</span>
+  <p><b>It is biased by sample count</b>, strongly, and the bias does not vanish at practical sizes.
+  FID at 10,000 samples and at 50,000 are different numbers for the same model, so the count must
+  be reported and matched.</p>
+  <p><b>It depends on the embedding network</b>, including its exact weights and preprocessing.
+  Numbers from different implementations are not comparable and have been compared anyway.</p>
+  <p><b>It is a single number over two failure modes.</b> Producing too little variety and producing
+  wrong things both raise it, and it cannot say which: which is exactly the distinction §41 and
+  §42 established as the one that matters.</p>
+  <p>That last defect has a repair, and it should be the default report.</p>
+</div>
+
+<div class="box def">
+  <span class="label">Precision and recall, for distributions</span>
+  <p>Part XIV §3's pair, applied to samples rather than predictions. Estimate the support of each
+  distribution from its samples, then:</p>
+  <p><b>Precision</b> is the fraction of generated samples that fall in the data's support: are
+  the things you made real? <b>Recall</b> is the fraction of real samples that fall in the model's
+  support: did you make everything?</p>
+  <p>A mode-dropping model has high precision and low recall. A model producing garbage has the
+  reverse. The two numbers separate exactly what FID conflates, and the figure's three models would
+  be immediately distinguished by them where a single distance would not.</p>
+  <p>The general lesson is Part XIV §3's: <b>a single number over a two-sided failure cannot be
+  read.</b> It took this field about as long to accept that as it took classification.</p>
+</div>
+
+<h3><span class="num">§44</span> What to report</h3>
+
+<div class="box def">
+  <span class="label">A minimum honest report</span>
+  <ul class="tight">
+    <li><b>Which quantity</b> the likelihood number is (exact, bound or estimate) and for a
+    bound or estimate, how it was computed and with what $k$.</li>
+    <li><b>Preprocessing</b>, exactly, since it changes the number.</li>
+    <li><b>Sample-based metrics with the sample count</b>, and the embedding network's identity.</li>
+    <li><b>Precision and recall separately</b>, not only a single distance.</li>
+    <li><b>A memorisation check</b>, with the space the distance was computed in.</li>
+    <li><b>The sampler</b>: number of steps, solver and guidance weight. §30 showed that
+    guidance changes the distribution being sampled, so a sample metric at $w=3$ is not a
+    measurement of the model.</li>
+    <li><b>Seeds</b>, per Part XIV §19, and the search size, per Part XIV §20.</li>
+  </ul>
+</div>
+
+<h3><span class="num">§45</span> Choosing a family</h3>
+
+<div class="box def">
+  <span class="label">The comparison, by what you need</span>
+  <table class="compact">
+    <thead><tr><th></th><th>Autoregressive</th><th>VAE</th><th>Diffusion</th><th>GAN</th></tr></thead>
+    <tbody>
+      <tr><td>Exact likelihood</td><td><b>yes</b></td><td>bound</td><td>bound</td><td>no</td></tr>
+      <tr><td>One-pass sampling</td><td>no</td><td><b>yes</b></td><td>no</td><td><b>yes</b></td></tr>
+      <tr><td>Sampling cost scales with</td><td>output size</td><td>n/a</td><td>steps chosen</td><td>n/a</td></tr>
+      <tr><td>Latent to manipulate</td><td>no</td><td><b>yes</b></td><td>yes (DDIM)</td><td><b>yes</b></td></tr>
+      <tr><td>Training stability</td><td><b>high</b></td><td><b>high</b></td><td><b>high</b></td><td>low</td></tr>
+      <tr><td>Mode coverage</td><td><b>high</b></td><td><b>high</b></td><td><b>high</b></td><td>low</td></tr>
+      <tr><td>Sample sharpness</td><td><b>high</b></td><td>low</td><td><b>high</b></td><td><b>high</b></td></tr>
+    </tbody>
+  </table>
+  <p>The reason diffusion took over images is visible in the row structure: it is the only column
+  with no entry in the bottom two rows that is bad, and its one weakness, multi-step sampling, is
+  a cost you can choose, which the others' weaknesses are not.</p>
+  <p>The reason autoregressive models still own text is equally visible. Text is discrete and
+  ordered, so its factorisation is natural rather than imposed; and the sampling cost that is fatal
+  for a million pixels is acceptable for a thousand tokens.</p>
+</div>
+
+<h3><span class="num">§46</span> What to carry forward</h3>
+
+<div class="box intuition">
+  <span class="label">The one thing</span>
+  <p><b>Every generative model is a different answer to the same question: what do we do about the
+  normalising constant.</b></p>
+  <p>Autoregressive models make it a product of small ones and pay at sampling time. Latent variable
+  models bound it and pay in a gap they cannot see. Implicit models refuse to represent it and lose
+  the ability to score anything, including themselves. Score-based models differentiate it away,
+  and that is why they won, because the difficulty was not moved somewhere else, it was
+  <b>removed</b>.</p>
+  <p>The second thing, which is the part most likely to be needed: <b>the two ways of being wrong
+  are not symmetric, and no single number reports both.</b> A model can produce only real things and
+  omit most of them, or produce everything and much besides. Likelihood punishes the first far
+  harder; looking at samples cannot see it at all. Report precision and recall, and say which of
+  the two failures you were checking for.</p>
+</div>
+
+<div class="box def">
+  <span class="label">Four results worth remembering as numbers</span>
+  <ul class="tight">
+    <li><b>Denoising recovers the distribution, not just its support.</b> Mixing weights recovered
+    to total variation 0.0075, below the 0.0093 of a real draw of the same size.</li>
+    <li><b>The ELBO can rank two models backwards.</b> It preferred $\beta=0.2$; the true
+    likelihood preferred $\beta=4$.</li>
+    <li><b>Mode collapse is about the balance, not the loss.</b> The saturating objective covered
+    8/8 modes; a 5:1 discriminator covered 1.</li>
+    <li><b>Guidance past its peak leaves the distribution.</b> Log-density $-1.78$ at $w=2$,
+    $-165.5$ at $w=8$, with the spread growing rather than shrinking.</li>
+  </ul>
+</div>

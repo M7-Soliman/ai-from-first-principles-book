@@ -1,0 +1,164 @@
+<h2><span class="part-kicker">Part C</span>The memory wall</h2>
+
+<p class="lede">Before any of the parallelism in the next movement makes sense, it is worth knowing
+exactly what occupies a device's memory during training. It is not mostly the model, and the part
+that dominates is the part sharding does not help with.</p>
+
+<h3><span class="num">§16</span> Where the memory goes</h3>
+
+<figure>
+  <img src="figures/sc/03-memory.svg" alt="Memory by category for one training step, memory per device against sharding degree, and activation memory against context length">
+  <figcaption><b>Figure 3.</b> A 6.7-billion-parameter model, exact arithmetic for parameters,
+  gradients and optimiser states. In bf16 the parameters occupy <b>12.4 GiB</b> and the Adam
+  states <b>74.5 GiB</b>, <b>six times</b> the model. Activations at batch 1 and context 4096 are
+  <b>42 GiB</b>, falling to <b>2.3 GiB</b> with recomputation: computed from a "roughly ten
+  tensors per layer" convention for what the backward pass keeps, not counted tensor by tensor.
+  Sharding across 64 devices recovers only a factor of <b>3.2</b>, because activations do not
+  shard.</figcaption>
+</figure>
+
+<div class="box def">
+  <span class="label">Four categories, and the arithmetic for each</span>
+  <p><b>Parameters.</b> $N$ values. In bf16, $2N$ bytes.</p>
+  <p><b>Gradients.</b> One per parameter, $2N$ bytes.</p>
+  <p><b>Optimiser states.</b> Adam keeps two moments, and mixed precision keeps an fp32 master
+  copy of the weights. That is $4N + 4N + 4N = 12N$ bytes, <b>six times the bf16 model</b>. Plain
+  SGD keeps nothing, momentum keeps one moment; this line is the price of an adaptive optimiser and
+  it is the largest single item.</p>
+  <p><b>Activations.</b> Everything the backward pass needs, which is roughly ten tensors of shape
+  (batch, context, width) per layer, plus the attention matrix if it is materialised, and that
+  one is (batch, heads, context, context), <b>quadratic in the context length</b>.</p>
+</div>
+
+<div class="box why">
+  <span class="label">Why the optimiser line surprises people</span>
+  <p>The intuition is that a model of $N$ parameters needs about $N$ numbers. Training needs
+  roughly <b>sixteen bytes per parameter</b> before a single activation is stored, and twelve of
+  them belong to the optimiser rather than the model.</p>
+  <p>This is why the first question about a large training run is never "does the model fit"; it is
+  "does the model plus its gradients plus Adam's states plus a batch's activations fit", and the
+  answer is usually no by a wide margin. Everything in movement D exists because of that.</p>
+</div>
+
+<h3><span class="num">§17</span> Activation recomputation</h3>
+
+<div class="box def">
+  <span class="label">Trading compute for memory</span>
+  <p>The backward pass needs the forward activations. Instead of storing them, store only the
+  inputs to each layer and <b>recompute</b> the interior during the backward pass.</p>
+  <p>The saving is large (the figure's third panel is 42 GiB against 2.3, a factor of 18), and the
+  cost is one extra forward pass, about <b>30%</b> more compute. Part VII §17's cost-of-remembering,
+  arriving as a budget decision.</p>
+  <p><b>Selective</b> recomputation is what is actually used: recompute the cheap-and-large things
+  (activations of the feed-forward, the attention matrix) and store the expensive-and-small ones.
+  That recovers most of the memory for a few per cent of the compute rather than thirty.</p>
+</div>
+
+<div class="box pitfall">
+  <span class="label">Pitfall: the attention matrix, and why it stopped being stored</span>
+  <p>The $(B, H, T, T)$ attention matrix grows with the <b>square</b> of the context. At $T =
+  4096$ it is comparable to everything else combined; at $T = 32768$ it dominates by an order of
+  magnitude, and no amount of sharding parameters helps.</p>
+  <p>This is the memory pressure that motivated fused attention kernels, which never materialise
+  the full matrix at all; they compute it in tiles, keeping only the running softmax statistics.
+  The result is exact attention with memory linear in $T$ rather than quadratic, and it is the
+  single change that made long contexts affordable. Part XII §29's FlashAttention, seen from
+  the memory side.</p>
+</div>
+
+<h3><span class="num">§18</span> Sharding the states</h3>
+
+<div class="readnow"><span class="label">Go and read</span><p><span class="src">Rajbhandari et al. (2020)</span>, <i>ZeRO: memory optimizations toward training trillion parameter models</i>. The three stages with the memory arithmetic worked out explicitly, which is unusual and makes it verifiable. Read it with Figure 3 in hand and notice which of the four categories the analysis does not address; that omission is §18's whole point.</p></div>
+
+<div class="box def">
+  <span class="label">The three stages</span>
+  <p>In plain data parallelism every device holds a <b>complete</b> copy of the parameters,
+  gradients and optimiser states. Since every copy is identical, this is pure waste.</p>
+  <p><b>Stage 1</b> shards the optimiser states, the biggest item, and the easiest, because they
+  are only touched during the update. <b>Stage 2</b> also shards the gradients, reducing then
+  scattering rather than all-reducing. <b>Stage 3</b> also shards the parameters, gathering each
+  layer's weights just before they are needed and discarding them after.</p>
+  <p>PyTorch's FSDP is stage 3. The memory falls by roughly the number of devices; the
+  communication rises, because parameters now have to be gathered twice per step.</p>
+</div>
+
+<div class="box why">
+  <span class="label">Why the figure's middle panel flattens</span>
+  <p>Sharding reduces three of the four categories and not the fourth. Activations belong to the
+  <b>data</b> a device is processing, not to the model, so no amount of sharding touches them.</p>
+  <p>The measured consequence is the number worth carrying: stage 3 across 64 devices gives a
+  factor of <b>3.2</b>, not 64, because past a point the activations are all that is left. Anyone
+  planning capacity from the sharding factor alone will be wrong by an order of magnitude.</p>
+  <p>Which is why the two techniques are used together and in this order: shard the states, then
+  recompute the activations, then measure again.</p>
+</div>
+
+<h3><span class="num">§19</span> Mixed precision</h3>
+
+<div class="readnow"><span class="label">Go and read</span><p><span class="src">Micikevicius et al. (2018)</span>, <i>Mixed precision training</i>. Already read at Part IV §2; it belongs here too, where the memory it saves is the reason for the section. Two mechanisms carry it: a 32-bit master copy of the weights so that tiny updates are not rounded away, and loss scaling to lift small gradients out of the subnormal range. Read it noticing that bf16, which §19 goes on to prefer, keeps fp32's exponent and so needs no scaling at all, which is the trade Figure 4 draws.</p></div>
+
+<figure>
+  <img src="figures/sc/04-precision.svg" alt="Representable magnitude ranges for six floating point formats, and the fraction of a synthetic gradient distribution each flushes to zero">
+  <figcaption><b>Figure 4.</b> Six formats, from their bit layouts. fp16 and bf16 are both sixteen
+  bits: fp16 has 3.0 decimal digits and a smallest normal of $6.1\times10^{-5}$; bf16 has 2.1
+  digits and $1.2\times10^{-38}$, <b>more than $10^{33}$ times the range</b>, for less precision.
+  Right: a synthetic, log-normal set of gradient magnitudes spanning many decades (a mechanism
+  illustration, not a measurement from any real training run) against which fp8 e4m3 flushes
+  <b>91%</b> to zero.</figcaption>
+</figure>
+
+<div class="box def">
+  <span class="label">What the bits buy</span>
+  <p>A floating-point format splits its bits between <b>exponent</b> (range) and <b>mantissa</b>
+  (precision). fp32 is (8, 23). The two 16-bit formats split the same budget differently: fp16 is
+  (5, 10) and bf16 is (8, 7).</p>
+  <p>bf16 keeps fp32's <b>exponent</b> field exactly, so it represents the same range of magnitudes
+  and merely represents each one more coarsely. That single decision is why converting fp32 to
+  bf16 never overflows or underflows, and converting to fp16 can do both.</p>
+</div>
+
+<div class="box why">
+  <span class="label">Why loss scaling exists, and why it stopped being needed</span>
+  <p>Gradients are small. In fp16, anything below $6\times10^{-5}$ is subnormal and anything below
+  about $6\times10^{-8}$ is zero, so a meaningful fraction of a real gradient distribution
+  vanishes.</p>
+  <p><b>Loss scaling</b> is the fix: multiply the loss by a large constant before the backward
+  pass, so every gradient is scaled up into the representable range, then divide it out before the
+  update. Dynamic loss scaling adjusts the constant automatically, raising it when no overflow has
+  been seen for a while and halving it when one is. It works and it is one more thing to
+  misconfigure.</p>
+  <p>bf16 removes the problem rather than managing it, which is why hardware that supports bf16
+  made loss scaling largely historical. The precision lost is real and turns out not to matter,
+  because the master weights are kept in fp32 anyway (a point worth stating, since it is the
+  reason the trade is safe).</p>
+</div>
+
+<div class="box pitfall">
+  <span class="label">Pitfall: what must stay in higher precision</span>
+  <p>Not everything tolerates 16 bits. The <b>master weights</b> and the optimiser moments stay in
+  fp32, because an update is often many orders of magnitude smaller than the weight it modifies,
+  and in bf16's 2.1 decimal digits it would round to no change at all.</p>
+  <p>Also kept higher: <b>reductions</b>, the accumulation inside a matrix multiply, softmax
+  denominators, layer-norm statistics and the loss itself. The pattern is that <b>products</b> are
+  safe in low precision and <b>sums over many terms</b> are not, which is Part III §3's error
+  accumulation, arriving in hardware.</p>
+  <p>fp8 follows the same logic one step further and needs per-tensor scaling factors to keep each
+  tensor's values inside its narrow range. The figure's 91% is what happens without them.</p>
+</div>
+
+<h3><span class="num">§20</span> The memory budget, in practice</h3>
+
+<div class="box def">
+  <span class="label">A procedure</span>
+  <ol class="tight">
+    <li>Compute $16N$ bytes for parameters, gradients and Adam states. If that alone exceeds a
+    device, sharding is not optional.</li>
+    <li>Compute activations for one microbatch at your context length, including the attention
+    matrix if your kernel materialises it.</li>
+    <li>Add roughly 10% for fragmentation, communication buffers and the allocator.</li>
+    <li>Whatever is left over is your batch size per device, and §26 says that number, not the
+    total, determines whether the run is communication-bound.</li>
+  </ol>
+  <p>Every term here is arithmetic you can do before requesting any hardware, and doing it first is
+  the difference between a plan and a series of out-of-memory errors.</p>
+</div>

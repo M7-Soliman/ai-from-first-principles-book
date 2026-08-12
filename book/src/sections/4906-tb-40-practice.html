@@ -1,0 +1,138 @@
+<h2><span class="part-kicker">Part D</span>Tabular practice</h2>
+
+<p class="mvt">The book has cited the finding that trees beat deep learning on tables since Part VI
+and never run it. This movement runs it, finds the answer depends on the generating process rather
+than on the format, and then covers the two things that decide a tabular project more than the model
+family does: whether the probabilities mean anything, and whether the validation is honest.</p>
+
+<h3><span class="num">§25</span> Are the scores probabilities</h3>
+
+<div class="box def">
+  <span class="label">The question, and why the answer differs by method</span>
+  <p>Part XIV §5 asked whether predicted probabilities match observed frequencies, and Part XXIV
+  built the machinery. For tree ensembles the answer depends entirely on what was optimised.</p>
+  <p>Gradient boosting with the logistic loss is minimising a <b>proper scoring rule</b> (a loss
+  whose minimiser is the true conditional probability), so calibration is what it was fitted for. A
+  random forest's output is the fraction of trees voting for a class, which was never fitted to
+  anything and is a vote share rather than an estimate.</p>
+</div>
+
+<div class="box why">
+  <span class="label">What the argument promises, and what it does not</span>
+  <p>The proper-scoring-rule argument is a statement about the population optimum: <i>if</i> fitting
+  reached the loss's exact minimiser, the output would be the true probability. Regularisation,
+  early stopping and a finite training set all keep the fitted function short of that minimiser, and
+  the argument itself says nothing about how far short; it is a claim about what the loss is
+  optimising for, not a guarantee about what any particular fit achieves.</p>
+  <p><span class="src">Niculescu-Mizil &amp; Caruana (2005)</span> measured the gap directly and found
+  boosted trees on real data frequently miscalibrated (most severely under AdaBoost's exponential
+  loss, and to a real if smaller degree under log-loss), which is why post-hoc calibration is routine
+  practice for boosted models rather than a precaution for the occasional bad fit. Figure 6's
+  <b>0.018</b> below is a genuine measurement and a good one, but of one well-specified population on
+  one synthetic generator: evidence that boosting <i>can</i> come out calibrated when it optimises
+  the right loss, not that it reliably does on a dataset you have not checked.</p>
+</div>
+
+<h3><span class="num">§26</span> Measured</h3>
+
+<figure>
+  <img src="figures/tb/06-calibration.svg" alt="Reliability curves and expected calibration error for boosted trees, a random forest, and the forest after isotonic regression">
+  <figcaption><b>Figure 6.</b> Boosting with the logistic loss comes out the best calibrated of the
+  three, at an expected calibration error of <b>0.018</b>: it is optimising a proper scoring rule,
+  so this is the intended behaviour rather than a happy accident. The forest's vote fraction is
+  nearly twice as far out at <b>0.034</b>, and isotonic regression fitted on a held-out split brings
+  it to <b>0.028</b> while changing its AUC by <b>0.0001</b>. That last number is the point of a
+  monotone calibrator: it repairs the probabilities and leaves every ranking decision exactly where
+  it was.</figcaption>
+</figure>
+
+<div class="box pitfall">
+  <span class="label">Pitfall: calibrating on the training set</span>
+  <p>Fitting the calibrator on the same rows the model was fitted on gives a calibrator fitted to
+  the model's memorised residuals, and it will look excellent in training and do nothing in
+  production. Isotonic regression is flexible enough to make this failure invisible.</p>
+  <p>Use a dedicated split, exactly as Part XXIV §24's conformal calibration does, and for the same
+  reason.</p>
+</div>
+
+<h3><span class="num">§27</span> The comparison this book has been owing</h3>
+
+<div class="box why">
+  <span class="label">How to run it so the answer means something</span>
+  <p>Three requirements, each of which is routinely skipped by whichever side is publishing.</p>
+  <p><b>Tune both families.</b> An untuned baseline is how this comparison is usually won. Both
+  families here get the same small grid and the same validation split.</p>
+  <p><b>Repeat it.</b> One split gives one number with no error bar, and reporting a ratio off it
+  is reporting noise.</p>
+  <p><b>Pair the comparison.</b> Give both families the same draws, so the difference is measured
+  within a repetition rather than between them.</p>
+</div>
+
+<h3><span class="num">§28</span> Which family wins, and when</h3>
+
+<div class="readnow"><span class="label">Go and read</span><p><span class="src">Grinsztajn, Oyallon &amp; Varoquaux (2022)</span>, <i>Why do tree-based models still outperform deep learning on typical tabular data?</i>. The paper Part VI §16 cited and this movement finally runs. Read past the headline for the ablations: the gap tracks whether the target function is smooth or irregular and how many features are uninformative, which is a claim about the <b>generating process</b>, not about tables as a format. Figure 7 below is built to test exactly that claim, on four generating processes rather than one.</p></div>
+
+<figure>
+  <img src="figures/tb/07-trees-vs-nets.svg" alt="Test error for boosted trees and a neural network across four generating processes, with error bars over eight repetitions">
+  <figcaption><b>Figure 7.</b> Four generating processes, eight paired repetitions each, both
+  families tuned over the same grid. Trees win where the target is built from <b>axis-aligned
+  thresholds</b> (0.113 against 0.419) and on the low-dimensional smooth terms (0.121 against
+  0.212). The network wins where the target is <b>linear</b> (0.026 against 0.038) and where it is a
+  <b>three-way product</b> (0.182 against 0.327). All four separate at two standard errors of the
+  paired difference. The format is not what decides it; the shape of the function is.</figcaption>
+</figure>
+
+<div class="box intuition">
+  <span class="label">Why each wins where it does</span>
+  <p>A tree represents a threshold <b>exactly</b> and a hyperplane as a staircase. A network is the
+  other way round. So a target assembled from indicator functions is the tree's native language, and
+  a linear combination is the network's.</p>
+  <p>The three-way product is the interesting case. A depth-3 tree can express a 3-way interaction
+  in principle, and it must partition the input space to do so, spending leaves on regions where a
+  smooth function would interpolate. Trees get interactions but pay for them in data.</p>
+  <p>The practical reading: the folk claim is not that trees suit tables, it is that <b>real tabular
+  targets tend to be built out of thresholds and low-order interactions</b>, which is a claim about
+  the world, and one worth checking on your own data rather than inheriting.</p>
+</div>
+
+<h3><span class="num">§29</span> Validation, which matters more than the model</h3>
+
+<div class="box shapes">
+  <span class="label">What to split on, in order of how often it is got wrong</span>
+  <p><b>Time.</b> If the rows have a date and the model will be used on future rows, split
+  chronologically. §36 measures what a random split is worth here and it is a great deal.</p>
+  <p><b>Groups.</b> If rows share an entity (a user, a patient, a device), split on the entity, or
+  the same entity appears on both sides and the model is scored on rows it has partly seen.</p>
+  <p><b>Duplicates.</b> Near-duplicate rows across a split do the same thing. Part XIII §15's
+  near-duplicate detection is the instrument.</p>
+  <p><b>Everything else:</b> the encoders of §20, any statistic computed over the full table, any
+  imputation fitted before splitting. Every preprocessing step belongs inside the fold.</p>
+</div>
+
+<h3><span class="num">§30</span> When to use which</h3>
+
+<div class="box shapes">
+  <span class="label">An honest decision procedure</span>
+  <p><b>Start with gradient boosting.</b> It needs no scaling, handles mixed types and missing
+  values, tunes over one effective hyperparameter, and is a strong baseline on almost any table.</p>
+  <p><b>Reach for a network when</b> the target looks smooth or additive in the features, when there
+  is a lot of data, when part of the input is text or an image, or when you need embeddings for
+  something else downstream.</p>
+  <p><b>Reach for a linear model when</b> you need the coefficients to be inspectable and defensible,
+  which is more often than this book's other parts imply.</p>
+  <p><b>Ensemble them</b> if the budget allows. Boosted trees and a network make different errors,
+  which is exactly the condition under which averaging helps.</p>
+</div>
+
+<h3><span class="num">§31</span> What movement D establishes</h3>
+
+<div class="box intuition">
+  <span class="label">Three things</span>
+  <p><b>Calibration depends on the loss, not the family.</b> Figure 6's boosted model is the best
+  calibrated of three because it optimised a proper scoring rule, and the forest's vote fraction
+  needed repair.</p>
+  <p><b>Neither family wins on "tabular data".</b> Figure 7 separates all four comparisons and
+  splits them two–two by the shape of the generating function.</p>
+  <p><b>The split decides more than the model.</b> Time, groups, duplicates and preprocessing all
+  leak, and the next movement measures one of them.</p>
+</div>

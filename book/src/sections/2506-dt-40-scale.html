@@ -1,0 +1,155 @@
+<h2><span class="part-kicker">Part D</span>Scale, and what it changes</h2>
+
+<h3><span class="num">§20</span> How much data</h3>
+
+<p>The question every project starts with, and it has a shape rather than an answer.</p>
+
+<div class="box def">
+  <span class="label">Three regimes, and the diagnostic that tells them apart</span>
+  <p><b>Data-limited.</b> More data helps and the model is not the constraint. The learning curve,
+  test error against training-set size, is still falling.</p>
+  <p><b>Model-limited.</b> More data does nothing; the curve has flattened above the noise floor.
+  You need a different model, not more examples.</p>
+  <p><b>At the floor.</b> Both errors sit at the irreducible error of Part V §20. You are done,
+  and no technique in this book will move it.</p>
+  <p>Part VI §6's learning curves distinguish these for about an hour's work: train on 10%, 25%,
+  50%, 100% of what you have and plot. It is the cheapest planning instrument in the book and it
+  is routinely skipped in favour of guessing.</p>
+</div>
+
+<div class="box why">
+  <span class="label">Why the curve's shape tells you what to buy</span>
+  <p>Empirically, test error against dataset size is close to a <b>power law</b> over several
+  orders of magnitude, a straight line on log–log axes. That is not a theorem and it holds well
+  enough to plan with.</p>
+  <p>The consequence is the one to internalise: on a power law, <b>each fixed improvement costs a
+  fixed multiple of the data</b>. Halving the error might take ten times the corpus. So the
+  question is never "should we get more data" but "what does the slope say the next halving
+  costs, and is that cheaper than the alternatives?".</p>
+  <p>Fit the slope from the learning curve you already have. It converts an argument into an
+  estimate, and Part XVII does the same thing for compute.</p>
+</div>
+
+<h3><span class="num">§21</span> What deduplication does to training</h3>
+
+<p>§12 said duplicates reweight the training distribution. At scale the effect is large enough
+to change conclusions.</p>
+
+<div class="box why">
+  <span class="label">Why removing data can improve a model</span>
+  <p>It sounds wrong: throwing away training examples should hurt. Three reasons it does not.</p>
+  <p><b>The distribution was not the one you chose.</b> A document appearing a thousand times
+  contributes a thousand times the gradient. You are training on a corpus reweighted by how
+  often things happen to be mirrored, which is a property of web infrastructure rather than of
+  language.</p>
+  <p><b>Duplicates cause memorisation.</b> §33's figure measures the threshold, and it is low:
+  a handful of copies is enough.</p>
+  <p><b>Duplicates cause contamination.</b> A benchmark item mirrored across the corpus reaches
+  your training set through a route no decontamination pass anticipated.</p>
+  <p>The reported effect of aggressive deduplication on large corpora is consistent: equal or
+  better performance from fewer tokens, with substantially less memorisation. It is one of the
+  few interventions that improves several things at once, which is why it is now standard.</p>
+</div>
+
+<h3><span class="num">§22</span> Quality against quantity</h3>
+
+<p>Given a fixed budget, is it better to train on more data or on better data? The honest answer
+depends on which regime §20 put you in, and the useful framing is a frontier rather than a
+choice.</p>
+
+<div class="box def">
+  <span class="label">The curation frontier</span>
+  <p>Filtering trades <b>quantity for quality</b> at a rate set by the filter. Keeping the top
+  10% of a corpus by some quality score gives you a tenth of the tokens and, you hope, a
+  better tenth.</p>
+  <p>Whether that trade is worth taking depends on the slope of both curves, and it is
+  measurable: train on the full corpus and on the filtered subset at matched compute, and
+  compare. This is a day's work and it is done far less often than the filter is applied.</p>
+</div>
+
+<div class="box pitfall">
+  <span class="label">Pitfall: quality is defined by the filter, and the filter has opinions</span>
+  <p>§17's warning, restated where it costs the most. "Quality" in a filtering pipeline means
+  "scores high under our classifier", and the classifier learned "resembles our reference
+  corpus".</p>
+  <p>So an aggressive quality filter narrows the frame (§2) in exactly the way §3's checklist
+  warns about, while the aggregate metrics improve, because the evaluation sets resemble the
+  reference corpus too. You have improved a number by making the training data more like the
+  test data, which is contamination's respectable cousin.</p>
+  <p>The check: evaluate on something the filter's reference does <b>not</b> resemble, and see
+  whether the improvement survives.</p>
+</div>
+
+<h3><span class="num">§23</span> Repeating data</h3>
+
+<p>The unusual regime that large-scale language modelling created: for the first time, teams ran
+out of data before they ran out of compute.</p>
+
+<div class="box def">
+  <span class="label">What repetition is worth</span>
+  <p>A second pass over the same corpus is not worthless and not equal to fresh data. The
+  reported picture is consistent: <b>the first few repetitions are worth nearly as much as new
+  tokens</b>, and the value decays after that, with returns approaching zero somewhere around
+  four to sixteen passes depending on scale.</p>
+  <p>Past that, repetition actively hurts: the model begins memorising rather than
+  generalising, which is §33's mechanism.</p>
+</div>
+
+<div class="box why">
+  <span class="label">Why this is now a strategic question rather than a tuning one</span>
+  <p>Part XVII's scaling laws relate performance to parameters and tokens. They assume tokens are
+  available. Once the supply of high-quality text is a binding constraint, the laws stop
+  describing what you can do and start describing what you cannot.</p>
+  <p>Three responses exist, and this part covers two of them. Use the data you have more times
+  (this section, with limits). <b>Make more data</b> (§27, with limits). Or change what counts as
+  data: other modalities, other languages, other sources. That last one is where the frame of
+  §2 stops being an abstraction and becomes a procurement decision.</p>
+</div>
+
+<h3><span class="num">§24</span> Ordering</h3>
+
+<p>Part IX §28 covered curriculum learning and found the honest result: only the stochastic form
+reliably helps, and most implementations do nothing. Two data-specific points remain.</p>
+
+<p><b>Ordering matters most at the end.</b> A model's final state is influenced disproportionately
+by what it saw last, which is why fine-tuning works at all and why the last phase of a
+pretraining run is often deliberately weighted toward higher-quality data. That is a curriculum,
+though it is rarely called one.</p>
+
+<p><b>Shuffling is a correctness requirement, not an optimisation.</b> If your data arrives sorted
+by class, by source, or by date, then a minibatch is not a sample from your training
+distribution; it is a sample from one region of it. Part IX §5's unbiasedness argument fails,
+and the model oscillates. Shuffle once, properly, and verify it.</p>
+
+<h3><span class="num">§25</span> Splitting, when the data is not i.i.d.</h3>
+
+<p>A random split assumes records are independent. §11's group leakage said they often are not.
+Here is the general procedure.</p>
+
+<div class="box def">
+  <span class="label">Split along the axis you will generalise across</span>
+  <p>Ask: what will be different in deployment? Split on <b>that</b>.</p>
+  <ul class="tight">
+    <li>New <b>users</b> at deployment → split by user, so no user appears on both sides.</li>
+    <li>New <b>time periods</b> → split by time, training strictly before testing.</li>
+    <li>New <b>sites</b>, hospitals, cameras, sources → split by site.</li>
+    <li>All of them → split by all of them, and accept the smaller test set.</li>
+  </ul>
+  <p>A random split answers "how well does this work on more of the same?", which is almost never
+  the question. It reliably reports a better number than the correct split does, and that gap is
+  a measurement of how much your model depends on the thing you failed to split on.</p>
+</div>
+
+<div class="box worked">
+  <span class="label">Worked: the gap between two splits is the informative quantity</span>
+  <p>Take a medical imaging dataset with several scans per patient from a handful of hospitals.</p>
+  <p><b>Random split:</b> 0.94. Some of the same patient's scans are on both sides.</p>
+  <p><b>Split by patient:</b> 0.89. The model was partly recognising patients.</p>
+  <p><b>Split by hospital:</b> 0.71. Most of what remained was recognising the site: scanner,
+  protocol, population.</p>
+  <p>The three numbers are all correct measurements of different questions. Only the third
+  estimates deployment at a new hospital, and the <b>drop from 0.94 to 0.71 is the finding</b>:
+  it quantifies exactly how much of the model is shortcut (§8).</p>
+  <p>Report all three. A single number invites the reader to assume the most favourable
+  interpretation, and the spread is more informative than any one of them.</p>
+</div>

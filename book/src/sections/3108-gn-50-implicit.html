@@ -1,0 +1,153 @@
+<h2><span class="part-kicker">Part E</span>Implicit models</h2>
+
+<h3><span class="num">§34</span> Generating without a density</h3>
+
+<div class="readnow"><span class="label">Go and read</span><p><span class="src">Goodfellow et al. (2014)</span>, <i>Generative adversarial networks</i>. Read §4, which proves that substituting the optimal discriminator turns the objective into the Jensen–Shannon divergence. That is the clearest available statement of what a learned loss function is, and it is worth having before §36's measurement complicates the picture.</p></div>
+
+<div class="box def">
+  <span class="label">The idea</span>
+  <p>Every family so far represented a density and then worked around the difficulty of computing
+  it. The implicit approach declines to represent one: a network maps noise to samples, and the
+  distribution is whatever that map induces. There is no $p(\mathbf{x})$ anywhere in the model.</p>
+  <p>Which raises the obvious question: with no likelihood, what is the training signal? The
+  answer is to bring in a second network whose job is to tell the samples apart from the data.</p>
+</div>
+
+<div class="box def">
+  <span class="label">The game</span>
+  <p>A <b>generator</b> $g$ maps noise to samples. A <b>discriminator</b> $d$ estimates the
+  probability that its input is real. They play</p>
+  <p>$$\min_g \max_d \;\; \mathbb{E}_{\mathbf{x}\sim p_{\text{data}}}\log d(\mathbf{x})
+  + \mathbb{E}_{\mathbf{z}}\log\big(1 - d(g(\mathbf{z}))\big)$$</p>
+  <p>The discriminator wants to separate; the generator wants to fool it. At equilibrium the
+  samples are indistinguishable from data and $d$ outputs $\tfrac{1}{2}$ everywhere.</p>
+</div>
+
+<div class="box why">
+  <span class="label">Why the objective is a divergence in disguise</span>
+  <p>For a fixed generator the optimal discriminator is</p>
+  <p>$$d^*(\mathbf{x}) = \frac{p_{\text{data}}(\mathbf{x})}
+  {p_{\text{data}}(\mathbf{x}) + p_{\text{model}}(\mathbf{x})}$$</p>
+  <p>and substituting it back turns the generator's objective into the <b>Jensen–Shannon
+  divergence</b> between data and model, up to a constant. So the game is minimising a divergence
+  after all; the discriminator is <b>estimating</b> the divergence that the loss cannot compute.</p>
+  <p>That is the design's real content: a <b>learned</b> loss function. Where maximum likelihood
+  fixes what counts as a discrepancy in advance, a GAN discovers it, which is why these models
+  produced sharp images while maximum-likelihood models produced blurry ones. The discriminator
+  notices blur, so blur is penalised.</p>
+  <p>Two cautions on that derivation. It assumes the discriminator is <b>optimal</b>, which it
+  never is. And Jensen–Shannon is a symmetric compromise between §4's two directions, so a GAN is
+  not purely mode-seeking in theory, whatever it does in practice.</p>
+</div>
+
+<h3><span class="num">§35</span> Why the training is hard</h3>
+
+<div class="box def">
+  <span class="label">Three problems, and none of them is ordinary optimisation</span>
+  <p><b>It is not minimisation.</b> There is no single objective descending. The target is a saddle
+  point of a two-player game, and gradient descent on both players can cycle around one
+  indefinitely without approaching it. Everything Part IX established about convergence assumed one
+  objective and does not apply.</p>
+  <p><b>The gradient can vanish.</b> If the discriminator gets too good, it outputs near-zero on
+  every sample, and $\log(1 - d(g(\mathbf{z})))$ saturates. The generator's gradient goes to zero
+  exactly when the discriminator is winning. The standard fix (the <b>non-saturating</b> loss,
+  maximising $\log d(g(\mathbf{z}))$ instead) has the same fixed point and a usable gradient.</p>
+  <p><b>Mode collapse.</b> Nothing in the objective rewards covering the data. A generator
+  producing one perfect sample forever is penalised only insofar as the discriminator notices the
+  lack of variety, and a discriminator that sees examples one at a time cannot.</p>
+</div>
+
+<h3><span class="num">§36</span> Mode collapse, measured</h3>
+
+<figure>
+  <img src="figures/gn/06-gan.svg" alt="Eight modes in a ring, GAN samples under the worst condition and modes produced under four training conditions">
+  <figcaption><b>Figure 6.</b> Eight modes in a ring, so a dropped mode is countable. Three seeds
+  per condition. The standard recipe covers 7–8 modes and the <b>saturating</b> loss, the
+  textbook culprit, covers <b>all eight at every seed</b>, with the best total variation of the
+  four (0.021–0.044). What collapses it is the balance: a discriminator trained <b>5:1</b> produces
+  <b>1, 2 and 2</b> modes of eight. Diffusion on identical data: <b>8/8</b>, total variation
+  <b>0.026</b>, against a sampling floor of 0.017.</figcaption>
+</figure>
+
+<div class="box why">
+  <span class="label">Why the loss form is not the culprit</span>
+  <p>The saturating objective is standardly named as the reason GAN training misbehaves, and on
+  this problem it was the <b>best</b> of the four conditions. The vanishing-gradient argument of
+  §35 is correct as far as it goes; it evidently is not what determines whether modes survive.</p>
+  <p>What did determine it was the <b>relative progress of the two players</b>. Over-train the
+  discriminator and the generator is chased into whichever single region it can currently defend,
+  and it stays there. Give Adam a high first-moment decay and the same thing happens more slowly.
+  Both are properties of the optimisation dynamics, not of the objective's algebra.</p>
+  <p>This is consistent with which fixes actually worked historically. They were about
+  <b>controlling the discriminator</b> (gradient penalties, spectral normalisation, two
+  timescales) rather than about changing what the loss measures. The literature arrived there
+  empirically; the measurement says why.</p>
+  <p>And note the failure's shape, because it is what makes it dangerous. Every sample the collapsed
+  generator produces lands on a <b>real mode</b>. Each one, inspected alone, is perfect. What is
+  wrong is invisible in any individual sample and visible only in the distribution, which is
+  precisely what §42 says visual inspection cannot see.</p>
+</div>
+
+<h3><span class="num">§37</span> What was tried</h3>
+
+<div class="box def">
+  <span class="label">A decade of stabilisation, briefly</span>
+  <ul class="tight">
+    <li><b>Wasserstein GAN</b> replaced Jensen–Shannon with a distance that stays informative when
+    the two distributions do not overlap, removing one source of vanishing gradient. Requires the
+    critic to be Lipschitz, which the <b>gradient penalty</b> supplies.</li>
+    <li><b>Spectral normalisation</b> constrains the discriminator's Lipschitz constant directly,
+    by dividing each weight matrix by its largest singular value: the operator norm of
+    Part I §14, doing a job.</li>
+    <li><b>Two-timescale updates</b> give the two players different learning rates, which is the
+    balance §36 identified, turned into a knob.</li>
+    <li><b>Minibatch discrimination</b> lets the discriminator see a batch rather than one example,
+    so lack of variety becomes detectable at all.</li>
+    <li><b>Progressive growing</b> and heavy architectural work produced the high-resolution results
+    the family is remembered for.</li>
+  </ul>
+</div>
+
+<h3><span class="num">§38</span> Why GANs lost</h3>
+
+<div class="box why">
+  <span class="label">Four reasons, and the first is the one that mattered</span>
+  <p><b>Scaling was unreliable.</b> Diffusion training is a regression: make it bigger, train it
+  longer, it improves. GAN training is a game whose stability depends on a balance that must be
+  re-established at each new scale. When compute became the main lever, the family that converts
+  compute into quality monotonically won, and that is a statement about the <b>optimisation
+  problem</b>, not about sample quality.</p>
+  <p><b>Coverage.</b> §36's failure is intrinsic to an objective that never mentions how much of
+  the data was produced. As the goal shifted from plausible images to models that respond
+  faithfully to arbitrary prompts, coverage stopped being negotiable.</p>
+  <p><b>No likelihood.</b> Nothing to report, nothing to compare, no anomaly detection, no
+  principled model selection. §41 shows this is less of an advantage for the others than it
+  appears, but zero is still worse than a loose bound.</p>
+  <p><b>Conditioning is harder.</b> Adding a text condition to a diffusion model is an extra input
+  and §30's guidance knob. Doing the same in a GAN means the discriminator must also judge whether
+  the sample matches the condition, which makes an already delicate balance harder.</p>
+  <p>The honest coda: GANs are <b>fast</b>, sampling in one forward pass where diffusion takes
+  tens. That advantage is real and it is why adversarial losses survive inside other systems: in
+  the decoders of latent diffusion models, and in distilling many-step samplers into few-step ones.
+  The family did not turn out to be wrong. It turned out to be the wrong thing to put at the centre.</p>
+</div>
+
+<h3><span class="num">§39</span> Boltzmann machines, as history</h3>
+
+<div class="box history">
+  <span class="label">The family this part was originally about</span>
+  <p>A <b>Boltzmann machine</b> is §3's energy-based model with a specific energy: quadratic in
+  binary units. The <b>restricted</b> form forbids connections within the visible and hidden
+  layers, which makes the conditionals factorise, which makes Gibbs sampling easy. Stacking them
+  gives deep belief networks and deep Boltzmann machines, and those were the models that restarted
+  deep learning in 2006.</p>
+  <p>The source this part is built on devotes a chapter to them. They are now essentially unused,
+  and the reasons are §7's, in a specific form: training needs samples from the model, sampling
+  needs a chain to mix, and the chain mixes worse as the model gets better. Contrastive divergence
+  made it affordable by running the chain a few steps from the data rather than to convergence,
+  which works and biases the gradient.</p>
+  <p>What survived is the machinery, which is why it is in this part at all. The partition-function
+  problem, the positive and negative phases, MCMC and score matching were all developed here, and
+  score matching, invented to avoid $Z$ for these models, is what §29 is built on. The destination
+  changed and the toolkit did not.</p>
+</div>

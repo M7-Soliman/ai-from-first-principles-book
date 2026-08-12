@@ -1,0 +1,135 @@
+<h2><span class="part-kicker">Part F</span>Practice</h2>
+
+<p class="mvt">What to do differently on Monday. The design comes before the data, the assumptions
+go in writing, and a causal claim owes its reader a specific list of things, none of which is a
+p-value.</p>
+
+<h3><span class="num">§40</span> The design comes before the data</h3>
+
+<div class="box why">
+  <span class="label">The order that separates credible work from the rest</span>
+  <p>Write the question as an intervention: <i>what would happen to</i> <span class="m">$Y$</span>
+  <i>if we set</i> <span class="m">$X$</span> <i>for population</i> <span class="m">$P$</span>.
+  Vague questions get vague estimands and unfalsifiable answers.</p>
+  <p>Draw the graph. Ten minutes, before you look at the data, and it is worth the discomfort
+  because it forces the assumptions into view while they can still change the design.</p>
+  <p>Ask whether the quantity is identifiable (§14). If it is not, no analysis will fix it and the
+  right move is to change the design or the question.</p>
+  <p>Pick the estimator and the checks <i>then</i>. Choosing after seeing results is Part XIV
+  §20's biased maximum with a larger search space and no hold-out.</p>
+</div>
+
+<div class="box try">
+  <span class="label">Pre-register, even privately</span>
+  <p>Write the estimand, the graph, the adjustment set and the checks into a file and commit it
+  before the analysis. Nobody needs to see it. Its function is that you cannot afterwards convince
+  yourself this was the plan, and that failure mode is nearly universal and nearly invisible.</p>
+  <p>This is the same instrument as Part XXI §42's "say what would change your mind, in advance,"
+  applied where the temptation is strongest.</p>
+</div>
+
+<h3><span class="num">§41</span> What a causal claim owes you</h3>
+
+<div class="box shapes">
+  <span class="label">Six things, and their absence is informative</span>
+  <p><b>The estimand.</b> Whose effect, of what, on what. Average over which population.</p>
+  <p><b>The identifying assumptions, named.</b> Which backdoor set, or which design and its
+  untestable claim. "We controlled for confounders" is not this.</p>
+  <p><b>The positivity check.</b> The propensity distributions, plotted. One line of code, and
+  Figure 3 is why.</p>
+  <p><b>The estimator, and what it assumes.</b> Including which model has to be right, and whether
+  weights were clipped or units trimmed.</p>
+  <p><b>Sensitivity.</b> How strong an unmeasured confounder would have to be (§22).</p>
+  <p><b>The uncertainty, honestly.</b> Including the model-selection step, if the specification was
+  chosen after seeing data.</p>
+  <p>A paper missing the first two is not making a causal claim, whatever its verbs say. A paper
+  missing the third has not checked the one assumption that is checkable.</p>
+</div>
+
+<h3><span class="num">§42</span> Reading a causal claim critically</h3>
+
+<div class="box shapes">
+  <span class="label">In the order that finds problems fastest</span>
+  <p><b>Was anything randomised?</b> If yes, most of this part is unnecessary: go to external
+  validity and compliance. If no, continue.</p>
+  <p><b>What is the adjustment set, and why that one?</b> Look for descendants of the treatment.
+  "All available covariates" means colliders and mediators were included by default.</p>
+  <p><b>Could the sample have been selected on a collider?</b> Ask how units entered. This is where
+  Figure 2 lives, and it is rarely discussed.</p>
+  <p><b>Is there overlap?</b> If the plot is absent, assume it was not looked at.</p>
+  <p><b>What would falsify it?</b> If the design admits a placebo test, a pre-trend check or a
+  negative control and none was run, ask why.</p>
+  <p><b>Does the estimand match the conclusion?</b> An instrument gives compliers, a discontinuity
+  gives the cutoff, matching gives the matched. Conclusions written about everyone frequently rest
+  on estimates about somebody narrower.</p>
+</div>
+
+<h3><span class="num">§43</span> Where this changes the rest of the book</h3>
+
+<div class="box shapes">
+  <span class="label">Seven places, specifically</span>
+  <p><b>Part VI's spurious correlation</b> now has a mechanism: the shortcut is an effect of the
+  target or a descendant of a confounder, and Figure 6 shows what that costs off-distribution.</p>
+  <p><b>Part XIII §7 and §17</b>: selection bias and filtering are conditioning on colliders,
+  which is why they distort in the direction they do.</p>
+  <p><b>Part XIV §21</b>: an ablation is a <span class="m">$\mathrm{do}$</span> operation on a
+  pipeline. The reason it isolates is that it severs incoming arrows, and the reason ablating
+  several things at once does not decompose is that the graph has paths through both.</p>
+  <p><b>Part XVIII §40</b>: offline reinforcement learning's conservatism is positivity: value
+  outside the logged support is unidentified, not merely uncertain.</p>
+  <p><b>Part XX §26 and §31</b>: a preference dataset is collected under a policy, and evaluating
+  a different one from it is off-policy evaluation with the propensity usually unlogged.</p>
+  <p><b>Part XXI §9–§16</b>: the interventions there are causal inference on a graph you wrote
+  down: the easy case, and about the computation rather than the world (§36).</p>
+  <p><b>Part XXI §29</b>: the observational fairness criteria have causal counterparts (§37), and
+  the argument they are used to settle is usually about which paths are legitimate.</p>
+</div>
+
+<h3><span class="num">§44</span> What is unsolved</h3>
+
+<div class="box why">
+  <span class="label">Four, distinguished by kind</span>
+  <p><b>Not yet measured.</b> Whether invariance-based methods beat well-tuned empirical risk
+  minimisation on realistic distribution shifts. The published comparisons disagree and the
+  baselines are frequently undertuned: Part XIV §21's problem, in a young literature.</p>
+  <p><b>Not currently measurable.</b> Whether an unmeasured confounder exists. There is no test,
+  there will not be one, and §22's sensitivity analysis is the honest substitute rather than a
+  solution.</p>
+  <p><b>Genuinely open.</b> Causal representation learning: recovering variables that stand in
+  causal relations from raw observations, rather than assuming them given. Identifiability results
+  exist under strong assumptions and it is not settled what happens without them.</p>
+  <p><b>Not empirical at all.</b> Which paths count as legitimate in a fairness argument, and whose
+  causal model gets used. §37 makes the disagreement precise. It does not resolve it, and
+  resolution is not a technical matter.</p>
+</div>
+
+<h3><span class="num">§45</span> What to carry forward</h3>
+
+<div class="box intuition">
+  <span class="label">Five things</span>
+  <p><b>Prediction and intervention are different quantities.</b> No accuracy on the first bounds
+  the error on the second, and Figure 1's naive estimate is exactly right about the wrong
+  question: reporting the opposite sign of a true effect it computed on forty thousand points.</p>
+  <p><b>Controlling for more is not safer.</b> Confounders must be adjusted for, colliders must not
+  be, mediators depend on the question, and nothing in the data distinguishes them. Figure 2
+  manufactures a correlation of −0.519 between independent variables by conditioning.</p>
+  <p><b>Identification precedes estimation, and can fail outright.</b> For some graphs no estimator
+  exists at any sample size. Recognising that early converts a modelling problem into a design
+  problem, which is the only place it can be solved.</p>
+  <p><b>Designs relocate assumptions rather than removing them.</b> Instruments, differences,
+  discontinuities and synthetic controls each swap "the confounders are measured" for a different
+  untestable claim, chosen because it is easier to defend. State which one you bought.</p>
+  <p><b>A model that uses causes is stable; one that uses effects is not.</b> Figure 6's causal
+  predictor is the worst on training-like data and the only one still working when the environment
+  turns over. Random splits cannot see the difference: split by environment.</p>
+</div>
+
+<div class="sixty">
+  <span class="label">Sixty seconds</span>
+  <p>Write the question as an intervention. Draw the graph before the data. Check that the quantity
+  is identifiable at all, and if it is not, change the design rather than the model. Adjust for
+  confounders, never for descendants of the treatment. Plot the propensity overlap, because it is
+  the one assumption you can check. Say which untestable claim your design bought, and how strong
+  a confounder would have to be to overturn you. Then report the estimand you actually estimated,
+  not the one you wanted.</p>
+</div>

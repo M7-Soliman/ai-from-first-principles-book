@@ -1,0 +1,168 @@
+<h2><span class="part-kicker">Part D</span>Coverage without assumptions</h2>
+
+<p class="mvt">Every method in movement C produces an interval whose coverage is an empirical
+question. Conformal prediction produces one whose coverage is a theorem (for any model, any
+distribution, any sample size) requiring a single assumption. This movement measures that it
+holds, and measures what happens when the assumption does not.</p>
+
+<h3><span class="num">§24</span> The construction</h3>
+
+<div class="readnow"><span class="label">Go and read</span><p><span class="src">Angelopoulos &amp; Bates (2023)</span>, <i>A gentle introduction to conformal prediction and distribution-free uncertainty quantification</i>. The clearest available entry point: §2 states the coverage proof in a single paragraph (essentially the exchangeability-and-ranks argument below with the bookkeeping made explicit) and later sections cover the classification sets of §28 and the adaptive variants beyond what this movement develops. Read it once and implement it the same afternoon; the algorithm is short enough that reading and coding it take about the same time, which is the paper's own argument for why the method is trusted.</p></div>
+
+<div class="box def">
+  <span class="label">Split conformal, in four steps</span>
+  <p>1. Fit any model on a training split. It can be anything; nothing about it is assumed.<br>
+     2. On a held-out <b>calibration</b> set, compute a nonconformity score for each point: for
+     regression, <span class="m">$s_i = |y_i - \hat{f}(x_i)|$</span>.<br>
+     3. Take <span class="m">$\hat{q}$</span> as the
+     <span class="m">$\lceil (n+1)(1-\alpha) \rceil / n$</span> empirical quantile of those
+     scores.<br>
+     4. Predict the interval <span class="m">$\hat{f}(x) \pm \hat{q}$</span>.</p>
+  <p>Then <span class="m">$P(y_{n+1} \in C(x_{n+1})) \geq 1 - \alpha$</span>, in finite samples,
+  with no asymptotics.</p>
+</div>
+
+<div class="box intuition">
+  <span class="label">Why it works, in one sentence</span>
+  <p>If the calibration scores and the test score are exchangeable, the test score is equally likely
+  to land in any position among them; so it falls below the
+  <span class="m">$(1-\alpha)$</span> quantile with probability at least
+  <span class="m">$1-\alpha$</span>. That is the whole proof, and it is about ranks rather than
+  about the model, which is why the model is unconstrained.</p>
+  <p>The small correction <span class="m">$(n+1)$</span> rather than <span class="m">$n$</span> is
+  what makes it exact in finite samples rather than approximate.</p>
+</div>
+
+<h3><span class="num">§25</span> The guarantee, measured</h3>
+
+<figure>
+  <img src="figures/uq/04-conformal.svg" alt="Measured against nominal coverage for a good model and a constant predictor, and the mean interval widths">
+  <figcaption><b>Figure 4.</b> The same procedure with a sixth-degree fit and with a <b>constant
+  predictor</b> that ignores the input entirely. Both achieve the coverage they promise across five
+  levels: 0.698, 0.800, 0.901, 0.950, 0.980 for the good model and 0.700, 0.799, 0.901, 0.950,
+  0.980 for the useless one. The difference is entirely in the width: <b>1.31 to 2.52</b> against
+  <b>2.10 to 4.43</b>. The model does not affect whether the interval is valid, only how
+  informative it is.</figcaption>
+</figure>
+
+<div class="box why">
+  <span class="label">What "distribution-free" buys here that it did not in Part XXIII</span>
+  <p>Part XXIII's distribution-free bounds were vacuous at realistic sizes. These are not, and the
+  difference is what is being bounded: there, the risk of every hypothesis in a class,
+  simultaneously; here, the coverage of one interval for one new point.</p>
+  <p>The weaker claim is achievable. That is the lesson worth carrying: a guarantee is worthless or
+  valuable depending on how much it tries to cover, and the useful ones are usually narrower than
+  the ones people wish for.</p>
+</div>
+
+<h3><span class="num">§26</span> Marginal, not conditional</h3>
+
+<div class="box pitfall">
+  <span class="label">Pitfall: the guarantee is averaged over inputs</span>
+  <p>Coverage is <span class="m">$P(y \in C(x)) \geq 1-\alpha$</span> where the probability is over
+  <b>both</b> the test point and its input. It is <i>not</i>
+  <span class="m">$P(y \in C(x) \mid x) \geq 1-\alpha$</span> for every
+  <span class="m">$x$</span>.</p>
+  <p>So a constant-width interval can cover 90% overall while covering 99% of easy inputs and 60% of
+  hard ones, which is Part XXIII §43's worst-group problem, arriving in a method that looks like it
+  has a guarantee. The guarantee is real and it is marginal.</p>
+  <p>Exact conditional coverage is impossible without assumptions, which is a theorem rather than an
+  open problem. §27's repairs are approximations to it.</p>
+</div>
+
+<h3><span class="num">§27</span> Making the width adapt</h3>
+
+<div class="box shapes">
+  <span class="label">Three ways to stop the interval being constant</span>
+  <p><b>Normalised scores.</b> Divide by a predicted difficulty:
+  <span class="m">$s_i = |y_i - \hat{f}(x_i)| / \hat{\sigma}(x_i)$</span>, with
+  <span class="m">$\hat{\sigma}$</span> from §5's heteroscedastic head. The interval becomes
+  <span class="m">$\hat{f}(x) \pm \hat{q}\,\hat{\sigma}(x)$</span>, and the marginal guarantee
+  survives however bad <span class="m">$\hat{\sigma}$</span> is.</p>
+  <p><b>Conformalised quantile regression.</b> Fit models of the
+  <span class="m">$\alpha/2$</span> and <span class="m">$1-\alpha/2$</span> quantiles directly, then
+  conformalise the residual. Adapts well and is the usual recommendation for regression.</p>
+  <p><b>Group-conditional.</b> Calibrate separately within each of a set of predefined groups,
+  giving the guarantee within each. This is the direct repair for §26's problem when you know which
+  groups you care about; and Part XXIII §43's caveat applies: you need the group labels.</p>
+</div>
+
+<aside class="mnote"><b>Not developed here:</b> jackknife+ and CV+ get the same finite-sample
+guarantee without giving up half the data to a calibration split, by leaving out one point (or one
+fold) at a time. Worth knowing exists if a held-out calibration set is the expensive part.</aside>
+
+<h3><span class="num">§28</span> Classification, and sets rather than intervals</h3>
+
+<div class="box def">
+  <span class="label">Prediction sets</span>
+  <p>For classification the output is a <b>set</b> of labels guaranteed to contain the truth with
+  probability <span class="m">$1-\alpha$</span>. Score each class by
+  <span class="m">$1 - \hat{p}(y \mid x)$</span> and include every class scoring below the
+  calibrated threshold.</p>
+  <p>The set's <b>size</b> is then an interpretable difficulty signal: one label means confident,
+  five means the model has narrowed it to five, and the empty set (possible at large
+  <span class="m">$\alpha$</span>, that is, at low nominal coverage, where the calibrated inclusion
+  bar is strict enough that even the top-scoring class can fail to clear it) means nothing scored
+  well enough, which is a useful thing for a system to be able to say.</p>
+  <p>This is the natural implementation of Part XIV §4's option to refuse: refuse when the set is
+  too large to act on.</p>
+</div>
+
+<h3><span class="num">§29</span> Where the guarantee ends</h3>
+
+<div class="readnow"><span class="label">Go and read</span><p><span class="src">Tibshirani et al. (2019)</span>, <i>Conformal prediction under covariate shift</i>. The source of the weighted-conformal repair below: reweight each calibration score by the likelihood ratio between the training and test covariate distributions and the exchangeability argument goes through essentially unchanged. Read it for the positivity condition it states carefully (every test input needs nonzero density under the calibration distribution, or no weighting recovers it), which is the same requirement Part XXIII §40 gives for importance weighting generally, arriving here as the reason a moved distribution cannot always be repaired.</p></div>
+
+<figure>
+  <img src="figures/uq/05-shift.svg" alt="Measured coverage against the size of the shift between calibration and test distributions">
+  <figcaption><b>Figure 5.</b> The single assumption is exchangeability between calibration and test.
+  Break it by moving the test distribution and coverage falls from <b>0.901</b> at no shift to
+  <b>0.496</b> at a shift of 1.6: an interval promising 90% containing the truth half the time. The
+  degradation is smooth and it is not self-announcing: nothing in the procedure reports that the
+  promise has stopped holding.</figcaption>
+</figure>
+
+<div class="box why">
+  <span class="label">Reading this next to Figure 4</span>
+  <p>Figure 4 says the guarantee survives an arbitrarily bad model. Figure 5 says it does not
+  survive a moved distribution. Those are the two halves of what conformal prediction is: enormous
+  robustness to model misspecification, no robustness at all to the exchangeability assumption.</p>
+  <p>Which means the assumption to monitor is not "is my model still good" (that is handled) but
+  "is the data still like the calibration set", which is Part XXIII §44's detection problem and
+  Part XXI §35's monitoring.</p>
+</div>
+
+<div class="box shapes">
+  <span class="label">What is available when it is broken</span>
+  <p><b>Weighted conformal.</b> If the shift is covariate shift and you can estimate the likelihood
+  ratio, reweight the calibration scores and the guarantee is restored: Part XXIII §40's importance
+  weighting, with the same positivity requirement.</p>
+  <p><b>Recalibrate continuously.</b> With labels arriving, roll the calibration set forward. This
+  is the practical answer and it needs labels.</p>
+  <p><b>Report the shift.</b> If neither is available, the honest move is to state that the coverage
+  guarantee is conditional on an assumption you are no longer able to check.</p>
+</div>
+
+<h3><span class="num">§30</span> What conformal does not give you</h3>
+
+<div class="box shapes">
+  <span class="label">Four things, stated so they are not assumed</span>
+  <p><b>Conditional coverage</b>: §26. Marginal only, unless you group-condition.</p>
+  <p><b>A good model</b>: Figure 4's constant predictor is valid and useless. Width is the model's
+  job.</p>
+  <p><b>Robustness to shift</b>: Figure 5.</p>
+  <p><b>The two kinds of uncertainty separately</b>: the interval is a total, and movement A's
+  decomposition is not recoverable from it.</p>
+</div>
+
+<h3><span class="num">§31</span> What movement D establishes</h3>
+
+<div class="box intuition">
+  <span class="label">Three things</span>
+  <p><b>A finite-sample coverage guarantee is available for any model.</b> Figure 4 hits its nominal
+  rate to within 0.002 at five levels, for a sixth-degree fit and for a predictor that ignores the
+  input.</p>
+  <p><b>The model decides the width, not the validity.</b> Which relocates the modelling question
+  cleanly: a better model gives a narrower interval, and never a wrong one.</p>
+  <p><b>Exchangeability is the entire assumption</b>, and it fails silently: Figure 5's coverage
+  reaches 0.496 against a promised 0.90 with no signal from the method itself.</p>
+</div>

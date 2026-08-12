@@ -1,0 +1,152 @@
+<h2><span class="part-kicker">Part C</span>Uncertainty for networks</h2>
+
+<p class="mvt">A network has millions of parameters and no closed-form posterior. Four approximations
+are in common use, they cost between nothing and a great deal, and their intervals contain the truth
+at rates worth measuring rather than assuming. This movement measures them.</p>
+
+<h3><span class="num">§16</span> What a prior over weights means</h3>
+
+<div class="box def">
+  <span class="label">The Bayesian neural network</span>
+  <p>Put a prior on the weights, condition on the data, predict by integrating:</p>
+  <p class="m">$$p(y_* \mid x_*, \mathcal{D}) = \int p(y_* \mid x_*, \theta)\, p(\theta \mid \mathcal{D})\, \mathrm{d}\theta$$</p>
+  <p>Every difficulty is in that integral. The posterior is over millions of dimensions, is
+  multimodal by construction (Part IX §7's weight-space symmetries mean every mode has
+  astronomically many copies) and has no analytic form.</p>
+</div>
+
+<div class="box why">
+  <span class="label">The awkward question: what does a weight prior say?</span>
+  <p>An isotropic Gaussian on the weights is the default and nobody chose it because it expresses a
+  belief about functions. It was chosen because it is convenient and corresponds to weight decay.</p>
+  <p>What it implies about functions depends on the architecture in ways that are hard to state,
+  and different architectures with the same weight prior imply very different function priors. This
+  is the practical reason movement B's approach (specify the prior over functions directly) is
+  more interpretable, and the reason it does not scale is the reason nobody does it.</p>
+</div>
+
+<h3><span class="num">§17</span> Variational inference</h3>
+
+<div class="box def">
+  <span class="label">Replacing integration with optimisation</span>
+  <p>Choose a tractable family <span class="m">$q_\phi(\theta)$</span>, usually independent
+  Gaussians per weight, and maximise the evidence lower bound:</p>
+  <p class="m">$$\mathcal{L}(\phi) = \mathbb{E}_{q_\phi}\big[\log p(\mathcal{D} \mid \theta)\big] - \mathrm{KL}\!\left(q_\phi \,\|\, p(\theta)\right)$$</p>
+  <p>Part XVI §15's ELBO, applied to weights rather than latents, with the same reparameterisation
+  trick making it differentiable. The cost is roughly double the parameters and a noisier gradient.</p>
+  <p>The known weakness is inherited from Part XVI §17: a mean-field <span class="m">$q$</span>
+  <b>underestimates</b> the posterior variance when the true posterior is correlated, and the
+  posterior over a network's weights is enormously correlated.</p>
+</div>
+
+<h3><span class="num">§18</span> The Laplace approximation</h3>
+
+<div class="box def">
+  <span class="label">A Gaussian at the mode</span>
+  <p>Train normally to get <span class="m">$\theta_{\text{MAP}}$</span>, then fit a Gaussian there
+  with covariance the inverse Hessian of the negative log-posterior: the loss's curvature plus the
+  prior's, which is the loss alone only when the prior is flat. Curvature becomes uncertainty: flat
+  directions are uncertain, sharp ones are not.</p>
+  <p>Its attraction is that it is <b>post hoc</b>: it costs one Hessian approximation on an
+  already-trained model and changes nothing about training. Its limitation is that the Hessian is
+  intractable in full, so a diagonal or Kronecker-factored approximation is used, and the quality of
+  the intervals depends on which.</p>
+  <p>Part III §10's curvature and Part IX §19's Newton method are the same object read for a
+  different purpose: there it told you how to step, here it tells you what you do not know.</p>
+</div>
+
+<h3><span class="num">§19</span> Dropout and ensembles</h3>
+
+<div class="readnow"><span class="label">Go and read</span><p><span class="src">Lakshminarayanan, Pritzel &amp; Blundell (2017)</span>, <i>Simple and scalable predictive uncertainty estimation using deep ensembles</i>. The paper that established the recipe below: independently-initialised networks trained on a proper scoring rule, with no Bayesian derivation offered or claimed. Read it for the honesty of that framing: the argument is carried entirely by measurement against variational and MC-dropout baselines, not by theory, which is exactly the empirical-not-explained status §21 gives the method.</p></div>
+
+<div class="box shapes">
+  <span class="label">The two that are actually used</span>
+  <p><b>MC dropout.</b> Leave dropout on at prediction time and average several forward passes.
+  Costs nothing to implement if the model already uses dropout, which is the entire reason for its
+  popularity. The Bayesian interpretation is contested; treat it as a cheap perturbation
+  ensemble.</p>
+  <p><b>Deep ensembles.</b> Train <span class="m">$K$</span> networks from different
+  initialisations and average. Costs <span class="m">$K$</span> times the training and consistently
+  performs best on calibration and out-of-distribution benchmarks. Not Bayesian in derivation:
+  different initialisations find genuinely different modes, which is closer to sampling the
+  posterior's structure than any single-mode method.</p>
+</div>
+
+<h3><span class="num">§20</span> What each one's intervals contain</h3>
+
+<figure>
+  <img src="figures/uq/03-approximations.svg" alt="Measured coverage of nominal 95 percent intervals for the exact posterior, a bootstrap ensemble, MC dropout and a point estimate">
+  <figcaption><b>Figure 3.</b> A linear-Gaussian problem, chosen because the exact posterior is
+  available for comparison, with queries drawn partly outside the training range. Nominal coverage
+  is 0.95. The exact posterior delivers <b>0.955</b>. A bootstrap ensemble delivers <b>0.967</b>.
+  MC dropout <b>over-covers</b> at 0.993: its intervals are too wide, so they are valid and
+  uninformative. A point estimate reporting only the noise delivers <b>0.790</b>: it is missing the
+  epistemic term, and the missing term is exactly what matters away from the data.</figcaption>
+</figure>
+
+<div class="box why">
+  <span class="label">Two failures, and only one of them is dangerous</span>
+  <p><b>Over-covering</b> (dropout, 0.993) wastes information. Intervals wider than they need to be
+  make the system look less useful than it is, and every decision built on them is conservative.
+  Recoverable, and detectable by exactly this measurement.</p>
+  <p><b>Under-covering</b> (point estimate, 0.790) is the dangerous one. One prediction in five falls
+  outside an interval promising one in twenty, and every downstream decision is taken with more
+  confidence than the evidence supports. Part XXI §32's safety case built on such an interval is
+  wrong in the direction that matters.</p>
+  <p>Note that restricted to the densely observed region the point estimate would have scored close
+  to nominal. It fails where the query moves away from the data, which is where an uncertainty
+  estimate is load-bearing and where the benchmark rarely looks.</p>
+</div>
+
+<h3><span class="num">§21</span> Why ensembles do well</h3>
+
+<div class="box intuition">
+  <span class="label">Mode diversity beats within-mode precision</span>
+  <p>Variational inference and Laplace both characterise a <i>single</i> mode carefully. An ensemble
+  characterises several modes crudely. Empirically the second wins on calibration and on
+  out-of-distribution detection, which says something about where the posterior's mass actually
+  is.</p>
+  <p>The implication is uncomfortable for the theory and useful in practice: the thing to buy with a
+  fixed budget is <b>diversity of solution</b>, not fidelity to one. Part VIII §18's bagging said the
+  same about accuracy; this says it about uncertainty.</p>
+</div>
+
+<div class="box pitfall">
+  <span class="label">Pitfall: an ensemble of near-identical models</span>
+  <p>If the members share an initialisation scheme, an architecture, an augmentation policy and a
+  data ordering, they may find the same mode and their spread will understate the uncertainty while
+  looking like a proper ensemble.</p>
+  <p>Check it: measure the disagreement between members on inputs where they should disagree:
+  out-of-distribution ones. Near-zero disagreement there means the ensemble is decorative, and this
+  is drill C4.</p>
+</div>
+
+<h3><span class="num">§22</span> The cost table, honestly</h3>
+
+<div class="box shapes">
+  <span class="label">What each buys, and what it costs</span>
+  <p><b>Point estimate</b>: free. No epistemic term at all. Figure 3: 0.790.</p>
+  <p><b>MC dropout</b>: a few extra forward passes. Over-covers here; quality depends on a dropout
+  rate that was chosen for regularization rather than for uncertainty.</p>
+  <p><b>Laplace</b>: one post-hoc Hessian approximation, no retraining. Reasonable, and limited by
+  which Hessian approximation you can afford.</p>
+  <p><b>Bootstrap ensemble</b>: <span class="m">$K\times$</span> refits and
+  <span class="m">$K\times$</span> inference; Figure 3 measures this, resampling one dataset rather
+  than retraining from different initialisations. Best measured quality here: 0.967. §19's genuine
+  deep ensemble costs the same order.</p>
+  <p><b>Conformal</b> (movement D): one held-out calibration set, no retraining, and a guarantee
+  none of the above has.</p>
+</div>
+
+<h3><span class="num">§23</span> What movement C establishes</h3>
+
+<div class="box intuition">
+  <span class="label">Three things</span>
+  <p><b>The intervals differ, and the differences are measurable.</b> Figure 3 puts four methods
+  between 0.790 and 0.993 against a nominal 0.95, on a problem where the right answer is known.</p>
+  <p><b>Under-covering and over-covering are not symmetric.</b> Too wide is wasteful; too narrow is
+  a decision taken on evidence that does not support it.</p>
+  <p><b>Diversity beats precision at fixed cost.</b> Ensembles characterise several modes crudely
+  and outperform methods that characterise one carefully, which is an empirical finding the theory
+  does not yet explain.</p>
+</div>

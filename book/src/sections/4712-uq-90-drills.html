@@ -1,0 +1,331 @@
+<h2><span class="part-kicker">Practice</span>Drills</h2>
+
+<p class="mvt">Thirty-nine drills. The harness in <code>parts/24-uncertainty/drills/</code> covers
+seventeen of them with twenty-one tests. Nearly every one is a coverage measurement, because that
+is the only thing separating an uncertainty estimate from a number.</p>
+
+<h3><span class="num">Tier 0</span> Estimate first</h3>
+
+<div class="drill">
+  <div class="head"><span class="tier est">Estimate</span>E1 &middot; How much calibration data</div>
+  <p>Split conformal prediction at 90% nominal coverage, with 99 calibration points. Write down the coverage the finite-sample guarantee actually gives.</p>
+  <div class="ans"><b>Answer.</b> Exactly <b>0.90</b>: &lceil;(n+1)(1&minus;&alpha;)&rceil;/(n+1) = 90/100. The guarantee is exact rather than asymptotic, which is what makes it unusual; but it is <i>marginal</i>, so it says nothing about coverage on any particular subgroup, and that is where deployed conformal predictors disappoint. <i>Score yourself: within a factor of two is a pass, and an order of magnitude out is worth understanding before you go on.</i></div>
+</div>
+
+<h3><span class="num">Tier 1</span> Warm-up</h3>
+
+<div class="drill">
+  <div class="head"><span class="tier warm">Warm-up</span>W1 · The promise</div>
+  <p>What does a 90% interval claim, and over what?</p>
+  <div class="ans"><b>Answer.</b> That over repeated draws it contains the truth 90% of the time. It
+  is a property of the procedure, not of the interval in front of you (Part V §9's distinction),
+  and the same misreading is available.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier warm">Warm-up</span>W2 · Which kind</div>
+  <p>A weather model says 30% chance of rain. Two doctors disagree about a diagnosis. Which
+  uncertainty is which?</p>
+  <div class="ans"><b>Answer.</b> The first is mostly aleatoric: the atmosphere is genuinely
+  stochastic at that resolution. The second is epistemic: there is a fact and nobody knows it. More
+  data helps only the second.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier warm">Warm-up</span>W3 · The test that separates them</div>
+  <p>You have one number. How do you find out which kind it is?</p>
+  <div class="ans"><b>Answer.</b> Add data and look. Epistemic falls; aleatoric does not. Figure 1
+  measures 213-fold against zero. If you cannot add data, use an ensemble and read the spread
+  between members.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier warm">Warm-up</span>W4 · Why calibration is not enough</div>
+  <p>Your model is perfectly calibrated on the validation set. Name two things you still do not
+  know.</p>
+  <div class="ans"><b>Answer.</b> How it behaves on inputs unlike that set, and which kind of
+  uncertainty a given number represents. Both matter more than calibration for anything you deploy.
+  </div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier warm">Warm-up</span>W5 · Read Figure 2</div>
+  <p>Why is the posterior variance larger in the gap than where the data is?</p>
+  <div class="ans"><b>Answer.</b> It reverts toward the prior as the correlation with observed
+  points falls. Note it does not depend on the observed <i>values</i> at all: only on where you
+  observed.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier warm">Warm-up</span>W6 · Over and under</div>
+  <p>One method covers at 0.99 against a nominal 0.95, another at 0.79. Which is worse?</p>
+  <div class="ans"><b>Answer.</b> The second, and it is not close. Too wide wastes information; too
+  narrow means every downstream decision was taken on evidence that did not support it.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier warm">Warm-up</span>W7 · The conformal bargain</div>
+  <p>Split conformal gives a guarantee for any model. What does the model still control?</p>
+  <div class="ans"><b>Answer.</b> The width. Figure 4's constant predictor is exactly as valid and
+  roughly twice as wide. Validity is free; informativeness is the modelling.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier warm">Warm-up</span>W8 · Marginal, not conditional</div>
+  <p>Your conformal intervals cover 90% overall. What might they be doing to your smallest
+  segment?</p>
+  <div class="ans"><b>Answer.</b> Anything. 99% on the easy majority and 60% on the hard minority
+  averages to 90%. This is Part XXIII §43's worst-group problem wearing a guarantee.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier warm">Warm-up</span>W9 · The one assumption</div>
+  <p>What breaks conformal prediction, and does it announce itself?</p>
+  <div class="ans"><b>Answer.</b> Exchangeability between calibration and test. It does not announce
+  itself: Figure 5's coverage reaches 0.496 against a promised 0.90 with no signal from the
+  method.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier warm">Warm-up</span>W10 · Where the threshold belongs</div>
+  <p>A miss costs nine times a false alarm. Where do you threshold?</p>
+  <div class="ans"><b>Answer.</b> At <span class="m">$1/(1+9) = 0.1$</span>. It depends only on the
+  cost ratio: not on the base rate, not on the model.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier warm">Warm-up</span>W11 · What 0.5 asserts</div>
+  <p>Your system thresholds at 0.5. What has it claimed?</p>
+  <div class="ans"><b>Answer.</b> That a false positive and a false negative cost exactly the same.
+  Nobody wrote that down and it is almost never true. Figure 6 prices the error at 4.7× under a 50:1
+  ratio.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier warm">Warm-up</span>W12 · When information is worthless</div>
+  <p>A test predicts the outcome almost perfectly. When is it worth nothing?</p>
+  <div class="ans"><b>Answer.</b> When it never changes which action is best. Value of information
+  is about decisions, which is why feature importance answers a different question.</div>
+</div>
+
+<h3><span class="num">Tier 2</span> Core</h3>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C1 · Measure coverage</div>
+  <p>Implement <code>coverage</code>, <code>coverage_by_group</code> and
+  <code>interval_width</code>. Run them on any model you already have.</p>
+  <div class="ans"><b>Answer.</b> One line each, and the first honest number most systems have ever
+  produced about their own uncertainty. Do the by-group version before you believe the marginal
+  one.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C2 · Reproduce Figure 1</div>
+  <p>Generate data with a noise level you set, fit an ensemble across sample sizes, and separate the
+  two variances by the law of total variance.</p>
+  <div class="ans"><b>Answer.</b> Epistemic falls 213× over the well-conditioned range; aleatoric
+  sits at the square of the noise you chose. Note what happens when <span class="m">$n$</span>
+  approaches the number of basis functions, and why that number is not interesting.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C3 · A heteroscedastic head</div>
+  <p>Train a model with two outputs, mean and log-variance, on the Gaussian likelihood. Then check
+  the mean's accuracy separately.</p>
+  <div class="ans"><b>Answer.</b> Watch for the escape route: the loss is reduced by declaring hard
+  points noisy rather than fitting them. A well-calibrated inaccurate model is the symptom.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C4 · Is your ensemble real</div>
+  <p>Measure member disagreement on in-distribution and out-of-distribution inputs.</p>
+  <div class="ans"><b>Answer.</b> If disagreement does not rise off-distribution, the members found
+  the same mode and your epistemic estimate is decorative. Vary initialisation, data order and
+  augmentation before concluding the uncertainty is genuinely small.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C5 · The GP posterior, from scratch</div>
+  <p>Implement <code>rbf_kernel</code> and <code>gp_posterior</code> with a Cholesky factorisation.
+  Reproduce Figure 2.</p>
+  <div class="ans"><b>Answer.</b> Thirty lines. The interval widens in the gap without anyone asking
+  it to, and the variance is unchanged if you replace every observed value with nonsense, which is
+  worth verifying directly.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C6 · Sweep the length-scale</div>
+  <p>Vary the kernel length-scale across three orders of magnitude and watch the posterior.</p>
+  <div class="ans"><b>Answer.</b> Too short and it reverts to the prior between every pair of points;
+  too long and it cannot represent the variation. The intervals are confidently wrong at both ends,
+  which is what "the kernel is the assumption" means operationally.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C7 · Latent against predictive</div>
+  <p>Compare the variance of the latent function with the variance of a new observation.</p>
+  <div class="ans"><b>Answer.</b> They differ by the noise term, and confusing them is the most
+  common GP implementation bug. Coverage of held-out <i>observations</i> needs the predictive
+  variance.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C8 · Marginal likelihood as model selection</div>
+  <p>Implement <code>log_marginal_likelihood</code> and use it to recover a length-scale you
+  generated data from.</p>
+  <div class="ans"><b>Answer.</b> It finds it, without holding anything out. Then generate from a
+  kernel outside the family you search and watch it report no distress: the failure mode of trusting
+  the model class.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C9 · Four methods, one coverage number</div>
+  <p>Reproduce Figure 3: exact posterior, ensemble, MC dropout and point estimate, measured against
+  the same nominal level.</p>
+  <div class="ans"><b>Answer.</b> 0.955, 0.967, 0.993, 0.790. Then restrict the queries to the
+  densely observed region and watch the point estimate look fine, which is why benchmarks that only
+  evaluate in-distribution do not detect this.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C10 · Split conformal</div>
+  <p>Implement <code>conformal_quantile</code> and <code>conformal_interval</code>. Verify coverage
+  at five nominal levels.</p>
+  <div class="ans"><b>Answer.</b> Within 0.002 of nominal at every level. The whole method is a
+  sort and an index.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C11 · The <span class="m">$n+1$</span></div>
+  <p>Implement the quantile with <span class="m">$n$</span> instead of
+  <span class="m">$n+1$</span> and measure the coverage difference at small calibration sets.</p>
+  <div class="ans"><b>Answer.</b> A small, systematic under-coverage that vanishes as
+  <span class="m">$n$</span> grows and is free to avoid. Finite-sample exactness is the selling
+  point; do not give it away in the indexing.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C12 · Break the model on purpose</div>
+  <p>Run conformal with a good model and with a constant predictor. Compare coverage and width.</p>
+  <div class="ans"><b>Answer.</b> Identical coverage, roughly double the width. This is the
+  experiment that makes the guarantee believable, because it is the one that should break it and
+  does not.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C13 · Make the width adapt</div>
+  <p>Implement normalised scores using a predicted difficulty, and compare interval widths on easy
+  and hard inputs.</p>
+  <div class="ans"><b>Answer.</b> The intervals stretch where the model is uncertain and the
+  marginal guarantee survives however bad the difficulty estimate is. That robustness is the reason
+  to prefer this over trusting <span class="m">$\hat{\sigma}$</span> directly.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C14 · Prediction sets</div>
+  <p>Implement <code>conformal_set</code> for classification. Find inputs producing sets of size 1,
+  size 5, and size 0.</p>
+  <div class="ans"><b>Answer.</b> Set size is an interpretable difficulty signal, and the empty set
+  is a system able to say it has nothing, which is §37's abstention with a guarantee attached.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C15 · Break exchangeability</div>
+  <p>Reproduce Figure 5: shift the test distribution away from calibration and track coverage.</p>
+  <div class="ans"><b>Answer.</b> 0.901 down to 0.496. Smooth, silent, and not detectable from
+  anything the method reports. Then implement weighted conformal and recover it.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C16 · The optimal threshold</div>
+  <p>Implement <code>optimal_threshold</code> and <code>expected_cost</code>. Verify by brute force
+  that the formula wins.</p>
+  <div class="ans"><b>Answer.</b> It does, at every cost ratio. Then apply it to a system you run and
+  compute what the default has been costing.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C17 · Reproduce Figure 6</div>
+  <p>Build a calibrated model by construction (draw the probability, then the outcome) and sweep
+  the cost ratio.</p>
+  <div class="ans"><b>Answer.</b> 1.0×, 1.0×, 1.1×, 1.4×, 2.2×, 4.7×. Every one of those losses is
+  the threshold. Constructing the model by drawing outcomes from the probabilities is what makes the
+  claim airtight.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C18 · Value of information</div>
+  <p>Implement it. Construct one case where an informative signal is worth nothing and one where a
+  weak signal is worth a lot.</p>
+  <div class="ans"><b>Answer.</b> Worth nothing whenever the action does not change; worth a lot when
+  it flips a close, expensive decision. The two cases differ in the utility matrix, not in the
+  signal's predictiveness.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C19 · Price a refusal</div>
+  <p>Implement <code>abstain_band</code> and find the cost at which abstaining is never worth it.</p>
+  <div class="ans"><b>Answer.</b> When the abstention cost exceeds what either mistake would have
+  cost in the region where they are close. Then compute the band for a system you run and compare it
+  with whatever refusal rule it currently uses.</div>
+</div>
+
+<h3><span class="num">Tier 3</span> Stretch</h3>
+
+<div class="drill">
+  <div class="head"><span class="tier stretch">Stretch</span>S1 · Conformal on top of an ensemble</div>
+  <p>Build both, use the ensemble spread as the difficulty estimate for normalised conformal
+  scores, and measure coverage and width against each alone.</p>
+  <div class="ans"><b>Answer.</b> The strongest common combination: the ensemble makes it adaptive,
+  conformal makes it valid. Report width alongside coverage or the comparison means nothing.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier stretch">Stretch</span>S2 · Bayesian optimisation</div>
+  <p>Implement expected improvement over a GP and optimise a function you can afford to evaluate a
+  hundred times. Compare with random search.</p>
+  <div class="ans"><b>Answer.</b> It wins in low dimension with a well-matched kernel and loses when
+  either condition fails, which is exactly Part XIV §16's finding, now with a mechanism.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier stretch">Stretch</span>S3 · A Laplace approximation</div>
+  <p>Fit one post hoc to a small trained network using a diagonal and then a Kronecker-factored
+  Hessian. Measure coverage for each.</p>
+  <div class="ans"><b>Answer.</b> The approximation quality shows up directly in the intervals, and
+  the diagonal version is usually over-confident because it discards the correlations that carry
+  most of the posterior's mass.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier stretch">Stretch</span>S4 · Weighted conformal under real shift</div>
+  <p>Take data from two periods, estimate the density ratio, and recover coverage on the later
+  period.</p>
+  <div class="ans"><b>Answer.</b> It works to the extent the shift is covariate shift and positivity
+  holds. Where the conditional moved, no weighting helps, and finding out which you have is the
+  useful part.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier stretch">Stretch</span>S5 · The coverage report</div>
+  <p>For a system you run, produce the five items from §42: nominal, measured, by group, width, and
+  the named assumption.</p>
+  <div class="ans"><b>Answer.</b> Most systems cannot produce the third and have never checked the
+  second. Producing it once is the highest-value hour in this part.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier stretch">Stretch</span>S6 · Find your threshold's owner</div>
+  <p>Identify who in your organisation is entitled to set the cost ratio, and ask them for it.</p>
+  <div class="ans"><b>Answer.</b> Usually nobody has been asked, and the answer is not a technical
+  quantity. The conversation is the deliverable; the threshold falls out of it in one line.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier stretch">Stretch</span>S7 · Detect the shift before it costs you</div>
+  <p>Instrument a running system with rolling coverage on the newest slice, and alert when it
+  departs from nominal.</p>
+  <div class="ans"><b>Answer.</b> This is the monitor Part XXI §35 asks for, made concrete: coverage
+  drift is visible earlier than accuracy drift and needs only the labels you were already
+  collecting.</div>
+</div>

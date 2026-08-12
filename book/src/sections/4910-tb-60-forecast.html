@@ -1,0 +1,139 @@
+<h2><span class="part-kicker">Part F</span>Forecasting</h2>
+
+<p class="mvt">A forecast is not a number. It is a distribution, at a horizon, over a population of
+series that usually have to add up, and the reporting conventions that make it useful are as
+specific as anything in Part XXI.</p>
+
+<h3><span class="num">§39</span> The horizon is part of the question</h3>
+
+<div class="box def">
+  <span class="label">One model per horizon, or one model recursed</span>
+  <p><b>Direct.</b> Fit a separate model for each horizon, each predicting
+  <span class="m">$y_{t+h}$</span> from information available at <span class="m">$t$</span>. No
+  error compounding, and <span class="m">$H$</span> models to fit and maintain.</p>
+  <p><b>Recursive.</b> Fit one one-step model and feed its own predictions back. Cheap, and errors
+  compound: the model was trained on true inputs and is run on its own outputs, which is Part XVI
+  §12's exposure bias in a different costume.</p>
+  <p>Direct is usually better at long horizons and recursive at short ones. Reporting a single
+  accuracy number without saying which horizon it refers to is meaningless, and it is common.</p>
+</div>
+
+<h3><span class="num">§40</span> What the intervals do along the horizon</h3>
+
+<figure>
+  <img src="figures/tb/09-horizon.svg" alt="Root mean squared error and interval half-width against horizon, and measured coverage of a nominal ninety per cent band">
+  <figcaption><b>Figure 9.</b> Error and interval width both grow with the horizon, as they should:
+  the band widens from <b>1.24</b> to <b>2.89</b> as it is recalibrated at each step ahead. The
+  coverage does not hold: a band promising <b>0.90</b> delivers between <b>0.627</b> and
+  <b>0.828</b>, and it under-covers even one step ahead. The band was calibrated on a held-out slice
+  of the series' own past, and a series with a trend and a random walk is not exchangeable with its
+  past, so Part XXIV §29's single assumption fails wherever the data has a time
+  index.</figcaption>
+</figure>
+
+<div class="box why">
+  <span class="label">What to do about it</span>
+  <p>The guarantee is unavailable, so the interval is an estimate like any other and has to be
+  <b>checked rather than assumed</b>: Part XXIV §40's coverage measurement, run on a rolling basis
+  and reported alongside the forecast.</p>
+  <p>Two partial repairs. Recalibrate on the most recent window rather than on all history, which
+  tracks a slowly changing process. And widen deliberately: if measured coverage is 0.75 at a
+  nominal 0.90, inflate the band until the measurement says 0.90 and report that you did.</p>
+  <p>What is not acceptable is quoting the nominal number. The measurement is a line of code and
+  the gap here is fifteen points.</p>
+</div>
+
+<h3><span class="num">§41</span> Probabilistic forecasts, and how to score them</h3>
+
+<div class="box def">
+  <span class="label">Beyond the point</span>
+  <p>Most forecasting decisions are asymmetric (a stockout costs differently from overstock, which
+  is Part XXIV §33's threshold), so the useful output is a predictive distribution, usually as a set
+  of quantiles.</p>
+  <p><b>Pinball loss</b> scores a quantile forecast and is minimised by the true quantile, making it
+  a proper scoring rule for that quantile. The <b>continuous ranked probability score</b> scores the
+  whole distribution and reduces to absolute error when the forecast is a point, which makes point
+  and distributional forecasts comparable on one scale.</p>
+  <p>Report one of these. Reporting only a mean absolute error on the median discards the part of the
+  forecast the decision actually uses.</p>
+</div>
+
+<h3><span class="num">§42</span> Hierarchies</h3>
+
+<div class="box intuition">
+  <span class="label">When the forecasts have to add up</span>
+  <p>Sales by store sum to sales by region, which sum to the total. Forecast each level
+  independently and they will not reconcile, and an inconsistent set of numbers is unusable for
+  planning even when each is individually good.</p>
+  <p>The naive repairs are to forecast the bottom and add up, or forecast the top and apportion.
+  Both discard information. <b>Optimal reconciliation</b> projects the independent forecasts onto
+  the space of coherent ones, and it typically improves accuracy at every level, because the
+  levels' errors are informative about each other.</p>
+  <p>Worth knowing because the constraint is extremely common and the default handling is to notice
+  the mismatch in a meeting.</p>
+</div>
+
+<h3><span class="num">§43</span> Change points and anomalies</h3>
+
+<div class="box shapes">
+  <span class="label">Two different questions</span>
+  <p><b>Anomaly.</b> This observation is unusual. Answerable against a predictive distribution: it is
+  a point in the tail, and §41's machinery supplies the tail.</p>
+  <p><b>Change point.</b> The process itself has changed and everything after this is from a
+  different distribution. Answerable only with a delay, because a change is not distinguishable from
+  a run of unusual observations until enough of them accumulate.</p>
+  <p>Conflating them is how monitoring produces either an alert per outlier or a regime change
+  noticed a month late. Part XXIII §36's tracking regret is the formal version of the second, and
+  Part XXI §35's monitoring is where both belong.</p>
+</div>
+
+<h3><span class="num">§44</span> When a neural forecaster earns its place</h3>
+
+<div class="readnow"><span class="label">Go and read</span><p><span class="src">Makridakis, Spiliotis &amp; Assimakopoulos (2020)</span>, <i>The M4 competition: 100,000 time series</i>. What actually won, at scale, when 100,000 series were forecast by every method willing to compete: the top entry was a hybrid of exponential smoothing and a neural network, and combinations of simple statistical methods held their own against far more elaborate ones. The finding behind why §35's baselines are baselines rather than history.</p></div>
+
+<div class="box shapes">
+  <span class="label">Three conditions, and they are about the data</span>
+  <p><b>Many related series.</b> A global model fitted across thousands of series can share
+  structure that no single-series method can, and this is where the modern architectures win
+  clearly.</p>
+  <p><b>Covariates that matter.</b> Prices, promotions, weather, holidays: a classical model
+  accommodates these awkwardly and a learned one naturally.</p>
+  <p><b>Long or non-linear dependence</b> that a linear model cannot express.</p>
+  <p>Absent all three, a well-tuned exponential smoothing model is the thing to beat, and frequently
+  is not beaten. Report it as a baseline and the comparison becomes informative rather than
+  decorative.</p>
+</div>
+
+<aside class="mnote"><b>Named:</b> DeepAR, N-BEATS and the Temporal Fusion Transformer are the architectures usually meant by "modern" above; Prophet is the popular decomposition-based alternative, closer in spirit to §35's classical models than to these three.</aside>
+
+<h3><span class="num">§45</span> What to carry forward</h3>
+
+<div class="box intuition">
+  <span class="label">Five things</span>
+  <p><b>The prior is what matters, and a table's prior is axis-aligned.</b> Figure 7 splits four
+  comparisons two–two by the shape of the generating function, not by the data's format. Trees
+  represent thresholds exactly and hyperplanes as staircases; networks are the reverse.</p>
+  <p><b>Averaging removes variance and boosting removes bias</b>, and they want opposite base
+  learners: deep trees for one, shallow for the other. Figure 4 shows boosting's two hyperparameters
+  are effectively one: fix the rate low, early-stop the count.</p>
+  <p><b>Calibration follows the loss.</b> A model fitted to a proper scoring rule comes out
+  calibrated; a vote share does not, and a monotone calibrator repairs it while moving no
+  ranking.</p>
+  <p><b>The split decides more than the model.</b> Figure 8's random split on a time series reports
+  a model 18.8× better than the one you have, with every conventional diagnostic passing, because
+  the estimand was wrong rather than the estimator.</p>
+  <p><b>A forecast is a distribution at a horizon.</b> Figure 9's intervals under-cover at every
+  horizon including the first, because a series is not exchangeable with its own past, so measure
+  the coverage and widen until it holds, rather than quoting the nominal number.</p>
+</div>
+
+<div class="sixty">
+  <span class="label">Sixty seconds</span>
+  <p>Start with gradient boosting on any table: it handles mixed types, missing values and unscaled
+  columns, and its two main hyperparameters collapse to one. Check whether your scores are
+  probabilities before anyone acts on them, and calibrate on a split the model never saw. Then spend
+  most of your care on the split itself: by time if there is a date, by entity if rows share one,
+  with every encoder and scaler inside the fold. If the rows are ordered, nothing you learned about
+  independent samples applies: a random split will hand you a number that is off by an order of
+  magnitude and no diagnostic will object.</p>
+</div>

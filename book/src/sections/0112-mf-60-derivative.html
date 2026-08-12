@@ -1,0 +1,431 @@
+<h2><span class="part-kicker">Part F</span>The derivative</h2>
+
+<h3><span class="num">§14</span> Limits, informally</h3>
+
+<div class="box history">
+  <span class="label">History: calculus worked for 150 years before anyone could justify it</span>
+  <p>Newton and Leibniz built calculus in the <span class="year">1660s</span>–<span
+  class="year">80s</span> on a foundation nobody could defend. Both reasoned with
+  <i>infinitesimals</i>, quantities small enough to discard at the end of a calculation,
+  but not so small as to be zero during it, since you had just divided by one.</p>
+  <p>In <span class="year">1734</span> Bishop George Berkeley attacked this directly, in a
+  pamphlet aimed at mathematicians who scoffed at theology while accepting far worse in
+  their own subject. His description of the vanishing quantities has stuck ever since: he
+  asked whether they might be called the <b>ghosts of departed quantities</b>.</p>
+  <p>He was right, and it did not matter. Calculus kept working (predicting orbits,
+  designing bridges) for another century before Cauchy and Weierstrass replaced
+  infinitesimals with the limit and made the whole edifice rigorous in the <span
+  class="year">1820s</span>–<span class="year">1870s</span>.</p>
+  <p>There is a lesson in that sequence, and it recurs constantly in machine learning:
+  <b>usefulness routinely arrives before justification.</b> Deep learning has spent its
+  entire modern history in exactly this position.</p>
+</div>
+
+<p>You need limits only to define the derivative, and you need them informally. The
+rigorous treatment takes weeks and buys you nothing here.</p>
+
+$$\lim_{x \to a} f(x) = L$$
+
+<p>reads: <b>as $x$ gets arbitrarily close to $a$, $f(x)$ gets arbitrarily close to
+$L$.</b> Note what it does not say: it says nothing about the value <i>at</i> $a$. The
+limit is about the approach, not the arrival.</p>
+
+<p>That distinction is the one thing to take from this section, so here it is in a form
+that sticks. Imagine driving toward a town. At every moment you can read the distance on
+the signs (twenty miles, ten, five, one, a hundred metres) and long before you get
+there you know exactly where you are heading. The limit is that destination, inferred
+entirely from the approach. And it is a genuinely separate question whether the town
+exists when you arrive. Perhaps there is a crater where it should be. The signs would have
+said the same things regardless, because the signs describe the journey, not the
+endpoint.</p>
+
+<p>That sounds like an odd thing to build a subject on until you notice that in the one
+case we care about, <b>there is nothing at the destination</b>. The derivative is a ratio
+whose denominator we intend to send to zero, and at zero the ratio is $0/0$, a genuine
+crater, not a technicality. The limit is what lets us speak precisely about where the
+value was heading without ever asking it to arrive.</p>
+
+<p>That distinction is the entire reason limits exist. Consider</p>
+
+$$f(x) = \frac{x^2 - 1}{x - 1}$$
+
+<p>At $x = 1$ this is $0/0$, undefined, a genuine hole in the function. But factor the
+numerator: $x^2 - 1 = (x-1)(x+1)$, so for every $x \neq 1$ the expression simplifies to
+$x + 1$. As $x$ approaches 1, the value approaches 2. The limit is 2 even though the
+function has no value there at all.</p>
+
+<div class="box intuition">
+  <span class="label">Intuition: limits let you divide by something that vanishes</span>
+  <p>You cannot divide by zero. But you can ask what happens as a denominator shrinks
+  toward zero while the numerator shrinks too, and often the ratio settles on a perfectly
+  ordinary number.</p>
+  <p>That manoeuvre is the whole trick of §15. A derivative is a ratio of two changes,
+  both of which we then shrink to nothing. Without limits the expression is $0/0$ and
+  meaningless; with them it is exact.</p>
+</div>
+
+<h3><span class="num">§15</span> The derivative</h3>
+
+<div class="sixty">
+  <span class="label">In 60 seconds</span>
+  <p>A derivative is the <b>slope of a curve at a single point</b>, found by taking the
+  slope between two nearby points and sliding them together. Three readings: geometrically
+  a tangent, physically a rate of change, and practically <b>"if I nudge the input
+  slightly, how much does the output move?"</b> That third one is the whole of training a
+  model.</p>
+</div>
+
+<p>Section 8 defined the slope of a line: rise over run. Curves have no single slope;
+the steepness changes as you move. So we ask a narrower question: <b>what is the slope
+at one specific point?</b></p>
+
+<p>Stop and notice that the question is, on its face, incoherent. Slope was defined as a
+change in output divided by a change in input, and at a single point nothing changes. Rise
+over run at one point is $0/0$. So we are not asking for a quantity that obviously exists;
+we are asking whether a sensible number can be attached to a place where the direct
+definition gives nothing. That is why the construction below looks roundabout. It is
+roundabout because the straight route is closed.</p>
+
+<div class="box intuition">
+  <span class="label">Intuition: a curve looks straight if you zoom in far enough</span>
+  <p>This is the picture worth carrying, and it makes the rest of the section feel
+  inevitable rather than clever.</p>
+  <p>Take any smooth curve and magnify a tiny region of it. It looks slightly less
+  curved. Magnify again and it looks straighter still. Keep going and the visible piece
+  becomes indistinguishable from a straight line, not approximately, but in the sense
+  that any bend you could still detect will vanish at the next magnification.</p>
+  <p><b>The derivative is the slope of that line.</b> A curve has no single slope, but
+  every small enough piece of it does, and the derivative at a point is the slope of the
+  piece around that point once you have zoomed in far enough that the curvature has gone.</p>
+  <p>You already believe this about one curve in particular. The Earth is round, and the
+  floor is flat. Both are true, and the second is true because you are looking at a small
+  enough patch. Calculus is the systematic exploitation of that fact.</p>
+</div>
+
+<p>Here is the construction. Pick a point $a$. Pick a second point a distance $h$ away.
+Draw the line through both (a <b>secant</b>) and compute its slope:</p>
+
+$$\text{secant slope} = \frac{f(a+h) - f(a)}{h}$$
+
+<p>That is an average rate of change over the interval. Now shrink $h$. The second point
+slides toward the first, and the secant pivots toward the line that just grazes the
+curve: the <b>tangent</b>.</p>
+
+<p>The manoeuvre is worth stating plainly, because it is the trick that the whole of
+calculus is built from and it gets used again for integrals in §25. We could not answer
+the question we wanted (the slope at a point), so we answered a slightly wrong question
+that we <i>could</i> answer: the average slope over a short interval. Then we made the
+interval smaller and smaller and watched where the answers were heading. The wrong
+questions have honest answers, the answers converge, and the number they converge on is
+what we take the right question to mean.</p>
+
+<p>You do this already whenever you read a speedometer. Speed at an instant is the same
+incoherent request, distance travelled divided by time elapsed, at a moment when no time
+has elapsed. What a speedometer actually reports is distance over some very short interval,
+and it is a perfectly good answer because over a short enough interval nothing changes
+much. Instantaneous velocity is a limit of averages, and everyone accepts the concept long
+before anyone shows them the definition.</p>
+
+<figure>
+  <img src="figures/mf/02-secant-to-tangent.svg" alt="Secant lines converging to the tangent as h shrinks">
+  <figcaption><b>Figure 5.</b> The derivative being built, on $f(x) = x^2$ at $x = 1$.
+  At $h = 1$ the secant slope is 3; at $h = 0.5$ it is 2.5; at $h = 0.2$ it is 2.2. The
+  numbers are converging on 2, and the rightmost panel shows the tangent line whose
+  slope is exactly 2. Each panel is computed, not sketched.</figcaption>
+</figure>
+
+<div class="box def">
+  <span class="label">Definition: the derivative</span>
+  <p>$$f'(a) = \lim_{h \to 0} \frac{f(a+h) - f(a)}{h}$$
+  the slope of $f$ at the point $a$, when this limit exists.</p>
+</div>
+
+<h4>Notation</h4>
+
+<div class="box history">
+  <span class="label">History: the notation war, and why the loser's notation won</span>
+  <p>Newton and Leibniz developed calculus independently within about a decade of each
+  other, and the resulting priority dispute was one of the ugliest in the history of
+  science. The Royal Society convened an inquiry in <span class="year">1712</span> to
+  settle it; Newton was president of the Royal Society at the time, and, as later became
+  clear, wrote much of the supposedly impartial report himself.</p>
+  <p>Newton won the argument in England. English mathematics then used his dot notation
+  for roughly a century, and fell behind the Continent for most of it.</p>
+  <p>Because Leibniz's notation was better. Writing $\frac{dy}{dx}$ rather than
+  $\dot{y}$ keeps the variables visible, extends cleanly to several variables, and
+  (crucially for §17) makes the chain rule look like fractions cancelling:</p>
+  <p>$$\frac{dy}{dx} = \frac{dy}{du}\cdot\frac{du}{dx}$$</p>
+  <p>That is not a proof, and the $du$ terms are not really cancelling. But the notation
+  makes the correct manipulation feel inevitable, which is most of what good notation
+  does. Every equation in this book uses the loser's.</p>
+</div>
+
+<p>Four ways to write the same thing, and you will meet all of them:</p>
+
+$$f'(x), \qquad \frac{df}{dx}, \qquad \frac{d}{dx}f(x), \qquad \dot{f}$$
+
+<p>The $\frac{df}{dx}$ form is the most informative: it explicitly says "change in $f$
+per change in $x$" and keeps the variable visible, which matters once several variables
+are in play.</p>
+
+<div class="box intuition">
+  <span class="label">Intuition: three readings of the same object</span>
+  <p><b>Geometric:</b> the slope of the tangent line.</p>
+  <p><b>Physical:</b> an instantaneous rate of change. If $f$ is position, $f'$ is
+  velocity.</p>
+  <p><b>Practical (the one that matters for machine learning):</b> if I nudge the input
+  a tiny bit, how much does the output move, and in which direction?</p>
+  <p>That third reading is the whole of training. "If I increase this weight slightly,
+  does the loss go up or down, and by how much?" The answer is a derivative, and knowing
+  it tells you which way to adjust.</p>
+</div>
+
+<aside class="mnote"><b>Named:</b> $f(x+h) \approx f(x) + f'(x)h$, the first-order (Taylor) approximation, is what every "nudge and see" argument here, and the whole logic of a gradient step in §24, silently relies on.</aside>
+
+<h4>Doing it once from the definition</h4>
+
+<p>You should compute a derivative from first principles exactly once, to see that
+nothing is hidden.</p>
+
+<div class="worked long">
+  <span class="label">Worked: the derivative of $f(x) = x^2$</span>
+  <p>$f'(x) = \displaystyle\lim_{h \to 0} \frac{(x+h)^2 - x^2}{h}$</p>
+  <p>Expand the numerator: $(x+h)^2 = x^2 + 2xh + h^2$, so the numerator is
+  $x^2 + 2xh + h^2 - x^2 = 2xh + h^2$.</p>
+  <p>$f'(x) = \displaystyle\lim_{h \to 0} \frac{2xh + h^2}{h}$</p>
+  <p>Every term has an $h$, so cancel one (legal because $h \neq 0$ while we are
+  approaching):</p>
+  <p>$f'(x) = \displaystyle\lim_{h \to 0} (2x + h) = 2x$</p>
+  <p>Now the limit is trivial: as $h$ goes to zero, the expression goes to $2x$.</p>
+  <p>Check against Figure 5: at $x = 1$ we get $f'(1) = 2$. The picture and the algebra
+  agree.</p>
+</div>
+
+<h3><span class="num">§16</span> The rules</h3>
+<aside class="mnote"><b>Memorise four:</b> power, sum, product, chain. The quotient rule can always be avoided by writing the denominator as a negative power.</aside>
+
+<p>Nobody uses the limit definition in practice. These rules are derived from it once,
+and then reused forever.</p>
+
+<p>That is a real transition and it is worth marking, because from here the character of
+the subject changes. Up to this point you were doing something conceptually delicate:
+constructing a limit, worrying about what happens as a denominator vanishes. From here
+you are doing something mechanical. Each rule below was proved once, by somebody, from
+the definition, and having been proved, it never needs proving again. You apply it the
+way you apply the multiplication table, without re-deriving why $7 \times 8$ is 56.</p>
+
+<p>This is how mathematics protects its own attention, and it is the same reason you do
+not implement sorting from scratch every time you need a sorted list. The hard thinking is
+done once, packaged, and then spent on the next problem instead. The one thing worth
+having done yourself is the single derivation above ($x^2 \to 2x$, from the definition),
+so that you know the packages contain something real.</p>
+
+<table>
+  <thead><tr><th>Rule</th><th>Statement</th><th>Example</th></tr></thead>
+  <tbody>
+    <tr><td><b>Constant</b></td><td>$\frac{d}{dx}c = 0$</td><td>$\frac{d}{dx}7 = 0$</td></tr>
+    <tr><td><b>Power</b></td><td>$\frac{d}{dx}x^n = nx^{n-1}$</td><td>$\frac{d}{dx}x^5 = 5x^4$</td></tr>
+    <tr><td><b>Constant multiple</b></td><td>$\frac{d}{dx}[c\,f] = c\,f'$</td><td>$\frac{d}{dx}3x^2 = 6x$</td></tr>
+    <tr><td><b>Sum</b></td><td>$\frac{d}{dx}[f+g] = f' + g'$</td><td>differentiate term by term</td></tr>
+    <tr><td><b>Product</b></td><td>$\frac{d}{dx}[fg] = f'g + fg'$</td><td>see below</td></tr>
+    <tr><td><b>Quotient</b></td><td>$\frac{d}{dx}\!\left[\frac{f}{g}\right] = \frac{f'g - fg'}{g^2}$</td><td>note the minus, and the order</td></tr>
+    <tr><td><b>Chain</b></td><td>$\frac{d}{dx}f(g(x)) = f'(g(x)) \cdot g'(x)$</td><td><b>§17: the important one</b></td></tr>
+  </tbody>
+</table>
+
+<p>The <b>power rule</b> is the workhorse: bring the exponent down in front, subtract one
+from it. It works for every exponent, including negative and fractional ones:</p>
+
+$$\frac{d}{dx}x^{-1} = -x^{-2} = -\frac{1}{x^2}, \qquad \frac{d}{dx}\sqrt{x} = \frac{d}{dx}x^{1/2} = \tfrac12 x^{-1/2} = \frac{1}{2\sqrt{x}}$$
+
+<div class="box pitfall">
+  <span class="label">Pitfall: the product rule is not what you would guess</span>
+  <p>$\frac{d}{dx}[fg]$ is <b>not</b> $f'g'$. That is the single most common wrong guess
+  in calculus.</p>
+  <p>Sanity check it with $f = g = x$. Then $fg = x^2$, whose derivative is $2x$. The
+  correct rule gives $f'g + fg' = 1 \cdot x + x \cdot 1 = 2x$. ✓ The wrong guess gives
+  $1 \cdot 1 = 1$. ✗</p>
+  <p>Whenever you are unsure of a rule, test it on a case you can verify
+  independently.</p>
+</div>
+
+<h3><span class="num">§17</span> The chain rule: the important one</h3>
+
+<div class="sixty">
+  <span class="label">In 60 seconds</span>
+  <p>To differentiate a composed function, <b>multiply the rates</b>:
+  $\frac{dy}{dx} = \frac{dy}{du}\cdot\frac{du}{dx}$. Differentiate the outer function
+  leaving the inner one alone, then multiply by the inner one's derivative. It composes to
+  any depth (one factor per layer), which is exactly why it scales to a fifty-layer
+  network. <b>Backpropagation is this rule, organised.</b></p>
+</div>
+
+<div class="readnow"><span class="label">Go and read</span><p><span class="src">Linnainmaa (1970)</span>, <i>The representation of the cumulative rounding error of an algorithm</i>. The chain rule you are about to meet, stated in full generality and turned into an algorithm, years before anyone thought to point it at a neural network. It is worth seeing that backpropagation was not invented for learning; it was found lying around.</p></div>
+
+<p class="lede">This is the section. Backpropagation is the chain rule applied
+systematically to a composed function with millions of pieces. Every other topic in this
+document is support for this one.</p>
+
+<p>Begin with the problem, because the rule is much easier to hold onto once you know
+what it is for. The rules in §16 handle functions built by adding and multiplying:
+$3x^2 + 5x$ is fine, $x^2 \sin x$ is fine. What they cannot touch is a function built by
+<i>nesting</i>, such as $e^{-x^2}$, or $\ln(1 + e^x)$, or a neural network. And nesting is
+exactly how everything interesting in this book is constructed, so without a rule for
+compositions the previous section is nearly useless in practice.</p>
+
+<p>The chain rule fills that gap, and it says something that sounds too simple to be the
+answer: <b>when things are chained, the rates multiply</b>.</p>
+
+<h4>Why multiply, of all things</h4>
+
+<p>This is the step where most people accept the rule without believing it, so it is
+worth slowing down. The instinct is that combining two things should add. Here is why it
+does not.</p>
+
+<p>Suppose you are converting money, twice. Pounds to dollars at 1.3, dollars to pesos at
+20. How many pesos is one pound? Nobody reaches for $1.3 + 20$. You multiply, getting 26,
+because the second conversion acts on <i>whatever the first one produced</i>: it takes
+the 1.3 dollars and scales them again. Each stage in a chain does not contribute an
+independent amount; it re-scales what arrived.</p>
+
+<p>Derivatives are conversion rates. $\frac{du}{dx}$ says "one unit of change in $x$ buys
+you this much change in $u$". $\frac{dy}{du}$ says "one unit of change in $u$ buys you
+this much change in $y$". So a nudge to $x$ produces a nudge in $u$, and that nudge in $u$
+produces a nudge in $y$; the effect passes through and gets rescaled at each stage.
+Multiply.</p>
+
+<p>The units make the same point and are, if anything, more convincing. Write the two
+rates as $\frac{\text{dollars}}{\text{pound}}$ and $\frac{\text{pesos}}{\text{dollar}}$.
+Multiplying them cancels "dollars" and leaves $\frac{\text{pesos}}{\text{pound}}$, which
+is exactly the quantity asked for. Adding them would produce nothing meaningful at all:
+you cannot add dollars-per-pound to pesos-per-dollar any more than you can add a speed to
+a temperature. Leibniz's notation was chosen so that this cancellation is visible on the
+page, which is precisely why it beat Newton's.</p>
+
+<p>One more framing, for when the algebra gets deep. A chain of derivatives is a chain of
+<b>amplifiers</b>. A signal enters at one end, and each stage multiplies it by some gain.
+Gains of 2 and 3 give an overall gain of 6. Gains of $0.5$ and $0.5$ give $0.25$: the
+signal came out weaker than it went in, and no stage did anything wrong. Hold onto that
+image, because §18 will show you that the sigmoid's gain never exceeds $0.25$, and a
+twenty-stage chain of quarter-gain amplifiers is the vanishing gradient problem in one
+sentence.</p>
+
+<div class="box def">
+  <span class="label">The chain rule</span>
+  <p>$$\frac{d}{dx} f(g(x)) = f'(g(x)) \cdot g'(x)$$</p>
+  <p>Or, in the notation that makes it memorable, writing $u = g(x)$:</p>
+  <p>$$\frac{dy}{dx} = \frac{dy}{du} \cdot \frac{du}{dx}$$</p>
+</div>
+
+<figure>
+  <img src="figures/mf/06-chain-rule.svg" alt="The chain rule as rates multiplying through a pipeline">
+  <figcaption><b>Figure 6.</b> The chain rule as a pipeline. $x$ affects $u$ at some
+  rate; $u$ affects $y$ at some rate. To find how $x$ affects $y$, <b>multiply the
+  rates</b>. In the Leibniz form the $du$ terms appear to cancel like fractions, which
+  is not a proof, but is exactly why this notation is used.</figcaption>
+</figure>
+
+<div class="box intuition">
+  <span class="label">Intuition: gears</span>
+  <p>Gear A turns gear B three times as fast. Gear B turns gear C twice as fast. So gear
+  A turns gear C six times as fast. Rates through a chain multiply.</p>
+  <p>Or in units, which is the reading that sticks: if a car goes 60 miles per hour and
+  uses 2 gallons per mile, it consumes $60 \times 2 = 120$ gallons per hour. The "miles"
+  cancels, and that cancellation is literally what $\frac{dy}{du}\cdot\frac{du}{dx}$ is
+  doing.</p>
+</div>
+
+<h4>How to actually apply it</h4>
+
+<p>Applying the rule is easy. Identifying the pieces is where people lose time, and there
+is a reliable test for it.</p>
+
+<p>Ask yourself: <b>if I had to evaluate this expression with a calculator, what would I
+press last?</b> That final operation is the outer function, and everything it acts on is
+the inner one. For $(3x+1)^5$ you would compute $3x+1$ first and raise to the fifth power
+last, so the outer function is "fifth power" and the inner is $3x+1$. For $e^{-x^2}$ you
+would square, negate, and exponentiate last; outer is $e^\square$, inner is $-x^2$.</p>
+
+<p>The test works because a composition is an assembly line, from §7, and the outer
+function is simply the last station. It also tells you what to do when there are three or
+four layers: identify the last station, peel it off, and ask the same question again of
+what remains. You are unwrapping a parcel, and there is never any ambiguity about which
+layer is on the outside.</p>
+
+<p>The procedure, which works every time:</p>
+
+<ol>
+  <li><b>Identify the outer and inner functions.</b> Ask: what would I compute last?
+  That is the outer one.</li>
+  <li><b>Differentiate the outer, leaving the inner untouched.</b></li>
+  <li><b>Multiply by the derivative of the inner.</b></li>
+</ol>
+
+<div class="worked long">
+  <span class="label">Worked: three examples, increasing in difficulty</span>
+
+  <p><b>1.</b> $y = (3x + 1)^5$</p>
+  <p>Outer: something to the fifth power. Inner: $3x+1$.</p>
+  <p>Outer derivative, inner left alone: $5(3x+1)^4$. Inner derivative: $3$.</p>
+  <p>$\dfrac{dy}{dx} = 5(3x+1)^4 \cdot 3 = 15(3x+1)^4$</p>
+
+  <p><b>2.</b> $y = e^{-x^2}$</p>
+  <p>Outer: $e^{\square}$. Inner: $-x^2$.</p>
+  <p>Outer derivative: $e^{-x^2}$ (since $e^u$ differentiates to itself). Inner
+  derivative: $-2x$.</p>
+  <p>$\dfrac{dy}{dx} = e^{-x^2} \cdot (-2x) = -2x\,e^{-x^2}$</p>
+  <p>This one matters: it is the derivative of the shape of a Gaussian.</p>
+
+  <p><b>3.</b> $y = \ln(1 + e^{x})$, softplus, from Part II.</p>
+  <p>Outer: $\ln(\square)$, whose derivative is $\frac{1}{\square}$. Inner: $1 + e^x$,
+  whose derivative is $e^x$.</p>
+  <p>$\dfrac{dy}{dx} = \dfrac{1}{1+e^{x}} \cdot e^{x} = \dfrac{e^{x}}{1+e^{x}}$</p>
+  <p>Divide top and bottom by $e^x$ and this becomes $\dfrac{1}{1 + e^{-x}}$, the
+  <b>sigmoid</b>. So the derivative of softplus is exactly the sigmoid, which is the fact
+  Part II §19 states without proof. You have now proved it.</p>
+</div>
+
+<h4>Chains of three or more</h4>
+
+<p>The rule composes. For $y = f(g(h(x)))$:</p>
+
+$$\frac{dy}{dx} = f'(g(h(x))) \cdot g'(h(x)) \cdot h'(x)$$
+
+<p>Multiply one factor per layer, working from the outside in. There is no limit to the
+depth, which is precisely why it scales to a fifty-layer network.</p>
+
+<div class="box why">
+  <span class="label">Why deep learning cares: this <i>is</i> backpropagation</span>
+  <p>A network computes $L = \text{loss}(f_4(f_3(f_2(f_1(x)))))$. Training needs
+  $\frac{\partial L}{\partial w}$ for every weight $w$ in every layer.</p>
+  <p>For a weight in layer 1, the chain rule gives:</p>
+  <p>$$\frac{\partial L}{\partial w_1} = \frac{\partial L}{\partial f_4}\cdot\frac{\partial f_4}{\partial f_3}\cdot\frac{\partial f_3}{\partial f_2}\cdot\frac{\partial f_2}{\partial f_1}\cdot\frac{\partial f_1}{\partial w_1}$$</p>
+  <p>One factor per layer, multiplied together. <b>Backpropagation is the algorithm that
+  computes this product efficiently</b>, by working right to left and reusing shared
+  work rather than recomputing it for every weight.</p>
+  <p>Two famous problems fall straight out of this formula. If those factors are
+  consistently smaller than 1, their product shrinks exponentially with depth: the
+  <b>vanishing gradient</b> problem, and the reason sigmoid activations were abandoned in
+  hidden layers. If they are consistently larger than 1, the product explodes: the
+  <b>exploding gradient</b> problem, and the reason gradient clipping exists. Both are
+  visible in this one line, before you know anything about neural networks.</p>
+</div>
+
+<div class="box try">
+  <span class="label">Try it: spend real time on these</span>
+  <p>Differentiate: &nbsp; (a) $y = (x^2 + 1)^3$ &nbsp; (b) $y = e^{3x}$ &nbsp;
+  (c) $y = \ln(5x)$ &nbsp; (d) $y = \sqrt{4x + 7}$ &nbsp; (e) $y = (e^{2x} + 1)^4$</p>
+</div>
+
+<p><b>Answers.</b></p>
+<p>(a) Outer $\square^3 \to 3\square^2$; inner derivative $2x$. So
+$3(x^2+1)^2 \cdot 2x = 6x(x^2+1)^2$.</p>
+<p>(b) Outer $e^\square$; inner derivative 3. So $3e^{3x}$.</p>
+<p>(c) Outer $\ln\square \to \frac{1}{\square}$; inner derivative 5. So
+$\frac{5}{5x} = \frac{1}{x}$. Interesting: the constant vanishes entirely, because
+$\ln(5x) = \ln 5 + \ln x$ and the constant differentiates away.</p>
+<p>(d) Rewrite as $(4x+7)^{1/2}$. Outer gives $\frac12(4x+7)^{-1/2}$; inner gives 4. So
+$\frac{4}{2\sqrt{4x+7}} = \frac{2}{\sqrt{4x+7}}$.</p>
+<p>(e) Two chains nested. Outer $\square^4 \to 4\square^3$, giving
+$4(e^{2x}+1)^3$. The inner is $e^{2x}+1$, whose derivative needs its own chain rule:
+$2e^{2x}$. So the answer is $8e^{2x}(e^{2x}+1)^3$.</p>

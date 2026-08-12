@@ -1,0 +1,278 @@
+<h2><span class="part-kicker">Practice</span>Drills</h2>
+
+<p class="mvt">Forty-four drills. The harness in <code>parts/33-search/drills/</code> covers twenty-one of
+them with forty-one tests. Numpy only, and unlike the last part every number here is exact: these
+are algorithms with provable properties, so a disagreement between your answer and the reference is
+a bug in one of them rather than a difference between machines.</p>
+
+<h3><span class="num">Tier 0</span> Estimate first</h3>
+
+<div class="drill">
+  <div class="head"><span class="tier est">Estimate</span>E1 &middot; How deep can you look</div>
+  <p>A game with branching factor 30. You can evaluate 10<sup>7</sup> positions per move. Before computing: how deep can plain minimax search, and how deep with perfect alpha&ndash;beta ordering? Then say what a 10&times; faster machine buys you in each case.</p>
+  <div class="ans"><b>Answer.</b> Minimax: <span class="m">$30^d=10^7$</span> gives <span class="m">$d\approx4.7$</span>, so <b>four to five plies</b>. Alpha&ndash;beta with perfect ordering costs about <span class="m">$30^{d/2}$</span>, so <span class="m">$d\approx9.5$</span>: <b>nine to ten plies</b>, twice as deep for the same work. A 10&times; faster machine adds <span class="m">$\log_{30}10\approx0.7$</span> ply to minimax and <b>1.4 plies</b> to alpha&ndash;beta. Hardware buys fractions of a ply; ordering bought five. <i>Score yourself: within a factor of two is a pass, and an order of magnitude out is worth understanding before you go on.</i></div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier est">Estimate</span>E2 &middot; Gridding a robot arm</div>
+  <p>A seven-joint arm, each joint discretised to one degree over its full 360&deg;. Estimate the number of configurations, and the storage for one byte per cell. Then say how long an exhaustive collision check takes at a microsecond each.</p>
+  <div class="ans"><b>Answer.</b> <span class="m">$360^7\approx7.8\times10^{17}$</span> configurations, so <b>780 petabytes</b> at a byte each, roughly the storage of a large data centre. At a microsecond per check, <span class="m">$7.8\times10^{11}$</span> seconds, about <b>25,000 years</b>. This is &sect;24's arithmetic and it is the entire reason sampling-based planning exists. <i>Within a factor of two is a pass.</i></div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier est">Estimate</span>E3 &middot; The cost of sampling more</div>
+  <p>A generator solves 30% of problems per sample. Before computing: what fraction does a <i>perfect</i> selector solve at <span class="m">$k=8$</span>? And roughly how much accuracy does a real verifier need to beat taking one sample at that <span class="m">$k$</span>?</p>
+  <div class="ans"><b>Answer.</b> Perfect selection is pass@8 <span class="m">$=1-0.7^8=0.942$</span>, so <b>94%</b>, a 3&times; improvement that is entirely a ceiling, not a result. The break-even for a real verifier in Figure 8's population was about <b>0.63 pairwise accuracy at <span class="m">$k=8$</span></b>, and rising with <span class="m">$k$</span>. The gap between 94% and what you actually get is the verifier, and it is the whole engineering problem. <i>Within a factor of two is a pass.</i></div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier est">Estimate</span>E4 &middot; Where the memory goes</div>
+  <p>Breadth-first search on a graph with branching factor 10, solution at depth 8, 100 bytes per node. Estimate the frontier's peak memory, then say what iterative deepening costs in extra node generations as a percentage.</p>
+  <div class="ans"><b>Answer.</b> The frontier peaks at about <span class="m">$10^8$</span> nodes, so <b>10 GB</b>, at depth 10 it would be a terabyte. Iterative deepening holds <span class="m">$O(bd)$</span>, about 80 nodes, and re-generates the shallow levels: total work is <span class="m">$b/(b-1)=1.11$</span> times a single pass, so about <b>11% extra</b>. Ten gigabytes to eight kilobytes for eleven per cent more work. <i>Within a factor of two is a pass.</i></div>
+</div>
+
+<h3><span class="num">Tier 1</span> Warm-up</h3>
+
+<div class="drill">
+  <div class="head"><span class="tier warm">Warm-up</span>W1 &middot; The five things</div>
+  <p>What defines a search problem?</p>
+  <div class="ans"><b>Answer.</b> States, an initial state, actions available in each state, a transition function, and a goal test, plus a step cost if the problem has an objective as well as a target. Everything else (path, solution, optimality) is derived from those.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier warm">Warm-up</span>W2 &middot; What separates the uninformed four</div>
+  <p>Breadth-first, depth-first, uniform-cost and iterative deepening differ in exactly one thing. What?</p>
+  <div class="ans"><b>Answer.</b> Which node comes off the frontier next: shallowest, deepest, cheapest, or shallowest-within-a-limit. Same algorithm, different priority. A* is the same algorithm again with priority <span class="m">$g+h$</span>.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier warm">Warm-up</span>W3 &middot; The four questions</div>
+  <p>What should you ask of any search algorithm, including a learned one?</p>
+  <div class="ans"><b>Answer.</b> Completeness, optimality, time, space. Applied to "sample 64 candidates and pick the best": not complete, not optimal, time linear in <span class="m">$k$</span>, space constant. None of those four failures appears in an accuracy number.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier warm">Warm-up</span>W4 &middot; Admissible</div>
+  <p>Define admissibility and say what it buys.</p>
+  <div class="ans"><b>Answer.</b> <span class="m">$h(n)\le h^*(n)$</span> everywhere: never an overestimate. It buys optimality for A*, by the three-line argument in &sect;9: any node on an optimal path has <span class="m">$f\le C^*$</span>, so a worse goal cannot be expanded first.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier warm">Warm-up</span>W5 &middot; Read Figure 1</div>
+  <p>Figure 1 shows path cost as a flat line. Why is that the interesting panel?</p>
+  <div class="ans"><b>Answer.</b> Because it isolates the claim. Every admissible heuristic returns the identical optimal cost, so the entire effect of heuristic strength is on work done, never on answer quality. A heuristic is a speedup, not an improvement.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier warm">Warm-up</span>W6 &middot; Consistency</div>
+  <p>State the consistency condition and what it lets you do.</p>
+  <div class="ans"><b>Answer.</b> <span class="m">$h(n)\le c(n,n')+h(n')$</span> for every edge, a triangle inequality. It makes <span class="m">$f$</span> non-decreasing along any path, so the first expansion of a state already has its cheapest route, so closing states is safe. Admissibility alone does not give this.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier warm">Warm-up</span>W7 &middot; Where relaxation heuristics come from</div>
+  <p>Why does deleting a constraint give an admissible heuristic?</p>
+  <div class="ans"><b>Answer.</b> Every solution to the original problem is still a solution to the relaxed one, so the relaxed optimum is no larger than the true one. Admissibility is automatic. Manhattan distance is the 8-puzzle without the rule that tiles block each other.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier warm">Warm-up</span>W8 &middot; Read Figure 5</div>
+  <p>Both bounds in Figure 5 are valid. Why does one of them not work?</p>
+  <div class="ans"><b>Answer.</b> Validity is a correctness property: both return the true optimum. Tightness decides how much of the tree survives pruning, and it is worth 19&times; at <span class="m">$n=18$</span> and the difference between finishing and not finishing beyond that. The theorem in the paper states validity; the performance is entirely the other thing.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier warm">Warm-up</span>W9 &middot; What UCB's second term does</div>
+  <p>Why does the exploration term grow with <span class="m">$t$</span> and shrink with <span class="m">$n_i$</span>?</p>
+  <div class="ans"><b>Answer.</b> It is a confidence width. More pulls of arm <span class="m">$i$</span> means a tighter estimate, so a smaller bonus; more total time means more opportunity cost in leaving an arm untested, so every neglected arm eventually becomes attractive again. That second half is what makes the algorithm never permanently abandon an arm.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier warm">Warm-up</span>W10 &middot; Pass@k is not a method</div>
+  <p>Why is reporting pass@<span class="m">$k$</span> as a capability number a measurement error?</p>
+  <div class="ans"><b>Answer.</b> There is no selection rule: it credits success if <i>any</i> sample is right, which requires an oracle to identify. It is the ceiling a perfect selector would reach, and belongs on a plot as the upper bound. The gap between it and the achieved rate is the verifier's contribution, which is the quantity of interest.</div>
+</div>
+
+<h3><span class="num">Tier 2</span> Core</h3>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C1 &middot; Implement A*</div>
+  <p>Write A* on a 4-connected grid returning cost, path, and the number of expansions. Handle stale frontier entries correctly. Verify against breadth-first search on unit costs.</p>
+  <div class="ans"><b>Answer.</b> Push <span class="m">$(f, \text{tiebreak}, \text{node})$</span>; on pop, skip if <span class="m">$f$</span> exceeds the current <span class="m">$g+h$</span>, which is the standard substitute for decrease-key. With <span class="m">$h=0$</span> the cost must match BFS exactly on every instance; if it does not, the bug is in the stale-entry check.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C2 &middot; Reproduce the flat part of Figure 1</div>
+  <p>Compute <span class="m">$h^*$</span> by backward BFS, run A* with <span class="m">$h=\alpha h^*$</span> for <span class="m">$\alpha\in\{0,0.5,0.9,1\}$</span>, and confirm both the equal costs and the shape of the expansion curve.</p>
+  <div class="ans"><b>Answer.</b> Costs identical for all <span class="m">$\alpha$</span>. Expansions roughly flat to <span class="m">$\alpha=0.5$</span>, then falling, then collapsing at 1. The reason is exact: for a node on an optimal path <span class="m">$g+\alpha h^*=C^*-(1-\alpha)h^*\lt C^*$</span> for every <span class="m">$\alpha\lt 1$</span>, so the optimal corridor is never pruned until the heuristic is exact.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C3 &middot; Tie-breaking is worth more than <span class="m">$h$</span></div>
+  <p>Run A* on a grid with an exact heuristic, then again breaking <span class="m">$f$</span>-ties toward larger <span class="m">$g$</span>. Compare expansions.</p>
+  <div class="ans"><b>Answer.</b> A large reduction from one line. With unit costs there are many equally optimal paths, all at <span class="m">$f=C^*$</span> exactly, and preferring larger <span class="m">$g$</span> drives toward the goal instead of fanning across the tie. This is why Figure 1's perfect heuristic still expands a quarter of the grid.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C4 &middot; Weighted A*</div>
+  <p>Implement weighted A* and measure, for <span class="m">$w\in\{1,1.5,2,5\}$</span>, expansions and the ratio of returned cost to optimal. Check the ratio never exceeds <span class="m">$w$</span>.</p>
+  <div class="ans"><b>Answer.</b> Expansions fall steeply then flatten as the search becomes greedy. The ratio stays far below <span class="m">$w$</span>: Figure 2 measured 1.25&times; worst at <span class="m">$w=8$</span>. A guarantee is a statement about the worst case over all instances, not a prediction about yours.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C5 &middot; Prove the weighted bound</div>
+  <p>Show that weighted A* with an admissible <span class="m">$h$</span> returns a path costing at most <span class="m">$w\,C^*$</span>.</p>
+  <div class="ans"><b>Answer.</b> Let <span class="m">$n$</span> be a frontier node on an optimal path when the goal <span class="m">$G$</span> is expanded. Then <span class="m">$g(G)\le f_w(n)=g(n)+w\,h(n)\le w\,(g(n)+h(n))\le w\,(g(n)+h^*(n))=w\,C^*$</span>, using <span class="m">$w\ge1$</span> for the middle step. The looseness is visible right there: two inequalities are slack on almost every instance.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C6 &middot; Build an inconsistent heuristic</div>
+  <p>Take an exact <span class="m">$h^*$</span> and zero it on a random 60% of cells. Prove it is admissible, show it is inconsistent, and count re-expansions with and without a closed list.</p>
+  <div class="ans"><b>Answer.</b> Admissible because <span class="m">$0\le h^*$</span> and <span class="m">$h^*\le h^*$</span>. Inconsistent because stepping from a kept cell with large <span class="m">$h^*$</span> to a zeroed neighbour changes <span class="m">$h$</span> by far more than the unit edge cost. With reopening you pay re-expansions; with a hard closed list you get a wrong answer on some instances: that is the trade in &sect;12, and it is worth seeing both failures once.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C7 &middot; Matched-information comparison</div>
+  <p>Reproduce Figure 3's control: scale <span class="m">$\alpha h^*$</span> so its mean matches the inconsistent heuristic's, and compare total expansions at 20% and 80% coverage.</p>
+  <div class="ans"><b>Answer.</b> At 20% the inconsistent one costs about 1.6&times; as much; at 80% it is about 0.4&times;. Matching the mean is what makes the comparison mean anything: without it you are comparing a strong heuristic to a weak one and learning nothing about consistency.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C8 &middot; Dominance</div>
+  <p>Show that if <span class="m">$h_2\ge h_1$</span> and both are admissible, A* with <span class="m">$h_2$</span> expands no node that A* with <span class="m">$h_1$</span> does not.</p>
+  <div class="ans"><b>Answer.</b> A* expands every node with <span class="m">$f\lt C^*$</span>. If <span class="m">$g+h_2\lt C^*$</span> then <span class="m">$g+h_1\le g+h_2\lt C^*$</span>, so the <span class="m">$h_2$</span>-expanded set is contained in the <span class="m">$h_1$</span>-expanded set. Hence <span class="m">$\max(h_1,h_2)$</span> is free to use whenever both are admissible.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C9 &middot; When adding heuristics is illegal</div>
+  <p>Give a case where <span class="m">$h_1+h_2$</span> is inadmissible, and the condition under which it is not.</p>
+  <div class="ans"><b>Answer.</b> Two pattern databases over overlapping tile sets both count the moves of a shared tile, so their sum can exceed <span class="m">$h^*$</span>. The sum is admissible when the heuristics are <b>disjoint</b> (no single action contributes cost to more than one of them), which is exactly the condition additive pattern databases are constructed to satisfy.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C10 &middot; Hill climbing and its failures</div>
+  <p>Implement hill climbing on a random landscape with plateaus. Measure the fraction of random starts reaching the global optimum, and confirm the expected restarts to success is <span class="m">$1/p$</span>.</p>
+  <div class="ans"><b>Answer.</b> The count of restarts is geometric with mean <span class="m">$1/p$</span>. Restarts are the first thing to try because they are embarrassingly parallel and need no tuning; a plateau is where they stop helping, since the search cannot tell which direction is uphill and a restart lands on another plateau.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C11 &middot; Annealing is Metropolis</div>
+  <p>Implement simulated annealing and show that at fixed <span class="m">$T$</span> the visit distribution approaches <span class="m">$\propto e^{-E/T}$</span>.</p>
+  <div class="ans"><b>Answer.</b> The acceptance rule <span class="m">$\min(1,e^{-\Delta/T})$</span> with symmetric proposals is Metropolis&ndash;Hastings, so the stationary distribution is Boltzmann. Cooling is then a schedule over target distributions, concentrating on the minimum as <span class="m">$T\to0$</span>, the same object as Part XXVIII, and the guaranteed-convergence schedule is too slow to use.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C12 &middot; Beam search</div>
+  <p>Implement beam search over a trellis and verify against exact Viterbi at large widths. Make sure both start from the same state.</p>
+  <div class="ans"><b>Answer.</b> At width <span class="m">$\ge V^{L}$</span> the beam is exhaustive and must match Viterbi's score exactly. The start-state convention is the classic silent bug: if Viterbi maximises over initial symbols and the beam is pinned to one, the two are incomparable and every conclusion drawn from the comparison is manufactured.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C13 &middot; Make a wider beam worse</div>
+  <p>Construct a case where beam width 8 returns a higher-quality sequence than exhaustive search over the same model.</p>
+  <div class="ans"><b>Answer.</b> Let the model score and the true quality be correlated but not equal. The exact argmax of the model maximises the wrong objective exactly; a narrow beam is biased toward sequences with high per-step score, and when the objectives disagree that bias can point the right way. Figure 4 measured beam 8 at 10.97 against the exact optimum's 10.90.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C14 &middot; Branch and bound for knapsack</div>
+  <p>Implement it with the fractional relaxation as the bound and with the sum of remaining values, and count nodes at <span class="m">$n=18$</span> and <span class="m">$n=26$</span>.</p>
+  <div class="ans"><b>Answer.</b> Both return the same optimum: check this, it is the test that the bounds are valid. The node counts differ by an order of magnitude at 18 and by more than can be measured at 26 without a cap. Sorting by value density before searching matters as much as the bound, because it makes the incumbent good early.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C15 &middot; Censoring</div>
+  <p>Your branch-and-bound run hits a node cap on 8 of 8 instances. What may you report?</p>
+  <div class="ans"><b>Answer.</b> That it did not finish within the cap, and the cap. Averaging the cap value in as though it were a measurement understates the true mean by an unknown amount and reports a number that is an artefact of your budget. Censored observations must be marked as censored, which is what the crosses in Figure 5 are.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C16 &middot; IDA*</div>
+  <p>Implement IDA* and compare its node expansions and peak memory against A* on the same instances.</p>
+  <div class="ans"><b>Answer.</b> Memory drops from <span class="m">$O(b^d)$</span> to <span class="m">$O(d)$</span>; expansions rise by the re-expansion factor, which is modest when the number of distinct <span class="m">$f$</span> values is small and severe when costs are real-valued and every iteration raises the limit by one node. That failure mode is the reason IDA* is used on unit-cost puzzles and not on weighted graphs.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C17 &middot; RRT</div>
+  <p>Implement RRT in a 2D box with obstacles. Plot the tree, then measure how path length changes with more samples.</p>
+  <div class="ans"><b>Answer.</b> The tree fans toward unexplored regions without being told to: extension probability is proportional to Voronoi volume. Path length does <b>not</b> improve with more samples: the first path found is kept. That is what RRT* fixes, by choosing the cheapest parent and rewiring neighbours.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C18 &middot; UCT on a bandit tree</div>
+  <p>Implement UCT on a two-level tree and reproduce the shape of Figure 6: sweep <span class="m">$c$</span> at two budgets.</p>
+  <div class="ans"><b>Answer.</b> An interior optimum at both budgets, and the optimum moves with the budget. Build the tree so the best arm has the best child and the worst <i>average</i> child: otherwise the mean is already the right answer and the search is not being tested.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C19 &middot; Alpha&ndash;beta is exact</div>
+  <p>Implement minimax and alpha&ndash;beta and assert equal values on 1,000 random trees, then count leaves under three orderings.</p>
+  <div class="ans"><b>Answer.</b> The values must be identical on every tree: alpha&ndash;beta prunes only branches that provably cannot affect the root. Leaves: best-first about <span class="m">$b^{d/2}$</span>, random in between, worst-first close to but below the full tree. If the values ever differ, the alpha/beta window is being passed unnegated somewhere.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C20 &middot; The Knuth&ndash;Moore count</div>
+  <p>Check the measured best-first leaf count against <span class="m">$b^{\lceil d/2\rceil}+b^{\lfloor d/2\rfloor}-1$</span> at several depths.</p>
+  <div class="ans"><b>Answer.</b> It matches exactly, not approximately: at <span class="m">$b=3,d=8$</span> both are 161. This is one of the few places in the book where a measured count lands on a closed form to the unit, and it is worth checking yourself, because it means "optimal ordering" has a precise cost rather than an asymptotic one.</div>
+</div>
+
+<h3><span class="num">Tier 3</span> Stretch</h3>
+
+<div class="drill">
+  <div class="head"><span class="tier stretch">Stretch</span>S1 &middot; Break A* with a learned heuristic</div>
+  <p>Fit a small regressor to predict <span class="m">$h^*$</span> from coordinates on a set of grids, use it as <span class="m">$h$</span> on held-out grids with a hard closed list, and measure how often the returned path is suboptimal.</p>
+  <div class="ans"><b>Answer.</b> Suboptimal on a substantial fraction, because the regressor overestimates somewhere on almost every instance and one overestimate on the optimal path is enough. The instructive part is that the average error can be tiny while the failure rate is large: admissibility is a property of the maximum, not the mean, which is why "accurate heuristic" and "safe heuristic" are unrelated claims.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier stretch">Stretch</span>S2 &middot; Make it admissible anyway</div>
+  <p>Take the regressor from S1 and make it usable: subtract a calibrated offset so that it under-predicts on a validation set with high probability. Measure what the correction costs in expansions.</p>
+  <div class="ans"><b>Answer.</b> A conformal-style offset at the desired quantile buys probabilistic admissibility, and the expansions rise toward the <span class="m">$h=0$</span> end because a uniformly deflated heuristic is a weaker heuristic. Figure 1 predicts the shape of that loss and it is steep: deflating by even a modest fraction gives back most of the benefit, which is the real reason learned heuristics are used inadmissibly.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier stretch">Stretch</span>S3 &middot; Anytime weighted A*</div>
+  <p>Implement anytime weighted A*: solve at <span class="m">$w=5$</span>, then re-solve at decreasing weights reusing the <span class="m">$g$</span> values, reporting the bound at each step. Plot cost against time.</p>
+  <div class="ans"><b>Answer.</b> A staircase converging to optimal with a certified bound at every instant. The engineering value is the bound rather than the cost: a planner interrupted at any moment returns not just a path but a path with a known worst case, which is what makes it usable inside a fixed control cycle.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier stretch">Stretch</span>S4 &middot; Bidirectional search, correctly</div>
+  <p>Implement bidirectional Dijkstra and get the termination condition right. Show a case where stopping at the first frontier meeting returns a suboptimal path.</p>
+  <div class="ans"><b>Answer.</b> The first meeting is not optimal in general; you must continue until the sum of the two frontier minima exceeds the best meeting cost found. Construct a graph with one cheap long path and one expensive short one and the naive version fails. This is why the theoretical square-root saving is so often not realised in practice.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier stretch">Stretch</span>S5 &middot; RRT* and asymptotic optimality</div>
+  <p>Implement RRT* with the shrinking rewiring radius. Plot path cost against sample count for RRT and RRT*, and check what happens when the radius is held constant.</p>
+  <div class="ans"><b>Answer.</b> RRT's cost is flat, RRT*'s decays toward the optimum. A constant radius breaks the guarantee in both directions: too small and it stops connecting, too large and every step costs <span class="m">$O(n)$</span> rewiring. The <span class="m">$(\log n/n)^{1/d}$</span> schedule is what balances connectivity against cost, and the <span class="m">$1/d$</span> exponent is where the dimension reappears.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier stretch">Stretch</span>S6 &middot; Narrow passages</div>
+  <p>Build a two-room environment joined by a corridor of width <span class="m">$\epsilon$</span>. Measure how PRM's success rate scales as <span class="m">$\epsilon$</span> shrinks, then implement obstacle-biased sampling and measure again.</p>
+  <div class="ans"><b>Answer.</b> Uniform sampling's success falls with the corridor's volume fraction, which is exponential in the dimension. Bias toward the obstacle boundary and it improves sharply. This is the failure mode that governs whether sampling-based planning works on a real problem, and it is invisible in any average-case analysis.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier stretch">Stretch</span>S7 &middot; Reproduce Figure 8's crossover</div>
+  <p>Simulate a candidate population with an attractive-error mode, sweep the attractive share, measure verifier accuracy empirically, and find the break-even accuracy at <span class="m">$k=4$</span> and <span class="m">$k=32$</span>.</p>
+  <div class="ans"><b>Answer.</b> Break-even rises with <span class="m">$k$</span>: about 0.56 and 0.71 in the printed population. Sweep the <i>attractive share</i> rather than the verifier's noise: accuracy is not monotone in noise (a sharp verifier is confidently wrong about the attractive error), so the noise sweep gives two very different solve rates at the same accuracy and the plot stops being a function.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier stretch">Stretch</span>S8 &middot; A selection rule that does not take a maximum</div>
+  <p>On the same population, compare argmax selection against majority voting among verifier-accepted candidates. Find where each wins.</p>
+  <div class="ans"><b>Answer.</b> Argmax wins when the verifier is good, because it exploits the ranking fully. Voting among accepted candidates wins when the verifier is weak, because it stops a single high-scoring attractive error from taking the answer. The maximum is what converts a tail into an output, and it is the operation to soften when the scorer is unreliable.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier stretch">Stretch</span>S9 &middot; Correlated errors kill self-consistency</div>
+  <p>Simulate self-consistency with independent errors and with a shared systematic misconception. Plot accuracy against <span class="m">$k$</span> for both.</p>
+  <div class="ans"><b>Answer.</b> Independent errors scatter and the majority converges to the correct answer. A shared misconception is reproduced by every sample, so the majority converges to it: accuracy falls with <span class="m">$k$</span>. Voting removes variance and never bias, which is Part VIII §18's result about ensembles arriving in a different vocabulary.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier stretch">Stretch</span>S10 &middot; Split a compute budget</div>
+  <p>With a fixed total budget, compare spending it on a larger <span class="m">$k$</span> against spending it on a better generator (simulate as a higher base solve rate). Find the split that maximises solve rate at two verifier accuracies.</p>
+  <div class="ans"><b>Answer.</b> With a strong verifier, extra samples pay well and the optimum tilts toward <span class="m">$k$</span>. With a weak one the optimum sits at small <span class="m">$k$</span> and everything else should go to the generator, since past the break-even more samples are actively harmful. The split is an empirical question with a measurable answer, and it is almost never measured because the two halves usually belong to different teams.</div>
+</div>

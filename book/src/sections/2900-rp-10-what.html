@@ -1,0 +1,206 @@
+<h2><span class="part-kicker">Part A</span>What a representation is</h2>
+
+<h3><span class="num">§1</span> The question</h3>
+
+<div class="sixty">
+  <span class="label">In 60 seconds</span>
+  <p>Information is easy or hard to use depending on how it is written down. A representation is
+  a way of writing an input down, and a <b>good</b> one is one that makes the next task easy. That
+  is the whole subject, and the difficulty is that "the next task" is often not known when the
+  representation is learned.</p>
+</div>
+
+<p>Divide 210 by 6. Now divide CCX by VI. The quantities are identical and the second is
+substantially harder, because the place-value system supports long division and Roman numerals do
+not. Nothing about the numbers changed; the notation did.</p>
+
+<p>The same effect has a formal version. Inserting into a sorted list is $O(n)$ if the list is a
+linked list and $O(\log n)$ if it is a red–black tree: the same set of numbers, the same
+operation, a different cost, decided entirely by representation.</p>
+
+<div class="box def">
+  <span class="label">The definition, and why it is circular</span>
+  <p>A <b>representation</b> is a function $f$ mapping an input $\mathbf{x}$ to a vector
+  $\mathbf{h} = f(\mathbf{x})$. A representation is <b>good</b> for a task if that task is easy to
+  solve given $\mathbf{h}$.</p>
+  <p>The circularity is not a flaw in the definition; it is the actual situation. Goodness is
+  relative to a task, so a representation learned without knowing the task is a bet about which
+  tasks will come. The rest of this part is about how to place that bet well, and §41 is about how
+  to know whether it paid.</p>
+</div>
+
+<h3><span class="num">§2</span> Every supervised network is already doing this</h3>
+
+<p>Before introducing anything new, notice that representation learning has been going on
+throughout this book without being named.</p>
+
+<div class="box why">
+  <span class="label">Why the last layer being linear is the whole observation</span>
+  <p>A classifier ends in a softmax over a linear map. That final layer can only draw hyperplanes.
+  So if the network works at all, everything before the last layer has learned to place the
+  classes in a position where hyperplanes suffice.</p>
+  <p>Classes that were tangled in the input are <b>linearly separable</b> in the last hidden layer,
+  because that is the only way the network could have succeeded. The representation was not
+  requested and no term in the loss mentions it. It is what the network had to build in order to
+  finish with a linear map.</p>
+  <p>Part VII §7's hidden units are this, seen from the other end. This part changes only one
+  thing: it asks what happens when you shape $\mathbf{h}$ <b>deliberately</b>, and when you learn
+  it with no labels at all.</p>
+</div>
+
+<div class="box pitfall">
+  <span class="label">Pitfall: "the features are in the penultimate layer"</span>
+  <p>Repeated everywhere, and true only relative to the training task. A representation trained to
+  separate a thousand object categories has been actively rewarded for <b>discarding</b> everything
+  irrelevant to those categories: pose, lighting, exact position, texture detail.</p>
+  <p>If your downstream task needs one of the discarded factors, the penultimate layer is the
+  <i>worst</i> place to look and an earlier layer will do better. §37 measures this. The general
+  statement: supervised training is a representation learner that has been told exactly what to
+  throw away, and it obeys.</p>
+</div>
+
+<h3><span class="num">§3</span> Three properties, and the fact that they conflict</h3>
+
+<div class="box def">
+  <span class="label">What is asked of a representation</span>
+  <p><b>Informative.</b> It retains what is needed. The limiting case, $\mathbf{h} = \mathbf{x}$,
+  is perfectly informative and useless.</p>
+  <p><b>Compact.</b> It is smaller, or sparser, or lower-rank than the input. The limiting case,
+  $\mathbf{h} = 0$, is perfectly compact and useless.</p>
+  <p><b>Structured.</b> Its coordinates mean something separately: directions correspond to
+  factors, distances correspond to similarity, a linear model on top suffices.</p>
+</div>
+
+<div class="box why">
+  <span class="label">Why the first two conflict, and why that is productive</span>
+  <p>Informativeness and compactness pull in opposite directions by construction, and every method
+  in this part is a particular way of resolving the tension. An autoencoder resolves it with a
+  bottleneck (§8) or a penalty (§10, §13). A contrastive objective resolves it by declaring which
+  differences do not count (§19). A masked objective resolves it by requiring prediction of what
+  was hidden (§22).</p>
+  <p>The third property is different in kind: it is not forced by any of these objectives, it is
+  <b>hoped for</b>. Movement E is about finding out whether it happened, and §39 is about a decade
+  of trying to make it happen on purpose.</p>
+</div>
+
+<h3><span class="num">§4</span> Distributed representations, and the counting argument</h3>
+
+<p>Concepts can be written down as one symbol each, or as a pattern across many features. The
+difference in what the two can express is not a matter of degree.</p>
+
+<figure>
+  <img src="figures/rp/01-distributed.svg" alt="Distinguishable regions against number of features, for distributed representations in several dimensions and for a symbolic representation">
+  <figcaption><b>Figure 1.</b> How many regions of input space $n$ binary features can distinguish,
+  computed exactly. A symbolic representation with $n$ symbols distinguishes $n$ regions. Forty
+  linear-threshold features in ten dimensions distinguish <b>1,221,246,132</b>, a factor of thirty
+  million, from the same forty parameters' worth of description.</figcaption>
+</figure>
+
+<div class="box def">
+  <span class="label">Distributed and non-distributed</span>
+  <p>A <b>distributed</b> representation describes an input by many features that can be set
+  independently. $n$ binary features take $2^n$ configurations.</p>
+  <p>A <b>non-distributed</b> or <b>symbolic</b> representation assigns each input one symbol.
+  One-hot vectors, $k$-means assignments, decision-tree leaves, $k$-nearest-neighbour templates and
+  $n$-gram contexts are all of this kind: many entries, but no meaningful separate control over
+  each.</p>
+  <p>The exact count for linear-threshold features: $n$ hyperplanes in general position in
+  $\mathbb{R}^d$ cut it into $\sum_{j=0}^{d}\binom{n}{j} = O(n^d)$ regions (the figure's left
+  panel). The general-position count goes back to Schläfli; Zaslavsky's arrangement theorem is the
+  later generalisation to hyperplanes in <i>any</i> position, general position being the special
+  case that maximises the count.</p>
+</div>
+
+<div class="box pitfall">
+  <span class="label">Pitfall: the exponent is on the wrong symbol</span>
+  <p>The advantage is routinely stated as "exponential in the number of features". It is not. The
+  count $O(n^d)$ is <b>polynomial in $n$, the number of features</b>, and exponential in $d$, the
+  input dimension.</p>
+  <p>The figure shows it: going from 20 features to 40 in ten dimensions multiplies the regions by
+  about 1,980, large, and nothing like $2^{20}$. The $2^n$ figure counts <i>configurations of the
+  code</i>, and most of them are never realised, because $n$ hyperplanes cannot carve $2^n$ regions
+  out of a $d$-dimensional space once $n > d$.</p>
+  <p>The correct statement is still overwhelming and it is worth stating correctly.</p>
+</div>
+
+<div class="box why">
+  <span class="label">Why generalisation is the real point, not the count</span>
+  <p>Counting regions is the argument's setup. The consequence is about <b>sharing</b>.</p>
+  <p>As symbols, <i>cat</i> and <i>dog</i> are exactly as far apart as <i>cat</i> and
+  <i>Tuesday</i>: one-hot vectors are equidistant, all of them. Give them distributed codes with
+  entries that mean something (has-fur, has-legs, is-animate) and what is learned about one
+  transfers to the other for free, because they share entries.</p>
+  <p>This is why the feature that mattered most for language was learned representations of words
+  rather than indices, and it is the mechanism behind every embedding in movement D. A distributed
+  representation induces a <b>similarity space</b>. A symbolic one does not have one.</p>
+</div>
+
+<h3><span class="num">§5</span> The manifold assumption</h3>
+
+<div class="sixty">
+  <span class="label">In 60 seconds</span>
+  <p>Data does not fill its space. Images of faces occupy a vanishing fraction of the space of
+  pixel arrays, and that fraction is connected and low-dimensional. If that is true, a
+  representation's job is to find coordinates <b>on</b> that region rather than in the space it
+  sits inside.</p>
+</div>
+
+<div class="box def">
+  <span class="label">The assumption, and the evidence for it</span>
+  <p>Probability mass concentrates on a small number of low-dimensional connected regions
+  (<b>manifolds</b>) embedded in a much higher-dimensional ambient space.</p>
+  <p>The informal evidence is decisive: sample a $256\times256$ RGB image uniformly at random and
+  you get noise, every time, for as long as you care to try. Natural images are a set of measure
+  approximately zero. The formal evidence is that you can move continuously between two faces
+  through images that all look like faces, which is what "connected" means.</p>
+  <p>The <b>tangent space</b> at a point is the set of directions you can move while staying on
+  the manifold: for an image, the directions corresponding to small translations, rotations,
+  changes of pose or lighting. Its dimension is the manifold's dimension, and it is far smaller
+  than the number of pixels.</p>
+</div>
+
+<div class="box why">
+  <span class="label">Why this reframes the whole part</span>
+  <p>If the assumption holds, a good representation is a <b>coordinate system on the manifold</b>:
+  sensitive to the directions along it, insensitive to the directions off it.</p>
+  <p>Read that sentence twice, because it is the design brief for movement B. An autoencoder's
+  bottleneck forces coordinates. A denoising objective (§11) explicitly teaches the map from
+  off-manifold back to on. A contractive penalty (§13) explicitly asks for insensitivity in the
+  off-manifold directions. Three methods that look unrelated are three ways of stating the same
+  requirement.</p>
+</div>
+
+<h3><span class="num">§6</span> Why local methods are not enough</h3>
+
+<p>If the data lies on a manifold, one could try to map it directly: build a graph on nearest
+neighbours, estimate a tangent plane in each neighbourhood, and stitch the patches into a global
+coordinate system. This is classical manifold learning, and understanding why it was not enough
+explains why the rest of this part exists.</p>
+
+<div class="box why">
+  <span class="label">Why interpolating between neighbours fails</span>
+  <p>A non-parametric method generalises by interpolating between nearby training examples. So it
+  needs enough examples to cover every twist of the manifold, and the number required grows with
+  how much the manifold bends, not with its dimension.</p>
+  <p>Take one image and translate it by one pixel at a time. This traces a one-dimensional curve
+  through a 784-dimensional space. Watch a single pixel as the image slides past: its value goes
+  up and down once for every stripe of brightness in the image. A texture with fifty stripes gives
+  fifty oscillations, in <b>one</b> coordinate, along a <b>one</b>-dimensional manifold.</p>
+  <p>So the manifold's dimension is one and its curvature is enormous, and a local method needs
+  examples in proportion to the curvature. That is the curse of dimensionality reappearing where
+  low dimension had seemed to remove it.</p>
+  <p>The way out is to represent the manifold with a <b>parametric function that shares parameters
+  across all locations</b>, so that what is learned about translation at one point applies at
+  every other. That is what a neural encoder is, and it is the reason the field went this way.</p>
+</div>
+
+<div class="box intuition">
+  <span class="label">Where movement A leaves you</span>
+  <p>Four commitments, and the rest of the part is consequences.</p>
+  <p><b>A representation is good relative to a task</b>, so learning one without labels is a bet.</p>
+  <p><b>Distributed beats symbolic</b>, because sharing entries is what makes generalisation to new
+  combinations possible at all.</p>
+  <p><b>Data lies on manifolds</b>, so the job is a coordinate system on one.</p>
+  <p><b>The coordinate system has to be a shared parametric function</b>, because local
+  interpolation cannot cover the curvature.</p>
+</div>

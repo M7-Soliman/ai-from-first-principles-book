@@ -1,0 +1,205 @@
+<h2><span class="part-kicker">Build</span>The project</h2>
+
+<p class="lede">Ten to fourteen hours. You build a cost model from arithmetic, then measure a real
+system against it, and find the places where the FLOP count and the stopwatch disagree.</p>
+
+<h3><span class="num">P.1</span> What you are building</h3>
+
+<p><b><code>serve</code></b>: an inference cost model, four compression techniques applied to one
+model, and a measurement harness that reports time rather than arithmetic.</p>
+
+<p>The rule: <b>predict every number before measuring it</b>. This part's claim is that inference
+cost is largely computable in advance, and the only way to find out whether that is true for your
+setup is to commit first.</p>
+
+<h3><span class="num">P.2</span> Stage 1: the cost model</h3>
+
+<ol>
+  <li>Arithmetic intensity, the ridge point, and which side of it each operation sits on.</li>
+  <li>KV cache size, the context at which it equals the weights, and concurrent sequences for a
+  device size you pick.</li>
+  <li>Predicted decode tokens per second from bandwidth alone.</li>
+  <li>The end-to-end request cost, separating prefill from decode.</li>
+</ol>
+
+<p><b>Deliverable:</b> one function taking a configuration and returning predicted latency,
+throughput and cost per token. Then predict all of them for the model you are about to use.</p>
+
+<h3><span class="num">P.3</span> Stage 2: measure against it</h3>
+
+<ol>
+  <li>Run the model. Measure time to first token and time per output token, at several batch
+  sizes.</li>
+  <li>Compare each to the prediction and report the ratio.</li>
+  <li>Find the batch size at which throughput stops rising, and compare to the predicted ridge.</li>
+</ol>
+
+<p><b>Deliverable:</b> the predicted-against-measured table. The term you got most wrong is the
+term your model handles worst, and fixing it is worth more than any optimisation in the rest of the
+project.</p>
+
+<h3><span class="num">P.4</span> Stage 3: quantization</h3>
+
+<ol>
+  <li>Implement per-tensor, per-channel and per-group symmetric quantization.</li>
+  <li>Sweep bits from 8 down to 2, measuring both weight error <b>and</b> model loss. Plot both and
+  compare their shapes.</li>
+  <li>Detect the outlier channels. Quantize with the scales computed <b>excluding</b> them and
+  compare, then repeat the version that quantizes everything first and overwrites, and confirm it
+  does almost nothing.</li>
+  <li>Count the scale storage and report effective bits per weight.</li>
+</ol>
+
+<p><b>Deliverable:</b> the two curves, the outlier comparison, and the honest bits-per-weight for
+each scheme.</p>
+
+<h3><span class="num">P.5</span> Stage 4: sparsity, timed</h3>
+
+<ol>
+  <li>Magnitude-prune to several sparsity levels, fine-tuning after each. Plot accuracy against
+  sparsity.</li>
+  <li>Then <b>time</b> the pruned model: as a dense array with zeros, and with a sparse kernel.</li>
+  <li>Compute dense against sparse storage and find the crossover.</li>
+  <li>Implement 2:4 and compare its accuracy cost to unstructured at the same 50%.</li>
+</ol>
+
+<p><b>Deliverable:</b> one plot with three lines: accuracy, measured speedup, and the speedup the
+FLOP count promised. The gap between the last two is the stage's point.</p>
+
+<h3><span class="num">P.6</span> Stage 5: distillation and adaptation</h3>
+
+<ol>
+  <li>Distil your model into a student half the size. Then train the same student directly, as the
+  control.</li>
+  <li>Sweep temperature and report the teacher's output entropy at each.</li>
+  <li>Fine-tune fully, take the SVD of the weight deltas, and report the rank for 90% and 99% of the
+  energy.</li>
+  <li>Then fine-tune with LoRA at several ranks and compare quality at matched trainable
+  parameters.</li>
+</ol>
+
+<p><b>Deliverable:</b> the distillation gap against the control, and the rank table. Predict the
+LoRA rank you will need from the SVD, then check whether that prediction held.</p>
+
+<h3><span class="num">P.7</span> Stage 6: serving</h3>
+
+<ol>
+  <li>Simulate a queue with a realistic spread of generation lengths. Compare static and continuous
+  batching on throughput and p95 latency.</li>
+  <li>Compute cache waste under maximum-length reservation and under paging.</li>
+  <li>Implement speculative decoding with the exact rejection rule. Measure the acceptance rate for
+  drafts of several sizes and compute the implied speedup.</li>
+  <li>Verify the output distribution is unchanged.</li>
+</ol>
+
+<p><b>Deliverable:</b> the throughput and latency numbers, and the draft size that maximises the
+product of acceptance and cheapness.</p>
+
+<h3><span class="num">P.8</span> Stretch</h3>
+
+<ul>
+  <li><b>GPTQ in miniature</b>: column-by-column with error compensation, against independent
+  rounding.</li>
+  <li><b>Cache quantization</b>, keys and values separately, over a long generation.</li>
+  <li><b>Multi-adapter serving</b>: one base, many LoRAs, one batch.</li>
+  <li><b>Stack everything</b> and measure the order dependence.</li>
+  <li><b>Disaggregation</b>: prefill and decode as separate services.</li>
+</ul>
+
+<h3><span class="num">P.9</span> Done when</h3>
+
+<ul class="checklist">
+  <li>Your cost model predicts throughput within a factor of two, and you know which term is
+  worst.</li>
+  <li>You have the weight-error and loss curves side by side, and can say why one misleads.</li>
+  <li>You have measured the outlier effect both ways, and know why one of them does nothing.</li>
+  <li>You have timed sparsity rather than counting its FLOPs.</li>
+  <li>You have the distillation control, not just the distillation result.</li>
+  <li>You have the SVD rank table with both 90% and 99%.</li>
+  <li>You have measured speculative decoding's acceptance rate and confirmed the output is
+  unchanged.</li>
+  <li>Your README names one number you predicted wrongly by more than a factor of two.</li>
+</ul>
+
+<div class="box why">
+  <span class="label">Why this project</span>
+  <p>Stage 2 is the reason for the ordering. Almost everything in this part is arithmetic, and
+  arithmetic is either right or it is not, but only a measurement tells you which terms your model
+  is missing. A cost model that predicts within a factor of two is worth more than any single
+  optimisation, because it tells you which optimisation to attempt.</p>
+  <p>Stage 4 is the second reason. The claim that unstructured sparsity does not speed anything up
+  contradicts a great deal of published arithmetic, it takes ten lines to check, and checking it
+  once permanently changes how you read a compression result.</p>
+</div>
+
+<h2 class="nobreak"><span class="part-kicker">Assess</span>Checkpoint</h2>
+
+<ul class="checklist">
+  <li>Say what changes between training and inference, and name the three quantities that trade.</li>
+  <li>Distinguish prefill from decode and say why conflating them is an error.</li>
+  <li>Define arithmetic intensity and give it for one-token decoding.</li>
+  <li>Define the ridge point and say which side decode sits on.</li>
+  <li>Say what follows for quantization, pruning, batching and speculative decoding.</li>
+  <li>Write the KV cache size and say what it is linear in.</li>
+  <li>Say why grouped-query and multi-query attention exist.</li>
+  <li>Give the two latency numbers that matter and what sets each.</li>
+  <li>Give the bandwidth-based estimate of decode speed.</li>
+  <li>Write symmetric integer quantization and say what sets the step size.</li>
+  <li>Compare per-tensor, per-channel and per-group, including the scale overhead.</li>
+  <li>Explain why outliers hurt, and give two remedies that exploit their structure.</li>
+  <li>Say what error-compensating post-training quantization does differently.</li>
+  <li>Describe quantization-aware training and the straight-through estimator.</li>
+  <li>Distinguish weight-only from full quantization and say what each buys.</li>
+  <li>Say why the KV cache must be quantized too, and why keys are more sensitive.</li>
+  <li>State what fraction of weights can typically be pruned, and what that implies.</li>
+  <li>State the lottery ticket claim and two qualifications.</li>
+  <li>Explain why unstructured sparsity gives no speedup, in two separate ways.</li>
+  <li>Say why 2:4 works when 90% unstructured does not.</li>
+  <li>Give three larger units that can be pruned.</li>
+  <li>Say why quantization beat pruning.</li>
+  <li>Describe distillation and what the soft targets carry.</li>
+  <li>Explain what temperature controls and why a trained teacher needs it raised.</li>
+  <li>Give three variants of distillation and what each transfers.</li>
+  <li>State the self-distillation puzzle and the partial explanations.</li>
+  <li>Describe progressive distillation and what it gives up.</li>
+  <li>Give the control experiment a distillation result needs.</li>
+  <li>Give the three costs of full fine-tuning and say which motivates this movement.</li>
+  <li>Write LoRA and say why $B$ starts at zero.</li>
+  <li>Say why LoRA costs nothing at inference, and what merging gives up.</li>
+  <li>State the difference between an update being low rank and a rank-$r$ constraint being
+  enough.</li>
+  <li>Say what QLoRA changes and why the quantization error costs less there.</li>
+  <li>Explain why multi-adapter serving is the property that mattered.</li>
+  <li>Give the four adaptation options in order of cost.</li>
+  <li>Say why batching is the largest single lever.</li>
+  <li>Explain continuous batching and what it fixes.</li>
+  <li>Describe paged attention and the operating-system idea it borrows.</li>
+  <li>Give speculative decoding's rejection rule and why the output is exact.</li>
+  <li>Give three levels of caching and the risk the third introduces.</li>
+  <li>Say what disaggregation is and why prefill and decode want different machines.</li>
+  <li>Say why the mean latency is the least useful number.</li>
+  <li>Write the end-to-end cost model and explain the input/output asymmetry.</li>
+</ul>
+
+<table class="compact">
+  <thead><tr><th>Score</th><th>Verdict</th></tr></thead>
+  <tbody>
+    <tr><td><b>34–43</b></td><td>Go on. You will ask what is binding before optimising anything.</td></tr>
+    <tr><td><b>26–33</b></td><td>Reread what you missed, then continue.</td></tr>
+    <tr><td><b>17–25</b></td><td>Do the project's Stages 1 and 2. A cost model you built fixes most of this.</td></tr>
+    <tr><td><b>Under 17</b></td><td>Reread §§3, 19 and 44. The roofline, the timing of sparsity, and the cost model carry the part.</td></tr>
+  </tbody>
+</table>
+
+<div class="box intuition">
+  <span class="label">The one thing to carry forward</span>
+  <p><b>Generation is limited by memory bandwidth, not by arithmetic.</b></p>
+  <p>Quantization works because it moves fewer bytes. Unstructured sparsity does not work because it
+  removes arithmetic that was not the constraint. Batching is the largest lever because it amortises
+  one weight read across many sequences. Speculative decoding works because a memory-bound pass has
+  arithmetic to spare. The KV cache matters because it competes for the same bandwidth and the same
+  memory.</p>
+  <p>And the discipline that goes with it: <b>measure time, not FLOPs.</b> The flat line in Figure 5
+  took ten lines of code and contradicts a great deal of published arithmetic about how much faster a
+  sparse model ought to be.</p>
+</div>

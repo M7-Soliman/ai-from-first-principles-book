@@ -1,0 +1,130 @@
+<h2><span class="part-kicker">Part F</span>Practice</h2>
+
+<p class="mvt">Where the data comes from, how to evaluate a system whose failures are rare and
+correlated, and which of this part's problems will still be there after the next model.</p>
+
+<h3><span class="num">§40</span> The data engine</h3>
+
+<div class="box shapes">
+  <span class="label">The loop that actually produces a perception dataset</span>
+  <p>Nobody labels a driving dataset by labelling random frames. The loop is: deploy, find the cases
+  the system handles badly, label those, retrain, repeat.</p>
+  <p><b>Mining.</b> Disagreement between an ensemble, between frames, or between a model and a
+  slower offline model that can use the future as well as the past. The offline model is the useful
+  trick: it can be far more expensive than the deployed one and is not required to be causal.</p>
+  <p><b>Auto-labelling.</b> Run the offline model, have humans correct rather than annotate. The
+  cost per label falls by an order of magnitude and the error correlates with the model's, which is
+  the danger.</p>
+  <p><b>Simulation.</b> Unlimited exact labels for scenarios that are rare or dangerous, at the cost
+  of a domain gap that is largest exactly where the appearance is unusual.</p>
+</div>
+
+<div class="box pitfall">
+  <span class="label">Pitfall: the loop optimises for what it can measure</span>
+  <p>Mining on model disagreement finds cases the model is uncertain about. It does not find cases
+  the model is confidently wrong about, and those are the ones that cause incidents. Nothing in the
+  loop closes that gap on its own; it needs an independent source: a different sensor, a different
+  model family, or a human looking at what the system did rather than at what it was unsure of.</p>
+</div>
+
+<h3><span class="num">§41</span> Evaluating a perception system</h3>
+
+<div class="box try">
+  <span class="label">Six things, and the first is not a metric</span>
+  <p><b>Slice.</b> A single AP over a test set is nearly uninformative. Report by range, by object
+  size, by occlusion level, by lighting, by weather. The aggregate hides the slices, and the slices
+  are what fails.</p>
+  <p><b>Check the geometry separately.</b> Reprojection error against radius (§27), depth error
+  against range (§29). These have known correct values and are not statistical.</p>
+  <p><b>Measure temporal consistency</b>, not just per-frame accuracy.</p>
+  <p><b>Split by sequence, never by frame.</b></p>
+  <p><b>Calibrate the confidences</b> and check them (Part XIV §5). A detector's AP is unchanged by
+  monotone rescaling; a downstream fusion is not.</p>
+  <p><b>Count the rare events with an interval.</b> Zero pedestrian misses in a thousand sequences
+  bounds the rate at about 0.3% and no lower, which is Part XXI §27's rule of three and usually a
+  looser bound than people assume.</p>
+</div>
+
+<h3><span class="num">§42</span> What to report</h3>
+
+<div class="box shapes">
+  <span class="label">Six</span>
+  <p><b>The IoU threshold, or the whole curve.</b> Figure 1 is why a single number is ambiguous.</p>
+  <p><b>The suppression threshold</b>, since Figure 2 shows it setting recall and precision.</p>
+  <p><b>Performance by object size and range</b>, since Figures 4 and 7 give the mechanisms for
+  small and distant objects failing.</p>
+  <p><b>The calibration procedure and its residual against radius.</b></p>
+  <p><b>For a tracker, detection and association separately.</b></p>
+  <p><b>How the split was made</b>: by sequence, with the sequence count.</p>
+</div>
+
+<h3><span class="num">§43</span> Where this connects</h3>
+
+<div class="box shapes">
+  <span class="label">Six places</span>
+  <p><b>Part X §27 and §29.</b> The checkerboard and gridding artefacts are §18's decoder
+  choices.</p>
+  <p><b>Part XXVII §5.</b> The downsampling that loses small objects in Figure 4 is the downsampling
+  that breaks shift-consistency, and both are cured by respecting what a stride does.</p>
+  <p><b>Part XXVIII §13.</b> The tracker's motion model is the Kalman filter, and its covariance is
+  what sets the association gate.</p>
+  <p><b>Part XXVIII §41.</b> A box regression loss that is zero-gradient on non-overlapping boxes
+  has the same defect as a divergence that is infinite on disjoint supports, and the same shape of
+  fix.</p>
+  <p><b>Part XXIV §33.</b> Turning a detector's ranking into a decision needs the cost ratio, which
+  AP does not contain.</p>
+  <p><b>Part XXXI.</b> The planner and controller that consume all of this, and the validation
+  argument that has to cover the whole chain.</p>
+</div>
+
+<h3><span class="num">§44</span> What is unsolved</h3>
+
+<div class="box why">
+  <span class="label">Four, distinguished by kind, and this part's honest caveat</span>
+  <p>Every figure in this part measures geometry or arithmetic, which is why all twenty of its
+  predictions held. The genuinely uncertain questions are the ones a figure script cannot reach,
+  and they are these.</p>
+  <p><b>Not yet measured.</b> How much of a modern detector's remaining error is localisation and
+  how much is recognition. The decomposition exists and is almost never reported.</p>
+  <p><b>Not currently measurable.</b> Whether a perception system will fail on a scenario nobody has
+  thought of. Every evaluation is on a distribution of scenarios someone assembled, and the
+  long tail is by construction not in it.</p>
+  <p><b>Genuinely open.</b> Whether an end-to-end system can be validated to the standard a
+  safety-critical deployment requires. This is not a question about accuracy; it is a question about
+  whether an argument can be made at all without intermediate representations.</p>
+  <p><b>Not empirical.</b> What counts as an object. A pedestrian pushing a bicycle is one object,
+  or two, and the answer depends on what the planner will do about it.</p>
+</div>
+
+<h3><span class="num">§45</span> What to carry forward</h3>
+
+<div class="box intuition">
+  <span class="label">Five things</span>
+  <p><b>The metric contains a threshold and the threshold changes the ranking.</b> Figure 1 measures
+  AP falling from 1.000 to 0.116 on one detector, and two systems trading places.</p>
+  <p><b>Background dominates by construction and gets worse with resolution.</b> Figure 3 measures
+  672 negatives per positive at 512 px and 10,752 at 2,048 px, which is why the loss rather than the
+  architecture closed the one-stage gap.</p>
+  <p><b>Small objects are lost to arithmetic.</b> Figure 4 measures a 16 px object occupying one
+  feature pixel after four stride-2 stages: it is not hard to detect, it is absent.</p>
+  <p><b>Some errors are geometric and training cannot touch them.</b> Figure 6 measures 164 px of
+  reprojection error from uncorrected distortion; Figure 7 measures stereo depth error growing at
+  an exponent of exactly 2.000; and Figure 5 measures an edge's tangential motion as unrecoverable
+  to exactly zero.</p>
+  <p><b>A four-state linear filter is the cheapest accuracy in the stack.</b> Figure 8 measures 100%
+  misidentification without one and 0.0% with one, until its uncertainty outgrows the spacing
+  between objects.</p>
+</div>
+
+<div class="sixty">
+  <span class="label">Sixty seconds</span>
+  <p>Classification returns a label; everything a camera is actually used for returns a structure
+  (a set of objects, a value per pixel, a position in metres), and each needs a matching rule, a
+  metric with a threshold in it, and a way of surviving the fact that almost every pixel is
+  background. Two of the hardest parts are not learning problems at all. A single view cannot
+  determine scale and a local window cannot determine motion along an edge, both exactly; stereo
+  depth error grows with the square of range whatever the network; and an uncalibrated wide-angle
+  lens misplaces the image corner by more than any detector's precision. So the first question about
+  a perception error is not which model to try but whether the information was ever there, and the
+  second is whether a four-state Kalman filter would have fixed it, because it usually would.</p>
+</div>

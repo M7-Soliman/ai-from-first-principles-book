@@ -1,0 +1,136 @@
+<h2><span class="part-kicker">Part B</span>Averaging</h2>
+
+<p class="mvt">A deep tree has low bias and high variance, and variance is the failure that
+averaging removes. This movement measures how much it removes, establishes the identity that says
+what limits it, and is careful about the one part of the standard story that is a property of the
+dataset rather than of the method.</p>
+
+<h3><span class="num">§8</span> Bagging</h3>
+
+<div class="box def">
+  <span class="label">Bootstrap aggregating</span>
+  <p>Draw <span class="m">$B$</span> bootstrap resamples of the training set, fit a deep tree to
+  each, and average their predictions. Part VIII §18 derived why this reduces variance and not bias;
+  trees are the family it works best on, because they are the family with the most variance to
+  remove.</p>
+  <p>Note the deliberate inversion. A single tree is tuned to a shallow depth because deeper
+  overfits (Figure 1). A bagged tree is grown deep <b>on purpose</b>, because the averaging will
+  handle the variance and the low bias is what you wanted.</p>
+</div>
+
+<h3><span class="num">§9</span> The identity that governs it</h3>
+
+<div class="box def">
+  <span class="label">What averaging can and cannot reach</span>
+  <p>For <span class="m">$B$</span> predictors each of variance
+  <span class="m">$\sigma^2$</span> with pairwise correlation <span class="m">$\rho$</span>, the
+  average has variance</p>
+  <p class="m">$$\rho\,\sigma^2 + \frac{1-\rho}{B}\,\sigma^2$$</p>
+  <p>This follows from expanding the variance of the average directly. Writing
+  <span class="m">$\mathrm{Var}\!\left(\frac{1}{B}\sum_i Z_i\right)$</span> as
+  <span class="m">$\frac{1}{B^2}\sum_i \mathrm{Var}(Z_i) + \frac{1}{B^2}\sum_{i \neq j} \mathrm{Cov}(Z_i, Z_j)$</span>
+  and substituting <span class="m">$\sigma^2$</span> for each variance and
+  <span class="m">$\rho\sigma^2$</span> for each of the <span class="m">$B(B-1)$</span> covariance
+  terms gives <span class="m">$\frac{1}{B}\sigma^2 + \frac{B-1}{B}\rho\sigma^2$</span>, which
+  regroups into exactly the two terms above.</p>
+  <p>The second term vanishes as <span class="m">$B$</span> grows. The first does not. So adding
+  trees has diminishing returns and a <b>floor</b>, and the floor is set by how much the trees
+  agree.</p>
+  <p>Two consequences worth separating: more trees never hurts accuracy, so
+  <span class="m">$B$</span> is a compute decision rather than a tuning decision; and past a point
+  the only way to improve is to make the trees differ.</p>
+</div>
+
+<h3><span class="num">§10</span> Measuring both terms</h3>
+
+<figure>
+  <img src="figures/tb/02-bagging.svg" alt="Test error against the number of trees averaged, and tree correlation against the fraction of features offered per split">
+  <figcaption><b>Figure 2.</b> Left: error falling as trees are added, <b>2.22×</b> from one tree to
+  sixty, with the curve flattening exactly as §9's second term predicts. Right: the first term's
+  driver, measured: offering each split a smaller random subset of the features makes the trees
+  monotonically less alike, from a mean pairwise correlation of <b>0.509</b> at all features to
+  <b>0.292</b> at fifteen per cent.</figcaption>
+</figure>
+
+<h3><span class="num">§11</span> Random forests</h3>
+
+<div class="readnow"><span class="label">Go and read</span><p><span class="src">Breiman (2001)</span>, <i>Random forests</i>. Where §9's variance identity comes from, stated and proved as a bound in terms of the trees' <i>strength</i> and their pairwise <i>correlation</i>. Read it for the bound itself, and notice precisely what kind of statement it is: an upper bound on the ensemble's error, not a promise that any particular way of decorrelating the trees, feature subsampling included, will lower it on your data. That is the distinction §12's illustrative figure is built around.</p></div>
+
+<div class="box def">
+  <span class="label">Decorrelation, deliberately</span>
+  <p>A <b>random forest</b> is bagging plus a second source of randomness: at each split, only a
+  random subset of features is considered. Figure 2's right panel is that mechanism working: fewer
+  features offered, less agreement between the resulting trees.</p>
+  <p>The intent is to attack <span class="m">$\rho$</span> in §9's identity. The complication is
+  that it attacks <span class="m">$\sigma^2$</span> at the same time: a tree denied its best feature
+  splits on a worse one, so each individual tree gets worse as the fraction falls.</p>
+</div>
+
+<h3><span class="num">§12</span> The trade</h3>
+
+<figure class="illus">
+  <img src="figures/tb/03-subsampling-illus.svg" alt="Schematic of ensemble error, single-tree error and inter-tree agreement against the fraction of features offered at each split">
+  <figcaption><span class="illus-tag">Illustrative</span><b>Figure 3.</b> The shape the two effects
+  of §11 produce together. Withholding features lowers the agreement between trees, which helps, and
+  worsens each tree, which does not, so the ensemble error is drawn with an interior optimum
+  between the two. No axis carries a scale here, and deliberately: where the optimum falls, and
+  whether it is far enough from the endpoint to matter, depends on how many of the columns carry
+  signal and how strongly they are correlated with each other. Those are properties of a dataset
+  rather than of the method, so any particular number would describe the table it came from and not
+  the technique.</figcaption>
+</figure>
+
+<div class="box try">
+  <span class="label">So measure it on yours</span>
+  <p>Sweep the feature fraction on your own data with several repetitions, and plot the ensemble
+  error with error bars alongside the single-tree error. The common defaults
+  (<span class="m">$\sqrt{d}$</span> for classification, <span class="m">$d/3$</span> for
+  regression) are starting points inherited from the original papers' datasets, not results.</p>
+  <p>Report the paired difference between your best fraction and using every feature, with its
+  standard error. If they overlap, the honest statement is that on your data the choice does not
+  matter, and one fewer hyperparameter is worth having.</p>
+</div>
+
+<h3><span class="num">§13</span> Out-of-bag estimation</h3>
+
+<div class="box def">
+  <span class="label">A validation set you did not have to set aside</span>
+  <p>A bootstrap resample omits about <span class="m">$1/e \approx 37\%$</span> of the rows. Each
+  row can therefore be scored by the trees that did not see it, giving a held-out estimate for free
+  and without giving up any training data.</p>
+  <p>The caveat is Part XIII §25's: out-of-bag validity assumes the rows are exchangeable. On data
+  with a time index, or with groups, or with duplicates, the out-of-bag estimate inherits exactly
+  the optimism a random split would; §36 measures how much that can be.</p>
+</div>
+
+<h3><span class="num">§14</span> Feature importance, and its two traps</h3>
+
+<div class="box pitfall">
+  <span class="label">Pitfall: impurity importance is biased, and permutation importance lies about correlated features</span>
+  <p><b>Impurity importance</b> (total impurity reduction attributed to each feature) is biased
+  toward features with many distinct values, because a continuous feature offers more thresholds to
+  find a lucky split among. A random continuous column can outrank a genuinely informative binary
+  one. This is Part XIV §20's biased maximum, per feature.</p>
+  <p><b>Permutation importance</b> (the drop in accuracy when a column is shuffled) fixes that and
+  introduces another. With two correlated features carrying the same signal, permuting either one
+  alone costs nothing, because the other still carries it. Both look unimportant and the group is
+  essential.</p>
+  <p>And neither is causal. Part XXII §4's warning applies in full: importance is a statement about
+  the model's reliance, not about the world, and a feature can be important to the model precisely
+  because it is a collider or a descendant of the target.</p>
+</div>
+
+<aside class="mnote"><b>Named:</b> SHAP values are the attribution most reached for ahead of either measure above (game-theoretic, and consistent under correlated features in a way permutation importance is not), but they inherit the same non-causal reading: consistency about the model's reliance is not evidence about the world.</aside>
+
+<h3><span class="num">§15</span> What movement B establishes</h3>
+
+<div class="box intuition">
+  <span class="label">Three things</span>
+  <p><b>Averaging removes variance and has a floor.</b> Figure 2 measures 2.22× from sixty trees,
+  flattening as §9's identity says it must, with the floor set by how much the trees agree.</p>
+  <p><b>Decorrelating trees is a trade rather than a free improvement</b>, because the same
+  mechanism that makes them differ makes each of them worse, and which side wins is a property of
+  the columns in front of you.</p>
+  <p><b>Importance is not evidence.</b> Two standard measures, two different biases, and neither
+  answers a causal question.</p>
+</div>

@@ -1,0 +1,271 @@
+<h2><span class="part-kicker">Practice</span>Drills</h2>
+
+<p class="mvt">Forty-three drills. The harness in <code>parts/32-systems/drills/</code> covers twenty
+of them with thirty tests. Numpy only, and the timing drills are the one place in this book where
+your numbers will differ from the printed ones, because they are properties of your machine.</p>
+
+<h3><span class="num">Tier 0</span> Estimate first</h3>
+
+<div class="drill">
+  <div class="head"><span class="tier est">Estimate</span>E1 &middot; What limits your layer</div>
+  <p>A dense layer with 4,096 inputs and 4,096 outputs, in fp16, at batch size 1. Before computing anything, write down the parameter bytes, the multiply&ndash;adds, the arithmetic intensity, and whether it is memory-bound on a machine with 2&nbsp;TB/s of bandwidth and 300&nbsp;TFLOP/s of arithmetic. Then do the same at batch size 512.</p>
+  <div class="ans"><b>Answer.</b> <b>33.5&nbsp;MB</b> of weights, <b>16.8&nbsp;M</b> multiply&ndash;adds. At batch 1 the intensity is about <b>1</b> flop per byte and the ridge is 150, so it is <b>hopelessly memory-bound</b>: the weights are read once and used once. At batch 512 the same weights serve 512 rows, so the intensity is about <b>500</b> and it is compute-bound. Same layer, opposite regime, decided entirely by the batch. This is why generation is bandwidth-limited and training is not. <i>Score yourself: within a factor of two is a pass, and an order of magnitude out is worth understanding before you go on.</i></div>
+</div>
+
+<h3><span class="num">Tier 1</span> Warm-up</h3>
+
+<div class="drill">
+  <div class="head"><span class="tier warm">Warm-up</span>W1 &middot; The ratio</div>
+  <p>Roughly how many arithmetic operations fit in the time of one memory fetch?</p>
+  <div class="ans"><b>Answer.</b> About a hundred. That single ratio organises the whole movement: a computation touching each value once is limited by fetching, and faster arithmetic does nothing for it.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier warm">Warm-up</span>W2 &middot; The right quantity</div>
+  <p>What predicts how long a kernel takes?</p>
+  <div class="ans"><b>Answer.</b> Arithmetic intensity (flops per byte moved), not the flop count and not the byte count separately. It decides which of the two ceilings you are under.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier warm">Warm-up</span>W3 &middot; Read Figure 1</div>
+  <p>Where is the ridge, and what does being below it mean?</p>
+  <div class="ans"><b>Answer.</b> 1.96 flops per byte on the machine measured. Below it you are waiting for memory, and the only remedies are moving less data or moving it from closer. The constant is one machine's; the shape is everyone's.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier warm">Warm-up</span>W4 &middot; The exception</div>
+  <p>Is every elementwise kernel memory-bound?</p>
+  <div class="ans"><b>Answer.</b> No. <code>exp</code> moves the same bytes as a copy and achieves 1.94&nbsp;GB/s against 31: a transcendental costs tens of operations per element. Elementwise and compute-bound.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier warm">Warm-up</span>W5 &middot; Occupancy</div>
+  <p>Your kernel is at 25% occupancy. Is that a problem?</p>
+  <div class="ans"><b>Answer.</b> Not necessarily. Occupancy is a means to hiding latency; if memory is already saturated the kernel is finished. Raising it usually costs registers, which can push values back to memory and make things worse.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier warm">Warm-up</span>W6 &middot; Two gains from fewer bits</div>
+  <p>Halving precision speeds things up for two independent reasons. Name them.</p>
+  <div class="ans"><b>Answer.</b> Half the bytes moved, which doubles anything memory-bound; and dedicated arithmetic units, which is a separate gain. Worth knowing which one you are getting.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier warm">Warm-up</span>W7 &middot; Read Figure 2</div>
+  <p>What bounds the speedup from fusing a chain?</p>
+  <div class="ans"><b>Answer.</b> The chain length: you cannot make fewer than one pass. Measured 7.52&times; on a chain of eight, which is most of the available eight.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier warm">Warm-up</span>W8 &middot; Read Figure 3</div>
+  <p>What does blocking change, and how do you pick the block size?</p>
+  <div class="ans"><b>Answer.</b> Nothing about the arithmetic, only where the data is when it is needed. 3.5&times; measured, and the block size is the one whose working set fits a cache level, so it is computed rather than swept.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier warm">Warm-up</span>W9 &middot; Why a graph</div>
+  <p>Why do frameworks capture a computation graph before optimising it?</p>
+  <div class="ans"><b>Answer.</b> Every worthwhile transformation needs the whole computation visible. Which is why a data-dependent branch or a shape that changes every call silently returns you to unfused execution.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier warm">Warm-up</span>W10 &middot; Read Figure 4</div>
+  <p>Why does everyone use a ring all-reduce?</p>
+  <div class="ans"><b>Answer.</b> Its volume per worker is bounded by two buffers however many workers there are, where sending to everyone grows linearly: a factor of 32 at 64 workers. What it gives up is latency, which is why libraries switch algorithm by message size.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier warm">Warm-up</span>W11 &middot; Where to put which axis</div>
+  <p>Tensor parallelism or data parallelism, which goes inside a machine?</p>
+  <div class="ans"><b>Answer.</b> Tensor, because it communicates every layer. Data parallelism communicates once a step and tolerates the slow links. Getting this backwards costs more than any kernel optimisation recovers.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier warm">Warm-up</span>W12 &middot; What differential privacy is a property of</div>
+  <p>The dataset, the model, or the algorithm?</p>
+  <div class="ans"><b>Answer.</b> The algorithm. It holds against any adversary with any side information, which is what makes it different in kind from anonymisation, and it composes, so a whole training run has an accountable budget.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier warm">Warm-up</span>W13 &middot; What federation does not do</div>
+  <p>Data never leaves the device. Is that privacy?</p>
+  <div class="ans"><b>Answer.</b> No. An update is a function of the data and leaks accordingly: gradients can be inverted in some settings. Federation is a data-movement property; privacy needs a mechanism on top.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier warm">Warm-up</span>W14 &middot; Read Figure 8</div>
+  <p>How many queries clone a 30-parameter model, and what does removing probabilities buy?</p>
+  <div class="ans"><b>Answer.</b> 40 for 95% agreement, against a victim fitted on thousands of examples. Labels-only costs 640, sixteen times more, and still reaches 97%. Query access is disclosure at a price.</div>
+</div>
+
+<h3><span class="num">Tier 2</span> Core</h3>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C1 &middot; Measure your bandwidth</div>
+  <p>Time a copy of an array much larger than cache and compute the achieved bandwidth.</p>
+  <div class="ans"><b>Answer.</b> Read plus write, so bytes are twice the array. Compare against your machine's specification: reaching 70&ndash;80% is normal and anything far below means the access pattern is not contiguous.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C2 &middot; Measure your peak arithmetic</div>
+  <p>Time a large matrix multiplication and compute the achieved throughput.</p>
+  <div class="ans"><b>Answer.</b> 2n&sup3; flops. Divide by your bandwidth measurement to get the ridge, which is the single number that tells you which remedies apply to which kernel.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C3 &middot; Place your kernels</div>
+  <p>Compute the arithmetic intensity of five operations you actually run and plot them on your roofline.</p>
+  <div class="ans"><b>Answer.</b> Most will sit far below the ridge. Then check the transcendental ones separately; they will not be where the rule of thumb predicts.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C4 &middot; Fuse a chain</div>
+  <p>Time a chain of elementwise operations separately and fused.</p>
+  <div class="ans"><b>Answer.</b> Speedup tracking the chain length. Preallocate in both arms: if one allocates and the other does not, you are timing the allocator, which is a mistake easy to make and hard to see.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C5 &middot; Block a matmul</div>
+  <p>Implement blocked multiplication and sweep the block size.</p>
+  <div class="ans"><b>Answer.</b> An optimum near the block whose working set matches a cache level. Compute that size from your cache first and check the sweep agrees, rather than searching blind.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C6 &middot; Break the graph</div>
+  <p>Add a data-dependent branch to a compiled function and time it again.</p>
+  <div class="ans"><b>Answer.</b> Much slower, with nothing obviously wrong. This is the most common cause of a model that got mysteriously slower after a small change.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C7 &middot; Precision, two ways</div>
+  <p>Time a memory-bound and a compute-bound kernel at two precisions.</p>
+  <div class="ans"><b>Answer.</b> The memory-bound one roughly doubles from bytes alone; the compute-bound one improves by whatever the arithmetic units give. Separating the two effects is the point.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C8 &middot; Underflow, silently</div>
+  <p>Compute a small gradient in a narrow format without loss scaling.</p>
+  <div class="ans"><b>Answer.</b> It becomes zero, and nothing complains. Overflow is loud and underflow is silent, which is why loss scaling exists and why the failure appears as a model that simply stops learning.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C9 &middot; Collective volumes</div>
+  <p>Compute bytes moved per worker for naive, ring and tree all-reduce.</p>
+  <div class="ans"><b>Answer.</b> Linear, bounded by two, and logarithmic-but-latency-cheap. Then compute the message size at which latency rather than volume dominates: that is the crossover a real library implements.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C10 &middot; Place the axes</div>
+  <p>For a given topology, compute the traffic of each parallelism axis and assign them.</p>
+  <div class="ans"><b>Answer.</b> Chattiest inside the machine. This is arithmetic done before any code is written and it decides more than tuning does.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C11 &middot; Overlap, and its absence</div>
+  <p>Simulate a step with communication at the end, and with it started as each layer's gradients are ready.</p>
+  <div class="ans"><b>Answer.</b> The second nearly hides it. The first shows a gap in the profile with no kernel to blame, which is what exposed communication looks like.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C12 &middot; The straggler</div>
+  <p>Simulate a synchronous step where one worker in a hundred is 3&times; slow.</p>
+  <div class="ans"><b>Answer.</b> The whole job runs at the slow worker's pace. The tail of the distribution sets the throughput, not the mean, which is why one thermally-throttled machine is a fleet problem.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C13 &middot; Count your memory</div>
+  <p>For a model you train, compute parameters, gradients, optimiser state and activations separately.</p>
+  <div class="ans"><b>Answer.</b> Adam is roughly 4&times; the parameters before activations, and activations are frequently the largest. Recomputation trades arithmetic for memory, which is favourable exactly because arithmetic is cheap.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C14 &middot; Clip and add noise</div>
+  <p>Implement the private gradient step and confirm both parts are necessary.</p>
+  <div class="ans"><b>Answer.</b> Clipping without noise bounds influence but does not hide it; noise without clipping is calibrated to nothing. The pair is the mechanism.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C15 &middot; The privacy unit</div>
+  <p>A person contributes 1,000 records. What happens to their guarantee?</p>
+  <div class="ans"><b>Answer.</b> It weakens by a factor of a thousand, because the definition protects a record. Defining the unit correctly is where most deployed guarantees are weakest, and it is a modelling decision rather than a parameter.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C16 &middot; A membership attack</div>
+  <p>Train a model, score members and non-members by loss, and compute the attack's AUC.</p>
+  <div class="ans"><b>Answer.</b> It has ground truth, you know who was in, so this is scored exactly rather than estimated. Then vary regularisation and watch the leak move with the generalisation gap.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C17 &middot; Composition</div>
+  <p>Compute the total privacy budget of a training run from its per-step budget.</p>
+  <div class="ans"><b>Answer.</b> Budgets add across steps under basic composition: compute that; it is a valid upper bound. It is also loose: real DP-SGD accounting (the moments accountant / Rényi-DP, with subsampling amplification) grows the total like the square root of the step count rather than linearly, which is why a production run is accounted that way and not by the sum. Reporting a per-step epsilon without any total, loose or tight, is the standard way a guarantee is overstated.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C18 &middot; Extract a model</div>
+  <p>Query a model you control and fit a clone, sweeping the query count.</p>
+  <div class="ans"><b>Answer.</b> Agreement rises with queries and the count needed scales with the parameters being recovered, not with the victim's training set. Then restrict the output to a label and measure the factor.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C19 &middot; A threat model, written down</div>
+  <p>For a system you run, write the adversary's capability, goal and knowledge.</p>
+  <div class="ans"><b>Answer.</b> Three sentences. Without them a defence is not a claim, and the assumption that fails is always that the adversary does not know the defence.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C20 &middot; Least privilege for an agent</div>
+  <p>List what an agent you run is permitted to do, and what a compromised one could reach.</p>
+  <div class="ans"><b>Answer.</b> Usually more than expected. The remedies are architectural (bound the privilege, isolate what it reads from what it can spend, confirm anything hard to undo) because there is no reliable boundary between instruction and data in one channel.</div>
+</div>
+
+<h3><span class="num">Tier 3</span> Stretch</h3>
+
+<div class="drill">
+  <div class="head"><span class="tier stretch">Stretch</span>S1 &middot; Write a fused kernel</div>
+  <p>Take a chain from a model you run and write it as a single kernel.</p>
+  <div class="ans"><b>Answer.</b> The shape is always: decide which output each unit produces, load once into fast memory, compute, write once. Measure against the unfused version and against your bandwidth ceiling.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier stretch">Stretch</span>S2 &middot; A roofline for a real model</div>
+  <p>Profile a training step and place every significant kernel.</p>
+  <div class="ans"><b>Answer.</b> A handful dominate and most sit below the ridge. The exercise usually redirects a week of intended work, which is its value.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier stretch">Stretch</span>S3 &middot; Implement a ring</div>
+  <p>Write reduce-scatter and all-gather over simulated workers and count bytes.</p>
+  <div class="ans"><b>Answer.</b> 2(N&minus;1)/N buffers per worker, exactly. Then add a per-hop latency and find the message size below which a tree wins.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier stretch">Stretch</span>S4 &middot; Private training, end to end</div>
+  <p>Train with clipping and noise, account the budget, and measure utility across it.</p>
+  <div class="ans"><b>Answer.</b> On a small easy problem the cost may be invisible, which is itself informative, and means the demonstration needs a harder task than the one you reached for first. <code>compose_budget</code> gives you the basic-composition number; treat it as the loose end of the range, not the number a real system would report.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier stretch">Stretch</span>S5 &middot; Extract training data</div>
+  <p>Prompt a model you have trained with prefixes of its training set and check for verbatim continuation.</p>
+  <div class="ans"><b>Answer.</b> Duplicated sequences come back. Then deduplicate the training set and repeat, which demonstrates that dedup is a privacy control as well as a quality one.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier stretch">Stretch</span>S6 &middot; Plant a backdoor</div>
+  <p>Add a trigger to a small fraction of training examples and measure clean accuracy and trigger accuracy.</p>
+  <div class="ans"><b>Answer.</b> Clean accuracy is unchanged, which is the point: no ordinary evaluation detects it. Then try to detect it without knowing the trigger.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier stretch">Stretch</span>S7 &middot; Break a defence</div>
+  <p>Implement a gradient-obscuring defence, confirm it stops the standard attack, then attack it with an estimated gradient.</p>
+  <div class="ans"><b>Answer.</b> It falls. If a defence's mechanism is that the attacker cannot compute something, assume it will be computed, and that pattern accounts for most of the broken defences in the literature.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier stretch">Stretch</span>S8 &middot; Audit a system you run</div>
+  <p>Check its roofline position, its exposed communication, its privacy unit and its agent privileges.</p>
+  <div class="ans"><b>Answer.</b> The most common findings are a memory-bound kernel being optimised for arithmetic, and an agent with far more authority than its task needs.</div>
+</div>

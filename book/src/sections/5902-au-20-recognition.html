@@ -1,0 +1,123 @@
+<h2><span class="part-kicker">Part B</span>Recognition</h2>
+
+<p class="mvt">Turning audio into text is an alignment problem before it is a classification
+problem: the input has ten times as many frames as the output has symbols, and nobody labelled which
+frame is which. Three answers exist, and the oldest one is still deployed because of what it costs
+rather than what it assumes.</p>
+
+<h3><span class="num">§9</span> The alignment problem</h3>
+
+<div class="box why">
+  <span class="label">Why this is not sequence-to-sequence classification</span>
+  <p>A second of speech is a hundred frames and perhaps a dozen characters. The mapping is
+  monotone (audio and text advance together) and unaligned: no annotation says where each
+  character begins.</p>
+  <p>You could label the alignment by hand, and the field did for years. The alternative is to
+  treat the alignment as a latent variable and sum over every one of them, which is Part XXVIII §12
+  arriving in a new place: the same forward recursion, for the same reason.</p>
+</div>
+
+<h3><span class="num">§10</span> The hybrid system, and why it persisted</h3>
+
+<div class="box hist">
+  <span class="label">Acoustic model, pronunciation dictionary, language model</span>
+  <p>The classical stack scores acoustic frames against phone states with a hidden Markov model,
+  maps phones to words with a hand-built dictionary, and rescores with a separate language model.
+  Three components, three training procedures, one decoder combining them.</p>
+  <p>It survived long after end-to-end systems were competitive, and the reason is worth knowing: the
+  language model is separate, so a new vocabulary is a dictionary edit rather than a retraining, and
+  the decoder can be constrained to a grammar exactly. Both matter in production and neither is
+  visible in a word-error-rate comparison.</p>
+</div>
+
+<h3><span class="num">§11</span> Connectionist temporal classification</h3>
+
+<div class="readnow"><span class="label">Go and read</span><p><span class="src">Graves, Fernández, Gomez &amp; Schmidhuber (2006)</span>, <i>Connectionist temporal classification: labelling unsegmented sequence data with recurrent neural networks</i>. The blank symbol and the collapse rule below are this paper's, and so is the forward recursion Figure 3 checks against enumeration. Read §3.1 for the derivation of the recursion straight from the collapse rule: it is the same argument Part XXVIII §12 makes for an HMM, arrived at independently for a different reason.</p></div>
+
+<div class="box def">
+  <span class="label">Summing over alignments</span>
+  <p>Emit a distribution over the vocabulary plus a <b>blank</b> at every frame. A frame sequence
+  maps to an output by deleting repeats and then deleting blanks, so <code>a a &#8709; a b</code>
+  becomes <code>a a b</code>. The probability of a target is the sum over every frame sequence that
+  collapses to it, and that sum has the same forward recursion as an HMM's.</p>
+  <p>The blank is the load-bearing part of the design: without it, repeated symbols could not be
+  expressed at all, because consecutive identical frames collapse.</p>
+</div>
+
+<h3><span class="num">§12</span> Checked against enumeration</h3>
+
+<figure>
+  <img src="figures/au/03-ctc.svg" alt="Left: difference between the CTC forward algorithm and brute-force enumeration against input length. Right: number of alignments and forward-algorithm operations against input length, log scale">
+  <figcaption><b>Figure 3.</b> <b>Left:</b> the forward recursion against brute-force enumeration of
+  every valid frame sequence, agreeing to <b>4.4&times;10<sup>&minus;15</sup></b> over every length
+  enumeration can reach. <b>Right:</b> why the recursion exists. A two-symbol target at
+  <i>T</i> = 9 has <b>330</b> alignments against 135 operations; at <i>T</i> = 80 it has
+  <b>1.7&times;10<sup>6</sup></b> against 1,200. The alignment counts are verified against
+  enumeration wherever that is feasible and computed by the same recursion beyond it.</figcaption>
+</figure>
+
+<h3><span class="num">§13</span> What CTC assumes</h3>
+
+<div class="box def">
+  <span class="label">Conditional independence, stated precisely</span>
+  <p>CTC's probability of a frame sequence is a product of per-frame terms given the input. There is
+  <b>no term coupling one output symbol to another</b>: given the audio, what the model emits at
+  frame 40 is independent of what it emitted at frame 39.</p>
+  <p>That is what makes the forward recursion possible and it is a strong claim about language.
+  Text is not conditionally independent given audio: "recognise speech" and "wreck a nice beach"
+  differ by a language prior, not by an acoustic one.</p>
+</div>
+
+<h3><span class="num">§14</span> What that assumption costs</h3>
+
+<figure>
+  <img src="figures/au/04-independence.svg" alt="Bar chart comparing a target distribution that is an equal mixture of two sequences against the closest distribution a CTC model can represent">
+  <figcaption><b>Figure 4.</b> The target is an equal mixture of <code>ab</code> and
+  <code>ba</code>, the situation where the audio is genuinely ambiguous between two readings. The
+  best CTC model places at most <b>0.25</b> on each, so <b>half the probability leaks</b> onto
+  outputs the target never contains, and the leak is <b>0.500</b> at every input length from 2 to 6.
+  It cannot be reduced by making the per-frame distributions sharper, because it is a consequence of
+  the factorisation rather than of the fit.</figcaption>
+</figure>
+
+<div class="box why">
+  <span class="label">Where the mass goes, which is not where you would guess</span>
+  <p>The leaked probability lands on <code>a</code> and <code>b</code>, the single-symbol outputs,
+  and not on <code>aa</code> or <code>bb</code>. The reason is the collapse rule: the frame sequence
+  <code>a a</code> becomes <code>a</code>, not <code>aa</code>, so producing a repeated symbol
+  requires a blank between and the "obvious" wrong answers are unreachable.</p>
+  <p>The practical consequence is the familiar one: a CTC model needs an external language model at
+  decode time, and that is not a refinement. It is supplying the term the factorisation removed.</p>
+</div>
+
+<h3><span class="num">§15</span> Transducers and attention</h3>
+
+<div class="readnow"><span class="label">Go and read</span><p><span class="src">Graves (2012)</span>, <i>Sequence transduction with recurrent neural networks</i>. The prediction network and the joint network in the box below are this paper's construction: an RNN driven by the model's own emitted history, combined with the acoustic encoder through a small feedforward join, trained by summing over alignments the same way CTC is: over a lattice with one more branch at every step, for "emit" against "move forward." Read the forward–backward recursion over that lattice to see that the fix for CTC's independence assumption lives entirely in what the network conditions on, not in how the alignment sum itself is computed.</p></div>
+
+<div class="box shapes">
+  <span class="label">Two ways to put the missing term back</span>
+  <p><b>The transducer.</b> Add a prediction network over the output history and combine it with the
+  acoustic encoder at every step. The output is no longer conditionally independent, the alignment
+  is still summed over, and streaming still works because the model never looks ahead. This is what
+  most deployed on-device recognisers are.</p>
+  <p><b>Attention encoder–decoder.</b> Drop the monotonicity assumption and let a decoder attend
+  anywhere. The most flexible, the best on long-form audio with enough data, and it cannot stream
+  without modification; and it can loop or truncate, because nothing enforces that the output
+  advances with the input.</p>
+  <p>Note the shape of the trade: CTC assumes the most and is cheapest to decode; attention assumes
+  the least and can fail in ways CTC structurally cannot.</p>
+</div>
+
+<h3><span class="num">§16</span> What movement B establishes</h3>
+
+<div class="box intuition">
+  <span class="label">Three things</span>
+  <p><b>Recognition is an alignment problem, solved by summing over alignments</b>, and the
+  recursion is Part XXVIII §12's. Figure 3 checks it against enumeration at
+  4.4&times;10<sup>&minus;15</sup>.</p>
+  <p><b>CTC's independence assumption is not a technicality.</b> Figure 4 measures half the
+  probability mass leaking onto outputs the target never contains, at every length, unfixable by
+  sharper per-frame predictions.</p>
+  <p><b>An external language model is not a refinement</b>: it is restoring the term the
+  factorisation deleted, which is why the family that keeps that term needs one less.</p>
+</div>

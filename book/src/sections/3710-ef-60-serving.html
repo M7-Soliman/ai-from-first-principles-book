@@ -1,0 +1,160 @@
+<h2><span class="part-kicker">Part F</span>Serving</h2>
+
+<p class="lede">The system around the model, and where most of the achievable speedup actually is.
+Nothing here changes the model at all.</p>
+
+<h3><span class="num">§38</span> Batching</h3>
+
+<div class="box def">
+  <span class="label">Why it is the first thing and the biggest thing</span>
+  <p>§3 says one token per weight load reaches 0.2% of peak. Serving 64 sequences at once reads
+  each weight once and produces 64 tokens, so the intensity rises by 64 and so does the throughput,
+  with essentially no extra time, because the arithmetic units were idle.</p>
+  <p>This is why batching is not one optimisation among several. It is the difference between two
+  orders of magnitude of hardware utilisation, and everything else in this movement is a way of
+  making it possible in more situations.</p>
+</div>
+
+<div class="box def">
+  <span class="label">Continuous batching</span>
+  <p>Static batching waits for a full batch, runs it to completion, and returns. Since generations
+  have very different lengths, most of the batch sits finished while the longest one continues,
+  and a new request waits for all of them.</p>
+  <p><b>Continuous</b> batching schedules at the granularity of a <b>step</b> rather than a request:
+  when a sequence finishes, a waiting one takes its slot immediately. Typical reported gains are
+  several times the throughput at the same latency, from scheduling alone.</p>
+</div>
+
+<h3><span class="num">§39</span> Paged attention</h3>
+
+<div class="readnow"><span class="label">Go and read</span><p><span class="src">Kwon et al. (2023)</span>, <i>Efficient memory management for large language model serving with PagedAttention</i>. An operating-systems idea applied to the KV cache, and the clearest published account of why cache fragmentation rather than compute limits serving throughput. The sharing that falls out of it, two requests with a common prefix pointing at the same blocks, is half the value.</p></div>
+
+<div class="box why">
+  <span class="label">A memory-allocation idea, applied to the cache</span>
+  <p>The naive implementation reserves cache for each sequence's <b>maximum</b> possible length,
+  because it must be contiguous and it grows. A request that might produce 4,000 tokens and produces
+  40 has reserved a hundred times what it used, and §4 says that reservation is the constraint on
+  concurrency.</p>
+  <p><b>Paged attention</b> stores the cache in fixed-size blocks with an index, exactly as an
+  operating system pages memory. Blocks are allocated as the sequence grows, so waste is bounded by
+  one block rather than by the maximum length.</p>
+  <p>Reported waste falls from a large majority to a few per cent, and concurrency rises in
+  proportion: the same weights, the same model, several times the users. It also makes <b>sharing</b>
+  possible: two requests with a common prefix can point at the same blocks, which is §41.</p>
+</div>
+
+<h3><span class="num">§40</span> Speculative decoding</h3>
+
+<div class="readnow"><span class="label">Go and read</span><p><span class="src">Leviathan, Kalman &amp; Matias (2023)</span>, <i>Fast inference from transformers via speculative decoding</i>. Read it for the proof that the rejection rule leaves the output distribution exactly unchanged. Everything else in this part is a trade; this is the one technique that is free, and the proof is what establishes that.</p></div>
+
+<figure>
+  <img src="figures/ef/07-speculative.svg" alt="Tokens accepted out of four for three draft models, and the implied speedup against the draft's cost">
+  <figcaption><b>Figure 7.</b> Three drafts against one target, under the exact rejection rule. The
+  <b>tiny</b> draft costs 2.8% of the target and gets <b>1.80</b> of 4 accepted, for a
+  <b>2.52×</b> speedup. A draft as large as the target accepts <b>3.31</b> and is <b>0.86×</b>:
+  slower than not using it at all. The product of acceptance and cheapness is what matters. These
+  acceptance counts are one training run's; a re-trained draft of the same size lands close but not
+  identical, and the trend (small, close drafts win; a draft as large as the target loses) is the
+  part that holds up, not the third decimal.</figcaption>
+</figure>
+
+<div class="box def">
+  <span class="label">Several tokens per weight load, without changing the output</span>
+  <p>A small <b>draft</b> model proposes $k$ tokens cheaply. The large model then scores all $k$
+  <b>in one pass</b>, which is nearly free, because §3 says that pass was memory-bound and had
+  arithmetic to spare. A rejection rule accepts a prefix of the proposals.</p>
+  <p>The rule matters and is worth stating: accept token $x$ with probability
+  $\min(1, p(x)/q(x))$, and on rejection sample from the normalised positive part of $p - q$. This
+  makes the output distribution <b>exactly</b> the large model's. Speculative decoding is not an
+  approximation, which is unusual for anything in this part.</p>
+</div>
+
+<div class="box why">
+  <span class="label">Why the useful draft is small AND close</span>
+  <p>The figure's right panel is the trade. A better draft is accepted more often and costs more to
+  run, and the speedup is roughly $(1 + \text{accepted}) / (1 + k \cdot \text{draft cost})$, a
+  ratio, so improving either term alone can lose.</p>
+  <p>The measured extreme makes it concrete: a draft <b>as good as the target</b> accepts 3.31 of 4
+  proposals and produces a speedup of <b>0.86×</b>. It is slower than plain decoding, because every
+  proposal costs a full target-sized forward pass. Meanwhile a draft at 2.8% of the cost accepts
+  only 1.80 and wins outright.</p>
+  <p>So the design question is not "how good a draft can I train" but "what is the cheapest draft
+  that agrees often enough", and the answer depends on the target's own predictability: easy text
+  gives high acceptance from a very small draft, and hard text gives none from any.</p>
+</div>
+
+<h3><span class="num">§41</span> Caching what repeats</h3>
+
+<div class="box def">
+  <span class="label">Three levels, in order of how much they save</span>
+  <p><b>Prefix caching.</b> A long system prompt shared by every request is prefilled once and its
+  cache reused. With paged attention this is a pointer, not a copy. For applications with a large
+  fixed preamble this removes most of the prefill cost outright.</p>
+  <p><b>Exact-response caching.</b> Identical requests return stored answers. Trivial, and its hit
+  rate is a property of the traffic rather than the system.</p>
+  <p><b>Semantic caching.</b> Return a stored answer for a <i>similar</i> request, using Part XV's
+  embeddings and Part XV §29's retrieval. Higher hit rate, and it introduces a correctness question that the
+  first two do not have: Part XV §26's hubness decides what "similar" retrieves, and a threshold
+  set carelessly returns confidently wrong answers.</p>
+</div>
+
+<h3><span class="num">§42</span> Distributed inference</h3>
+
+<div class="box def">
+  <span class="label">Part XVII's parallelism, with different constraints</span>
+  <p><b>Tensor parallelism</b> is used at inference for the same reason as in training (the model
+  does not fit), and it now costs latency directly, since each layer's all-reduce sits on the
+  critical path of every single token.</p>
+  <p><b>Pipeline parallelism</b> raises throughput and hurts latency, because a token traverses every
+  stage. Its bubble (Part XVII §24) is filled by concurrent requests rather than by microbatches.</p>
+  <p><b>Disaggregation</b> is the arrangement specific to serving: run <b>prefill</b> and
+  <b>decode</b> on different machines, because §2 says they have opposite bottlenecks. Prefill wants
+  compute, decode wants bandwidth and cache capacity, and sharing one pool for both means one of them
+  is always mis-served.</p>
+</div>
+
+<h3><span class="num">§43</span> Measuring a serving system</h3>
+
+<div class="box pitfall">
+  <span class="label">Pitfall: the mean latency is the least useful number</span>
+  <p>Latency distributions here are heavily skewed: a request that arrives when the batch is full,
+  or that generates a long answer, or that lands behind a long prefill, takes far longer than
+  typical. The mean hides all of it.</p>
+  <p>Report <b>percentiles</b> (p50, p95, p99) for time to first token and time per output token
+  <b>separately</b>, and report the load they were measured at. A latency number without a
+  concurrency level says nothing, because the whole system is a latency-throughput trade (§5) and a
+  number from an idle system is the best case by construction.</p>
+  <p>Part XIV §29's long tail, in the setting where the skew is worst.</p>
+</div>
+
+<h3><span class="num">§44</span> The cost model, end to end</h3>
+
+<div class="box def">
+  <span class="label">What a request costs</span>
+  <p>$$\text{cost} \approx
+  \underbrace{\frac{2N \cdot T_{\text{in}}}{\text{FLOP/s}}}_{\text{prefill, compute-bound}}
+  \;+\;
+  \underbrace{T_{\text{out}} \cdot \frac{N \cdot b + C}{\text{bandwidth} \cdot B}}_{\text{decode, memory-bound, shared over the batch}}$$</p>
+  <p>for $b$ bytes per weight, cache traffic $C$ and batch size $B$. Every term is something you
+  have already computed in this part, and the structure is the lesson: <b>output tokens are far more
+  expensive than input tokens</b>, and the decode term is divided by the batch while the prefill
+  term is not.</p>
+  <p>That asymmetry explains the shape of commercial pricing, and it explains why the highest-return
+  optimisation is almost always raising the achievable batch size, which is §4's cache, §16's cache
+  quantization and §39's paging, all in service of one number.</p>
+</div>
+
+<h3><span class="num">§45</span> What to carry forward</h3>
+
+<div class="box intuition">
+  <span class="label">The one thing</span>
+  <p><b>Generation is limited by memory bandwidth, not by arithmetic.</b></p>
+  <p>Almost everything in this part follows. Quantization works because it moves fewer bytes.
+  Unstructured sparsity does not work because it removes arithmetic that was not the constraint.
+  Batching is the single largest lever because it amortises a weight read across many sequences.
+  Speculative decoding works because a memory-bound pass has arithmetic to spare. The KV cache
+  matters because it competes for the same bandwidth and the same memory.</p>
+  <p>And the discipline that goes with it: <b>measure time, not FLOPs.</b> The flat line in Figure 5
+  took ten lines of code and contradicts a great deal of published arithmetic about how much faster
+  a sparse model ought to be.</p>
+</div>

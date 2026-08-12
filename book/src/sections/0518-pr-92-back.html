@@ -1,0 +1,270 @@
+<h2><span class="part-kicker">Build</span>The project</h2>
+
+<p class="lede">Probability is a subject where simulation beats argument. If you are not
+sure whether a claim is true, generate a million samples and count. This project builds
+the tools to do that, then uses them to check every major result in the chapter.</p>
+
+<h3><span class="num">P.1</span> What you are building</h3>
+
+<p><b><code>tinyprob</code></b>: a small probability toolkit written from scratch, then
+used as an experimental instrument.</p>
+
+<p>The rule: <b>you may use a raw uniform random number generator and nothing else.</b>
+<code>rng.random()</code> gives you a float in $[0,1)$. Everything (Bernoulli,
+categorical, Gaussian, mixtures) gets built from that. No <code>rng.normal</code>, no
+<code>scipy.stats</code>, until the final verification step.</p>
+
+<h3><span class="num">P.2</span> Stage 1: samplers</h3>
+
+<table class="compact">
+  <thead><tr><th>Function</th><th>How</th></tr></thead>
+  <tbody>
+    <tr><td><code>bernoulli(p)</code></td><td>Return 1 if <code>uniform() &lt; p</code>. The whole thing.</td></tr>
+    <tr><td><code>categorical(probs)</code></td><td>Inverse-CDF: accumulate the probabilities and find where a uniform draw lands.</td></tr>
+    <tr><td><code>gaussian(mu, sigma)</code></td><td>Box–Muller: two uniforms in, two independent standard normals out. Look up the transform and implement it.</td></tr>
+    <tr><td><code>exponential(rate)</code></td><td>Inverse-CDF again, and it has a clean closed form: $-\ln(u)/\lambda$.</td></tr>
+    <tr><td><code>mixture(weights, samplers)</code></td><td>Pick a component with <code>categorical</code>, then call that sampler.</td></tr>
+  </tbody>
+</table>
+
+<p><b>Deliverable:</b> for each sampler, draw 100,000 values and confirm the empirical
+mean and variance match the theoretical ones to three decimal places.</p>
+
+<h3><span class="num">P.3</span> Stage 2: estimators</h3>
+
+<ul>
+  <li><code>empirical_pmf(samples)</code> and <code>histogram_pdf(samples, bins)</code>:
+  recover a distribution from samples.</li>
+  <li><code>entropy(p)</code>, <code>kl(p, q)</code>, <code>cross_entropy(p, q)</code>:
+  handle zeros correctly, as drill C5 describes.</li>
+  <li><code>mutual_information(joint)</code>: from a joint table.</li>
+</ul>
+
+<p><b>Deliverable:</b> verify $H(P,Q) = H(P) + D_{KL}(P \parallel Q)$ numerically on
+random distributions. This identity is the hinge of §25, and confirming it yourself is
+worth more than reading the derivation twice.</p>
+
+<h3><span class="num">P.4</span> Stage 3: verify the chapter</h3>
+
+<div class="box history">
+  <span class="label">History: Monte Carlo was named after a casino, and invented during a card game</span>
+  <p>The technique of answering a hard mathematical question by generating random samples
+  and counting has an origin story that is unusually well documented.</p>
+  <p>In <span class="year">1946</span> Stanisław Ulam was recovering from illness and
+  playing solitaire. He wondered what fraction of layouts could be won, tried to compute it
+  combinatorially, found it hopeless, and realised it would be far easier to deal a large
+  number of hands and count. He took the idea to von Neumann, who saw immediately that the
+  new machines at Los Alamos could do exactly this for neutron diffusion problems that
+  resisted analysis.</p>
+  <p>The work was classified and needed a codename. Nicholas Metropolis proposed
+  <b>Monte Carlo</b>, after the casino in Monaco where Ulam's uncle was said to have
+  borrowed money to gamble.</p>
+  <p>The method underwrites this project: when an integral or an expectation has no
+  closed form (the usual situation in probabilistic modelling), you sample and average.
+  Its error falls as $1/\sqrt{n}$ <b>regardless of dimension</b>, which is why it survives
+  in spaces where every deterministic method collapses.</p>
+</div>
+
+<p>Now use the toolkit as an instrument. Each of these is a claim from the notes; your
+job is to test it rather than believe it.</p>
+
+<ol>
+  <li><b>Central limit theorem.</b> Average $n$ samples from three very different
+  distributions. Show convergence to a Gaussian, and measure how $n$ must grow with
+  skewness.</li>
+  <li><b>Base rate trap.</b> Simulate the §22 medical test with a million people.
+  Confirm ~1.9%. Then sweep the prevalence from 0.01% to 50% and plot the posterior;
+  the shape of that curve is the whole lesson.</li>
+  <li><b>Zero covariance ≠ independence.</b> Generate the ring from drill C9. Show
+  covariance ≈ 0 and mutual information clearly positive. One statistic sees the
+  dependence, the other is blind.</li>
+  <li><b>KL asymmetry.</b> Reproduce Figure 15 by direct optimisation.</li>
+  <li><b>Maximum likelihood.</b> Generate data from a known Gaussian, then recover
+  $\mu$ and $\sigma$ by maximising log-likelihood numerically. Plot the estimate's error
+  against sample size and confirm the $1/\sqrt{n}$ rate.</li>
+</ol>
+
+<p><b>Deliverable:</b> one figure per claim, each captioned with what it demonstrates
+and how it could have come out otherwise.</p>
+
+<h3><span class="num">P.5</span> Stretch goals</h3>
+
+<ul>
+  <li><b>Rejection sampling</b>: sample from an arbitrary density using only uniforms.
+  Measure the acceptance rate and watch it collapse in higher dimensions.</li>
+  <li><b>A tiny Naive Bayes classifier</b> on real text, built entirely from your own
+  estimators. It will work better than the independence assumption deserves; think about
+  why.</li>
+  <li><b>Calibration curve</b> for a small classifier you train, as in drill C15.</li>
+  <li><b>Estimate $\pi$</b> by Monte Carlo, and confirm the $1/\sqrt{n}$ error rate on
+  log axes. A satisfying five-line program.</li>
+</ul>
+
+<h3><span class="num">P.6</span> How to know you are done</h3>
+
+<ul class="checklist">
+  <li>Every sampler matches its theoretical mean and variance to three decimals.</li>
+  <li>The cross-entropy identity is verified numerically, not just quoted.</li>
+  <li>All five chapter claims have a figure and a caption.</li>
+  <li>Your KL implementation handles $P(x)=0$ and explains $Q(x)=0$.</li>
+  <li>Your README names one result that surprised you before you simulated it.</li>
+</ul>
+
+<div class="box why">
+  <span class="label">Why this project</span>
+  <p>Part I's project made abstract operations concrete. This one builds a different
+  and equally important skill: <b>using simulation to check whether you have understood
+  something.</b> Probability intuition is famously unreliable (the base rate result in
+  §22 fools most people, including experts), and the ability to settle a question with
+  fifty lines of sampling code is a genuine professional advantage. It is also exactly
+  how researchers debug probabilistic models in practice.</p>
+</div>
+
+<h2 class="nobreak"><span class="part-kicker">Assess</span>Checkpoint</h2>
+
+<p class="lede">Part III (numerical computation) leans on this lightly; Part V
+leans on it constantly and never re-explains it. Be honest.</p>
+
+<h3>Can you do these without notes?</h3>
+
+<ul class="checklist">
+  <li>Name the three sources of uncertainty and say which one machine learning mostly deals with.</li>
+  <li>Explain why a probability density can exceed 1 without contradiction.</li>
+  <li>Marginalise a joint distribution, and say in words what you are discarding.</li>
+  <li>Compute a conditional probability, and describe the two-step restrict-and-renormalise operation.</li>
+  <li>State the chain rule and explain how a language model is an instance of it.</li>
+  <li>Give an example of variables that are dependent but conditionally independent.</li>
+  <li>Explain why $\mathbb{E}[f(X)] \neq f(\mathbb{E}[X])$ for nonlinear $f$.</li>
+  <li>Give a concrete case of zero covariance with total dependence.</li>
+  <li>State why a covariance matrix is always symmetric and positive semidefinite.</li>
+  <li>Give the three reasons the Gaussian is ubiquitous.</li>
+  <li>Explain what softmax does in two steps, and why subtracting the max is safe.</li>
+  <li>Work the base rate example and explain why the answer is so low.</li>
+  <li>Define entropy and say what it measures operationally.</li>
+  <li>Explain why KL divergence is not symmetric, and what each direction prefers.</li>
+  <li>Show that minimising cross-entropy is minimising KL divergence.</li>
+  <li>Derive cross-entropy loss from maximum likelihood.</li>
+</ul>
+
+<table class="compact">
+  <thead><tr><th>Score</th><th>Verdict</th></tr></thead>
+  <tbody>
+    <tr><td><b>14–16</b></td><td>Go to Part III. You are in good shape.</td></tr>
+    <tr><td><b>11–13</b></td><td>Reread the sections you missed and move on.</td></tr>
+    <tr><td><b>8–10</b></td><td>Do the Tier 2 drills first, especially C3, C5, C13.</td></tr>
+    <tr><td><b>Under 8</b></td><td>Reread §§4–7 and §§23–26. Those two blocks carry the chapter.</td></tr>
+  </tbody>
+</table>
+
+<h2><span class="part-kicker">Reference</span>Appendices</h2>
+
+<h3><span class="num">A</span> Notation card</h3>
+
+<table class="compact">
+  <thead><tr><th>Symbol</th><th>Means</th></tr></thead>
+  <tbody>
+    <tr><td>$X$, $Y$</td><td>random variables: capitals</td></tr>
+    <tr><td>$x$, $y$</td><td>specific values they take: lowercase</td></tr>
+    <tr><td>$P(x)$</td><td>probability mass (discrete)</td></tr>
+    <tr><td>$p(x)$</td><td>probability density (continuous)</td></tr>
+    <tr><td>$P(x, y)$</td><td>joint: read the comma as "and"</td></tr>
+    <tr><td>$P(y \mid x)$</td><td>conditional: "$y$ given $x$"</td></tr>
+    <tr><td>$x \sim P$</td><td>"$x$ is drawn from $P$"</td></tr>
+    <tr><td>$X \perp Y$</td><td>$X$ and $Y$ are independent</td></tr>
+    <tr><td>$X \perp Y \mid Z$</td><td>conditionally independent given $Z$</td></tr>
+    <tr><td>$\mathbb{E}_{x \sim P}[f(x)]$</td><td>expectation of $f$ under $P$</td></tr>
+    <tr><td>$\text{Var}(X)$, $\sigma^2$</td><td>variance</td></tr>
+    <tr><td>$\sigma$</td><td>standard deviation; <b>also</b> the sigmoid function. Context disambiguates.</td></tr>
+    <tr><td>$\text{Cov}(X,Y)$, $\Sigma$</td><td>covariance, covariance matrix</td></tr>
+    <tr><td>$\rho$</td><td>correlation, always in $[-1,1]$</td></tr>
+    <tr><td>$\mathcal{N}(\mu, \sigma^2)$</td><td>Gaussian with that mean and variance</td></tr>
+    <tr><td>$\phi$</td><td>Bernoulli parameter</td></tr>
+    <tr><td>$\hat{p}_{\text{data}}$</td><td>the empirical distribution, your dataset</td></tr>
+    <tr><td>$H(P)$</td><td>entropy</td></tr>
+    <tr><td>$H(P, Q)$</td><td>cross-entropy, note: two arguments</td></tr>
+    <tr><td>$D_{KL}(P \parallel Q)$</td><td>KL divergence, asymmetric</td></tr>
+    <tr><td>$I(X;Y)$</td><td>mutual information</td></tr>
+    <tr><td>$\delta(x)$</td><td>Dirac delta: all mass at one point</td></tr>
+  </tbody>
+</table>
+
+<div class="box pitfall">
+  <span class="label">Pitfall: $\sigma$ is overloaded</span>
+  <p>The same letter means standard deviation and the logistic sigmoid, sometimes on the
+  same page. There is no fixing this; the convention is universal. Read the context: if
+  it has an argument, $\sigma(x)$, it is the function. If it appears alone or squared,
+  it is the standard deviation.</p>
+</div>
+
+<h3><span class="num">B</span> NumPy translation table</h3>
+
+<table class="compact">
+  <thead><tr><th>Math</th><th>NumPy / SciPy</th><th>Watch out</th></tr></thead>
+  <tbody>
+    <tr><td>sample from $\mathcal{N}(\mu,\sigma^2)$</td><td><code>rng.normal(mu, sigma)</code></td><td>takes $\sigma$, <b>not</b> $\sigma^2$</td></tr>
+    <tr><td>sample categorical</td><td><code>rng.choice(k, p=probs)</code></td><td><code>p</code> must sum to exactly 1</td></tr>
+    <tr><td>$\mathbb{E}[X]$</td><td><code>x.mean()</code></td><td>nothing to watch for</td></tr>
+    <tr><td>$\text{Var}(X)$</td><td><code>x.var()</code></td><td>defaults to <code>ddof=0</code>; use <code>ddof=1</code> for the sample variance</td></tr>
+    <tr><td>$\Sigma$</td><td><code>np.cov(X.T)</code></td><td>expects variables in <b>rows</b> by default; transpose carefully</td></tr>
+    <tr><td>$\sigma(x)$</td><td><code>scipy.special.expit(x)</code></td><td>the naive formula overflows</td></tr>
+    <tr><td>softmax</td><td><code>scipy.special.softmax(z)</code></td><td>subtract the max if writing it yourself</td></tr>
+    <tr><td>$\log\sum e^{z}$</td><td><code>scipy.special.logsumexp(z)</code></td><td>never write this by hand</td></tr>
+    <tr><td>cross-entropy</td><td>framework <code>*_with_logits</code></td><td>pass <b>logits</b>, never softmax output</td></tr>
+    <tr><td>$D_{KL}$</td><td><code>scipy.special.rel_entr(p,q).sum()</code></td><td>handles zeros with the right convention</td></tr>
+    <tr><td>$H(P)$</td><td><code>scipy.stats.entropy(p)</code></td><td>natural log by default; pass <code>base=2</code> for bits</td></tr>
+  </tbody>
+</table>
+
+<h3><span class="num">C</span> Where each idea reappears</h3>
+
+<table class="compact">
+  <thead><tr><th>From this chapter</th><th>Comes back in</th></tr></thead>
+  <tbody>
+    <tr><td>Conditional probability (§7)</td><td>Everything. It is the language of supervised learning.</td></tr>
+    <tr><td>Chain rule (§8)</td><td>Autoregressive models, language models. Part XVI §8, Part XX.</td></tr>
+    <tr><td>Independence (§9)</td><td>Graphical models, Naive Bayes, tractability. Part XXVIII §3–6.</td></tr>
+    <tr><td>Covariance matrix (§13)</td><td>PCA, whitening. Part I §23, Part VI §17, Part IX §23.</td></tr>
+    <tr><td>Gaussian (§15–16)</td><td>Noise models, initialisation, VAEs. Part VIII §12, Part VII §11, Part XVI §14–20.</td></tr>
+    <tr><td>Laplace / $L^1$ (§17)</td><td>Sparse regularization. Part VIII §5–6.</td></tr>
+    <tr><td>Empirical distribution (§17)</td><td>The generalisation gap itself. Part V §20.</td></tr>
+    <tr><td>Latent variables (§18)</td><td>Autoencoders, generative models. Part XV, Part XVI.</td></tr>
+    <tr><td>Sigmoid / softmax (§19–20)</td><td>Every output layer ever built. Part VII §6.</td></tr>
+    <tr><td>Bayes' rule (§21)</td><td>MAP estimation, Bayesian methods. Part V §17–19.</td></tr>
+    <tr><td>Entropy (§23)</td><td>Maximum entropy modelling, compression.</td></tr>
+    <tr><td>KL divergence (§24)</td><td>Variational inference, the VAE objective. Part XVI, Part XXVIII.</td></tr>
+    <tr><td>Cross-entropy (§25)</td><td>The loss function you will use forever. Part VI onward.</td></tr>
+    <tr><td>Maximum likelihood (§26)</td><td>The organising principle of Part V.</td></tr>
+  </tbody>
+</table>
+
+<h3><span class="num">D</span> If you want more</h3>
+
+<dl>
+  <dt>3Blue1Brown, <i>Bayes' theorem</i> and <i>binomial distributions</i></dt>
+  <dd>Short, visual, and unusually good on the base rate problem. Start here if §21–22
+  did not land.</dd>
+
+  <dt>Cover &amp; Thomas, <i>Elements of Information Theory</i></dt>
+  <dd>The standard reference for Part G. Part I alone covers entropy, KL, and mutual
+  information more thoroughly than any ML text will.</dd>
+
+  <dt>Bishop, <i>Pattern Recognition and Machine Learning</i>, ch. 1–2</dt>
+  <dd>The classic treatment of probability for machine learning, with the Bayesian view
+  developed properly.</dd>
+</dl>
+
+<hr>
+
+<h3>Onward</h3>
+
+<p>You now have both halves of the mathematical foundation. Part III covers numerical
+computation (overflow, conditioning, gradient descent) and is short and practical.
+Part V is where Parts 0, I and II combine into statistics and estimation, and Part VI,
+immediately after it, is the last part before deep learning proper begins.</p>
+
+<p>If §26 landed, you have the single most important idea in the first five chapters:
+<b>training a model is minimising the divergence between what your model believes and
+what the data shows.</b> Everything after this is engineering in service of that
+sentence.</p>
+
+

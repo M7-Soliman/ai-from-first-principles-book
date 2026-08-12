@@ -1,0 +1,164 @@
+<h2><span class="part-kicker">Part E</span>Notation you must be able to read</h2>
+
+<h3><span class="num">§12</span> Sigma and Pi</h3>
+
+<p>You cannot read a single machine learning formula without summation notation. It
+looks intimidating and is genuinely trivial: it is a <code>for</code> loop.</p>
+
+<p>That is not an analogy offered to be encouraging. It is what the notation is. Someone
+who writes a sum has a repetitive computation to describe and does not want to write it
+out, exactly as a programmer does; the difference is that the mathematician's version was
+standardised three hundred years earlier and uses a Greek letter for the keyword. If you
+can read a <code>for</code> loop you can already read every sum in this book, and the
+only thing standing between the two is fifteen minutes of unfamiliar layout.</p>
+
+$$\sum_{i=1}^{n} a_i \;=\; a_1 + a_2 + \cdots + a_n$$
+
+<p>Four parts, and each maps onto something in code:</p>
+
+<table class="compact">
+  <thead><tr><th>Part</th><th>Meaning</th><th>In Python</th></tr></thead>
+  <tbody>
+    <tr><td>$\sum$</td><td>add up what follows</td><td><code>total += ...</code></td></tr>
+    <tr><td>$i = 1$</td><td>start here</td><td><code>range(1, ...)</code></td></tr>
+    <tr><td>$n$ on top</td><td>stop here, inclusive</td><td><code>range(..., n+1)</code></td></tr>
+    <tr><td>$a_i$</td><td>the thing being added</td><td>the loop body</td></tr>
+  </tbody>
+</table>
+
+<pre><code><span class="c"># these two are the same statement</span>
+<span class="c">#   sum_{i=1}^{n} i^2</span>
+
+total = <span class="n">0</span>
+<span class="k">for</span> i <span class="k">in</span> range(<span class="n">1</span>, n + <span class="n">1</span>):
+    total += i ** <span class="n">2</span>
+
+<span class="c"># or, in NumPy, with no loop at all</span>
+total = (np.arange(<span class="n">1</span>, n + <span class="n">1</span>) ** <span class="n">2</span>).sum()
+</code></pre>
+
+<div class="worked">
+  <span class="label">Worked: expand it fully</span>
+  <p>$\displaystyle\sum_{i=1}^{4} 2i = 2(1) + 2(2) + 2(3) + 2(4) = 2 + 4 + 6 + 8 = 20$</p>
+  <p>Nothing is hidden. Write out the terms whenever a sum confuses you; it always
+  resolves.</p>
+</div>
+
+<p>One point about the index letter, because it causes more confusion than it should. The
+$i$ has no meaning outside the sum. It is created when the sum begins, takes each value in
+turn, and ceases to exist when the sum ends, precisely like a loop variable, which is
+also invisible to the rest of the program. So $\sum_{i=1}^{n} a_i$ and
+$\sum_{k=1}^{n} a_k$ are not similar expressions; they are the same expression, written
+with a different throwaway name. If a derivation suddenly switches from $i$ to $j$
+midway, nothing happened. The author needed a fresh name because $i$ was already in use
+by an outer sum, in the same way you would not reuse a loop variable for a nested
+loop.</p>
+
+<p>The corollary is a habit worth building: whenever a sum confuses you, <b>write out the
+first two terms and the last one</b>. $\sum_{i=1}^{n} a_i$ becomes
+$a_1 + a_2 + \cdots + a_n$, and once it is on the page the confusion usually turns out to
+have been about the layout rather than the content. This works on sums that look far worse
+than any here, and professionals do it constantly.</p>
+
+<h4>Rules worth knowing</h4>
+
+$$\sum_i (a_i + b_i) = \sum_i a_i + \sum_i b_i, \qquad \sum_i c \cdot a_i = c \sum_i a_i, \qquad \sum_{i=1}^{n} c = nc$$
+
+<p>The middle one (pulling a constant out) is used constantly in derivations. The
+third catches people: summing a constant $n$ times gives $n$ copies of it, not $c$.</p>
+
+<h4>Products</h4>
+
+<p>Capital pi is the same idea with multiplication:</p>
+
+$$\prod_{i=1}^{n} a_i = a_1 \times a_2 \times \cdots \times a_n$$
+
+<p>And now §11's central move can be written in one line:</p>
+
+$$\log \prod_{i=1}^{n} a_i = \sum_{i=1}^{n} \log a_i$$
+
+<p><b>A log turns a $\prod$ into a $\sum$.</b> If you remember one formula from Part D
+and E together, make it that one.</p>
+
+<h4>Double sums</h4>
+
+<p>Nested loops, nothing more:</p>
+
+$$\sum_{i=1}^{2}\sum_{j=1}^{3} a_{ij} = (a_{11} + a_{12} + a_{13}) + (a_{21} + a_{22} + a_{23})$$
+
+<p>The inner sum runs completely for each value of the outer index, exactly like nested
+<code>for</code> loops. These appear whenever a formula ranges over both examples and
+classes, which is most of classification.</p>
+
+<div class="box try">
+  <span class="label">Try it</span>
+  <p>(a) Compute $\sum_{k=1}^{5} k$. &nbsp; (b) Compute $\sum_{i=0}^{3} 2^i$. &nbsp;
+  (c) Rewrite $\log\left(\prod_{i=1}^{3} p_i\right)$ as a sum. &nbsp; (d) What is
+  $\sum_{i=1}^{4} 7$?</p>
+</div>
+
+<p><b>Answers.</b> (a) $1+2+3+4+5 = 15$. (b) $2^0 + 2^1 + 2^2 + 2^3 = 1+2+4+8 = 15$.
+(c) $\log p_1 + \log p_2 + \log p_3$. (d) $4 \times 7 = 28$: four copies of the
+constant, not 7.</p>
+
+<h3><span class="num">§13</span> The trigonometry you actually need</h3>
+
+<p>Honestly: very little. Deep learning barely uses trigonometry, and a full trig course
+would be a poor use of your time here. This section covers what genuinely appears and
+stops.</p>
+
+<h4>Sine and cosine</h4>
+
+<p>Both are <b>periodic</b>: they oscillate between $-1$ and $1$, repeating every
+$2\pi$. Picture a point travelling around a unit circle: $\cos\theta$ is its horizontal
+position, $\sin\theta$ its vertical one. That is the whole geometric content.</p>
+
+<p>Three facts cover nearly every appearance:</p>
+
+<ul class="tight">
+  <li>$\sin^2\theta + \cos^2\theta = 1$ (the Pythagorean identity, from the unit circle).</li>
+  <li>$\frac{d}{dx}\sin x = \cos x$ and $\frac{d}{dx}\cos x = -\sin x$. Note the minus.</li>
+  <li>Both are bounded in $[-1, 1]$, always.</li>
+</ul>
+
+<h4>Where it actually shows up</h4>
+
+<dl>
+  <dt>Positional encodings in transformers</dt>
+  <dd>Sines and cosines at different frequencies encode a token's position in a
+  sequence. You need to know they are periodic and bounded; you do not need any
+  identities.</dd>
+
+  <dt>Rotation matrices</dt>
+  <dd>Rotating a vector uses a matrix built from $\sin$ and $\cos$. It appears in
+  Part I's discussion of orthogonal matrices.</dd>
+
+  <dt>Cosine similarity</dt>
+  <dd>Comparing embedding vectors by the angle between them. Despite the name, computing
+  it requires no trigonometry; it is a dot product divided by two norms.</dd>
+
+  <dt>Fourier analysis</dt>
+  <dd>Signal and image processing, and some theoretical work. Genuinely optional for
+  this book.</dd>
+</dl>
+
+<div class="box why">
+  <span class="label">Why deep learning cares: not much, and that is fine</span>
+  <p>If trigonometry is where your math anxiety lives, you can relax. Nothing in
+  the later parts of this book requires you to manipulate a trig identity. Knowing
+  that $\sin$ and $\cos$ wiggle between $-1$ and $1$ and repeat is close to
+  sufficient.</p>
+  <p>Contrast this with logarithms in §10, which you will use several times per page.
+  Budget your attention accordingly; this is a section to read once and move past.</p>
+</div>
+
+<h4>Radians, briefly</h4>
+
+<p>Angles in mathematics are measured in radians, not degrees. A full turn is $2\pi$
+radians rather than 360°, so $\pi$ radians is a half turn and $\pi/2$ a quarter.</p>
+
+<p>The reason is the same as the reason for $e$: derivatives come out clean. In radians
+$\frac{d}{dx}\sin x = \cos x$ exactly; in degrees a conversion constant appears and
+never leaves. Every mathematical library assumes radians (<code>np.sin(np.pi/2)</code>
+returns 1.0), so if you ever get bizarre trigonometric results in code, check that
+first.</p>

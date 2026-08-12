@@ -1,0 +1,227 @@
+<h2><span class="part-kicker">Part D</span>The geometry of embeddings</h2>
+
+<p class="lede">A representation is a set of points in a high-dimensional space, and the space has
+properties nobody chose. This movement is about the ones that change what your distances mean.</p>
+
+<h3><span class="num">§24</span> Similarity, and the three measures</h3>
+
+<div class="box def">
+  <span class="label">Dot product, cosine, Euclidean</span>
+  <p>For vectors $\mathbf{a}$ and $\mathbf{b}$:</p>
+  <p>$$\mathbf{a}\cdot\mathbf{b}, \qquad
+  \frac{\mathbf{a}\cdot\mathbf{b}}{\|\mathbf{a}\|\,\|\mathbf{b}\|}, \qquad
+  \|\mathbf{a}-\mathbf{b}\|_2$$</p>
+  <p>They are not interchangeable. The dot product rewards <b>magnitude</b>: a long vector scores
+  well against everything, so it favours whatever the model is confident or frequent about. Cosine
+  discards magnitude entirely and compares direction. Euclidean distance uses both.</p>
+  <p>The one identity worth memorising: for <b>normalised</b> vectors,
+  $\|\mathbf{a}-\mathbf{b}\|^2 = 2 - 2\,(\mathbf{a}\cdot\mathbf{b})$. On the unit sphere,
+  Euclidean ranking and cosine ranking are the same ranking, which is why normalising first makes
+  the choice between them disappear, and why contrastive objectives normalise.</p>
+</div>
+
+<div class="box pitfall">
+  <span class="label">Pitfall: the index and the training objective must agree</span>
+  <p>A model trained with a cosine objective and queried with dot products is being asked a
+  question it was not trained to answer. The failure is quiet: results are plausible, slightly
+  worse, and biased toward high-norm items, which in text embeddings correlates with document
+  length and frequency.</p>
+  <p>Establish which similarity the encoder was trained with, and use that one. If you cannot find
+  out, normalise, and then it does not matter.</p>
+</div>
+
+<h3><span class="num">§25</span> Anisotropy</h3>
+
+<div class="box def">
+  <span class="label">The cone</span>
+  <p>Embeddings from a trained network are usually not spread over the sphere. They occupy a narrow
+  <b>cone</b>: the average cosine similarity between two randomly chosen, unrelated items is far
+  above zero, often 0.6 or higher where random directions in high dimensions would give
+  approximately 0.</p>
+  <p>The consequence is a loss of resolution. If everything is at similarity 0.7 and related things
+  are at 0.8, then almost all of the available range is being spent on a constant offset, and the
+  differences that matter are compressed into what is left.</p>
+</div>
+
+<div class="box why">
+  <span class="label">Why this happens, and the cheap repair</span>
+  <p>A large shared component in the representation (a direction almost every item has) produces
+  it. Frequency effects contribute: in language models, rare tokens are pushed into a distinct
+  region, and the common ones cluster.</p>
+  <p>The repair is to remove what is shared. <b>Centre</b> the embeddings by subtracting the mean,
+  which alone removes most of the offset, and optionally <b>whiten</b> them so the covariance is
+  isotropic. Both are computed on a sample and applied as a fixed affine map, so retrieval costs
+  nothing extra.</p>
+  <p>Whitening is not free: it amplifies directions of small variance, which may be noise, so it
+  can help retrieval and hurt a downstream classifier. Centring is nearly always safe, and it is
+  the first thing to try when a similarity distribution looks compressed.</p>
+</div>
+
+<h3><span class="num">§26</span> Hubness</h3>
+
+<figure>
+  <img src="figures/rp/07-hubness.svg" alt="Size of the largest hub and fraction of points that are nobody's neighbour, against dimension; and neighbour count against distance from the centre">
+  <figcaption><b>Figure 7.</b> Three thousand Gaussian points, and how often each appears in
+  another's ten nearest neighbours. The mean is exactly 10 at every dimension. At $d=2$ the biggest
+  hub appears 17 times and almost nobody is orphaned. At $d=500$ the biggest hub appears in
+  <b>585</b> lists, <b>58.5 times the mean</b>, and <b>30%</b> of points are in nobody's. Right:
+  the mechanism, at $d=100$. Hubs are the points closest to the centre of the cloud.</figcaption>
+</figure>
+
+<div class="box def">
+  <span class="label">What hubness is</span>
+  <p>Let $N_k(i)$ count how many other points have $i$ among their $k$ nearest neighbours. Its mean
+  is $k$ by construction, whatever the dimension. In high dimensions its <b>distribution</b> becomes
+  extremely skewed: a few points are everyone's neighbour, and many are nobody's.</p>
+  <p>This is a property of high-dimensional geometry, not of any model. The figure uses pure
+  Gaussian noise: there is no structure to find and the effect appears anyway.</p>
+</div>
+
+<div class="box why">
+  <span class="label">Why it happens, and why it matters for anything that retrieves</span>
+  <p>The right panel is the explanation. In high dimensions the norms concentrate, but not
+  perfectly, and a point slightly nearer the centre of the cloud is slightly nearer to
+  <b>everything</b>. That small advantage is applied across every query, so it compounds into a
+  large one. The correlation between hub-ness and closeness to the centre is <b>+0.88</b> at
+  $d=10$ and stays strong throughout.</p>
+  <p>Consequences, all observed in deployed systems:</p>
+  <ul class="tight">
+    <li>A handful of items are returned for almost every query, regardless of relevance.</li>
+    <li>A large fraction of the corpus is unreachable by nearest-neighbour search at any $k$.</li>
+    <li>Recommendation degenerates toward the same few items, and that looks like popularity bias
+    caused by the data, when a substantial part of it is caused by the geometry.</li>
+  </ul>
+  <p>The mitigations follow the mechanism. Centring (§25) removes the shared component that creates
+  the advantage. <b>Mutual</b> $k$-nearest neighbours, requiring the relation to hold in both
+  directions, discards hub relationships by construction. And rank-based corrections rescale each
+  item's similarities by its own distance distribution, which is what most production systems end
+  up doing.</p>
+</div>
+
+<h3><span class="num">§27</span> The linear representation hypothesis</h3>
+
+<div class="box def">
+  <span class="label">The claim, and its most famous instance</span>
+  <p>The hypothesis: <b>features are directions</b>. A concept corresponds to a direction in
+  representation space, its presence to a large component along that direction, and combinations of
+  concepts to sums of their directions.</p>
+  <p>Its famous instance is the word analogy:</p>
+  <p>$$\text{king} - \text{man} + \text{woman} \approx \text{queen}$$</p>
+  <p>If gender is a direction and royalty is a direction, and the two are approximately independent,
+  then the arithmetic should work. It does, well enough to have shaped a decade of intuition.</p>
+</div>
+
+<div class="box pitfall">
+  <span class="label">Pitfall: the analogy result is weaker than its fame</span>
+  <p>Two facts about the standard demonstration are worth knowing before relying on it.</p>
+  <p><b>The three input words are excluded from the answer.</b> Standard evaluation code removes
+  <i>king</i>, <i>man</i> and <i>woman</i> from the candidate set before taking the nearest
+  neighbour. Without that exclusion the nearest vector to the result is very often <i>king</i>
+  itself: the arithmetic moved a short distance and the answer is dominated by the starting
+  point. The exclusion is defensible and it is rarely mentioned, so the reported accuracy is
+  systematically better than the raw operation.</p>
+  <p><b>It works for some relations and not others.</b> Reliable on morphology and geography;
+  substantially worse on relations that are not close to a consistent offset. The aggregate number
+  averages over both.</p>
+  <p>The hypothesis survives all of this in weakened form: directions do carry meaning, and §34
+  depends on it. What does not survive is the idea that representation space is a tidy vector space
+  of independent concepts.</p>
+</div>
+
+<h3><span class="num">§28</span> Neighbour embeddings, and what they destroy</h3>
+
+<p>Representations get looked at through t-SNE or UMAP, which reduce them to two dimensions. These
+plots are the most widely reproduced images in the field and the most widely over-read.</p>
+
+<figure>
+  <img src="figures/rp/08-neighbour-embedding.svg" alt="t-SNE of three clusters with deliberately different spreads and separations, and a comparison of relative sizes before and after">
+  <figcaption><b>Figure 8.</b> Three clusters in 50 dimensions, constructed with spreads in the
+  ratio <b>1 : 3.3 : 8.3</b> and with the third cluster more than three times further away than the
+  second. After t-SNE the spreads are in the ratio <b>1 : 1.0 : 1.0</b> and the two gaps are equal
+  to within 1%. Neither relative size nor relative distance survives.</figcaption>
+</figure>
+
+<div class="box why">
+  <span class="label">Why the distortion is the algorithm working correctly</span>
+  <p>t-SNE minimises a divergence between neighbour <b>probability</b> distributions, with a
+  per-point bandwidth chosen so each point has the same effective number of neighbours: that is
+  what perplexity sets. A point in a tight cluster and a point in a diffuse one are therefore
+  rescaled to comparable local neighbourhoods <b>by construction</b>.</p>
+  <p>So the flattening in the figure is not a failure. It is the method's definition. The objective
+  contains no term that preserves the ratio of one cluster's size to another's, or one gap to
+  another, and an optimiser will not deliver a property nobody asked for.</p>
+</div>
+
+<div class="box def">
+  <span class="label">What these plots do and do not support</span>
+  <p><b>Supported:</b> that points form groups; roughly which points are near which; that a class
+  is split into several groups, or that two classes overlap.</p>
+  <p><b>Not supported:</b> that one cluster is tighter than another; that two clusters are further
+  apart than two others; that the space between clusters is empty; anything about the global
+  arrangement. Distance between well-separated clusters is close to arbitrary.</p>
+  <p>UMAP preserves more global structure than t-SNE and does not preserve enough to make these
+  readings safe. Both are strongly affected by their parameters (perplexity, or the number of
+  neighbours) and it is standard practice to run several settings and confirm the conclusion
+  survives all of them.</p>
+</div>
+
+<div class="box pitfall">
+  <span class="label">Pitfall: a projection is a hypothesis generator, not evidence</span>
+  <p>The failure mode is reading a claim off the picture and reporting it: "the classes are well
+  separated after fine-tuning", "these two groups are close so the model confuses them", "training
+  tightened the clusters".</p>
+  <p>Every one of these is checkable in the original space, cheaply: a linear probe for
+  separability (§31), a confusion matrix for confusion, average within-cluster distance for
+  tightness. Use the plot to notice something, then measure the something. Part XIV §11's
+  discipline, applied to a picture.</p>
+</div>
+
+<h3><span class="num">§29</span> Retrieval</h3>
+
+<div class="box def">
+  <span class="label">From embedding to index</span>
+  <p>The practical destination of most embeddings is nearest-neighbour search over millions of
+  items, where exact search is too slow. Approximate methods trade recall for latency.</p>
+  <p>The historical route here was <b>semantic hashing</b>: training an autoencoder with a binary
+  code layer so two similar items land in codes a short Hamming distance apart, turning retrieval
+  into a table lookup. IVF, HNSW and product quantization are its modern descendants: same goal,
+  sub-linear search over a learned or approximate index, better recall at the same budget.</p>
+  <p><b>IVF</b> partitions the space by clustering and searches only the nearest few partitions;
+  fast, and it misses items near a boundary. <b>HNSW</b> builds a navigable graph with long-range
+  links at the top and short ones at the bottom, and walks it greedily; usually the best
+  recall–latency tradeoff, at a substantial memory cost. <b>Product quantization</b> splits the
+  vector into subvectors and replaces each with a codebook entry, shrinking memory by an order of
+  magnitude at some loss of precision.</p>
+  <p>The measurement that matters is <b>recall@k against exact search</b>, on your own data. It is
+  cheap to compute on a sample and it is the only thing that tells you what the index is costing
+  you.</p>
+</div>
+
+<div class="box pitfall">
+  <span class="label">Pitfall: two independent sources of loss</span>
+  <p>A retrieval system that returns bad results has two suspects and they need separating: the
+  <b>embedding</b> may not place the right things near each other, or the <b>index</b> may fail to
+  find the near things.</p>
+  <p>Separate them by running exact search on a sample. If exact search is also bad, the index is
+  innocent and the encoder is the problem. If exact search is good and the index is not, tune the
+  index. Conflating the two produces months of work on the wrong component, and §26 is the reason
+  the encoder is guilty more often than teams expect.</p>
+</div>
+
+<h3><span class="num">§30</span> What movement D establishes</h3>
+
+<div class="box intuition">
+  <span class="label">The geometry is not neutral</span>
+  <p>Four properties, none of them designed, all of them consequential.</p>
+  <p><b>Similarity measures disagree</b>, and the one to use is the one the encoder was trained
+  with.</p>
+  <p><b>Embeddings occupy a cone</b>, which compresses the range that carries your signal, and
+  centring largely repairs it.</p>
+  <p><b>High-dimensional neighbourhoods are lopsided</b> (a few hubs, many orphans) as a property
+  of the geometry rather than of the data.</p>
+  <p><b>Neighbour embeddings preserve neighbourhoods and nothing else</b>, so cluster sizes and
+  gaps in those plots carry no information.</p>
+  <p>The common thread: high-dimensional space does not behave like the two-dimensional pictures
+  everyone reasons with, and the differences are large enough to change conclusions rather than
+  merely qualify them.</p>
+</div>

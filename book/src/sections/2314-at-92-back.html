@@ -1,0 +1,203 @@
+<h2><span class="part-kicker">Build</span>The project</h2>
+
+<p class="lede">Twelve to sixteen hours. You build a transformer from the formula, verify the one
+thing that silently ruins it, make generation fast, and then find a circuit inside a model small
+enough to understand completely.</p>
+
+<h3><span class="num">P.1</span> What you are building</h3>
+
+<p><b><code>attention-from-scratch</code></b>: scaled dot-product attention, multi-head, a
+working decoder-only model, a KV cache proved exact, and an induction-head hunt with an
+ablation.</p>
+
+<p>The rule: <b>every optimisation must be shown to compute the same function.</b> The KV cache,
+the online softmax and the tiled attention are all exact, and a project that cannot demonstrate
+that has demonstrated nothing.</p>
+
+<h3><span class="num">P.2</span> Stage 1: the operation</h3>
+
+<ol>
+  <li>Scaled dot-product attention, from §4's formula, in NumPy.</li>
+  <li>Verify against a library implementation, masked and unmasked.</li>
+  <li>Measure $\text{Var}[\mathbf{q}^\top\mathbf{k}]$ against $d$ and confirm it is $d$. Then
+  measure attention entropy with and without the scaling.</li>
+  <li>Multi-head, and confirm the parameter count does not change with the head count.</li>
+</ol>
+
+<p><b>Deliverable:</b> Figure 1 from your own code, and the entropy collapse demonstrated at
+$d = 2048$ rather than asserted.</p>
+
+<h3><span class="num">P.3</span> Stage 2: position</h3>
+
+<ol>
+  <li>Verify permutation equivariance numerically, then break it with a learned encoding and
+  with sinusoids.</li>
+  <li>Implement RoPE. Verify $\mathbf{q}_m\cdot\mathbf{k}_n$ depends only on $m-n$, at absolute
+  positions differing by <b>thousands</b>.</li>
+  <li>Train the same small model with each of the three and compare, including at a length
+  longer than trained.</li>
+</ol>
+
+<p><b>Deliverable:</b> Figures 3 and 4, and the extrapolation comparison. The learned encoding
+should fail past its table; the others should degrade rather than fail.</p>
+
+<h3><span class="num">P.4</span> Stage 3: the model, and the one test that matters</h3>
+
+<ol>
+  <li>Assemble the block of §14: pre-norm, residual, multi-head attention, feedforward.</li>
+  <li>Stack it into a decoder-only model with causal masking.</li>
+  <li><b>Verify the mask by consequence.</b> Change the token at position $j$; confirm every
+  output at position $< j$ is <b>bit-identical</b>. Do not inspect the mask; test it.</li>
+  <li>Train on a task you generate, and confirm the loss cannot fall below the entropy of the
+  data.</li>
+</ol>
+
+<p><b>Deliverable:</b> the causality test passing, in code, as an assertion that runs every time.
+Then deliberately introduce the off-by-one and confirm the test catches it and the loss curve
+does not.</p>
+
+<h3><span class="num">P.5</span> Stage 4: fast, and provably identical</h3>
+
+<ol>
+  <li>Implement generation without a cache. Then with one.</li>
+  <li>Assert the outputs are <b>identical</b> before measuring any speedup.</li>
+  <li>Measure the cache's memory growth against context length, and time both.</li>
+  <li>Implement the online softmax of §29 and confirm it matches the one-shot version. Then use
+  it to compute attention in tiles without ever forming the $n\times n$ matrix, and measure the
+  peak memory of both.</li>
+</ol>
+
+<p><b>Deliverable:</b> a tiled attention that never materialises the score matrix, agreeing with
+the naive version to rounding, with both memory profiles measured. This is FlashAttention's
+mathematics; the remaining engineering is which memory the tiles live in.</p>
+
+<h3><span class="num">P.6</span> Stage 5: find a circuit</h3>
+
+<p>The centrepiece, and the part that will change how you read interpretability work.</p>
+
+<ol>
+  <li>Train a two-layer, two-head model on a repeated block at a <b>random</b> offset.</li>
+  <li>Run the <b>control</b>: the same models on a fixed offset. Confirm one layer nearly matches
+  two there, and does not on random offsets.</li>
+  <li>Locate the previous-token head in layer 1 and the induction head in layer 2. Quantify the
+  induction pattern against uniform attention over the same prefix.</li>
+  <li><b>Ablate.</b> Zero the layer-1 head and measure what happens to the layer-2 pattern and to
+  the loss.</li>
+</ol>
+
+<p><b>Deliverable:</b> the circuit named, measured, and broken. The ablation is what turns a
+correlation into a causal claim, and skipping it is the most common weakness in this kind of
+work.</p>
+
+<h3><span class="num">P.7</span> Stretch</h3>
+
+<ul>
+  <li><b>In-context learning.</b> Train on many fresh random rules; test on rules never seen;
+  bucket accuracy by demonstrations of that specific query. The conditioning is the exercise.</li>
+  <li><b>Grouped-query attention.</b> Implement it, measure the cache saving and the quality
+  cost, and find the $g$ where the trade turns.</li>
+  <li><b>Linear attention.</b> Implement the reassociated form, confirm linear cost, then write
+  down explicitly what its fixed-size state is, and notice you have built a recurrent
+  network.</li>
+  <li><b>Make it spike.</b> Push the learning rate until training breaks, with the maximum
+  attention logit and per-head entropy logged. Establish that the logit moves first.</li>
+  <li><b>Lost in the middle.</b> Plant a fact at controlled depth and sweep. Plot retrieval
+  against position.</li>
+</ul>
+
+<h3><span class="num">P.8</span> Done when</h3>
+
+<ul class="checklist">
+  <li>Your attention matches a library implementation, masked and unmasked.</li>
+  <li>The $\sqrt{d}$ is <b>derived</b> from a measured variance, not quoted.</li>
+  <li>RoPE's relative property is verified at positions thousands apart.</li>
+  <li>The causality test runs as an assertion, and you have watched it catch a deliberate bug.</li>
+  <li>The KV cache is proved identical before any speedup is reported.</li>
+  <li>Tiled attention agrees with naive attention and never forms the $n\times n$ matrix.</li>
+  <li>An induction head is located, quantified, and ablated, with the fixed-offset control run.</li>
+  <li>Your README names one thing about transformers you believed that the measurements
+  contradicted.</li>
+</ul>
+
+<div class="box why">
+  <span class="label">Why this project</span>
+  <p>Two stages justify it. <b>Stage 3</b>, because the causal mask is the correctness boundary
+  of the entire architecture and its failure mode is a training curve that looks better than a
+  correct one. Everyone should have watched that happen once, deliberately, in code they wrote.</p>
+  <p>And <b>Stage 5</b>, because it is the smallest complete example of the thing the field most
+  wants and least often achieves: a mechanism identified, predicted from structure, measured, and
+  then <i>broken</i> to prove the claim. Attention maps are easy to plot and hard to trust (§36),
+  and the ablation is where the difference lives.</p>
+</div>
+
+<h2 class="nobreak"><span class="part-kicker">Assess</span>Checkpoint</h2>
+
+<ul class="checklist">
+  <li>State Part XI's bottleneck and why widening the context does not fix it.</li>
+  <li>Derive attention from three requirements on a weighted average.</li>
+  <li>Say why keys and values are separate.</li>
+  <li>Derive the $\sqrt{d_k}$ from the variance of a dot product.</li>
+  <li>Explain why a saturated softmax stops the layer learning.</li>
+  <li>Give the dictionary reading and the kernel reading, and what each is good for.</li>
+  <li>Say which of Part XI §28's four limitations cross-attention removed.</li>
+  <li>Write self-attention and say where the parallelism is.</li>
+  <li>Give the path length between the ends of a sequence for four architectures.</li>
+  <li>State self-attention's exact symmetry and why it must be destroyed.</li>
+  <li>Compare learned, sinusoidal and rotary encodings, and what each can extrapolate.</li>
+  <li>Show that RoPE's score depends only on $m-n$.</li>
+  <li>Say what multi-head buys and what it costs in parameters.</li>
+  <li>Give the two cost terms and the sequence length at which they cross.</li>
+  <li>Describe the block, and say which sublayer moves information and which processes it.</li>
+  <li>Split a block's parameters and state the ratio.</li>
+  <li>Explain the residual stream as a communication channel.</li>
+  <li>Give both norm placements and say which one warmup was compensating for.</li>
+  <li>Say why transformers use LayerNorm rather than batch norm, and what RMSNorm drops.</li>
+  <li>Explain the causal mask and why it makes parallel training possible.</li>
+  <li>Give the test that catches an off-by-one in the mask.</li>
+  <li>Say why residual scaling at initialisation is needed, and what it has in common with
+  Part X §23.</li>
+  <li>Explain why AdamW rather than SGD here, in terms of heterogeneity.</li>
+  <li>Say which hyperparameter does not transfer across scale, and what fixes it.</li>
+  <li>Explain why large language models often use no dropout.</li>
+  <li>Describe rank collapse and say what the skip connections prevent besides vanishing
+  gradients.</li>
+  <li>Distinguish the training bottleneck from the generation bottleneck.</li>
+  <li>Explain the KV cache, its exactness, and its cost.</li>
+  <li>State what FlashAttention changes and what it does not.</li>
+  <li>Give the online softmax recurrence.</li>
+  <li>Say what grouped-query attention trades and why the constraint is deployment-side.</li>
+  <li>Explain why sparse attention gives back what §8 bought.</li>
+  <li>Derive linear attention's reassociation and say what it turns the model into.</li>
+  <li>Explain mixture of experts and the two things it decouples.</li>
+  <li>Say why activation outliers make quantization hard.</li>
+  <li>Give four reasons attention maps are not explanations.</li>
+  <li>Describe the induction circuit and why it needs two layers.</li>
+  <li>State what is known and not known about in-context learning.</li>
+  <li>Give the four separate limits on context length and which are solved.</li>
+  <li>State the trade between attention and recurrence in one sentence.</li>
+</ul>
+
+<table class="compact">
+  <thead><tr><th>Score</th><th>Verdict</th></tr></thead>
+  <tbody>
+    <tr><td><b>32–40</b></td><td>Go on. You can read a model card and know what it costs.</td></tr>
+    <tr><td><b>25–31</b></td><td>Reread what you missed, then continue.</td></tr>
+    <tr><td><b>18–24</b></td><td>Do the project's Stages 3 and 5.</td></tr>
+    <tr><td><b>Under 18</b></td><td>Reread §§4, 8 and 13. The scaling, the path length and the cost carry the whole part.</td></tr>
+  </tbody>
+</table>
+
+<div class="box intuition">
+  <span class="label">The one thing to carry forward</span>
+  <p><b>Attention buys a constant path length between any two positions, and pays for it with a
+  state that grows without bound.</b></p>
+  <p>The quadratic cost, the KV cache, FlashAttention, grouped-query attention, every sparse and
+  linear approximation, and every limit on context length is a consequence of that one trade.
+  Part XI made the opposite choice and paid in path length instead.</p>
+  <p>Neither is correct. They are two settings of one dial, and attention won because
+  <b>parallel training</b> mattered more than either, which is a fact about hardware rather than
+  about sequences.</p>
+  <p>Which sets up the next question. If what limits a model is how much data you can push
+  through it, and that limit has just been lifted by orders of magnitude, what happens when you
+  push a great deal? Part XVII is the answer, and it turns out to have laws.</p>
+</div>

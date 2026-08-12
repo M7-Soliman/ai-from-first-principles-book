@@ -1,0 +1,118 @@
+<h2><span class="part-kicker">Part C</span>Many machines</h2>
+
+<p class="mvt">Part XVII chose which axis to split a model along. This movement is the layer below:
+what the machines actually say to each other, how long that takes, and why one collective algorithm
+is used everywhere.</p>
+
+<h3><span class="num">§17</span> The operations that exist</h3>
+
+<div class="box shapes">
+  <span class="label">Four, and almost all traffic is the first</span>
+  <p><b>All-reduce.</b> Every worker contributes a buffer, every worker ends with the sum. This is
+  gradient averaging, and it is the overwhelming majority of what a training job sends.</p>
+  <p><b>All-gather.</b> Every worker ends with everyone's buffer concatenated, used to reassemble
+  sharded parameters.</p>
+  <p><b>Reduce-scatter.</b> The sum, but each worker keeps only its slice. Half of an all-reduce.</p>
+  <p><b>All-to-all.</b> Every worker sends a different piece to every other: what mixture-of-experts
+  routing needs, and the most expensive of the four.</p>
+</div>
+
+<h3><span class="num">§18</span> Why the ring</h3>
+
+<figure>
+  <img src="figures/sy/04-collectives.svg" alt="Buffers moved per worker against worker count, for a naive all-reduce and a ring all-reduce, log scale">
+  <figcaption><b>Figure 4.</b> Volume moved per worker, which is arithmetic rather than a benchmark
+  and therefore the part of a collective's cost that transfers between machines. Sending every
+  buffer to every worker moves volume growing <b>linearly</b> with the worker count: slope exactly
+  1.000. A ring (reduce-scatter around, then all-gather around) moves
+  <span class="m">$2(N-1)/N$</span> buffers, <b>bounded by two</b> however many workers there are.
+  At 64 workers that is a factor of <b>32</b>.</figcaption>
+</figure>
+
+<div class="box why">
+  <span class="label">What the ring gives up</span>
+  <p>Volume is optimal and <b>latency is not</b>: a ring takes <span class="m">$2(N-1)$</span>
+  sequential steps, so for a small buffer across many workers the time is dominated by per-hop
+  latency and a tree is better. Which is why real libraries switch algorithm by message size, and
+  why a benchmark at one size tells you little about another.</p>
+</div>
+
+<h3><span class="num">§19</span> The network is not uniform</h3>
+
+<div class="box def">
+  <span class="label">Bandwidth by distance</span>
+  <p>Accelerators within a machine talk over a dedicated interconnect at hundreds of gigabytes a
+  second; machines within a rack talk over a network at tens; racks talk at less. The ratios are
+  large enough that <b>which workers are adjacent changes the wall clock</b>.</p>
+  <p>So the assignment of parallelism axes to hardware is a real decision: put the axis with the
+  most traffic (tensor parallelism, which communicates every layer) inside a machine, and the axis
+  with the least (data parallelism, which communicates once a step) across the slow links. Getting
+  that backwards can cost more than any kernel optimisation recovers.</p>
+</div>
+
+<h3><span class="num">§20</span> Overlap</h3>
+
+<div class="box why">
+  <span class="label">The optimisation that makes the rest affordable</span>
+  <p>Communication and computation use different hardware, so they can happen at once. Gradients for
+  the last layer are ready before the backward pass reaches the first, so their all-reduce can start
+  immediately and finish while the rest of the backward pass runs.</p>
+  <p>Done well this hides communication almost entirely, and it is why data-parallel training scales
+  at all. Done badly (one all-reduce at the end of the step), the communication is fully exposed
+  and the same job is much slower with nothing in the profile to point at except a gap.</p>
+</div>
+
+<h3><span class="num">§21</span> What actually goes wrong at scale</h3>
+
+<div class="box shapes">
+  <span class="label">Four failures, in the order they cost the most</span>
+  <p><b>Stragglers.</b> A synchronous step runs at the speed of the slowest worker, so one machine
+  with a thermal problem sets the pace for the whole job. The distribution's tail matters, not its
+  mean.</p>
+  <p><b>Failures.</b> At thousands of machines and hours of running, something failing is the
+  expected case. This is why checkpointing frequency is a real decision and not hygiene (Part XVII
+  §28).</p>
+  <p><b>Non-determinism.</b> Reduction order varies between runs, so results are not bitwise
+  reproducible, and a bug that appears once may not appear again. Deterministic collectives exist
+  and cost throughput.</p>
+  <p><b>Silent corruption.</b> At enough machine-hours, a chip occasionally computes the wrong
+  answer without saying so. Large operators check for it; it is the failure that most resembles a
+  software bug and is not one.</p>
+</div>
+
+<h3><span class="num">§22</span> Where the memory goes</h3>
+
+<div class="box shapes">
+  <span class="label">Four consumers, and only one is the model</span>
+  <p><b>Parameters</b>, <b>gradients</b>, <b>optimiser state</b> (two moments for Adam, so
+  roughly four times the parameters in total), and <b>activations</b>, which depend on batch size
+  and depth and are frequently the largest.</p>
+  <p>Which is why the sharding strategies of Part XVII §18 exist and why activation recomputation is
+  a lever: trading arithmetic for memory is favourable exactly when arithmetic is cheap, which
+  §1 says it is.</p>
+</div>
+
+<h3><span class="num">§23</span> Serving is a different problem</h3>
+
+<div class="box why">
+  <span class="label">Training is throughput, serving is latency under a distribution</span>
+  <p>A training job optimises total time and can batch as it likes. A serving system faces requests
+  arriving at random with a latency target on each, so the quantity that matters is a tail
+  percentile rather than a mean, and utilisation trades directly against it: a system run near
+  saturation has a long tail by queueing theory alone, whatever the model does.</p>
+  <p>Part XIX's techniques all apply and the constraint is different, which is why the same model
+  needs different engineering in the two settings.</p>
+</div>
+
+<h3><span class="num">§24</span> What movement C establishes</h3>
+
+<div class="box intuition">
+  <span class="label">Three things</span>
+  <p><b>The ring is optimal in volume and not in latency.</b> Figure 4 measures 2 buffers per worker
+  against a linear growth, a factor of 32 at 64 workers, and libraries still switch algorithm by
+  message size.</p>
+  <p><b>Topology is a decision.</b> Put the chattiest parallelism axis on the fastest links, or lose
+  more than any kernel optimisation recovers.</p>
+  <p><b>At scale the failures are statistical.</b> Stragglers, hardware failures, non-determinism
+  and silent corruption are all expected rather than exceptional.</p>
+</div>

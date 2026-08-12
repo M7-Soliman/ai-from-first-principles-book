@@ -1,0 +1,316 @@
+<h2><span class="part-kicker">Part A</span>Estimators</h2>
+
+<h3><span class="num">§1</span> What an estimator is</h3>
+
+<div class="sixty">
+  <span class="label">In 60 seconds</span>
+  <p>An estimator is a <b>function of the data</b>: a recipe that turns a sample into a
+  guess about the world. Because the sample is random, the guess is random too. So an
+  estimator is a random variable, it has a distribution, and every question about whether it
+  is any good is a question about that distribution.</p>
+</div>
+
+<p>The setup is always the same. There is some quantity $\theta$ you want to know: a
+population mean, a coin's bias, the weights of the best possible model. You cannot observe
+it. You have a sample, and you compute something from that sample and call it
+$\hat{\theta}$.</p>
+
+<div class="box def">
+  <span class="label">Definition: estimator</span>
+  <p>An <b>estimator</b> $\hat{\theta}$ is any function of the observed data. The value it
+  takes on one particular sample is an <b>estimate</b>.</p>
+</div>
+
+<p>Note how permissive that is. <i>Any</i> function qualifies. "Take the sample mean" is an
+estimator; so is "take the first observation" and so is "always answer 7". Nothing in the
+definition says an estimator is good. Sections 2 through 5 build the vocabulary for saying
+which ones are.</p>
+
+<figure>
+  <img src="figures/st/01-estimator.svg" alt="Six samples giving six different estimates, and the resulting sampling distribution">
+  <figcaption><b>Figure 1.</b> Left: six samples drawn from the same population. Each gives
+  a different estimate (orange), none exactly the truth (green). Right: repeat twenty
+  thousand times and the estimates trace out a distribution. <b>That distribution is the
+  object of this part.</b> Everything worth saying about an estimator is a statement about
+  its shape.</figcaption>
+</figure>
+
+<div class="box intuition">
+  <span class="label">Intuition: the hat means "computed from data"</span>
+  <p>The notation is worth taking seriously. $\theta$ is a fixed, unknown number, a
+  property of the world. $\hat{\theta}$ is a random variable, a property of your data.</p>
+  <p>They are different kinds of object, and conflating them causes most of the confusion in
+  §10. When you write $\mathbb{E}[\hat{\theta}]$ you are averaging over <i>possible
+  datasets you might have collected</i>, not over anything inside the dataset you have.
+  That is a strange thing to average over the first few times you meet it, and it is the
+  central move of the whole subject.</p>
+</div>
+
+<p>It is worth confronting the objection that move invites, because it is the right
+objection and nobody raises it out loud. <b>You have one dataset.</b> You will never have
+the twenty thousand in Figure 1. So in what sense does the estimator have a distribution at
+all, when the thing it depends on happened exactly once?</p>
+
+<p>The answer is that the distribution describes the <b>procedure</b>, not your particular
+run of it. Your sample was one draw from a process that could have produced many. The
+distribution is over that process (over the samples you might have got, given how you
+collected the one you did), and it exists whether or not anyone ever draws a second.</p>
+
+<p>The everyday version is a manufacturing tolerance. A bolt supplier who says the diameter
+is 10 mm ± 0.05 mm is not claiming to have measured your bolt. They are describing the
+machine that made it. You hold one bolt, you will never see the others, and the tolerance
+still tells you something true and useful about the one in your hand, namely how far it is
+likely to be from nominal.</p>
+
+<p>A standard error is that tolerance, for an answer instead of a bolt. It does not say how
+wrong <i>your</i> estimate is; that is unknowable, because knowing it would mean knowing
+$\theta$, and if you knew $\theta$ you would not be estimating it. It says how wrong
+estimates from this procedure typically are, and that is the most any honest method can
+offer.</p>
+
+<p>Everything in this part is an instance of that move. Confidence intervals in §8 have
+coverage guarantees about the procedure rather than about your interval. P-values in §11 are
+probabilities about data the null would have produced, not about the null. The bootstrap in
+§10 is unusual only in that it simulates the imagined repetitions explicitly instead of
+reasoning about them, which is why it works when no formula is available, and why it is
+the most intuitive method here despite arriving last.</p>
+
+<h3><span class="num">§2</span> Bias</h3>
+
+<div class="box def">
+  <span class="label">Definition: bias</span>
+  <p>$$\text{Bias}(\hat{\theta}) = \mathbb{E}[\hat{\theta}] - \theta$$
+  An estimator is <b>unbiased</b> if this is zero, that is, if it is correct <i>on average</i>
+  across all possible samples.</p>
+</div>
+
+<p>Unbiasedness says the estimator does not systematically overshoot or undershoot. It says
+nothing at all about how far any individual estimate might be from the truth, which is why
+it is a much weaker guarantee than it sounds.</p>
+
+<div class="worked">
+  <span class="label">Worked: why the sample variance has $n-1$ in it</span>
+  <p>This is the one piece of statistical trivia everybody half-remembers, and it is worth
+  seeing where it comes from.</p>
+  <p>The natural estimator of variance divides by $n$:
+  $\;\hat{\sigma}^2 = \frac1n\sum_i (x_i - \bar{x})^2$. It is <b>biased low</b>, and the
+  reason is that $\bar{x}$ is itself estimated from the same data. The sample mean sits, by
+  construction, at the point minimising the sum of squared deviations, so deviations
+  measured from it are systematically smaller than deviations from the true mean.</p>
+  <p>You used up one piece of information estimating $\bar{x}$. Working through the
+  expectation gives $\mathbb{E}[\hat{\sigma}^2] = \frac{n-1}{n}\sigma^2$, so dividing by
+  $n-1$ instead of $n$ corrects it exactly.</p>
+  <p>That is what a "degree of freedom" is: a constraint the data had to satisfy, paid for
+  out of the sample size. NumPy's <code>ddof</code> argument is asking how many you
+  spent.</p>
+</div>
+
+<div class="box pitfall">
+  <span class="label">Pitfall: unbiased is not the same as good</span>
+  <p>"Always answer 7" has zero variance and is wildly biased. "Use only the first
+  observation" is perfectly unbiased for the mean and nearly useless, because it throws
+  away all but one data point.</p>
+  <p>Unbiasedness is one property among several, and §4 will show it is frequently worth
+  <i>giving up</i>. Almost every regularized model in this book is deliberately biased,
+  because the bias buys a reduction in variance that more than pays for itself.</p>
+</div>
+
+<h3><span class="num">§3</span> Variance and standard error</h3>
+
+<p>The second property: how much does the estimate move when the sample changes?</p>
+
+<div class="box def">
+  <span class="label">Definition: standard error</span>
+  <p>The <b>variance</b> of an estimator is $\text{Var}(\hat{\theta})$, the spread of its
+  sampling distribution. Its square root is called the <b>standard error</b>, the standard
+  deviation <i>of the estimator</i>, not of the data.</p>
+</div>
+
+<p>The distinction in that last clause matters and is routinely lost. The standard
+deviation of your data describes how spread out the observations are. The standard error
+describes how spread out your <i>answer</i> is. They are different numbers with different
+units of meaning, and for the sample mean they are related by</p>
+
+$$\text{SE}(\bar{x}) = \frac{\sigma}{\sqrt{n}}$$
+
+<p>Make that concrete before deriving it, because the two quantities are so easily confused
+that a numerical example is worth more than the definition. Suppose adult heights have a
+standard deviation of 10 cm, and you measure 100 people.</p>
+
+<ul class="tight">
+  <li>The <b>standard deviation</b> is still 10 cm. Individual people genuinely differ by
+  that much, and collecting more data does not make them more alike. This number describes
+  the world.</li>
+  <li>The <b>standard error</b> is $10/\sqrt{100} = 1$ cm. If you repeated the whole study,
+  your <i>average</i> would land within about a centimetre of where it landed this time.
+  This number describes your answer.</li>
+</ul>
+
+<p>Ten centimetres and one centimetre, from the same data, both correct, describing
+different things. More data leaves the first untouched and shrinks the second, which is the
+whole reason collecting more data is worth anything.</p>
+
+<h4>Where the square root comes from</h4>
+
+<p>The $\sqrt{n}$ looks arbitrary and is not. It follows from one fact, and that fact is
+worth more than the formula:</p>
+
+<div class="box def">
+  <span class="label">Variances add; standard deviations do not</span>
+  <p>For independent quantities,
+  $$\text{Var}(X_1 + X_2 + \cdots + X_n) = \text{Var}(X_1) + \cdots + \text{Var}(X_n)$$
+  Nothing similar holds for standard deviations, because a square root does not distribute
+  over a sum (Part 0 §3 warned about exactly this).</p>
+</div>
+
+<p>Now the two lines. Adding $n$ observations each of variance $\sigma^2$ gives a total of
+variance $n\sigma^2$. The mean divides that total by $n$, and dividing a random quantity by
+a constant divides its variance by the constant <i>squared</i>:</p>
+
+$$\text{Var}(\bar{x}) = \frac{1}{n^2}\cdot n\sigma^2 = \frac{\sigma^2}{n}
+\qquad\Longrightarrow\qquad \text{SE}(\bar{x}) = \frac{\sigma}{\sqrt{n}}$$
+
+<p>The square root is the last step and nothing more: variance falls like $1/n$, and standard
+error is its square root. Every appearance of $\sqrt{n}$ in this book traces to that
+line.</p>
+
+<div class="box intuition">
+  <span class="label">Intuition: errors partly cancel, and cancellation is not linear</span>
+  <p>Why should adding independent things grow their spread more slowly than adding their
+  sizes? Because independent errors point in random directions and partly cancel.</p>
+  <p>If ten measurements were all wrong in the same direction, their total error would be ten
+  times one error, and averaging would gain you nothing. Independence means some are high and
+  some are low, so the sum's error is much smaller than ten single errors, and the
+  bookkeeping of how much smaller is exactly the rule that variances add.</p>
+  <p>The physical version is a drunkard's walk. Take $n$ random steps of length one and you
+  do not end up $n$ away; you end up about $\sqrt{n}$ away, because the steps partly undo one
+  another. Same arithmetic, same square root. Averaging data is that walk, run backwards to
+  cancel error rather than accumulate distance.</p>
+</div>
+
+<p>Notice what the derivation assumed, because it is where the formula fails. It used
+<b>independence</b>, and nothing else. If your observations are correlated (repeated
+measurements of the same subject, examples scraped from the same source, sentences from the
+same document), the variances no longer simply add, the true standard error is larger than
+$\sigma/\sqrt{n}$, and every interval you build from it is too narrow. This is the most
+common way a confidence interval lies, and §8 assumes it away without comment.</p>
+
+<figure>
+  <img src="figures/st/02-root-n.svg" alt="Sampling distributions narrowing with n, and the measured square-root law">
+  <figcaption><b>Figure 2.</b> Left: the sampling distribution of the mean at three sample
+  sizes: more data, tighter estimates. Right: the measured standard error against $n$ on
+  log axes, with $1/\sqrt{n}$ drawn over it. The points sit on the line. <b>Four times the
+  data buys half the error</b>, which is a punishing exchange rate and the reason precision
+  is expensive.</figcaption>
+</figure>
+
+<div class="box why">
+  <span class="label">Why this matters: the $\sqrt{n}$ law is everywhere</span>
+  <p>You have met this rate twice already without it being named. Part II's Monte Carlo
+  estimate converged at $1/\sqrt{n}$. Part III's minibatch gradient had noise falling as
+  $1/\sqrt{b}$. This is the same law: <b>averaging $n$ independent things reduces noise by
+  $\sqrt{n}$.</b></p>
+  <p>Its consequences are practical and unforgiving. Halving your error bars requires
+  quadrupling your test set. Distinguishing two models that differ by 0.2% requires far more
+  evaluation data than most people use. And the reason large-batch training buys so little
+  is that its extra precision costs linearly while paying only as a square root.</p>
+</div>
+
+<h3><span class="num">§4</span> Mean squared error, and the trade</h3>
+
+<p>Bias and variance are two different ways to be wrong. The natural way to combine them is
+to ask about total error:</p>
+
+$$\text{MSE}(\hat{\theta}) = \mathbb{E}\big[(\hat{\theta} - \theta)^2\big]$$
+
+<p>and this decomposes exactly, a fact worth deriving once, because §20 is the same
+derivation applied to a model instead of a parameter.</p>
+
+<div class="worked long">
+  <span class="label">Worked: the decomposition</span>
+  <p>Write $\mu = \mathbb{E}[\hat{\theta}]$, the estimator's average value. Add and subtract
+  it inside the square:</p>
+  <p>$\text{MSE} = \mathbb{E}\big[(\hat{\theta} - \mu + \mu - \theta)^2\big]$</p>
+  <p>Expand the square into three terms:</p>
+  <p>$= \mathbb{E}\big[(\hat{\theta}-\mu)^2\big] + 2\,\mathbb{E}\big[(\hat{\theta}-\mu)\big](\mu-\theta) + (\mu-\theta)^2$</p>
+  <p>The middle term vanishes, because $\mathbb{E}[\hat{\theta} - \mu] = \mu - \mu = 0$ by
+  the definition of $\mu$. What survives is</p>
+  <p>$$\boxed{\;\text{MSE} = \text{Var}(\hat{\theta}) + \text{Bias}(\hat{\theta})^2\;}$$</p>
+  <p>Total error is variance plus squared bias. No approximation, no assumptions: an
+  identity.</p>
+</div>
+
+<figure>
+  <img src="figures/st/03-bias-variance-quadrants.svg" alt="Four estimators varying in bias and variance, with their measured MSE">
+  <figcaption><b>Figure 3.</b> Four estimators of the same quantity. Green is the truth,
+  dashed orange is where the estimator sits on average. Bias is the gap between them;
+  variance is the width. The reported MSE is measured from the samples, and it tracks the
+  identity above.</figcaption>
+</figure>
+
+<div class="box intuition">
+  <span class="label">Intuition: this is why biased estimators are allowed</span>
+  <p>Because the two terms add, you can trade one against the other. If accepting a little
+  bias buys a large reduction in variance, total error falls, and you are better off, even
+  though your estimator is now systematically wrong.</p>
+  <p>That trade is not a curiosity. It is the entire justification for regularization.
+  Ridge regression is deliberately biased toward zero and beats the unbiased least squares
+  estimate on total error whenever the problem is ill-conditioned, which, by Part III §7,
+  is most of the time. Shrinking toward a prior, early stopping, weight decay, and
+  parameter sharing are all the same manoeuvre.</p>
+</div>
+
+<h3><span class="num">§5</span> Consistency and efficiency</h3>
+
+<p>Two more properties, briefly, because you will meet the words.</p>
+
+<div class="box def">
+  <span class="label">Consistency and efficiency</span>
+  <p>An estimator is <b>consistent</b> if it converges to the truth as the sample grows
+  without bound. This is a weaker and more important requirement than unbiasedness: it
+  permits being wrong at any finite $n$, but forbids being wrong forever.</p>
+  <p>Among unbiased estimators, the one with the smallest variance is called
+  <b>efficient</b>. That floor has a name: the <b>Cramér–Rao bound</b> states that the
+  variance of any unbiased estimator is at least $1/\mathcal{I}(\theta)$, where
+  $\mathcal{I}$ is the Fisher information, a measure of how much the data can, in
+  principle, say about $\theta$. An efficient estimator achieves that bound, so
+  "efficient" means "as good as any unbiased estimator can be".</p>
+</div>
+
+<p>Consistency is close to a minimum standard: an estimator that does not converge to the
+right answer with infinite data is difficult to defend. The biased sample variance from §2
+is consistent (its bias factor $\frac{n-1}{n}$ tends to 1), which is why the distinction
+between dividing by $n$ and by $n-1$ stops mattering long before your dataset is
+interesting.</p>
+
+<div class="box why">
+  <span class="label">Why this matters: maximum likelihood, revisited</span>
+  <p>Part II §26 derived maximum likelihood and showed it is the same procedure as
+  minimising cross-entropy. This section says what kind of estimator it produces.</p>
+  <p>Under fairly general conditions, the maximum likelihood estimator is <b>consistent</b>
+  and <b>asymptotically efficient</b>: with enough data it converges to the truth, and no
+  unbiased estimator does better. That is a strong endorsement, and it is the real reason
+  the principle is the field's default rather than merely a convenient one.</p>
+  <p>The qualifications matter, though. It is generally <i>biased</i> at finite sample
+  sizes, the guarantees are asymptotic, and they assume the true distribution is actually in
+  the family you are fitting, which for a neural network it emphatically is not. Knowing
+  what the guarantee promises is also knowing where it stops.</p>
+</div>
+
+<div class="box try">
+  <span class="label">Try it</span>
+  <p>Two estimators of a population mean. Estimator A is the sample mean: unbiased, variance
+  $\sigma^2/n$. Estimator B always returns 0, whatever the data.</p>
+  <p>If the true mean is $\theta = 0.1$, $\sigma = 1$ and $n = 4$, which has the lower
+  MSE?</p>
+</div>
+
+<p><b>Answer.</b> A: bias 0, variance $1/4$, so $\text{MSE} = 0.25$.</p>
+<p>B: variance 0, bias $0 - 0.1 = -0.1$, so $\text{MSE} = 0.01$.</p>
+<p><b>The constant beats the sample mean by a factor of 25</b>: with only four data points
+and a truth close to zero, the useless estimator wins on total error.</p>
+<p>This is not a trick. It is exactly why shrinkage works: when data is scarce and you have
+a decent guess about where the answer lies, pulling toward that guess reduces total error.
+Push $n$ to 400 and A's MSE falls to $0.0025$ while B's stays at $0.01$, and the ranking
+reverses. <b>The right amount of bias depends on how much data you have</b>, which is the
+entire content of choosing a regularization strength.</p>

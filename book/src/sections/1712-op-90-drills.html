@@ -1,0 +1,376 @@
+<h2><span class="part-kicker">Practice</span>Drills</h2>
+
+<p class="lede">Thirty-seven problems. More of them are instrumentation than algebra, because this
+part's central claim (that you should measure before you change anything) is only credible
+if you have actually built the instruments.</p>
+
+<h3><span class="num">Tier 0</span> Estimate first</h3>
+
+<div class="drill">
+  <div class="head"><span class="tier est">Estimate</span>E1 &middot; What the optimiser costs</div>
+  <p>You are training a model with Adam in float32. Write down how many bytes per parameter the optimiser state costs, and what the total memory is as a multiple of the model.</p>
+  <div class="ans"><b>Answer.</b> <b>8 bytes</b>, a first and second moment each, making <b>3&times;</b> the parameter memory once the weights themselves are counted, and 4&times; with gradients. This is why the largest model that fits is much smaller than the memory divided by four bytes, and it is the first thing to compute when a run will not fit. <i>Score yourself: within a factor of two is a pass, and an order of magnitude out is worth understanding before you go on.</i></div>
+</div>
+
+<h3><span class="num">Tier 1</span> Warm-up</h3>
+
+<div class="drill">
+  <div class="head"><span class="tier warm">Warm</span>W1 · Three quantities</div>
+  <p>Name the three quantities of §1 and say which one your optimiser can evaluate.</p>
+  <div class="ans"><b>Answer.</b> The performance measure $P$ you care about; the risk $J^*$
+  under the true distribution; the empirical risk $J$ over the training set. The optimiser can
+  evaluate only the third, and even that it replaces with a surrogate.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier warm">Warm</span>W2 · Why not just minimise the errors</div>
+  <p>Why can gradient descent not minimise classification error directly?</p>
+  <div class="ans"><b>Answer.</b> The 0–1 loss is piecewise constant: its derivative is zero
+  wherever it exists and undefined at the jumps. Every step sees a slope of zero. Nor is a
+  cleverer algorithm waiting: exact minimisation of expected 0–1 loss is intractable even for
+  a linear classifier.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier warm">Warm</span>W3 · The step ceiling</div>
+  <p>You measure $\mathbf{g}^\top\mathbf{g} = 0.5$ and $\mathbf{g}^\top H\mathbf{g} = 40$.
+  What is the largest step size that still reduces the cost?</p>
+  <div class="ans"><b>Answer.</b> $\epsilon < 2(0.5)/40 = 0.025$. Above that the curvature term
+  outweighs the gradient term and the step increases the cost, however correct the
+  direction.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier warm">Warm</span>W4 · Batch size and noise</div>
+  <p>Going from $b = 64$ to $b = 1024$: what does it cost, and what does it buy?</p>
+  <div class="ans"><b>Answer.</b> 16× the compute and 16× the memory, for a $\sqrt{16} = 4$×
+  reduction in gradient noise. Stated that way it rarely sounds worth it, which is §5's
+  point.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier warm">Warm</span>W5 · How many arrangements</div>
+  <p>A network has three hidden layers of 64 units. How many parameter settings compute the
+  identical function by permutation alone?</p>
+  <div class="ans"><b>Answer.</b> $64!^{\,3} \approx 10^{267}$. Every one of them is a distinct
+  local minimum with exactly the same cost, which is why counting local minima says nothing
+  about difficulty.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier warm">Warm</span>W6 · The negative test</div>
+  <p>You suspect a local minimum. What single measurement settles it, and in which
+  direction?</p>
+  <div class="ans"><b>Answer.</b> The gradient norm. If it is <i>not</i> small you are at no
+  critical point and every such explanation is eliminated. If it <i>is</i> small you have
+  learned almost nothing: the test rules out, it does not rule in.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier warm">Warm</span>W7 · Clip by norm or by value</div>
+  <p>Why is clipping the gradient's norm preferable to clamping each coordinate?</p>
+  <div class="ans"><b>Answer.</b> Rescaling the whole vector preserves the direction exactly
+  and changes only the distance travelled, which is the quantity that was in doubt. Clamping
+  coordinates separately rotates the direction; you end up stepping somewhere the gradient
+  never pointed.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier warm">Warm</span>W8 · Which init, forward or backward</div>
+  <p>A layer has $m = 1024$ inputs and $n = 64$ outputs. Give $s^2$ under fan-in, fan-out and
+  Glorot, and say what each preserves.</p>
+  <div class="ans"><b>Answer.</b> $1/1024$, $1/64$, and $2/1088 \approx 1/544$. Fan-in
+  preserves the forward activation variance, fan-out the backward gradient variance, and
+  Glorot preserves neither but is wrong by less in both directions.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier warm">Warm</span>W9 · The output bias</div>
+  <p>A binary problem is 99% negative. What should the output bias be, and what does setting it
+  save?</p>
+  <div class="ans"><b>Answer.</b> $\log(0.01/0.99) \approx -4.6$, so that the initial
+  prediction is the base rate. It saves the opening phase in which the loss drops sharply and
+  the model has learned nothing but the class frequencies.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier warm">Warm</span>W10 · Why drop the bias</div>
+  <p>Why does a linear layer followed by batch normalisation not need its own bias?</p>
+  <div class="ans"><b>Answer.</b> The bias shifts the mean, the normalisation subtracts the
+  mean, and $\beta$ adds one back. It is exactly redundant with $\beta$, two parameters for
+  one degree of freedom.</div>
+</div>
+
+<h3><span class="num">Tier 2</span> Core</h3>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C1 · Derive the ceiling</div>
+  <p>From the second-order expansion, derive
+  $\epsilon < 2\mathbf{g}^\top\mathbf{g}/\mathbf{g}^\top H\mathbf{g}$ and say what it means
+  when $H$ has a negative eigenvalue along $\mathbf{g}$.</p>
+  <div class="ans"><b>Answer.</b> The step changes the cost by $-\epsilon\mathbf{g}^\top\mathbf{g}
+  + \tfrac12\epsilon^2\mathbf{g}^\top H\mathbf{g}$; requiring the second term to be smaller
+  gives the bound. If $\mathbf{g}^\top H\mathbf{g} < 0$ the bound is vacuous: the curvature is
+  <i>helping</i>, and a larger step is better, which is the situation on the far side of a
+  saddle.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C2 · Build the instrument</div>
+  <p>Implement $\mathbf{g}^\top H\mathbf{g}$ by finite differences of the gradient. Verify it
+  against a Hessian-vector product from double backpropagation on a small model.</p>
+  <div class="ans"><b>Answer.</b> $(\nabla J(\boldsymbol{\theta} + h\mathbf{g}) -
+  \nabla J(\boldsymbol{\theta}))^\top\mathbf{g}/h$, with $h$ scaled by $1/\|\mathbf{g}\|$ so the
+  perturbation has a fixed size. They agree to several digits over a wide range of $h$, with
+  cancellation error taking over below about $\sqrt{\epsilon_{\text{mach}}}$, Part III §3, in
+  a setting where it bites.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C3 · Watch the ceiling fall</div>
+  <p>Log $\|\mathbf{g}\|$ and $\mathbf{g}^\top H\mathbf{g}$ every epoch of a real run. Plot the
+  implied maximum step size against your actual learning rate.</p>
+  <div class="ans"><b>Answer.</b> On the run behind Figure 3 the ceiling fell from 0.63 to
+  0.116 while the rate stayed at 0.05, from twelvefold headroom to twofold. If your curves
+  cross, you have found why the run destabilised, and no amount of restarting will fix
+  it.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C4 · The gradient norm does not shrink</div>
+  <p>Train a small network on a task it cannot fit exactly and plot the gradient norm across
+  training. What happens, and why does it not contradict "training succeeded"?</p>
+  <div class="ans"><b>Answer.</b> It rises, 4.3× in Figure 3, while validation error fell from
+  57% to 5%. There is no contradiction because the network never approaches a critical point:
+  success is measured on held-out data, not by the gradient going to zero.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C5 · The scaling hyperbola</div>
+  <p>Fit $\hat{y} = w_2\,\text{ReLU}(w_1 x)$ and evaluate the loss along $w_1 w_2 = c$. How
+  much does it vary? Now add $\alpha\|\mathbf{w}\|^2$ and find the minimum.</p>
+  <div class="ans"><b>Answer.</b> It varies by a relative $10^{-15}$, machine noise; the models
+  are exactly equivalent. With the penalty the minimum becomes the unique point on the
+  hyperbola closest to the origin, which for a symmetric problem is near $w_1 = w_2$. Weight
+  decay is selecting a parameterisation, not just shrinking one.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C6 · Build a cliff</div>
+  <p>Take $J(w) = \tfrac12(w^L - 1)^2$ for $L = 6$. Find a point where one gradient step at a
+  reasonable learning rate increases the loss by six orders of magnitude, then repeat with
+  clipping.</p>
+  <div class="ans"><b>Answer.</b> From $w = 1.45$ at $\epsilon = 0.02$ the step lands at
+  $w = -4.93$ and the loss goes from 34 to $1.03\times10^8$. Clipping the norm at 1.0 lands at
+  $w = 1.43$ with the loss at 28.5, the same direction, a survivable distance.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C7 · Powers of a matrix</div>
+  <p>Take a random $W$ with spectral radius 1.1 and another with 0.9. Plot
+  $\|\mathbf{x}^\top W^t\|$ against $t$, and the angle between $\mathbf{x}^\top W^t$ and the
+  principal eigenvector.</p>
+  <div class="ans"><b>Answer.</b> The norms diverge and vanish exponentially, and in both cases
+  the angle goes to zero; the direction converges to the principal eigenvector regardless.
+  That is the power method, and it is why a recurrent network forgets its input.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C8 · Batch size and the Newton step</div>
+  <p>On an ill-conditioned quadratic, measure the relative error of $\hat{\mathbf{g}}$ and of
+  $H^{-1}\hat{\mathbf{g}}$ against batch size, with $H$ computed exactly. Explain the gap.</p>
+  <div class="ans"><b>Answer.</b> Both fall like $1/\sqrt{b}$ and the second sits about a
+  decade above the first, Figure 2 measured 10× at $\kappa \approx 10^4$. Multiplying by an
+  ill-conditioned matrix multiplies relative error by up to $\kappa$, so the same gradient noise
+  produces a far noisier step even with $H$ known exactly.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C9 · Nesterov by hand</div>
+  <p>Implement momentum and Nesterov momentum on the same ill-conditioned quadratic with the
+  same $\epsilon$ and $\alpha$. Report iterations to reach a fixed tolerance.</p>
+  <div class="ans"><b>Answer.</b> On the setup behind Figure 6, 104 against 49 to reach 0.01.
+  Keep $\epsilon\lambda_{\max} < 1$, at the edge of stability the gap flatters Nesterov, and a
+  measurement taken there overstates the method.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C10 · Glorot's compromise, measured</div>
+  <p>Build a chain of linear layers whose widths halve. Measure forward activation variance and
+  backward gradient variance per layer under fan-in, fan-out and Glorot.</p>
+  <div class="ans"><b>Answer.</b> Fan-in holds the forward flat and loses 230× backward;
+  fan-out is the mirror image; Glorot is off by 8.6× and 29×. Its <i>worst</i> error is an
+  order of magnitude below either specialist's, Figure 7. Alternating widths instead of a
+  funnel makes the effect cancel and measures nothing.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C11 · The initialisation protocol</div>
+  <p>Implement §17's loop: push one batch through a fresh deep network, find the first layer
+  whose activations have collapsed, raise its scale, repeat.</p>
+  <div class="ans"><b>Answer.</b> A few passes usually suffice. The point is the cost: feedback
+  comes from the untrained model on a single batch, not from a trained model on a validation
+  set, so it is seconds rather than hours, and it should be the first thing you try on a deep
+  network that will not train.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C12 · Conjugate gradients</div>
+  <p>Implement CG with Polak–Ribière and steepest descent with exact line search on a
+  12-dimensional quadratic. Compare at $\kappa = 10$ and $\kappa = 1000$.</p>
+  <div class="ans"><b>Answer.</b> At $\kappa = 10$, CG hits $10^{-13}$ at exactly iteration 12.
+  At $\kappa = 1000$ the finite-termination property is destroyed by rounding: the residual at
+  step 12 is still 0.44, and it takes 17 steps to reach $10^{-10}$. The theorem is about exact
+  arithmetic.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C13 · Why the zigzag is forced</div>
+  <p>Prove that consecutive steepest-descent directions with exact line search are orthogonal,
+  and explain why that is the problem rather than a symptom.</p>
+  <div class="ans"><b>Answer.</b> At the line minimum the directional derivative along
+  $\mathbf{d}_{t-1}$ is zero, and the next direction <i>is</i> that gradient, so
+  $\mathbf{d}_t \perp \mathbf{d}_{t-1}$. It is the problem because moving along $\mathbf{d}_t$
+  then leaves the minimum along $\mathbf{d}_{t-1}$, so later iterations must redo work already
+  done.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C14 · Damped Newton as a dial</div>
+  <p>Show that $[H + \alpha I]^{-1}\nabla J \to \nabla J/\alpha$ as $\alpha$ grows, and say what
+  that implies about fixing Newton's method near strong negative curvature.</p>
+  <div class="ans"><b>Answer.</b> $H + \alpha I \to \alpha I$, so the update becomes gradient
+  descent with rate $1/\alpha$. Damping therefore interpolates between Newton and gradient
+  descent, and where the curvature is strongly negative, the $\alpha$ needed for safety makes
+  the step <i>smaller</i> than a well-tuned gradient step, at $O(k^3)$ per iteration.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C15 · Batch norm's learning-rate range</div>
+  <p>Sweep the learning rate over four decades for a deep network with and without batch
+  normalisation, using the <b>same</b> initialisation for both. Report the range of rates that
+  train and the best loss each reaches.</p>
+  <div class="ans"><b>Answer.</b> Figure 9: a factor of 8 without, 748 with, a 98-fold
+  widening. And the best loss was <i>lower</i> without (0.019 against 0.057). Normalisation
+  buys robustness to the learning rate, not a better model, and using a bad initialisation for
+  the control arm is how that distinction gets lost.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C16 · Coordinate descent's failure</div>
+  <p>Run exact coordinate descent on $(x_1-x_2)^2 + \alpha(x_1^2+x_2^2)$ for
+  $\alpha \in \{1, 0.1, 0.01, 0.001\}$. Count sweeps to $10^{-6}$.</p>
+  <div class="ans"><b>Answer.</b> 11, 73, 695 and 6,912. Each sweep multiplies the pair by
+  $1/(1+\alpha)^2$, so the count grows like $1/\alpha$. Newton solves every one of them in a
+  single step, because the coupling is exactly what a second-order method sees and coordinate
+  descent cannot.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C17 · Averaging the trajectory</div>
+  <p>Run SGD on a noisy ill-conditioned quadratic. Compare the final iterate, the running mean
+  and an exponential moving average by distance to the optimum.</p>
+  <div class="ans"><b>Answer.</b> Figure 10: 0.843, 0.078 and 0.293. The plain mean wins because
+  the problem is convex and stationary; on a non-convex problem it would be averaging in points
+  from regions the optimiser has left, which is what the exponential form gives up in order to
+  avoid.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C18 · Continuation, end to end</div>
+  <p>Take a one-dimensional objective with several local minima. Blur it at decreasing $\sigma$
+  and run local descent on each, starting from the previous solution. Compare with plain
+  descent from the same point.</p>
+  <div class="ans"><b>Answer.</b> On Figure 11's objective, plain descent from $\theta_0 = 5.5$
+  stops at $J = 1.40$ while continuation reaches the global $J = -2.375$. Verify the failure
+  case too: blur $-\tfrac{1}{2}\boldsymbol{\theta}^\top\boldsymbol{\theta}$ and confirm the curvature does
+  not move, because convolving a quadratic with a Gaussian only shifts it.</div>
+</div>
+
+<h3><span class="num">Tier 3</span> Stretch</h3>
+
+<div class="drill">
+  <div class="head"><span class="tier stretch">Stretch</span>S1 · The surrogate earns its keep</div>
+  <p>Fit logistic regression on separable data. Find the iteration where training 0–1 error
+  reaches zero and the iteration where test error is best. Then add pure-noise coordinates and
+  repeat.</p>
+  <div class="ans"><b>Answer.</b> Figure 1: the best test error came 31× later on the clean
+  problem, a 9% relative gain that the 0–1 loss could not have asked for. With ten noise
+  coordinates the ordering reverses: best at iteration 80, and 46% worse by the end. Nothing
+  in the <i>training</i> curve distinguishes the two runs, which is the whole argument for a
+  validation set.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier stretch">Stretch</span>S2 · The learning rate is higher than it looks</div>
+  <p>Sweep $\epsilon_0$, recording the loss after 100 iterations and after a full run. Plot both
+  against $\epsilon_0$. Do the two optima coincide?</p>
+  <div class="ans"><b>Answer.</b> They should not: the full-run optimum sits at a higher rate
+  than the 100-iteration optimum, which is §13's warning made concrete. If they do coincide,
+  your run is too short for the curvature growth of §6 to have taken effect; extend it and
+  look again.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier stretch">Stretch</span>S3 · Batch norm on one example</div>
+  <p>Feed a single example through a batch-normalised network in training mode, then in
+  evaluation mode. Explain both outcomes from §23.</p>
+  <div class="ans"><b>Answer.</b> Training mode raises: the standard deviation of one example
+  does not exist, and refusing is correct. Evaluation mode works, because it uses the stored
+  running statistics rather than the batch's. The two modes are not a convenience; they are
+  forced by the fact that the training-time operation is defined over a batch.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier stretch">Stretch</span>S4 · Averaging meets normalisation</div>
+  <p>Apply Polyak averaging to a network containing batch normalisation, first without
+  recomputing the normalisation statistics and then with. Measure both.</p>
+  <div class="ans"><b>Answer.</b> Without recomputation the averaged model is usually worse than
+  the un-averaged one, sometimes far worse. The averaged weights are a point the model never
+  occupied, so the running $\boldsymbol{\mu}$ and $\boldsymbol{\sigma}$ belong to different
+  weights entirely. One pass of the training data in training mode fixes it, and this is the
+  most common reason the technique gets tried once and abandoned.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier stretch">Stretch</span>S5 · Hints on a middle layer</div>
+  <p>Train a wide shallow teacher, then a deep thin student on the task alone, then the same
+  student with an added loss regressing the teacher's middle layer. Report <b>training</b> as
+  well as test error for all three.</p>
+  <div class="ans"><b>Answer.</b> The unaided student does poorly on <i>both</i>, which is the
+  informative part: poor test error alone would suggest overfitting or capacity, but poor
+  training error says the function was representable and the optimiser could not find it. The
+  hint removes an optimisation obstacle, not a representational one.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier stretch">Stretch</span>S6 · A curriculum that works and one that does not</div>
+  <p>On a task with an easy/hard split, compare uniform sampling, a deterministic easy-to-hard
+  ordering, and a stochastic curriculum whose proportion of hard examples rises over time.</p>
+  <div class="ans"><b>Answer.</b> The deterministic ordering is the one most people implement
+  and it has been measured to give no improvement over uniform sampling. The stochastic version
+  (always a mix, with the mixture shifting) is the one that helps. Report all three; the
+  negative result is the useful half.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier stretch">Stretch</span>S7 · The whole ladder</div>
+  <p>Deliberately break a training run in four ways: bad initialisation scale, learning rate
+  above the ceiling, an untuned output bias on an imbalanced problem, and four regularisers at
+  once, and confirm that §29's ladder identifies each from measurement alone.</p>
+  <div class="ans"><b>Answer.</b> Each is caught by a different rung, and none is caught by
+  switching optimiser. The exercise is worth doing once because the four failures produce
+  <i>similar-looking</i> loss curves, and after this you will stop reading loss curves as
+  though they were diagnostic.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier stretch">Stretch</span>S8 · L-BFGS where it belongs</div>
+  <p>Fit a small model full-batch with L-BFGS and with Adam, matching wall-clock rather than
+  iterations. Then try L-BFGS with minibatches and explain what goes wrong.</p>
+  <div class="ans"><b>Answer.</b> On a small full-batch problem L-BFGS wins decisively, its
+  closure was called eight times in a single <code>step()</code> in §21's example, taking the
+  loss from 2.54 to $7\times10^{-3}$. With minibatches the line search is minimising a function
+  that changes between evaluations, so the search is meaningless and the curvature estimates
+  built from gradient differences are noise. L-BFGS is a full-batch method.</div>
+</div>

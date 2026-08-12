@@ -1,0 +1,145 @@
+<h2><span class="part-kicker">Part A</span>What a sample throws away</h2>
+
+<p class="mvt">Everything in this book has been discrete: pixels, tokens, time steps. Each of them
+is a measurement of something continuous, taken at intervals, and there is an exact theory of what
+survives that operation and what does not. The theory is short, and one of its consequences is a
+defect in the convolutional architecture of Part X.</p>
+
+<h3><span class="num">§1</span> Continuous and discrete</h3>
+
+<div class="box def">
+  <span class="label">The objects</span>
+  <p>A <b>signal</b> is a function of a continuous variable: time for audio, two spatial
+  coordinates for an image. <b>Sampling</b> evaluates it on a regular grid, giving the array your
+  code actually holds. The <b>sampling rate</b> <span class="m">$f_s$</span> is how many samples per
+  unit; its reciprocal is the spacing.</p>
+  <p>Two things then need saying, and only the second is surprising. Sampling loses information, and
+  everyone expects that. But under a stated condition it loses <i>nothing</i> (the continuous
+  signal can be reconstructed exactly from the samples), and when the condition fails, what you lose
+  is not detail. It is worse than that.</p>
+</div>
+
+<h3><span class="num">§2</span> The sampling theorem</h3>
+
+<div class="box def">
+  <span class="label">Nyquist–Shannon</span>
+  <p>If a signal contains no frequency above <span class="m">$B$</span>, it is determined completely
+  by samples taken at a rate <span class="m">$f_s > 2B$</span>. The threshold
+  <span class="m">$f_s/2$</span> is the <b>Nyquist frequency</b>: the highest frequency a given
+  sampling rate can represent.</p>
+  <p>The reconstruction is explicit: each sample is multiplied by a
+  <span class="m">$\operatorname{sinc}$</span> centred on it and the results are summed, which is
+  what makes "loses nothing" a theorem and not a slogan.</p>
+</div>
+
+<div class="box why">
+  <span class="label">Why 2B, in one picture</span>
+  <p>A sinusoid at frequency <span class="m">$f$</span> completes one cycle in
+  <span class="m">$1/f$</span>. To know a cycle happened at all you need at least one sample going
+  up and one coming down, two per cycle. With fewer, the samples are consistent with a slower
+  sinusoid, and nothing in the data distinguishes the two.</p>
+  <p>That last clause is the whole of the next section.</p>
+</div>
+
+<h3><span class="num">§3</span> Aliasing</h3>
+
+<div class="box def">
+  <span class="label">What happens above Nyquist</span>
+  <p><b>Aliasing</b> is the appearance of a frequency above <span class="m">$f_s/2$</span> as a
+  different, lower frequency in the samples. A component at <span class="m">$f$</span> arrives
+  indistinguishable from one at <span class="m">$|f - k f_s|$</span> for the integer
+  <span class="m">$k$</span> that brings it into range.</p>
+  <p>The word to hold on to is <b>indistinguishable</b>. High-frequency content is not attenuated,
+  not blurred, not lost. It is <i>relabelled</i> as low-frequency content and added to whatever was
+  legitimately there, and no later processing can separate them. This is why the wheel in a film
+  turns backwards, why a striped shirt shimmers on video, and why the fix has to happen before the
+  samples are taken.</p>
+</div>
+
+<div class="box pitfall">
+  <span class="label">Pitfall: the repair only works beforehand</span>
+  <p>Once the samples exist, the aliased energy sits at the same coordinates as real signal. There
+  is no filter, no network and no amount of training that undoes it, because the information needed
+  to separate the two was destroyed by the sampling.</p>
+  <p>Which makes this one of the few problems in this book where the entire remedy is a decision
+  made upstream: <b>remove the content above Nyquist before sampling, not after</b>.</p>
+</div>
+
+<h3><span class="num">§4</span> Where this bites in a network</h3>
+
+<div class="box why">
+  <span class="label">Every stride is a resampling</span>
+  <p>A stride-2 convolution, or a pooling layer, keeps every other value of a feature map. That is
+  sampling at half the rate, and the theorem applies verbatim: whatever the feature map contains
+  above its new Nyquist frequency comes back as something else.</p>
+  <p>Feature maps are full of content above that limit. A ReLU is a nonlinearity, and nonlinearities
+  create harmonics, a fact easy to state and easy to forget. So the classical design, convolution
+  followed by stride, samples a signal that was never band-limited.</p>
+  <p>Part X §9 measured convolution's translation equivariance at float32 rounding and called it
+  exact. It is, for the convolution. The next section measures what the downsampling does to the
+  same guarantee.</p>
+</div>
+
+<h3><span class="num">§5</span> Measured</h3>
+
+<figure>
+  <img src="figures/sg/01-aliasing.svg" alt="Relative change in a globally pooled feature vector under a one-pixel input shift, against the number of stride-2 stages, with and without low-pass filtering">
+  <figcaption><b>Figure 1.</b> A fixed random convolutional stack read out by global average
+  pooling, applied to an image and to the same image shifted by one pixel. Convolution here is
+  circular, so it is exactly equivariant and pooling it is exactly shift-invariant: everything the
+  plot shows is the downsampling. With plain stride-2 the pooled output moves by
+  <b>1.07&times;10<sup>&minus;4</sup></b> after one stage and <b>3.34&times;10<sup>&minus;2</sup></b>
+  after four, against float32 rounding at 1.19&times;10<sup>&minus;7</sup>, which is what Part X
+  §9 measured for convolution alone. Low-pass filtering before each stride reduces it
+  <b>11.7&times;</b> and does not remove it, because the filter is not ideal.</figcaption>
+</figure>
+
+<div class="box why">
+  <span class="label">What this is and is not</span>
+  <p><b>It is not a bug in the implementation.</b> The convolutions are exact and the pooling is
+  exact. Shifting the input by one pixel changes which pixels the stride keeps, and the kept pixels
+  differ because the feature map has content the halved rate cannot represent.</p>
+  <p><b>It is not small.</b> Five orders of magnitude above the rounding error that Part X was
+  content to call zero, and it grows with depth because each stage aliases what the previous one
+  produced.</p>
+  <p><b>It is the mechanism</b> behind a familiar observation (that image classifiers change their
+  answer when the input shifts by a pixel), which is usually filed under robustness. It is a
+  sampling error, and it has a textbook remedy.</p>
+</div>
+
+<h3><span class="num">§6</span> Anti-aliasing, and why it is not free</h3>
+
+<div class="box shapes">
+  <span class="label">Blur, then subsample</span>
+  <p>The remedy is the theorem read backwards: attenuate everything above the new Nyquist frequency
+  <i>before</i> keeping every other sample. In a network that is a low-pass filter (a small blur)
+  inserted before each stride.</p>
+  <p><b>What it costs.</b> A real filter has a transition band, so it removes some signal below the
+  cutoff and leaves some above it, which is why Figure 1's green curve falls by a factor of twelve
+  rather than to zero. It also costs a convolution per stage.</p>
+  <p><b>What it buys.</b> Shift-consistency, which is worth more than it sounds: a system whose
+  answer depends on a one-pixel offset is a system whose evaluation has a variance term nobody
+  measured.</p>
+</div>
+
+<div class="box try">
+  <span class="label">Try this: on a model you have</span>
+  <p>Take any image classifier. Feed it an image, then the same image shifted by one pixel, and
+  compare the output probabilities. Do it for shifts one through eight and record the range.</p>
+  <p>The number is usually larger than people expect, and it is measured in the same units as the
+  accuracy differences that get published.</p>
+</div>
+
+<h3><span class="num">§7</span> What movement A establishes</h3>
+
+<div class="box intuition">
+  <span class="label">Three things</span>
+  <p><b>Sampling is lossless under a condition and catastrophic outside it.</b> Above Nyquist,
+  content is not lost but relabelled, and relabelled content cannot be recovered.</p>
+  <p><b>Every stride in a network is a resampling</b> of a feature map that nonlinearities have
+  filled with high frequencies. The architecture of Part X samples a signal that was never
+  band-limited.</p>
+  <p><b>The cost is measurable and the remedy is old.</b> Figure 1 puts the shift-inconsistency five
+  orders of magnitude above float32 rounding, and a low-pass filter before each stride removes most
+  of it.</p>
+</div>

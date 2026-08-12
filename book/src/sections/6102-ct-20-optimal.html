@@ -1,0 +1,131 @@
+<h2><span class="part-kicker">Part B</span>Optimal control</h2>
+
+<p class="mvt">Tuning gains by hand works and does not scale. Writing down a cost and solving for
+the controller that minimises it does, and for one important class the solution is closed-form,
+provably optimal, and computable in a few lines. What it cannot express is a constraint, which is
+where the rest of the movement goes.</p>
+
+<h3><span class="num">§9</span> Stating the problem</h3>
+
+<div class="box def">
+  <span class="label">Dynamics, cost, horizon</span>
+  <p>Given <span class="m">$x_{t+1} = f(x_t, u_t)$</span> and a cost
+  <span class="m">$\sum_t \ell(x_t, u_t)$</span>, find the policy minimising the total. Part XVIII
+  wrote exactly this and called it a Markov decision process; the difference is that here
+  <span class="m">$f$</span> is <b>known</b> and continuous, which turns a learning problem into an
+  optimisation problem.</p>
+  <p>That is the whole distinction between this movement and reinforcement learning, and it is worth
+  being blunt about: <b>if you know the dynamics, do not learn a policy</b>. Solve for one.</p>
+</div>
+
+<h3><span class="num">§10</span> The linear-quadratic case</h3>
+
+<div class="box def">
+  <span class="label">Where the answer is closed-form</span>
+  <p>Linear dynamics <span class="m">$x_{t+1} = Ax_t + Bu_t$</span> and quadratic cost
+  <span class="m">$x^\top Q x + u^\top R u$</span>. The optimal policy is <b>linear</b>,
+  <span class="m">$u = -Kx$</span>, and <span class="m">$K$</span> comes from iterating</p>
+  <p class="m">$$P \leftarrow Q + A^\top P (A - BK), \qquad K = (R + B^\top P B)^{-1} B^\top P A$$</p>
+  <p>to convergence. Six lines of code, no tuning, and optimal by construction. The Kalman filter of
+  Part XXVIII §13 is this same recursion for estimation rather than control, which is not a
+  coincidence: they are dual problems.</p>
+</div>
+
+<h3><span class="num">§11</span> How much tuning leaves on the table</h3>
+
+<figure>
+  <img src="figures/ct/03-lqr.svg" alt="Cost of the best hand-tuned PD controller relative to LQR, for chains of two to five integrators">
+  <figcaption><b>Figure 3.</b> Chains of integrators (position, velocity, acceleration and onward)
+  with the best hand-tuned PD controller searched exhaustively over both gains and compared against
+  LQR. On a double integrator the tuned controller is within <b>0.1%</b>. On a triple it costs
+  <b>78&times;</b> as much. On four it barely stabilises at all, and on five <b>no PD gain
+  stabilises it</b>. No tuned controller beat LQR in any case, which it cannot: LQR is optimal for
+  this cost by construction.</figcaption>
+</figure>
+
+<div class="box why">
+  <span class="label">Why this is the argument for optimal control</span>
+  <p>Hand tuning is fine on a system with two states, which is why it survives: most introductory
+  examples are double integrators and PD works beautifully on them.</p>
+  <p>It stops working fast. The intuition that got you a good gain on position and velocity gives
+  you nothing on a system with five coupled states, and Figure 3 measures the cliff. That is the
+  case for writing down a cost instead of a gain: not that it is more elegant, but that beyond a
+  handful of states there is nothing to tune your way to.</p>
+</div>
+
+<h3><span class="num">§12</span> What LQR assumes</h3>
+
+<div class="box shapes">
+  <span class="label">Four assumptions, and what each buys</span>
+  <p><b>Linear dynamics.</b> Real systems are not. The standard response is to linearise about the
+  current operating point and re-solve, which works while the excursions are small.</p>
+  <p><b>Quadratic cost.</b> Convenient, and it says a large error is exactly four times as bad as
+  one half its size, which is a claim about your preferences that is rarely examined.</p>
+  <p><b>Full state observation.</b> Rarely true; combine with an estimator, which is §28.</p>
+  <p><b>No constraints.</b> The one that matters most, and §13's subject.</p>
+</div>
+
+<h3><span class="num">§13</span> Constraints</h3>
+
+<div class="box why">
+  <span class="label">Why clipping is not a constraint</span>
+  <p>Actuators saturate, states have limits, and an optimal controller that does not know this will
+  ask for what it cannot have. Clipping the request is the obvious response and it is not the same
+  thing: the controller keeps planning as though the limit were not there, so it never chooses the
+  <i>differently shaped</i> trajectory that stays inside it.</p>
+  <p>The distinction matters most for state constraints. An input limit clipped is merely
+  suboptimal; a state limit cannot be clipped at all, because by the time the state is out of bounds
+  the decision that took it there was several steps ago.</p>
+</div>
+
+<h3><span class="num">§14</span> Model-predictive control</h3>
+
+<figure class="illus">
+  <img src="figures/ct/04-mpc.svg" alt="Schematic of two trajectories approaching a limit, one crossing it and one turning away">
+  <figcaption><span class="illus-tag">Illustrative</span><b>Figure 4.</b> What a constraint changes.
+  A controller optimising a cost with no limit in its formulation follows the trajectory the cost
+  prefers, and crosses the boundary if the cost is lower on the other side. A planner that carries
+  the constraint chooses a differently shaped trajectory that stays inside, accepting a higher cost
+  for a guarantee the first has no way to make. This diagram carries no measured quantities: how far
+  the unconstrained trajectory would overshoot, and how much extra cost the constrained one pays to
+  stay inside, are properties of the particular plant, cost weights and horizon, not of the
+  mechanism the figure teaches, which holds regardless of which numbers a specific system would
+  produce.</figcaption>
+</figure>
+
+<div class="box def">
+  <span class="label">Optimise over a horizon, execute one step, repeat</span>
+  <p>At each instant, solve for the best input sequence over the next <span class="m">$H$</span>
+  steps subject to the constraints, apply only the first, and re-solve at the next instant with the
+  new measurement.</p>
+  <p>The re-solving is what makes it feedback rather than open-loop planning, and it is why MPC
+  tolerates model error at all. Its costs are honest: an optimisation per control step, a horizon
+  that must be long enough to see the constraint coming, and no stability guarantee unless one is
+  engineered in.</p>
+</div>
+
+<h3><span class="num">§15</span> Nonlinear, and trajectory optimisation</h3>
+
+<div class="box shapes">
+  <span class="label">Three ways past linearity</span>
+  <p><b>Iterative LQR.</b> Linearise about the current trajectory, solve, roll out, repeat. Gets a
+  locally optimal trajectory for a nonlinear system, cheaply.</p>
+  <p><b>Direct collocation.</b> Treat the states and inputs at every knot point as decision
+  variables with the dynamics as equality constraints, and hand it to a general solver. Handles
+  constraints properly and scales badly.</p>
+  <p><b>Sampling.</b> Perturb a nominal input sequence many times, roll out, and take a weighted
+  average of what worked. Needs no derivatives, parallelises perfectly, and is the reason
+  sampling-based MPC runs on hardware that could not solve a program.</p>
+</div>
+
+<h3><span class="num">§16</span> What movement B establishes</h3>
+
+<div class="box intuition">
+  <span class="label">Three things</span>
+  <p><b>If you know the dynamics, solve rather than learn.</b> The linear-quadratic case is
+  closed-form and provably optimal, and it is six lines.</p>
+  <p><b>Hand tuning has a cliff.</b> Figure 3 measures a tuned controller within 0.1% on two states,
+  78&times; worse on three, and unable to stabilise five at all.</p>
+  <p><b>A constraint is not a clip.</b> Respecting a limit requires planning a different trajectory,
+  which requires a planner that knows the limit exists.</p>
+</div>

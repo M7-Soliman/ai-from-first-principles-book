@@ -1,0 +1,135 @@
+<h2><span class="part-kicker">Part A</span>Sound, and what a spectrogram commits you to</h2>
+
+<p class="mvt">Audio arrives as one number per sample, tens of thousands of times a second, and almost
+nobody feeds a model that. The representation everybody uses instead was designed for a different
+purpose and discards the half of the signal Part XXVII measured as carrying the structure.</p>
+
+<h3><span class="num">§1</span> The signal, and its rates</h3>
+
+<div class="box shapes">
+  <span class="label">Four numbers that decide everything downstream</span>
+  <p><b>Sample rate.</b> 8 kHz for telephony, 16 kHz for speech models, 44.1 or 48 kHz for music.
+  Part XXVII §2 is why: the rate must exceed twice the highest frequency you care about, and
+  speech intelligibility survives an 8 kHz cut in a way music does not.</p>
+  <p><b>Bit depth.</b> 16 bits gives about 96 dB of dynamic range, which is enough. Quantisation
+  noise is the floor, and §20 is what happens when you go far below it deliberately.</p>
+  <p><b>Channels.</b> Stereo carries spatial information a mono model cannot recover, and most
+  speech pipelines discard it in the first line.</p>
+  <p><b>Length.</b> A ten-second clip at 16 kHz is 160,000 samples, much longer than a great many
+  language-model contexts, and it is the reason nothing operates on raw samples for long.</p>
+</div>
+
+<h3><span class="num">§2</span> Why not the waveform</h3>
+
+<div class="box why">
+  <span class="label">Three reasons, and the third is the one that matters</span>
+  <p><b>Length.</b> A sequence model over 160,000 steps is expensive at best.</p>
+  <p><b>Nuisance variation.</b> Two recordings of the same word can have completely different
+  waveforms, Part XXVII §18's point in reverse: shifting the phase of every component changes the
+  samples enormously and the sound not at all.</p>
+  <p><b>The structure is in frequency.</b> Pitch, formants, timbre and noise are properties of the
+  spectrum, and a model reading samples must discover the transform before it can use them. Some do,
+  and §23 measures what that costs.</p>
+</div>
+
+<h3><span class="num">§3</span> The spectrogram, and its three parameters</h3>
+
+<div class="box def">
+  <span class="label">Part XXVII §23, applied</span>
+  <p>Window length, hop, and window function. Part XXVII Figure 5 measured the first: the product of
+  time and frequency resolution is constant, so a 25 ms window resolves phonemes and smears pitch
+  while a 100 ms window does the reverse.</p>
+  <p>The near-universal choice for speech is a 25 ms window with a 10 ms hop, which is not a law of
+  nature; it is a guess about how fast speech changes, made in the 1970s, and it is worth
+  re-examining whenever the signal is not speech.</p>
+</div>
+
+<h3><span class="num">§4</span> The mel scale, measured</h3>
+
+<figure>
+  <img src="figures/au/01-mel.svg" alt="Left: FFT bins pooled per mel band against band centre frequency. Right: mel band width in hertz against frequency, with a fixed 200 Hz separation marked">
+  <figcaption><b>Figure 1.</b> A 64-band mel filterbank on a 1,024-point transform at 16 kHz.
+  <b>Left:</b> the lowest band pools <b>3</b> FFT bins and the highest pools <b>42</b>, a factor of
+  <b>14</b>. <b>Right:</b> what that costs, in the units that matter. A fixed
+  <b>200 Hz</b> separation spans <b>6.3</b> mel bands at the bottom of the range and <b>0.61</b> at
+  the top, falling below a single band above about <b>4,560 Hz</b>, past which two tones that far
+  apart land inside one number.</figcaption>
+</figure>
+
+<div class="box def">
+  <span class="label">What the scale is a claim about</span>
+  <p>The mel scale spaces bands so they are roughly uniform in perceived pitch, which is
+  approximately logarithmic above about 500 Hz. Pooling the spectrum into those bands is therefore
+  a statement that <b>frequency resolution should degrade with frequency the way human hearing's
+  does</b>.</p>
+  <p>That is right for speech intended for people and it is an assumption, not a preprocessing step.
+  For machine fault detection, animal vocalisation, sonar or radio it is wrong, and the
+  fourteen-fold pooling in Figure 1 is discarding exactly what you were listening for.</p>
+</div>
+
+<h3><span class="num">§5</span> What else is thrown away</h3>
+
+<div class="box pitfall">
+  <span class="label">Pitfall: the standard pipeline discards phase in its second line</span>
+  <p>A mel spectrogram is the magnitude of the short-time transform, pooled. The phase is not
+  reduced or compressed; it is deleted.</p>
+  <p>Part XXVII §18 measured what that means for images: a reconstruction correlates +0.736 with
+  its phase donor and &minus;0.125 with its magnitude donor. The audio consequence is §7's figure,
+  and the practical consequence is that <b>every system producing a mel spectrogram needs a second
+  model to invent the phase back</b>, which is what a vocoder is.</p>
+</div>
+
+<h3><span class="num">§6</span> The cepstrum, and why it is still there</h3>
+
+<div class="box hist">
+  <span class="label">A representation that outlived its reason</span>
+  <p>Take the logarithm of the mel spectrum and transform again: convolution in the time domain
+  becomes addition in the log-spectral domain, so the vocal tract's filter separates from the
+  glottal source. The low coefficients describe the filter, which is what distinguishes vowels,
+  and the rest can be discarded.</p>
+  <p>Cepstral coefficients dominated speech recognition for thirty years because they were compact
+  and nearly uncorrelated, which mattered when the acoustic model was a mixture of diagonal-covariance
+  Gaussians. Neural models do not need either property, and the field moved back to mel
+  spectrograms, a case where a representation's advantage was a property of the model it fed
+  rather than of the signal.</p>
+</div>
+
+<h3><span class="num">§7</span> Getting the waveform back</h3>
+
+<div class="readnow"><span class="label">Go and read</span><p><span class="src">Griffin &amp; Lim (1984)</span>, <i>Signal estimation from modified short-time Fourier transform</i>. Four pages, and the algorithm Figure 2 implements: alternate between the current phase estimate and a projection back onto the target magnitude. The paper proves the reconstruction error can only fall or stay flat from one iteration to the next, but proves it in <b>spectrogram</b> distance, not waveform distance, which is exactly the gap the right- and left-hand panels of Figure 2 show. Read it to see that the method's limits were known at publication, not discovered later.</p></div>
+
+<figure>
+  <img src="figures/au/02-phase.svg" alt="Left: correlation with the original waveform against number of phase-estimation iterations, with true-phase and random-phase references. Right: relative spectrogram error against iterations">
+  <figcaption><b>Figure 2.</b> A synthetic voiced signal with a transient, analysed and resynthesised.
+  With the <b>true phase</b> the round trip is exact: correlation <b>1.000000000</b>, maximum error
+  <b>3.3&times;10<sup>&minus;16</sup></b> on the interior. With <b>random phase</b> the magnitude
+  spectrogram is identical and the waveform correlates <b>&minus;0.024</b>. Iterative phase
+  estimation drives the spectrogram error down monotonically (<b>0.666 to 0.048</b> over 200
+  iterations) while the waveform correlation dips before it rises and reaches only <b>0.53</b>. The
+  iteration converges in spectrogram space, and only incidentally in waveform space.</figcaption>
+</figure>
+
+<div class="box why">
+  <span class="label">What a vocoder is for</span>
+  <p>Figure 2 is the argument for every neural vocoder in existence. Classical iterative estimation
+  works; it is used, it is cheap, and it sounds like it: the characteristic metallic quality is the
+  residual the right-hand panel converges to.</p>
+  <p>A learned vocoder does better because it is not solving Figure 2's problem. It is not
+  estimating the phase that was there; it is generating <i>a</i> phase consistent with the magnitude
+  and with everything it has learned about how speech is put together. Which is a different task
+  with a different failure mode, and §19 is about it.</p>
+</div>
+
+<h3><span class="num">§8</span> What movement A establishes</h3>
+
+<div class="box intuition">
+  <span class="label">Three things</span>
+  <p><b>The standard audio representation is a modelling assumption twice over.</b> The window
+  length is a claim about how fast the signal changes; the mel scale is a claim that resolution
+  should degrade like human hearing's, and Figure 1 measures that as fourteen-fold pooling at the
+  top of the range.</p>
+  <p><b>It deletes phase</b>, which Part XXVII measured as carrying the structure.</p>
+  <p><b>So the pipeline needs a second model to put phase back.</b> Figure 2 measures classical
+  estimation converging in spectrogram space to a waveform correlation of 0.53, which is what a
+  vocoder exists to beat.</p>
+</div>

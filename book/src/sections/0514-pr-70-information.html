@@ -1,0 +1,498 @@
+<h2><span class="part-kicker">Part G</span>Information theory</h2>
+
+<p class="lede">This is where the chapter changes subject and, if you are only going to
+read one part carefully, this is the one. Everything here leads to a single destination:
+the loss function you have been using without knowing where it came from.</p>
+
+<h3><span class="num">§23</span> Self-information and entropy</h3>
+
+<div class="sixty">
+  <span class="label">In 60 seconds</span>
+  <p>Information is <b>surprise</b>: $-\log P(x)$. Certain events carry none, rare events
+  carry a lot, and independent events add, which forces the logarithm and nothing else.
+  Averaging surprise over a whole distribution gives <b>entropy</b>, which has a concrete
+  meaning: the minimum average number of bits needed to encode outcomes from it.
+  Predictability is compressibility.</p>
+</div>
+
+<div class="readnow"><span class="label">Read this one</span><p><span class="src">Shannon (1948)</span>, <i>A mathematical theory of communication</i>. <b>If you read a single paper from this whole book, make it this.</b> An entire field arrives essentially complete in seventy-nine pages, written with a clarity that most textbook treatments of it have not matched since. Everything in this part is downstream of it, and it assumes nothing you do not already have.</p></div>
+
+<div class="box history">
+  <span class="label">History: a whole field, arriving essentially complete, in one paper</span>
+  <p>Scientific fields normally accumulate. Information theory did not. In <span
+  class="year">1948</span> Claude Shannon, an engineer at Bell Labs, published a paper
+  that defined the field's central quantities, proved its two foundational theorems, and
+  established the limits of compression and of communication over a noisy channel, very
+  nearly all of it at once.</p>
+  <p>The paper's decisive move was to strip <i>meaning</i> out of the problem. Shannon
+  argued that for an engineer building a communication system, what a message means is
+  irrelevant; what matters is that it was selected from a set of possible messages. Once
+  information is defined as reduction of uncertainty rather than conveyance of meaning, it
+  becomes measurable, and the measure is the entropy in this section.</p>
+  <p>The unit came from a colleague. John Tukey had coined <b>bit</b>, contracting
+  "binary digit"; Shannon adopted it, and its first appearance in print is in his
+  paper.</p>
+  <p>Practically everything downstream (data compression, error-correcting codes,
+  cryptography, and the loss function in §25 of this part) descends from that one
+  publication.</p>
+</div>
+
+<p>Start with a question that sounds philosophical and turns out to have a clean answer.
+<b>How much information does learning an outcome give you?</b></p>
+
+<p>Three requirements pin the answer down almost completely:</p>
+
+<ol>
+  <li>Learning something <b>certain</b> conveys no information. If the sun rose this
+  morning, being told so tells you nothing.</li>
+  <li>Learning something <b>unlikely</b> conveys a lot. A one-in-a-million event
+  carries far more news than a coin flip.</li>
+  <li>Information from <b>independent</b> events should add. Two coin flips should carry
+  twice the information of one.</li>
+</ol>
+
+<p>Requirement 3 is the binding one. We need a function turning probabilities into
+information that converts <i>multiplication</i> into <i>addition</i>, since independent
+probabilities multiply. That is precisely what a logarithm does, and up to a choice of
+base it is the only thing that does.</p>
+
+<div class="box def">
+  <span class="label">Definition: self-information</span>
+  <p>$$I(x) = -\log P(x)$$
+  Measured in <b>nats</b> with the natural log, or <b>bits</b> with $\log_2$.</p>
+</div>
+
+<p>The minus sign is there because probabilities are at most 1, so their logs are at
+most 0. Negating gives a non-negative quantity. Check it against the requirements:
+$P = 1$ gives $I = 0$, and as $P \to 0$, $I \to \infty$.</p>
+
+<h4>Entropy: the average surprise</h4>
+
+<div class="box history">
+  <span class="label">History: the name was reportedly chosen to win arguments</span>
+  <p>Shannon had the quantity before he had a word for it. By his own later account, he
+  consulted John von Neumann, and the advice he received has become the most repeated
+  anecdote in the field.</p>
+  <p>Call it entropy, von Neumann is said to have suggested, for two reasons. First,
+  the same mathematical expression already appears in statistical mechanics, where
+  Boltzmann and Gibbs had used $-\sum p \log p$ decades earlier to count the microscopic
+  arrangements consistent with a macroscopic state. Second, and more usefully:
+  <b>nobody really understands entropy, so in a debate you will always have the
+  advantage.</b></p>
+  <p>The story is second-hand and may have improved in transmission. But the connection it
+  points at is real. Thermodynamic entropy counts how many microscopic configurations
+  could produce what you observe; Shannon entropy counts how many messages could have
+  produced what you received. Both are measures of <b>how much you do not know</b>, and
+  they are the same formula for the same reason.</p>
+  <p>It also explains why the word feels borrowed when you meet it here. It was.</p>
+</div>
+
+<p>Self-information describes a single outcome. Average it over all outcomes and you get
+a property of the whole distribution.</p>
+
+<div class="box def">
+  <span class="label">Definition: Shannon entropy</span>
+  <p>$$H(P) = \mathbb{E}_{x \sim P}[-\log P(x)] = -\sum_x P(x) \log P(x)$$</p>
+</div>
+
+<figure>
+  <img src="figures/pr/14-entropy.svg" alt="Entropy of a biased coin, and the cross-entropy loss curve">
+  <figcaption><b>Figure 14.</b> Left: the entropy of a coin with bias $p$, in
+  <b>bits</b> ($\log_2$). It peaks at exactly 1 bit for a fair coin (maximum
+  uncertainty) and falls to zero at either extreme, where the outcome is certain and
+  carries no news. Right: the loss incurred for a single example as a function of the
+  probability the model assigned to the correct answer, in <b>nats</b> (natural log,
+  the convention frameworks use). Section 25 explains this curve.</figcaption>
+</figure>
+
+<div class="box intuition">
+  <span class="label">Intuition: entropy is the cost of describing an outcome</span>
+  <p>Entropy has a concrete operational meaning: it is the <b>minimum average number of
+  bits</b> needed to encode outcomes from the distribution.</p>
+  <p>A fair coin needs 1 bit; there is no cleverer scheme. But a coin landing heads 99%
+  of the time needs only about 0.08 bits on average, because you can assign a very short
+  code to the common outcome and a long one to the rare one. Predictability is
+  compressibility, and entropy is exactly the exchange rate between them.</p>
+  <p>This is why file compression works, and why a random file cannot be compressed: it
+  has maximal entropy, so there is no structure to exploit.</p>
+</div>
+
+<p>That claim about bits deserves to be shown rather than asserted, because it is what
+turns entropy from a formula into a thing you can hold. Here it is with numbers, and the
+agreement is exact.</p>
+
+<div class="worked long">
+  <span class="label">Worked: entropy is a code length, to the digit</span>
+  <p><b>Setup.</b> Four outcomes, unequally likely: say four commands sent to a robot,
+  with probabilities</p>
+  <p>$P(A) = \tfrac12, \quad P(B) = \tfrac14, \quad P(C) = \tfrac18, \quad P(D) = \tfrac18$</p>
+
+  <p><b>The obvious code.</b> Four outcomes, so two bits each: $A=00$, $B=01$, $C=10$,
+  $D=11$. Average cost, 2 bits per message. Nothing wasted, apparently.</p>
+
+  <p><b>A better code.</b> Give the common outcome a short codeword and make the rare
+  ones pay for it:</p>
+  <p>$A = 0, \qquad B = 10, \qquad C = 110, \qquad D = 111$</p>
+  <p>These are still unambiguous when run together: no codeword is a prefix of another,
+  so <code>0110100</code> decodes uniquely as $A, C, B, A$. Reading left to right, you
+  always know when a codeword has ended.</p>
+
+  <p><b>What it costs on average.</b> Weight each length by how often it is used:</p>
+  <p>$\tfrac12(1) + \tfrac14(2) + \tfrac18(3) + \tfrac18(3)
+  = 0.5 + 0.5 + 0.375 + 0.375 = \mathbf{1.75}$ bits</p>
+
+  <p><b>Now the entropy.</b></p>
+  <p>$H = -\big[\tfrac12\log_2\tfrac12 + \tfrac14\log_2\tfrac14
+  + \tfrac18\log_2\tfrac18 + \tfrac18\log_2\tfrac18\big]
+  = \tfrac12(1) + \tfrac14(2) + \tfrac18(3) + \tfrac18(3) = \mathbf{1.75}$ bits</p>
+
+  <p>The same number, and not by luck: <b>the same arithmetic</b>. Look at the two
+  lines: they are identical. The codeword lengths $1, 2, 3, 3$ are exactly
+  $-\log_2 P$ for each outcome, and the averaging weights are the probabilities. Entropy
+  is not <i>like</i> an average code length. It is one.</p>
+
+  <p>And no code does better. 1.75 against the naive 2 bits is a 12.5% saving, extracted
+  purely from the fact that the outcomes were not equally likely.</p>
+</div>
+
+<p>That worked example also explains where the formula's shape comes from, which is
+otherwise mysterious. An outcome of probability $p$ deserves a codeword of about
+$-\log_2 p$ bits: halve the probability and you need one more bit, because each extra bit
+doubles how many things you can distinguish. Entropy averages those ideal lengths, weighted
+by how often each is used. That is all $-\sum P \log P$ says: <b>ideal cost, times how
+often you pay it.</b></p>
+
+<p>It is worth noticing what happens when the probabilities are not such convenient
+fractions. If $P(A) = 0.3$ the ideal length is $-\log_2 0.3 \approx 1.74$ bits, and you
+cannot send $1.74$ bits: codewords come in whole numbers. Entropy is therefore a bound
+that real codes approach without quite reaching, and they get closer when many symbols are
+encoded together. That gap is the entire subject of coding theory, and none of it is needed
+here. What matters for this book is that <b>entropy is a cost</b>, measured in bits, and
+§24 and §25 are both about paying more of it than you had to.</p>
+
+<p>Two facts to carry forward. Entropy is <b>maximised by the uniform distribution</b>:
+knowing nothing is the most uncertain state you can be in. And it is <b>zero for a
+deterministic outcome</b>. This also makes precise the "maximum entropy" justification
+for the Gaussian from §15: among all distributions with a given variance, it is the one
+with the largest entropy, meaning the one that commits to the least.</p>
+
+<h3><span class="num">§24</span> KL divergence</h3>
+
+<div class="sixty">
+  <span class="label">In 60 seconds</span>
+  <p>KL divergence measures <b>how many extra bits you pay for believing $Q$ when reality
+  is $P$</b>. It is zero only when the two match, never negative, and (crucially)
+  <b>asymmetric</b>: $D_{KL}(P \parallel Q) \neq D_{KL}(Q \parallel P)$. The forward
+  direction spreads out to cover everything; the reverse locks onto one mode. Choosing
+  between them is a real modelling decision.</p>
+</div>
+
+<div class="readnow"><span class="label">Go and read</span><p><span class="src">Kullback &amp; Leibler (1951)</span>, <i>On information and sufficiency</i>. The divergence, at its origin, framed as a question this section does not ask: how much evidence does one observation give you for telling two hypotheses apart? That framing makes the asymmetry feel inevitable rather than awkward.</p></div>
+
+<div class="box history">
+  <span class="label">History: from cryptanalysis to the objective of every generative model</span>
+  <p>Solomon Kullback and Richard Leibler introduced the quantity in <span
+  class="year">1951</span>, in a paper about the information contained in a statistical
+  observation for discriminating between two hypotheses. Both were cryptanalysts at what
+  became the National Security Agency, and the framing shows: they were interested in how
+  much evidence a piece of intercepted data provides for one explanation over another.</p>
+  <p>It is closely related to the weight-of-evidence measure Turing had used at Bletchley
+  Park, described in §21; Kullback had worked on similar problems, and the wartime lineage
+  of these ideas is denser than the citation record suggests.</p>
+  <p>They called it <i>divergence</i> rather than distance deliberately, aware that the
+  asymmetry disqualified it from being a metric. That caveat is now the most practically
+  important thing about it: variational inference and the VAE objective in later parts
+  choose the reverse direction, and the mode-seeking behaviour that follows is visible in
+  the samples those models produce.</p>
+</div>
+
+<p>Now the question that machine learning actually needs answered: given two
+distributions, <b>how different are they?</b></p>
+
+<div class="box def">
+  <span class="label">Definition: Kullback–Leibler divergence</span>
+  <p>$$D_{KL}(P \parallel Q) = \mathbb{E}_{x \sim P}\!\left[\log \frac{P(x)}{Q(x)}\right] = \sum_x P(x) \log \frac{P(x)}{Q(x)}$$</p>
+</div>
+
+<div class="box intuition">
+  <span class="label">Intuition: the price of believing the wrong distribution</span>
+  <p>Reality follows $P$. You mistakenly designed your code assuming $Q$. KL divergence
+  is <b>how many extra bits per message that mistake costs you</b>.</p>
+  <p>If $Q = P$ you designed optimally and the extra cost is zero. The further $Q$ is
+  from $P$, the more you waste. This framing explains its two key properties at once:
+  it is always $\geq 0$ (you cannot beat the optimal code), and it equals zero exactly
+  when $P = Q$.</p>
+</div>
+
+<h4>It is not a distance</h4>
+<aside class="mnote"><b>Forward KL</b> is afraid of missing anything. <b>Reverse KL</b> is afraid of being wrong. Figure 15 shows what each fear looks like.</aside>
+
+<p>This trips people up, so it is worth stating plainly:</p>
+
+$$D_{KL}(P \parallel Q) \neq D_{KL}(Q \parallel P)$$
+
+<p>KL divergence is <b>asymmetric</b>. It also fails the triangle inequality. It is
+therefore not a metric, which is why it is called a divergence; the terminology is a
+warning label.</p>
+
+<p>The asymmetry is not a defect to work around; the two directions ask genuinely
+different questions, and choosing between them is a real modelling decision.</p>
+
+<figure>
+  <img src="figures/pr/15-kl-asymmetry.svg" alt="Forward and reverse KL fitting a bimodal target with a single Gaussian">
+  <figcaption><b>Figure 15.</b> The same task both ways: fit a single Gaussian $q$ to a
+  two-humped target $p$. Both panels found their optimum by numerical search over
+  $\mu$ and $\sigma$. Left, minimising $D_{KL}(p \parallel q)$: $q$ stretches to
+  <b>cover</b> both humps, placing mass in the empty valley between them. Right,
+  minimising $D_{KL}(q \parallel p)$: $q$ gives up on covering everything and
+  <b>locks onto one mode</b>. Same target, same family, opposite answers.</figcaption>
+</figure>
+
+<div class="box intuition">
+  <span class="label">Intuition: why each direction behaves that way</span>
+  <p><b>Forward, $D_{KL}(p \parallel q)$:</b> the expectation is over $p$, so wherever
+  $p$ has mass, a small $q$ makes $\log(p/q)$ enormous. The penalty is for <i>failing to
+  cover</i> what really happens, so $q$ spreads out to avoid it. This is
+  <b>mean-seeking</b>.</p>
+  <p><b>Reverse, $D_{KL}(q \parallel p)$:</b> the expectation is over $q$, so regions
+  where $q$ is near zero contribute nothing regardless of $p$. Placing mass where $p$ is
+  small is punished, but ignoring parts of $p$ entirely is free. So $q$ retreats to a
+  single mode. This is <b>mode-seeking</b>.</p>
+  <p>Memorable version: forward KL is afraid of missing anything; reverse KL is afraid
+  of being wrong. Variational inference (Part XXVIII §17&ndash;24) and the VAE
+  (Part XVI §14&ndash;20) use the reverse form, and the blurriness people complain about
+  in VAE samples traces partly back to this choice.</p>
+</div>
+
+<h3><span class="num">§25</span> Cross-entropy: your loss function</h3>
+
+<div class="sixty">
+  <span class="label">In 60 seconds</span>
+  <p>$H(P,Q) = H(P) + D_{KL}(P \parallel Q)$. Since the true distribution $P$ is fixed by
+  the data, $H(P)$ is a constant, so <b>minimising cross-entropy is exactly minimising KL
+  divergence</b>, more cheaply. For a one-hot label the whole thing collapses to
+  $-\log q(\text{correct class})$: the negative log of the probability your model put on
+  the right answer.</p>
+</div>
+
+<div class="box def">
+  <span class="label">Definition: cross-entropy</span>
+  <p>$$H(P, Q) = -\mathbb{E}_{x \sim P}[\log Q(x)] = -\sum_x P(x)\log Q(x)$$</p>
+</div>
+
+<p>Expand the KL divergence and the connection appears immediately:</p>
+
+$$D_{KL}(P \parallel Q) = \sum_x P(x)\log P(x) - \sum_x P(x)\log Q(x) = -H(P) + H(P, Q)$$
+
+<p>so</p>
+
+$$H(P, Q) = H(P) + D_{KL}(P \parallel Q)$$
+
+<p>Now the punchline. In supervised learning $P$ is the <b>true</b> label distribution:
+fixed, given by the data, entirely outside your control. So $H(P)$ is a constant, and:</p>
+
+<div class="box def">
+  <span class="label">The key consequence</span>
+  <p>Minimising cross-entropy is <b>exactly</b> minimising KL divergence. They differ by
+  a constant that does not depend on the model, so they have identical minimisers and
+  identical gradients.</p>
+</div>
+
+<p>That is why nobody optimises KL divergence directly: cross-entropy is equivalent and
+cheaper, since it drops the $H(P)$ term you would only compute to discard.</p>
+
+<h4>What it looks like in practice</h4>
+
+<p>For classification, the true distribution is one-hot: probability 1 on the correct
+class, 0 elsewhere. Every term in the sum vanishes except one, and the whole
+cross-entropy collapses to:</p>
+
+$$\text{loss} = -\log q(\text{correct class})$$
+
+<p>The negative log of the probability your model assigned to the right answer. Nothing
+more.</p>
+
+<p>Look back at the right panel of Figure 14, which is exactly this function. Assign the
+correct class probability 1 and the loss is 0. Assign it 0.5 and you pay about 0.69.
+Assign it 0.01 and you pay 4.6. As the assigned probability approaches zero, the loss
+grows without bound: <b>confident and wrong is punished arbitrarily hard</b>, which is
+precisely the incentive you want.</p>
+
+<pre><code><span class="k">import</span> numpy <span class="k">as</span> np
+
+<span class="k">def</span> cross_entropy(logits, label):
+    <span class="s">"""Loss for one example. Note: never exponentiate then log -- do it in one step."""</span>
+    z = logits - logits.max()                 <span class="c"># stabilise (§20)</span>
+    log_probs = z - np.log(np.exp(z).sum())   <span class="c"># log-softmax, computed directly</span>
+    <span class="k">return</span> -log_probs[label]
+
+print(cross_entropy(np.array([<span class="n">2.</span>, <span class="n">1.</span>, <span class="n">0.</span>]), <span class="n">0</span>))   <span class="o">### 0.4076  -- confident, correct</span>
+print(cross_entropy(np.array([<span class="n">2.</span>, <span class="n">1.</span>, <span class="n">0.</span>]), <span class="n">2</span>))   <span class="o">### 2.4076  -- confident, wrong</span>
+</code></pre>
+
+<div class="box pitfall">
+  <span class="label">Pitfall: never compute $\log(\text{softmax}(z))$ in two steps</span>
+  <p>If a softmax output underflows to exactly 0, taking its log gives $-\infty$ and
+  your loss becomes <code>nan</code>, silently destroying the run. Computing the
+  log-softmax directly, as above, subtracts in log-space and never evaluates $\log 0$.
+  This is why every framework ships a fused
+  <code>cross_entropy_with_logits</code>, and why you should use it.</p>
+</div>
+
+<div class="box fw">
+  <span class="label">In the framework: the most-used function in deep learning</span>
+  <p>The loss you have just derived is one call, and it returns exactly the numbers the
+  NumPy version above produced:</p>
+<pre><code><span class="k">import</span> torch, torch.nn.functional <span class="k">as</span> F
+
+logits = torch.tensor([[<span class="n">2.</span>, <span class="n">1.</span>, <span class="n">0.</span>]])       <span class="c"># shape (batch, classes) -- RAW scores</span>
+F.cross_entropy(logits, torch.tensor([<span class="n">0</span>]))   <span class="o">### 0.4076  confident, correct</span>
+F.cross_entropy(logits, torch.tensor([<span class="n">2</span>]))   <span class="o">### 2.4076  confident, wrong</span>
+</code></pre>
+  <p><b>Note what the target is.</b> Not a one-hot vector: the integer index of the correct
+  class. That is §25's collapse made literal: since every term of the sum vanishes except
+  the one where $P(x) = 1$, the library never builds the one-hot vector at all. It takes the
+  index and looks up a single number. For a language model with a vocabulary of 50,000, that
+  is the difference between allocating a 50,000-wide vector per token and reading one
+  element.</p>
+
+  <h4>The name lies, and the lie matters</h4>
+  <p>Despite being called <code>cross_entropy</code>, the function does <b>not</b> take a
+  probability distribution. It takes <b>logits</b> (raw, unbounded network outputs) and
+  performs the softmax itself, internally, fused with the log. It is
+  <code>log_softmax</code> followed by a lookup, in one operation.</p>
+  <p>So the pitfall above is not hypothetical. Applying softmax yourself and passing the
+  result runs the operation twice:</p>
+<pre><code>p = F.softmax(logits, dim=<span class="n">1</span>)                  <span class="c"># DON'T</span>
+F.cross_entropy(p, torch.tensor([<span class="n">0</span>]))        <span class="o">### 0.7972 -- wrong, and it does not crash</span>
+</code></pre>
+  <p>0.7972 against the correct 0.4076. The model has not changed and the answer is nearly
+  twice as large. Nothing raises an error, the loss still decreases during training, and the
+  model simply learns worse than it should, which is the most expensive kind of bug,
+  because it presents as a mediocre result rather than a failure.</p>
+
+  <h4>Why fusing them is not merely convenient</h4>
+  <p>Section 25's pitfall gave the reason and it is worth seeing the arithmetic. Computing
+  the two steps separately means forming a probability and then taking its log. If any
+  probability underflows to exactly zero (which for a confidently wrong prediction in
+  float32 it will), then $\log 0 = -\infty$, the loss becomes <code>nan</code>, and every
+  subsequent gradient is <code>nan</code> as well.</p>
+  <p>The fused version never forms the probability. It computes
+  $\log \text{softmax}(z)_i = z_i - \operatorname{logsumexp}(z)$ directly, which is a
+  subtraction in log space and cannot underflow. Part III §4 covers the
+  <code>logsumexp</code> half of that identity; this is where it earns its keep.</p>
+
+  <h4>The rest of the family</h4>
+  <table class="compact">
+    <thead><tr><th>Target type</th><th>Function</th><th>Expects</th></tr></thead>
+    <tbody>
+      <tr><td>one of $k$ classes</td><td><code>F.cross_entropy</code></td><td>logits + integer index</td></tr>
+      <tr><td>binary</td><td><code>F.binary_cross_entropy_with_logits</code></td><td>logits + 0/1 target</td></tr>
+      <tr><td>binary, already a probability</td><td><code>F.binary_cross_entropy</code></td><td>probability: the trap version</td></tr>
+      <tr><td>a real number</td><td><code>F.mse_loss</code></td><td>Gaussian likelihood, per §26</td></tr>
+    </tbody>
+  </table>
+  <p>The third row exists for the rare case where you genuinely hold a probability, and it
+  is the one to avoid by default; the <code>_with_logits</code> suffix throughout these
+  libraries is a marker meaning "this one is the numerically safe version". Keras spells the
+  same distinction as a flag: <code>tf.keras.losses.CategoricalCrossentropy(from_logits=True)</code>,
+  where the default is <code>False</code> and therefore the unsafe one. Set it.</p>
+</div>
+
+<h3><span class="num">§26</span> Maximum likelihood, and where the loss came from</h3>
+
+<div class="sixty">
+  <span class="label">In 60 seconds</span>
+  <p>Choose the parameters that make the observed data most probable. Take a log to turn
+  the product into a sum, divide by $m$, and the expression <b>is</b> cross-entropy between
+  the data distribution and the model. Three names, one procedure: maximum likelihood,
+  minimum cross-entropy, minimum KL divergence. Cross-entropy loss is not a convention
+  somebody picked; it is what maximum likelihood <i>is</i>.</p>
+</div>
+
+<div class="box history">
+  <span class="label">History: Fisher's principle, and how long it took to reach neural networks</span>
+  <p>Maximum likelihood was introduced and named by Ronald Fisher in the <span
+  class="year">1920</span>s, and he regarded it as among his most important contributions.
+  The principle (prefer the parameters under which what actually happened was most
+  probable) is so natural that Gauss and others had used special cases of it a century
+  earlier without isolating it as a general method.</p>
+  <p>The connection this section derives, between maximum likelihood and cross-entropy,
+  is a straightforward consequence once Shannon's <span class="year">1948</span> work
+  exists. But the two literatures were separate, and neural networks took a surprisingly
+  long time to adopt it.</p>
+  <p>Early networks were routinely trained with squared error even for classification,
+  which (as drill C14 shows) is maximum likelihood under an assumption of Gaussian noise,
+  and a poor description of a categorical label. The change to cross-entropy through the
+  <span class="year">1980</span>s and <span class="year">90</span>s produced better
+  gradients and faster training, and it came from taking the probabilistic interpretation
+  seriously rather than from any architectural insight.</p>
+  <p>That is the argument for this whole part in one example. Knowing what your loss
+  function <i>means</i> occasionally tells you it should be a different function.</p>
+</div>
+
+<p class="lede">One derivation to close the chapter. It answers a question you may not
+have known to ask: why <i>that</i> loss function and not some other?</p>
+
+<p>Suppose your model, with parameters $\boldsymbol{\theta}$, assigns probability
+$p_{\text{model}}(\mathbf{x}; \boldsymbol{\theta})$ to each data point. The obvious
+principle: <b>choose the parameters that make the observed data most probable.</b></p>
+
+$$\boldsymbol{\theta}_{ML} = \arg\max_{\boldsymbol{\theta}} \; \prod_{i=1}^{m} p_{\text{model}}(\mathbf{x}^{(i)}; \boldsymbol{\theta})$$
+
+<p>That product is a computational disaster: multiply ten thousand numbers below 1 and
+you underflow to zero. So take the log, which is monotonic and therefore preserves the
+location of the maximum while turning the product into a sum:</p>
+
+$$\boldsymbol{\theta}_{ML} = \arg\max_{\boldsymbol{\theta}} \; \sum_{i=1}^{m} \log p_{\text{model}}(\mathbf{x}^{(i)}; \boldsymbol{\theta})$$
+
+<p>Divide by $m$, which changes nothing about the maximiser, and recognise the result as
+an expectation under the <b>empirical distribution</b> from §17:</p>
+
+$$\boldsymbol{\theta}_{ML} = \arg\max_{\boldsymbol{\theta}} \; \mathbb{E}_{\mathbf{x} \sim \hat{p}_{\text{data}}}\big[\log p_{\text{model}}(\mathbf{x}; \boldsymbol{\theta})\big]$$
+
+<p>Flip the sign to make it a minimisation, and that expression is <b>exactly the
+cross-entropy</b> between the empirical data distribution and the model, which by §25
+is exactly the KL divergence between them, up to a constant.</p>
+
+<div class="box def">
+  <span class="label">The three-way equivalence</span>
+  <p>These are the same procedure, stated in three vocabularies:</p>
+  <ul class="tight">
+    <li><b>Maximum likelihood</b>: make the observed data as probable as possible.</li>
+    <li><b>Minimum cross-entropy</b>: minimise $-\log$ of the probability assigned to the truth.</li>
+    <li><b>Minimum KL divergence</b>: make the model distribution close to the data distribution.</li>
+  </ul>
+  <p>Not analogies. The same optimisation problem.</p>
+</div>
+
+<div class="box why">
+  <span class="label">Why deep learning cares: this is the whole justification</span>
+  <p>Cross-entropy loss is not a convention someone picked because it worked. It is what
+  maximum likelihood <i>is</i>, once you write it down carefully. That is why it is the
+  default for essentially every classifier ever trained.</p>
+  <p>The frame keeps paying out. <b>Mean squared error</b> is maximum likelihood under
+  an assumption of Gaussian noise; assume Laplace noise instead and you get mean
+  absolute error. <b>$L^2$ regularization</b> is maximum <i>a posteriori</i> estimation
+  with a Gaussian prior on the weights; <b>$L^1$</b> is the same with a Laplace prior,
+  which closes the loop opened in §17. Part V develops all of this properly, and it
+  will feel like consolidation rather than new material, because the whole structure
+  is already here.</p>
+</div>
+
+<div class="box try">
+  <span class="label">Try it: the last one</span>
+  <p>A binary classifier outputs $0.9$ for an example whose true label is 1, and $0.3$
+  for an example whose true label is 0. Compute the cross-entropy loss for each, and the
+  average.</p>
+</div>
+
+<p><b>Answer.</b> For the first, the probability assigned to the truth is $0.9$, so the
+loss is $-\log(0.9) \approx 0.105$. For the second, the true label is 0 and the model
+assigned it probability $1 - 0.3 = 0.7$, so the loss is $-\log(0.7) \approx 0.357$. The
+average is about $0.231$.</p>
+
+<p>Note the second example carries more than three times the loss of the first, even
+though both predictions are on the correct side of $0.5$. Cross-entropy rewards
+<i>confident</i> correctness, not merely correctness, which is exactly why models
+trained on it produce usable probability estimates rather than bare decisions.</p>

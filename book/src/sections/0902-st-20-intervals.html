@@ -1,0 +1,211 @@
+<h2><span class="part-kicker">Part B</span>Sampling distributions</h2>
+
+<h3><span class="num">§6</span> The distribution of a statistic</h3>
+
+<div class="sixty">
+  <span class="label">In 60 seconds</span>
+  <p>Any quantity computed from a sample has its own distribution across possible samples:
+  the <b>sampling distribution</b>. For the mean, the central limit theorem says it is
+  approximately Gaussian, centred on the truth, with spread $\sigma/\sqrt{n}$. That single
+  result underwrites almost every interval and test in this part.</p>
+</div>
+
+<p>Section 1 introduced the object; here is the one result that makes it tractable. From
+Part II §15, sums of independent quantities tend toward a Gaussian regardless of what they
+started as. A sample mean is a sum divided by $n$. Therefore:</p>
+
+<div class="box def">
+  <span class="label">The sampling distribution of the mean</span>
+  <p>For $n$ independent observations with mean $\mu$ and variance $\sigma^2$, the sample
+  mean is approximately
+  $$\bar{x} \;\sim\; \mathcal{N}\!\left(\mu,\ \frac{\sigma^2}{n}\right)$$
+  for $n$ large enough, and "large enough" is often smaller than people expect.</p>
+</div>
+
+<p>What makes this powerful is the phrase <i>regardless of what they started as</i>. Your
+data can be skewed, bounded, discrete, or bimodal; the distribution of its <i>mean</i> is
+still approximately Gaussian. You get to reason about your estimate with a known
+distribution without knowing the distribution of the data at all.</p>
+
+<h3><span class="num">§7</span> When $\sigma$ is unknown</h3>
+
+<div class="sixty">
+  <span class="label">In 60 seconds</span>
+  <p>When $\sigma$ is unknown you estimate it from the same data, which adds a second source
+  of randomness: occasionally you underestimate $s$ and divide by something too small.
+  The result is no longer Gaussian; it has heavier tails. The correct distribution is
+  <b>Student's $t$</b>, derived by Gosset in 1908. It approaches the Gaussian as $n$
+  grows, and past roughly $n = 50$ the distinction stops mattering.</p>
+</div>
+
+<div class="readnow"><span class="label">Go and read</span><p><span class="src">Student [Gosset] (1908)</span>, <i>The probable error of a mean</i>. The $t$-distribution, published under a pseudonym because Gosset's employer treated statistical method as a trade secret; the history box below has the rest. Read it for the motivation: he needed it because brewing experiments came in samples of four, and the normal approximation was lying to him.</p></div>
+
+<p>There is a hole in §6. The formula needs $\sigma$, the true population standard
+deviation, which you do not have; you have $s$, an estimate of it from the same data.</p>
+
+<p>Substituting $s$ for $\sigma$ adds a second source of randomness, and the result is no
+longer Gaussian. It has heavier tails, because occasionally you underestimate $s$ and
+divide by something too small. The correct distribution is <b>Student's $t$</b>, and it
+approaches the Gaussian as $n$ grows.</p>
+
+<figure>
+  <img src="figures/st/04-coverage.svg" alt="One hundred confidence intervals with coverage counted, and coverage against sample size">
+  <figcaption><b>Figure 4.</b> Right panel: using the Gaussian formula when $\sigma$ is
+  estimated, coverage falls short of 95% at small $n$ and recovers as $n$ grows. That
+  shortfall is exactly the gap Student's $t$ corrects. Past roughly $n = 50$ the distinction
+  stops mattering, which is why it rarely comes up in machine learning; test sets are
+  usually large.</figcaption>
+</figure>
+
+<div class="box history">
+  <span class="label">History: published under a pseudonym because of beer</span>
+  <p>William Sealy Gosset was a chemist at the Guinness brewery in Dublin, where his job
+  involved judging barley and yeast from small experimental batches. Small samples were
+  unavoidable (you cannot run a thousand trial brews), and he found the standard methods
+  gave answers that were too confident.</p>
+  <p>He worked out the correct distribution and published it in <span
+  class="year">1908</span>. Guinness prohibited employees from publishing, having previously
+  had trade secrets leak, so he wrote under the pen name <b>Student</b>.</p>
+  <p>The distribution has carried that pseudonym ever since. It is a rare case of a result
+  named after nobody at all, and it exists because industrial statistics, unlike the
+  astronomy that motivated so much of Part I and Part II, could not simply collect more
+  data.</p>
+</div>
+
+<h2><span class="part-kicker">Part C</span>Intervals</h2>
+
+<h3><span class="num">§8</span> Confidence intervals</h3>
+
+<div class="sixty">
+  <span class="label">In 60 seconds</span>
+  <p>A point estimate alone is close to useless. A <b>confidence interval</b> reports a
+  range instead, constructed so that the <i>procedure</i> captures the truth a specified
+  fraction of the time. For a mean the recipe is estimate $\pm\ 1.96 \times$ standard error,
+  and the 1.96 comes straight from the Gaussian in §6.</p>
+</div>
+
+<div class="box def">
+  <span class="label">Definition: confidence interval</span>
+  <p>A <b>95% confidence interval</b> is an interval computed from data by a procedure
+  which, across repeated samples, contains the true value 95% of the time.</p>
+</div>
+
+<p>Read that definition carefully, because the guarantee attaches to the <b>procedure</b>,
+not to any particular interval you have in your hands. Section 9 is entirely about what
+goes wrong when people forget this.</p>
+
+<p>The construction for a mean:</p>
+
+$$\bar{x} \;\pm\; 1.96 \cdot \frac{s}{\sqrt{n}}$$
+
+<p>and the left panel of Figure 4 is the definition made literal: a hundred intervals from
+a hundred samples, with the ones that missed drawn in pink. Roughly five of them miss,
+which is what 95% means.</p>
+
+<p>One clause is owed to §7: this is the <b>large-$n$ form</b>. It uses the Gaussian
+quantile 1.96 where $s$ standing in for $\sigma$ technically calls for Student's $t$'s wider
+one, which is a fine approximation past roughly $n=50$ (true of the large test sets typical
+in machine learning) but not below it, where Figure 4's right panel shows this exact
+formula under-covering (88% instead of 95% at $n=5$). At small $n$, replace 1.96 with the
+$t$-multiplier from §7.</p>
+
+<h3><span class="num">§9</span> What a confidence interval does not mean</h3>
+
+<div class="box pitfall">
+  <span class="label">Pitfall: the interpretation almost everyone gets wrong</span>
+  <p>Given a 95% interval of $[0.91, 0.97]$, the tempting reading is: <i>there is a 95%
+  probability the true value lies in this interval.</i></p>
+  <p>Under the frequentist framework that statement is not merely imprecise, it is
+  meaningless. The true value is a fixed number. It is either in $[0.91, 0.97]$ or it is
+  not: the probability is 0 or 1, and you do not know which. Nothing is random about the
+  interval once you have computed it; the randomness was in the sampling that produced
+  it.</p>
+  <p>The correct statement is about the method: <b>intervals constructed this way contain
+  the truth 95% of the time.</b> This one has either succeeded or failed, and you will never
+  find out which.</p>
+</div>
+
+<p>If that feels like an unsatisfying answer to the question you actually asked, your
+instinct is sound. The statement people <i>want</i> (a probability attached to this
+specific interval) requires treating the unknown value as a random quantity with a
+distribution, which is exactly the Bayesian move from Part II §2. Its corresponding object
+is called a <b>credible interval</b>, and about it you may legitimately say "95% probability
+the value lies here."</p>
+
+<p>The price is a prior. That is the whole trade, and §17 returns to it.</p>
+
+<h3><span class="num">§10</span> The bootstrap</h3>
+
+<div class="readnow"><span class="label">Go and read</span><p><span class="src">Efron (1979)</span>, <i>Bootstrap methods: another look at the jackknife</i>. The bootstrap, introduced. It is worth reading mostly to register how simple the idea is once someone has said it, and how long it took anyone to say it; the computation it requires was unthinkable before cheap cycles, which is why a technique this obvious is younger than most of this part.</p></div>
+
+<p>The idea is close to absurd on first hearing, and it works.</p>
+
+<div class="box intuition">
+  <span class="label">Intuition: your sample is your best picture of the population</span>
+  <p>The obstacle is that the population is unavailable. But your sample was drawn from it,
+  so it is an estimate of it, the empirical distribution of Part II §17.</p>
+  <p>So: treat your sample as if it were the population, and draw new samples from it.
+  Sampling with replacement gives datasets of the same size that differ in exactly the way
+  real repeated samples would. Compute your statistic on each, and the spread you observe
+  estimates the spread you would have seen with genuine resampling.</p>
+</div>
+
+<figure>
+  <img src="figures/st/05-bootstrap.svg" alt="Bootstrap distribution of the median matching the true sampling distribution">
+  <figcaption><b>Figure 5.</b> The sampling distribution of a <b>median</b> from a skewed
+  population, a statistic with no convenient formula. Green required drawing four thousand
+  fresh samples from the full population. Orange used a single sample of sixty points,
+  resampled. They largely agree, and only one of them is something you could actually
+  do.</figcaption>
+</figure>
+
+<pre><code><span class="k">def</span> bootstrap_ci(data, stat, n_boot=<span class="n">10000</span>, alpha=<span class="n">0.05</span>):
+    <span class="s">"""Confidence interval for any statistic, with no formula required."""</span>
+    rng = np.random.default_rng(<span class="n">0</span>)
+    n = len(data)
+    reps = [stat(rng.choice(data, n, replace=<span class="k">True</span>)) <span class="k">for</span> _ <span class="k">in</span> range(n_boot)]
+    <span class="k">return</span> np.percentile(reps, [<span class="n">100</span>*alpha/<span class="n">2</span>, <span class="n">100</span>*(<span class="n">1</span>-alpha/<span class="n">2</span>)])
+
+<span class="c"># works for the mean, the median, a correlation, an F1 score, a model's accuracy --</span>
+<span class="c"># anything you can compute, without deriving its sampling distribution</span>
+</code></pre>
+
+<div class="box history">
+  <span class="label">History: a method that had to wait for computers</span>
+  <p>Bradley Efron introduced the bootstrap in <span class="year">1979</span>. The
+  underlying idea is simple enough that it could have been proposed a century earlier, and
+  was not, because it is useless without a machine. Ten thousand resamples by hand is not a
+  method, it is a life's work.</p>
+  <p>The name is from the expression about pulling yourself up by your own bootstraps,
+  chosen for its air of the impossible: you are extracting information about sampling
+  variability from a single sample, apparently getting something for nothing.</p>
+  <p>Its arrival marked a real shift. Classical statistics spent a century deriving the
+  sampling distribution of each new statistic analytically, which is hard and often
+  impossible. The bootstrap replaced derivation with computation, the same trade Part II's
+  Monte Carlo methods make against integration, and one the modern field makes constantly.</p>
+</div>
+
+<div class="box why">
+  <span class="label">Why this matters: use it on your model metrics</span>
+  <p>Almost nobody reports uncertainty on model performance, and the usual reason given is
+  that the sampling distribution of an F1 score or a BLEU score is unknown.</p>
+  <p>It does not need to be known. Resample your test set with replacement a few thousand
+  times, recompute the metric each time, take percentiles. Ten lines of code, no theory, and
+  you can now say whether your improvement is larger than the noise. Given §14, that is
+  frequently the most informative thing you can report.</p>
+</div>
+
+<div class="box try">
+  <span class="label">Try it</span>
+  <p>A model gets 94.2% on a test set of 1,000 examples. Roughly what is the standard error,
+  and how wide is a 95% interval?</p>
+</div>
+
+<p><b>Answer.</b> Accuracy on $n$ examples is a proportion, whose standard error is
+$\sqrt{p(1-p)/n}$. With $p = 0.942$ and $n = 1000$:</p>
+<p>$\text{SE} = \sqrt{0.942 \times 0.058 / 1000} = \sqrt{5.46\times10^{-5}} \approx 0.0074$</p>
+<p>So the 95% interval is roughly $94.2\% \pm 1.5\%$, or about $[92.7\%,\ 95.7\%]$.</p>
+<p>That width is the point. A model reporting 94.2% and one reporting 93.5% on this test set
+are <b>not distinguishable</b>: the intervals overlap heavily. Reporting the first as an
+improvement over the second is not supportable, and the calculation that shows it took one
+line.</p>

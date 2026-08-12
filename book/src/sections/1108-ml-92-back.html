@@ -1,0 +1,190 @@
+<h2><span class="part-kicker">Build</span>The project</h2>
+
+<p class="lede">Eight to twelve hours, and the largest project so far. You implement every
+algorithm in this part from its definition, then run a fair contest between them and find
+out where each one breaks.</p>
+
+<h3><span class="num">P.1</span> What you are building</h3>
+
+<p><b><code>tinylearn</code></b>: a small machine learning library, then a bake-off that
+uses it honestly.</p>
+
+<p>The rule: <b>NumPy only.</b> No <code>sklearn</code>, no frameworks. You have already
+written the linear algebra, the optimisers and the statistics in earlier projects, so reuse
+them.</p>
+
+<h3><span class="num">P.2</span> Stage 1: a common interface</h3>
+
+<p>Give every model the same three methods, so the harness can treat them
+interchangeably:</p>
+
+<pre><code><span class="k">class</span> Model:
+    <span class="k">def</span> fit(self, X, y):    ...   <span class="c"># learn parameters</span>
+    <span class="k">def</span> predict(self, X):   ...   <span class="c"># hard predictions</span>
+    <span class="k">def</span> predict_proba(self, X): ... <span class="c"># where meaningful</span>
+</code></pre>
+
+<p>Implement: <code>LinearRegression</code> (with a <code>ridge</code> option),
+<code>LogisticRegression</code>, <code>KNN</code>, <code>DecisionTree</code>,
+<code>LinearSVM</code>, <code>KMeans</code>, <code>PCA</code>.</p>
+
+<p><b>Deliverable:</b> every model passes a gradient check where applicable, and every
+fitted model reproduces a hand-checkable answer on a tiny dataset you can verify by
+hand.</p>
+
+<h3><span class="num">P.3</span> Stage 2: the evaluation harness</h3>
+
+<ul>
+  <li><code>train_val_test_split</code>: with an option to split on time rather than at
+  random.</li>
+  <li><code>k_fold</code> and <code>nested_cv</code>.</li>
+  <li><code>learning_curve(model, X, y)</code>: error against training set size.</li>
+  <li><code>capacity_curve(model_family, X, y)</code>: error against a capacity knob.</li>
+  <li>Reuse Part V's <code>bootstrap_ci</code> and <code>paired_bootstrap</code>.</li>
+</ul>
+
+<p><b>Deliverable:</b> a harness that, given a model and a dataset, returns a metric
+<i>with an interval</i>. Never a bare number.</p>
+
+<div class="box pitfall">
+  <span class="label">Watch for this in Stage 2</span>
+  <p>Any preprocessing that learns from data (standardisation, imputation, feature
+  selection) must be fitted <b>inside</b> each fold, on the training portion only. Fitting
+  it once on the whole dataset leaks validation information into training and inflates every
+  score you produce. This is drill C16, and it is the most common bug in the stage.</p>
+</div>
+
+<h3><span class="num">P.4</span> Stage 3: the bake-off</h3>
+
+<p>Assemble four datasets with deliberately different structure:</p>
+
+<ol>
+  <li><b>Linearly separable</b>: where the simplest model should win.</li>
+  <li><b>Concentric rings</b>: where linear models must fail and kernels or kNN should not.</li>
+  <li><b>Axis-aligned blocks</b>: where a tree should dominate.</li>
+  <li><b>High-dimensional with low intrinsic dimension</b>: data on a manifold in 200-D.</li>
+</ol>
+
+<p>Run every model on every dataset with equal tuning budget. Report a table of metrics with
+intervals.</p>
+
+<p><b>Deliverable:</b> the table, plus a paragraph per dataset explaining <b>which
+assumption</b> made the winner win. That explanation is the entire point: a bake-off
+without it is a leaderboard, and Section 7 says leaderboards without assumptions are
+meaningless.</p>
+
+<h3><span class="num">P.5</span> Stage 4: find the walls</h3>
+
+<ol>
+  <li><b>The curse.</b> Fix the sample size and grow the dimension. Plot kNN accuracy
+  against $d$. Find where it degrades to chance.</li>
+  <li><b>Intrinsic dimension rescues it.</b> Repeat with data on a low-dimensional manifold
+  embedded in the same high dimension. Show kNN survives.</li>
+  <li><b>Kernels do not scale.</b> Time kernel fitting against $n$. Confirm the quadratic
+  growth, and estimate the $n$ at which it becomes impractical on your machine.</li>
+  <li><b>SGD does.</b> Time logistic regression by SGD against $n$. Confirm it is linear.</li>
+</ol>
+
+<p>These four experiments are the empirical case for the rest of the book, established with
+your own code.</p>
+
+<h3><span class="num">P.6</span> Stretch</h3>
+
+<ul>
+  <li><b>Random forest</b>: bag your trees and measure the variance reduction.</li>
+  <li><b>Gradient boosting</b>: fit trees to residuals in sequence, and compare.</li>
+  <li><b>Kernel k-means</b>: apply the trick to clustering and solve the concentric rings.</li>
+  <li><b>A real dataset end to end</b>, with Part V's reporting checklist applied in full.</li>
+</ul>
+
+<h3><span class="num">P.7</span> Done when</h3>
+
+<ul class="checklist">
+  <li>All seven models share an interface and pass their checks.</li>
+  <li>Preprocessing is fitted inside folds, and you have measured the leak it would cause.</li>
+  <li>Every reported number carries an interval.</li>
+  <li>Each dataset's winner is explained by an assumption, not by a score.</li>
+  <li>You have located the dimension at which kNN fails, and shown a manifold rescues it.</li>
+  <li>You have measured kernel methods going quadratic and SGD staying linear.</li>
+  <li>Your README names a model you expected to win that did not.</li>
+</ul>
+
+<div class="box why">
+  <span class="label">Why this project</span>
+  <p>Implementing seven algorithms teaches you that they are small (most are fifteen to
+  forty lines) and that the difficulty was never the code. It is in knowing which
+  assumptions each one makes and whether your problem satisfies them.</p>
+  <p>Stage 4 matters most. Once you have personally watched nearest neighbours degrade to
+  chance as dimension grows, and then watched it recover when the data lies on a manifold,
+  the argument for representation learning stops being something you were told and becomes
+  something you measured.</p>
+</div>
+
+<h2 class="nobreak"><span class="part-kicker">Assess</span>Checkpoint</h2>
+
+<p class="lede">The next part builds neural networks on exactly this foundation.</p>
+
+<ul class="checklist">
+  <li>State the three components of a learning problem, and say which is hardest to specify.</li>
+  <li>Explain why accuracy is a poor measure on imbalanced data.</li>
+  <li>Write down empirical risk and true risk, and say why the gap is the whole subject.</li>
+  <li>State the i.i.d. assumption and give two realistic ways it fails.</li>
+  <li>Define capacity, and describe underfitting and overfitting in terms of it.</li>
+  <li>Read a learning curve and say whether more data will help.</li>
+  <li>State the no free lunch theorem and explain why it is not cause for despair.</li>
+  <li>Give four framings of regularization from four different parts.</li>
+  <li>Explain the roles of training, validation and test sets.</li>
+  <li>Explain why the best cross-validation score is a biased estimate.</li>
+  <li>Derive the logistic regression gradient.</li>
+  <li>Explain what an SVM maximises and which points determine the answer.</li>
+  <li>Explain the kernel trick without computing a feature map.</li>
+  <li>Say which way $k$ moves capacity in kNN, and why.</li>
+  <li>Say what a decision tree assumes about the shape of good boundaries.</li>
+  <li>Explain how PCA is an unsupervised learning algorithm and a linear autoencoder.</li>
+  <li>Give three ways k-means misleads.</li>
+  <li>Explain why minibatch gradients decouple step cost from dataset size.</li>
+  <li>State the four ingredients of a learning algorithm.</li>
+  <li>Explain the curse of dimensionality, with a number.</li>
+  <li>Explain why smoothness alone requires exponentially many examples.</li>
+  <li>State the manifold hypothesis and the evidence for it.</li>
+  <li>Give the three-step argument for why deep learning was necessary.</li>
+</ul>
+
+<table class="compact">
+  <thead><tr><th>Score</th><th>Verdict</th></tr></thead>
+  <tbody>
+    <tr><td><b>19–23</b></td><td>Go on. The foundations are complete.</td></tr>
+    <tr><td><b>15–18</b></td><td>Reread the sections you missed, then continue.</td></tr>
+    <tr><td><b>11–14</b></td><td>Work drills C1–C10 and the capacity curve first.</td></tr>
+    <tr><td><b>Under 11</b></td><td>Reread §§4–8 and §§21–23. Generalisation and the three walls carry this part.</td></tr>
+  </tbody>
+</table>
+
+<div class="box intuition">
+  <span class="label">The one thing to carry forward</span>
+  <p><b>Every model assumes something. The question is whether your problem agrees.</b></p>
+  <p>Linear models assume additivity. Trees assume axis-aligned splits. Nearest neighbours
+  assumes smoothness. Convolution will assume locality; recurrence will assume temporal
+  structure; attention will assume that relevance can be computed pairwise.</p>
+  <p>No assumption is universally right, as Section 7 forbids it. The skill is not collecting
+  algorithms; it is reading a problem well enough to know which assumption fits, and
+  recognising the failure when it does not.</p>
+</div>
+
+<div class="box why">
+  <span class="label">What the foundations have established</span>
+  <p>Five parts and roughly three hundred pages ago this book started with arithmetic.
+  What has been built:</p>
+  <ul class="tight">
+    <li>The mathematics of change, and the chain rule that makes learning possible at all.</li>
+    <li>The algebra of the objects computation acts on.</li>
+    <li>A language for uncertainty, and the loss functions that fall out of it.</li>
+    <li>The numerical reality of doing any of it on a machine.</li>
+    <li>The statistics required to know whether it worked.</li>
+    <li>And now: what learning is, when it generalises, and precisely where the classical
+    methods stop.</li>
+  </ul>
+  <p>Everything from here is one model family: compositions of simple functions, with the
+  features learned rather than chosen. The framework does not change again. Only column two
+  of §20's table does.</p>
+</div>

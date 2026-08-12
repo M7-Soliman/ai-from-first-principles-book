@@ -1,0 +1,260 @@
+<h2><span class="part-kicker">Part C</span>Functions</h2>
+
+<h3><span class="num">§6</span> What a function is</h3>
+
+<div class="box def">
+  <span class="label">Definition: function</span>
+  <p>A <b>function</b> is a rule that takes an input and returns <b>exactly one</b>
+  output. Written $f(x)$, read "f of x".</p>
+</div>
+
+<p>The words "exactly one" are the whole definition. A rule that could return two
+different answers for the same input is not a function. Everything else is
+bookkeeping.</p>
+
+<p>That restriction can look like fussiness, so it is worth seeing what it buys. Suppose
+a rule were allowed to return either 3 or $-3$ for the input 9, depending on nothing in
+particular. Then the sentence "the output is $f(9)$" would not name a number, and every
+statement you might want to make about $f$ (that it is increasing here, that its slope
+is 2 there, that composing it with $g$ gives you $h$) would become ambiguous or false.
+The whole apparatus of calculus rests on being able to say "the value of $f$ at this
+point" and have that phrase refer to one thing. "Exactly one" is not a technicality; it
+is the load-bearing wall.</p>
+
+<p>Notice that the requirement is one-directional, and this trips people. A function may
+absolutely send two different inputs to the same output; $f(x) = x^2$ maps both 3 and
+$-3$ to 9, and that is entirely legal. What it may not do is send one input to two
+outputs. Ask "what comes out?" and there must be one answer. Ask "what went in?" and
+there may be several, or none. That asymmetry is the reason §7's inverses are more
+delicate than they look.</p>
+
+<p>The programming reading is exact, and if you write code it is the fastest way in. A
+mathematical function is a <i>pure</i> function: same arguments, same return value,
+every time, with nothing read from the outside world and nothing changed by the call. A
+Python function that consults a global counter, or the clock, or a random number
+generator is not a function in this sense; it is a procedure. When this book says
+"function" it always means the pure kind, and the determinism is not an incidental
+property. It is the definition.</p>
+
+<figure>
+  <img src="figures/mf/01-function-machine.svg" alt="A function drawn as a machine with inputs entering and outputs leaving">
+  <figcaption><b>Figure 1.</b> The most useful mental model: a function is a
+  <b>machine</b>. Feed it a number, get a number. The same input always produces the
+  same output; that determinism is what makes it a function rather than merely a
+  process.</figcaption>
+</figure>
+
+<p>Two pieces of vocabulary that show up constantly:</p>
+
+<ul>
+  <li><b>Domain:</b> the set of inputs the function accepts. $f(x) = \sqrt{x}$ has
+  domain $x \geq 0$; $f(x) = 1/x$ excludes $x = 0$; $\log x$ requires $x > 0$.</li>
+  <li><b>Range:</b> the set of outputs it can produce. $f(x) = x^2$ has range
+  $y \geq 0$, since squares are never negative.</li>
+</ul>
+
+<div class="box why">
+  <span class="label">Why deep learning cares: domain errors are real bugs</span>
+  <p>Domain restrictions are not pedantry; they are where your code crashes. $\log(0)$
+  is $-\infty$ and $\log$ of a negative number is undefined, which is exactly why every
+  loss function implementation clamps its input, and why the "add a small $\epsilon$"
+  trick exists. Knowing a function's domain tells you in advance where it will
+  break.</p>
+</div>
+
+<h4>Notation that confuses people</h4>
+
+<p>$f(x)$ does <b>not</b> mean $f$ times $x$. It means "apply the function $f$ to the
+input $x$". The parentheses signal function application, exactly as they do in
+<code>print(x)</code>.</p>
+
+<p>The letter used for the input is arbitrary. $f(x) = x^2$, $f(t) = t^2$ and
+$f(\square) = \square^2$ are the identical function. This sounds trivial and matters
+enormously for the chain rule in §17, where you must substitute whole expressions into
+the slot.</p>
+
+<h3><span class="num">§7</span> Composition and inverses</h3>
+
+<h4>Composition: the idea that makes networks deep</h4>
+
+<p>Feed one function's output into another:</p>
+
+$$(f \circ g)(x) = f(g(x))$$
+
+<p>Read "f of g of x". <b>The inner function acts first.</b> With $g(x) = x + 1$ and
+$f(u) = u^2$:</p>
+
+$$f(g(3)) = f(4) = 16$$
+
+<p>Order matters and is not symmetric. Going the other way, $g(f(3)) = g(9) = 10$.</p>
+
+<p>The reliable picture is an assembly line. Each function is one station: something
+arrives, the station does its single job, and the result moves to the next station. The
+number 3 enters, the "add one" station hands on a 4, the "square it" station hands on a
+16. Nobody at any station knows or cares what the others do. Each sees an input, applies
+one transformation, passes it along.</p>
+
+<p>Two consequences follow immediately, and both matter enormously later. The first is
+that order is not negotiable, for exactly the reason it is not negotiable on a real
+production line: painting a part and then drilling it does not give you what drilling and
+then painting gives you. The second is that the line can be <i>arbitrarily long</i>. Nothing
+about the arrangement cares whether there are two stations or two hundred, because each
+one only ever deals with its immediate neighbours. That indifference to length is what
+makes deep networks possible at all; and, as §17 shows, it is also what makes them
+differentiable, since the rule for differentiating a composition is likewise local and
+likewise indifferent to how many stages there are.</p>
+
+<p>Nesting is also why the notation reads inside-out, which is the single most common
+early stumble. In $f(g(x))$ your eye meets $f$ first, but $f$ acts last. It is the same
+inversion as <code>print(len(items))</code>: you read <code>print</code> first and it runs
+last. Whenever a stack of nested functions confuses you, find the innermost thing, evaluate
+that, and work outward one layer at a time.</p>
+
+<div class="box why">
+  <span class="label">Why deep learning cares: this <i>is</i> what "deep" means</span>
+  <p>A neural network is a composition of functions, one per layer:</p>
+  <p>$$\text{output} = f_4(f_3(f_2(f_1(x))))$$</p>
+  <p>That is the entire architecture. "Deep" means "many functions composed". A
+  four-layer network is four nested applications, evaluated inside-out.</p>
+  <p>And because training requires differentiating this, and the chain rule is precisely
+  the rule for differentiating compositions, §17 is where the whole subject turns.</p>
+</div>
+
+<h4>Inverses: undoing</h4>
+
+<p>The <b>inverse</b> $f^{-1}$ undoes $f$: if $f(a) = b$, then $f^{-1}(b) = a$.
+Composing them returns you to where you started, $f^{-1}(f(x)) = x$.</p>
+
+<p>An inverse runs the assembly line backwards. If the station added one, the inverse
+station subtracts one; feed the output back in and the original part comes out unchanged.
+That is all "undoing" means here: not that the operation is cancelled, but that a second
+operation exists which restores the input exactly.</p>
+
+<div class="box pitfall">
+  <span class="label">Pitfall: $f^{-1}$ is not $1/f$</span>
+  <p>The superscript $-1$ means "inverse function", not "reciprocal". If $f(x) = x + 3$
+  then $f^{-1}(x) = x - 3$, which is nothing at all like $\frac{1}{x+3}$. Unfortunate
+  notation, universally used.</p>
+</div>
+
+<p>Not every function has an inverse. $f(x) = x^2$ does not, over all real numbers,
+because both $3$ and $-3$ map to $9$, so $f^{-1}(9)$ has no single answer, violating
+the "exactly one output" rule. Restrict the domain to $x \geq 0$ and the inverse exists,
+namely $\sqrt{x}$.</p>
+
+<p>This is the asymmetry from §6 coming back to charge rent. Squaring is perfectly
+well-behaved as a function; it just destroys information on the way through. Once you
+know the answer is 9, the sign of the input is gone, and no procedure can recover what
+was not kept. An inverse can only exist when the forward map threw nothing away.</p>
+
+<p>That observation is more than a technicality about square roots, because it recurs
+constantly in machine learning under other names. A network layer that maps a thousand
+numbers down to ten has discarded almost everything, and no amount of cleverness will
+reconstruct the original input from the ten, which is exactly why an autoencoder's
+decoder is <i>trained</i> rather than derived, and why it produces an approximation rather
+than the thing itself. Whenever you see a model reconstructing an input, the question
+worth asking is what the forward pass destroyed, because that is the ceiling on how good
+the reconstruction can possibly be.</p>
+
+<p>The pairs you will actually use: $e^x$ and $\ln x$ (§10), and the sigmoid and the
+logit (which you derived in §5 without being told that is what it was).</p>
+
+<h3><span class="num">§8</span> Lines, slopes, and polynomials</h3>
+
+<h4>Lines, and the single most important idea in this document</h4>
+
+$$y = mx + b$$
+
+<p>where $m$ is the <b>slope</b> and $b$ the intercept. The slope is the entire point:</p>
+
+$$m = \frac{\text{change in } y}{\text{change in } x} = \frac{\Delta y}{\Delta x}$$
+
+<p>Read that fraction as a sentence rather than a formula and it stops being arithmetic.
+It says: <b>for every one unit I move sideways, how far do I move up?</b> A slope of 3
+means three units up for one across: steep. A slope of $0.1$ means one unit up for ten
+across, nearly flat. A slope of $-2$ means you go <i>down</i> two for every one across.
+The sign is direction; the size is steepness. Those are two separate pieces of
+information carried by one number, and both of them are used in every training step of
+every model in this book.</p>
+
+<p>Here is the reason this modest idea deserves the emphasis. Almost nothing you care
+about in machine learning is a question about a <i>value</i>. It is a question about a
+<i>change</i>. Nobody wants to know that the loss is currently 0.83; that number alone
+tells you nothing you can act on. What you want to know is: if I make this weight
+slightly bigger, does the loss go up or down, and by how much? That is a question about
+the ratio of a change in the output to a change in the input, which is precisely what a
+slope is. Training a neural network consists of asking that one question about a few
+million weights, over and over, and stepping accordingly.</p>
+
+<p>The complication, and the whole reason §15 exists, is that a straight line has one
+slope everywhere and nothing interesting has that property. A loss surface is steep in
+some places and nearly level in others; that is exactly what makes it have a bottom to
+find. So "the slope" has to be localised: not the slope of the thing, but the slope
+<i>right here, at this point</i>. Producing that number is what a derivative does, and it
+is the only genuinely new idea between here and the end of Part 0. Everything else is
+apparatus for computing it.</p>
+
+<div class="box intuition">
+  <span class="label">Intuition: slope is a rate of change</span>
+  <p>Slope answers: <b>if I nudge the input by a little, how much does the output
+  move?</b> A slope of 3 means output changes three times as fast as input. A slope of
+  $-0.5$ means the output goes down half as fast as the input goes up.</p>
+  <p>Hold onto this sentence. <b>The derivative in §15 is nothing but the slope of a
+  curve at a point</b>, and everything about training a model is asking "if I nudge
+  this weight, how much does the loss move?" That question is the whole of
+  optimisation, and its answer is a slope.</p>
+</div>
+
+<h4>Polynomials</h4>
+
+<p>Sums of powers: $f(x) = 3x^2 - 2x + 5$. The highest power is the <b>degree</b>, and
+it determines the overall shape: degree 1 is a line, degree 2 a parabola, degree 3 an
+S-shaped curve with a bend.</p>
+
+<p>Two facts worth carrying:</p>
+
+<ul>
+  <li>Even powers ($x^2$, $x^4$) are symmetric about the vertical axis and never
+  negative.</li>
+  <li>Odd powers ($x$, $x^3$) run from negative to positive and are symmetric through
+  the origin.</li>
+</ul>
+
+<p>The parabola $f(x) = x^2$ deserves special attention because it is the shape of
+almost every loss function you will meet. It has one lowest point, it curves upward
+everywhere, and (as §19 shows) that combination is exactly what makes optimisation
+work reliably.</p>
+
+<p>It is worth understanding why that particular shape keeps appearing, because it is not
+an accident of taste. When a model is wrong, the natural thing to measure is how wrong:
+the gap between the prediction and the truth. But that gap can be positive or negative,
+and if you simply add up gaps across a dataset the overshoots cancel the undershoots and
+a terrible model can score zero. So you need to discard the sign before summing. Squaring
+is the cheapest way to do that: it is always positive, it is zero exactly when the gap is
+zero, and unlike the absolute value it is smooth, which means it has a derivative
+everywhere including at the bottom. Take "error, sign removed, summed up" seriously and a
+parabola is what you get.</p>
+
+<p>The consequences of that shape are the reason it is worth naming now. A parabola has a
+single lowest point, so there is no question of which minimum you want. It gets steeper the
+further you are from the bottom, which means the correction you receive is automatically
+larger when you are more wrong, a self-scaling property that gradient descent exploits
+without being told to. And it flattens as you approach the minimum, so the steps shrink as
+you arrive rather than overshooting. When you watch a training curve drop fast and then
+level out, you are watching a parabola's slope die away, and the picture in your head can
+be this one.</p>
+
+<div class="box try">
+  <span class="label">Try it</span>
+  <p>Let $g(x) = 2x - 1$ and $f(u) = u^2 + 3$.</p>
+  <p>(a) Compute $f(g(2))$. &nbsp; (b) Compute $g(f(2))$. &nbsp; (c) Write $f(g(x))$ as
+  a single expanded expression. &nbsp; (d) What is $g^{-1}(x)$?</p>
+</div>
+
+<p><b>Answers.</b> (a) $g(2) = 3$, then $f(3) = 9 + 3 = 12$.</p>
+<p>(b) $f(2) = 4 + 3 = 7$, then $g(7) = 14 - 1 = 13$. Different from (a), as order
+matters.</p>
+<p>(c) $f(g(x)) = (2x-1)^2 + 3 = 4x^2 - 4x + 1 + 3 = 4x^2 - 4x + 4$. Note the middle
+term: $(2x-1)^2$ is <i>not</i> $4x^2 + 1$.</p>
+<p>(d) Solve $y = 2x - 1$ for $x$: $x = \frac{y+1}{2}$, so
+$g^{-1}(x) = \frac{x+1}{2}$. Check: $g^{-1}(g(2)) = g^{-1}(3) = 2$. ✓</p>

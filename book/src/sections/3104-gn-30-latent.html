@@ -1,0 +1,219 @@
+<h2><span class="part-kicker">Part C</span>Latent variables and the VAE</h2>
+
+<h3><span class="num">§14</span> The latent variable model</h3>
+
+<div class="box def">
+  <span class="label">The construction</span>
+  <p>Draw a latent $\mathbf{z}$ from a simple prior, a standard Gaussian will do, and push it
+  through a network to get a distribution over $\mathbf{x}$:</p>
+  <p>$$p(\mathbf{x}) = \int p(\mathbf{x} \mid \mathbf{z})\, p(\mathbf{z})\, d\mathbf{z}$$</p>
+  <p>Each $p(\mathbf{x} \mid \mathbf{z})$ can be trivially simple, a Gaussian with mean
+  $g(\mathbf{z})$, and the <b>mixture over $\mathbf{z}$</b> is arbitrarily complex. That is the
+  appeal: complexity comes from the integral, not from the pieces.</p>
+  <p>Sampling is ancestral (§6) and therefore easy: draw $\mathbf{z}$, push it through, draw
+  $\mathbf{x}$. One pass, whatever the dimension.</p>
+</div>
+
+<div class="box why">
+  <span class="label">Why the integral is the whole problem</span>
+  <p>To train by maximum likelihood you need $\log p(\mathbf{x})$, which needs that integral, which
+  is over every possible $\mathbf{z}$. It has no closed form once $g$ is a network.</p>
+  <p>Monte Carlo is available and useless: draw $\mathbf{z}$ from the prior and average
+  $p(\mathbf{x} \mid \mathbf{z})$. In high dimensions almost every prior sample explains the
+  observed $\mathbf{x}$ terribly, so essentially all the mass of the estimator comes from the rare
+  draws that happen to land near the right $\mathbf{z}$, and you will not draw them.</p>
+  <p>The fix is to draw $\mathbf{z}$ from somewhere <b>informed by $\mathbf{x}$</b>, which is
+  what the posterior $p(\mathbf{z} \mid \mathbf{x})$ is, and which is equally intractable. §15 is
+  the way out.</p>
+</div>
+
+<h3><span class="num">§15</span> The evidence lower bound</h3>
+
+<div class="box def">
+  <span class="label">Derived in four lines</span>
+  <p>Introduce any distribution $q(\mathbf{z} \mid \mathbf{x})$ you like. Then</p>
+  <p>$$\log p(\mathbf{x}) = \mathcal{L}(\mathbf{x}, q)
+  \;+\; D_{KL}\big(q(\mathbf{z}\mid\mathbf{x}) \,\|\, p(\mathbf{z}\mid\mathbf{x})\big)$$</p>
+  <p>where</p>
+  <p>$$\mathcal{L}(\mathbf{x}, q) = \mathbb{E}_{\mathbf{z}\sim q}
+  \big[\log p(\mathbf{x} \mid \mathbf{z})\big]
+  - D_{KL}\big(q(\mathbf{z}\mid\mathbf{x}) \,\|\, p(\mathbf{z})\big)$$</p>
+  <p>Because a KL divergence is never negative, $\mathcal{L} \leq \log p(\mathbf{x})$ always. It
+  is the <b>evidence lower bound</b>, and maximising it is the closest thing to maximum likelihood
+  available here.</p>
+  <p>The two terms read directly. The first is <b>reconstruction</b>: encode $\mathbf{x}$, decode
+  it, and see how well you did. The second is a <b>penalty for the code being unusual</b> under
+  the prior. Part XV's autoencoder, with a term that says the code must also look like noise. The evidence lower bound returns as the central object of Part XXVIII §18,
+  where variational inference is studied for its own sake rather than as the training rule for a
+  generative model.</p>
+</div>
+
+<div class="box why">
+  <span class="label">Why the gap is exactly the thing you cannot see</span>
+  <p>The bound's slack is $D_{KL}(q \parallel p(\mathbf{z}\mid\mathbf{x}))$: how wrong your
+  approximate posterior is. It vanishes only when $q$ is the true posterior, which is the object
+  you introduced $q$ to avoid computing.</p>
+  <p>So the gap is not merely unknown in practice; it is unknown <b>for the same reason the
+  problem was hard</b>. You are reporting a number that is below the quantity you care about by an
+  amount you cannot measure, and §17 shows what that does.</p>
+</div>
+
+<h3><span class="num">§16</span> The reparameterisation trick</h3>
+
+<div class="readnow"><span class="label">Go and read</span><p><span class="src">Kingma &amp; Welling (2014)</span>, <i>Auto-encoding variational Bayes</i>. The VAE, whose real contribution is narrower and more useful than the architecture: §2.3's reparameterisation, which converts an expectation you cannot differentiate into one you can. Then <span class="src">Burda, Grosse &amp; Salakhutdinov (2016)</span> for the tighter bound that §17 argues should be what you report.</p></div>
+
+<div class="box def">
+  <span class="label">Moving the randomness out of the way</span>
+  <p>$\mathcal{L}$ contains an expectation over $\mathbf{z} \sim q_\phi$, and $\phi$ is what you
+  are differentiating. You cannot backpropagate through a sampling operation.</p>
+  <p>Unless you rewrite it. For a Gaussian $q$, instead of drawing
+  $\mathbf{z} \sim \mathcal{N}(\boldsymbol{\mu}_\phi, \boldsymbol{\sigma}_\phi^2)$, write</p>
+  <p>$$\mathbf{z} = \boldsymbol{\mu}_\phi(\mathbf{x})
+  + \boldsymbol{\sigma}_\phi(\mathbf{x}) \odot \boldsymbol{\epsilon},
+  \qquad \boldsymbol{\epsilon} \sim \mathcal{N}(\mathbf{0}, I)$$</p>
+  <p>Now the randomness is in $\boldsymbol{\epsilon}$, which does not depend on $\phi$, and the
+  path from $\phi$ to $\mathbf{z}$ is an ordinary differentiable expression. Part VII §12's
+  computational graph, with a noise source hanging off the side.</p>
+</div>
+
+<div class="box why">
+  <span class="label">Why this one line is what made the method work</span>
+  <p>The alternative estimator, the score-function or REINFORCE estimator, works for any $q$
+  including discrete ones, and has variance so high that training is impractical without heavy
+  variance reduction.</p>
+  <p>Reparameterisation gives a low-variance gradient for free, because it uses the derivative of
+  the thing being averaged rather than only its value. The restriction is real: it needs
+  $\mathbf{z}$ continuous and $q$ expressible as a differentiable transform of fixed noise. That
+  restriction is why VAEs use Gaussian latents essentially always, and it is the reason discrete
+  latent variables remain awkward.</p>
+</div>
+
+<h3><span class="num">§17</span> How loose is the bound</h3>
+
+<figure>
+  <img src="figures/gn/02-vae.svg" alt="ELBO and importance-weighted log-likelihood against beta, and the KL to the prior with the number of active latent dimensions">
+  <figcaption><b>Figure 2.</b> VAEs on the reference mixture, swept over the weight $\beta$ on the
+  KL term. The <b>gap</b> between the ELBO and an importance-weighted estimate of
+  $\log p(\mathbf{x})$ ranges from <b>0.159</b> to <b>1.402</b> nats: a factor of nine. At
+  $\beta = 0.2$ the ELBO reads $-2.959$ and at $\beta = 4$ it reads $-3.001$, so the bound prefers
+  $\beta = 0.2$; the true likelihood says $-2.250$ against $-2.082$ and prefers $\beta = 4$. <b>The
+  bound ranks them backwards.</b></figcaption>
+</figure>
+
+<div class="box pitfall">
+  <span class="label">Pitfall: comparing two models by their bounds</span>
+  <p>This is done constantly, and the figure shows why it is not safe. Model A's bound may exceed
+  model B's while model B's true likelihood exceeds model A's, because the two bounds are loose by
+  different amounts.</p>
+  <p>A tighter bound is a better <b>inference network</b>, not a better generative model. Reporting
+  ELBOs and concluding something about the models is a comparison of the encoders, partly.</p>
+  <p>The remedy is available and cheap at evaluation time: the <b>importance-weighted</b>
+  estimate</p>
+  <p>$$\log p(\mathbf{x}) \approx \log \frac{1}{k}\sum_{i=1}^{k}
+  \frac{p(\mathbf{x}, \mathbf{z}^{(i)})}{q(\mathbf{z}^{(i)} \mid \mathbf{x})},
+  \qquad \mathbf{z}^{(i)} \sim q$$</p>
+  <p>which is also a lower bound but tightens as $k$ grows and is what the figure's orange curve
+  is, at $k = 2000$. It costs $k$ decoder passes per example and nothing else. If you are going to
+  report a likelihood, report this one and state $k$.</p>
+</div>
+
+<h3><span class="num">§18</span> The VAE, assembled</h3>
+
+<div class="box def">
+  <span class="label">The pieces, in order</span>
+  <p>An <b>encoder</b> $q_\phi(\mathbf{z} \mid \mathbf{x})$ emitting a mean and variance. A
+  <b>sample</b> drawn by reparameterisation. A <b>decoder</b> $p_\theta(\mathbf{x} \mid \mathbf{z})$
+  emitting a distribution over $\mathbf{x}$. One loss, the negative ELBO, and ordinary gradient
+  descent on both networks at once.</p>
+  <p>Everything Part XV said about autoencoders applies, with one structural addition: the code is
+  required to be distributed like the prior. That is what makes it a generative model rather than
+  a compressor: you can draw $\mathbf{z}$ from the prior and decode it, and get something
+  sensible, which an ordinary autoencoder cannot do.</p>
+</div>
+
+<h3><span class="num">§19</span> Posterior collapse</h3>
+
+<div class="box def">
+  <span class="label">The failure</span>
+  <p>The KL term is minimised, exactly, when $q(\mathbf{z}\mid\mathbf{x}) = p(\mathbf{z})$: the
+  encoder ignores its input entirely. If the decoder is powerful enough to model the data without
+  help, that is a good solution: the KL is zero and the reconstruction term is as good as an
+  unconditional model can make it.</p>
+  <p>The latent code then carries <b>no information</b>. The model still trains, still reports a
+  respectable ELBO, and has quietly become a plain density model with an unused input.</p>
+</div>
+
+<div class="box why">
+  <span class="label">Why it is worst with the best decoders, and how to detect it</span>
+  <p>The stronger the decoder, the less it needs $\mathbf{z}$. An autoregressive decoder is the
+  extreme case: it can model the data by itself, so it does, and the latent is abandoned. This is
+  why VAEs with powerful decoders were a recurring disappointment.</p>
+  <p>The detection is one number and it is not the loss: report the <b>KL term per latent
+  dimension</b>. Dimensions with KL near zero are unused. The figure's right panel is this: at
+  $\beta = 8$ the code carries 1.136 nats and only one of two dimensions is active, and the ELBO
+  does not obviously report a problem.</p>
+  <p>The standard remedies all work by making the collapsed solution less attractive: KL
+  <b>annealing</b> (start $\beta$ near zero and raise it), <b>free bits</b> (do not penalise the
+  first few nats in each dimension), or weakening the decoder. Note that $\beta$ below 1 means you
+  are no longer optimising a bound on the likelihood at all, a defensible choice that should be
+  stated rather than absorbed.</p>
+</div>
+
+<h3><span class="num">§20</span> Why the samples are blurry</h3>
+
+<div class="box why">
+  <span class="label">Three contributions, and they are separable</span>
+  <p>The complaint is old and usually attributed to a single cause. There are three, and they can
+  be addressed independently.</p>
+  <p><b>The decoder's output distribution.</b> A Gaussian $p(\mathbf{x}\mid\mathbf{z})$ with fixed
+  variance makes the reconstruction term a squared error, and the optimal prediction under squared
+  error is a <b>mean</b>. Where the model is uncertain between two sharp possibilities it outputs
+  their average, which is blurry by construction. This is Part XIV §33's loss-is-not-the-metric,
+  arriving in image space.</p>
+  <p><b>The direction of the KL.</b> §4: maximum likelihood is mode covering, so the model spreads
+  mass rather than committing. Blur is what spreading looks like when the data is images.</p>
+  <p><b>The bound.</b> The model is not trained on the likelihood but on something below it by an
+  unmeasured amount, and the slack need not be uniform across the data.</p>
+  <p>Only the first is specific to VAEs, and it is the one that was fixed: by using a
+  discrete decoder over quantised values, or by handing the final step to a different model
+  entirely. Latent diffusion is precisely this: a VAE-style encoder for compression, and §29's
+  machinery for the distribution inside the latent space.</p>
+</div>
+
+<h3><span class="num">§21</span> Normalising flows, briefly</h3>
+
+<div class="box def">
+  <span class="label">Exact likelihood from an invertible network</span>
+  <p>If $\mathbf{x} = f(\mathbf{z})$ with $f$ invertible and differentiable, the change-of-variables
+  formula gives the density exactly:</p>
+  <p>$$\log p(\mathbf{x}) = \log p\big(f^{-1}(\mathbf{x})\big)
+  + \log \left| \det \frac{\partial f^{-1}}{\partial \mathbf{x}} \right|$$</p>
+  <p>No bound, no MCMC, exact sampling and exact density. The catch is the determinant: computing
+  it for a general Jacobian costs $O(n^3)$, so every flow architecture is a scheme for making it
+  cheap: triangular Jacobians, coupling layers or restricted transforms.</p>
+</div>
+
+<div class="box why">
+  <span class="label">Why the constraint proved expensive</span>
+  <p>Invertibility forces $\mathbf{z}$ to have the <b>same dimension</b> as $\mathbf{x}$. There is
+  no bottleneck, no compression and no low-dimensional latent, which contradicts the manifold
+  assumption the whole subject rests on (Part XV §5).</p>
+  <p>Flows remained an elegant and comparatively underperforming family for exactly this reason:
+  the constraint that buys the exact likelihood is also the constraint that prevents the model from
+  exploiting the structure of the data. They persist where an exact density is genuinely required,
+  and §33 notes where their machinery came back.</p>
+</div>
+
+<h3><span class="num">§22</span> What this movement establishes</h3>
+
+<div class="box intuition">
+  <span class="label">The trade, stated plainly</span>
+  <p>A latent variable model buys <b>one-pass sampling</b> and <b>a representation you can
+  manipulate</b>, neither of which the autoregressive family offers, at the price of an
+  intractable integral.</p>
+  <p>The bound is how that price is paid, and it is paid in a currency you cannot count: the gap
+  is unknown by construction, it varies between models, and it is large enough to reverse a
+  comparison. Everything uncomfortable about evaluating VAEs traces to that one fact.</p>
+  <p>The next movement takes a different route entirely. Instead of bounding an intractable
+  likelihood, it learns an object that never contained the intractable part in the first place.</p>
+</div>

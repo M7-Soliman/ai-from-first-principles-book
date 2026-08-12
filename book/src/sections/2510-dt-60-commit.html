@@ -1,0 +1,138 @@
+<h2><span class="part-kicker">Part F</span>The parts that are not technical</h2>
+
+<h3><span class="num">§32</span> Provenance, licence and consent</h3>
+
+<p>Three questions about every record, none of them answerable retrospectively, and all of them
+routinely unanswered.</p>
+
+<div class="box def">
+  <span class="label">The three, and why they are separate</span>
+  <p><b>Provenance.</b> Where did this record come from? Not "the web": which page, retrieved
+  when, under what terms. Without it you cannot answer any of the other questions, cannot honour
+  a deletion request, and cannot reproduce your own corpus.</p>
+  <p><b>Licence.</b> What are you permitted to do with it? Copyright attaches by default in most
+  jurisdictions, and "publicly accessible" is not a licence. Whether training constitutes a use
+  that requires one is genuinely contested and is being decided in courts as this is written.</p>
+  <p><b>Consent.</b> Did the person whose data this is agree to <i>this</i> use? Distinct from
+  licence: a photograph may be licensed by the photographer and depict someone who never agreed
+  to be in a training set.</p>
+  <p>These come apart constantly. A record can be lawfully obtained, licensed for reuse, and
+  used without the consent of the person it concerns.</p>
+</div>
+
+<div class="box why">
+  <span class="label">Why provenance is the technical prerequisite for everything else</span>
+  <p>Every other question in this section is unanswerable without it, and it is the one that has
+  to be recorded <b>at collection time</b> because it cannot be reconstructed later.</p>
+  <p>Concretely, provenance is what lets you: remove a source that turns out to be
+  impermissible; honour a deletion request; audit which parts of your corpus produced a
+  behaviour; reproduce the dataset; and answer the question a regulator or a court will ask,
+  which is "where did this come from?".</p>
+  <p>The cost of recording a URL and a timestamp per record is negligible at collection and
+  unbounded afterwards. This is the cheapest insurance in the part and the most commonly
+  skipped.</p>
+  <p>Everything above treats bad data as an accident: a frame nobody chose, a filter with an
+  opinion. Some of it is not an accident: a source can be deliberately corrupted to damage or
+  backdoor whatever trains on it. That is a different threat model, with its own defences, and it
+  is Part XXXII §35's subject: provenance is the first line against it, since a record you cannot
+  trace is a record you cannot rule out.</p>
+</div>
+
+<h3><span class="num">§33</span> Memorisation</h3>
+
+<div class="readnow"><span class="label">Go and read</span><p><span class="src">Carlini et al. (2021)</span>, <i>Extracting training data from large language models</i>. Demonstrates extraction of verbatim training text, including personal information, from a deployed model. Then <span class="src">Carlini et al. (2023)</span>, <i>Quantifying memorization</i>, which establishes the relationship this section's figure reproduces in miniature: memorisation grows with model scale, with data duplication, and with the length of context used to prompt it.</p></div>
+
+<p>Models memorise training data verbatim and can be induced to reproduce it. This is a data
+problem, not a modelling one, and §12's duplicates are the mechanism.</p>
+
+<figure>
+  <img src="figures/dt/06-memorisation.svg" alt="Verbatim reproduction and held-out loss against the number of copies in training">
+  <figcaption><b>Figure 6.</b> Random sequences inserted into a structured corpus a controlled
+  number of times, averaged over three sequences per count. At <b>1–2 copies</b> the model
+  reproduces essentially nothing. At <b>4</b> it reproduces 35%. At <b>8 copies (0.12% of the
+  corpus)</b> it reproduces the held-out half <b>perfectly</b>. Note the loss at one copy:
+  <b>6.59</b> against a chance value of 3.64, so the model is not ignorant of the sequence but
+  confidently wrong about it. This trains a small transformer from scratch, so the exact
+  percentages are a function of the optimiser's random draws and will shift with your PyTorch
+  version and hardware: rerunning this script on a different setup moves the numbers at
+  intermediate copy counts (four and eight) while leaving the shape intact: the same drop from
+  near-total loss to near-perfect recall, over the same order-of-magnitude range of copies. The
+  threshold itself, a handful of copies, is the robust finding.</figcaption>
+</figure>
+
+<div class="box why">
+  <span class="label">Why a handful of copies is the number that matters</span>
+  <p>The threshold is low, and that is the finding. A document does not need to be a significant
+  fraction of the corpus to be memorised; it needs to appear a few times, which on a web-scale
+  corpus is the <b>default</b> for anything mirrored, syndicated or quoted.</p>
+  <p>Three consequences follow directly.</p>
+  <p><b>Deduplication is a privacy measure.</b> §21 gave three reasons to deduplicate; this is
+  the fourth and it is the one with legal weight. Reducing a record to one copy moves it below
+  the threshold.</p>
+  <p><b>Personal information in a corpus is extractable</b> if it appears more than a few times,
+  and an address or an identifier that appears once in a leaked document may appear many times
+  across mirrors of it.</p>
+  <p><b>Memorisation and generalisation are not opposites.</b> The model in the figure learned
+  the corpus rule <i>and</i> memorised the canaries. Part V's bias–variance framing suggests a
+  trade; at this scale the model does both, and a low test loss is not evidence against
+  memorisation.</p>
+</div>
+
+<div class="box pitfall">
+  <span class="label">Pitfall: "it does not memorise, we checked the test loss"</span>
+  <p>Test loss measures generalisation. Memorisation is a property of specific records and is
+  invisible in an aggregate.</p>
+  <p>Measuring it requires the method of the figure: insert <b>canaries</b>, random sequences
+  you constructed, at known frequencies, train, and try to extract them. That gives you an
+  estimate of the memorisation threshold <i>for your model and your corpus</i>, which no general
+  claim can supply.</p>
+</div>
+
+<h3><span class="num">§34</span> What a dataset commits you to</h3>
+
+<p class="lede">The part closes on the thing that makes data different from every other component
+in this book.</p>
+
+<div class="box why">
+  <span class="label">Why data decisions are the hardest to reverse</span>
+  <p>Every other choice in this book is revisable. A bad architecture is retrained. A bad
+  optimiser is swapped. A bad hyperparameter is re-tuned. The cost is compute, and compute is
+  purchasable.</p>
+  <p>Data decisions are not like that.</p>
+  <p><b>A frame is fixed at collection.</b> §2's population–frame gap cannot be closed by any
+  later processing. If the sensors were only in one city, no amount of modelling recovers the
+  others.</p>
+  <p><b>Labels encode a task definition</b> (§6) and relabelling is the original cost again.</p>
+  <p><b>Provenance not recorded is lost</b> (§32), permanently and immediately.</p>
+  <p><b>A model trained on impermissible data is itself a problem</b>, not just its corpus,
+  and removing the data does not remove what the model learned from it.</p>
+  <p>So the asymmetry named in §1 is not just an oversight in how the subject is taught. It is
+  backwards relative to the actual cost of the decisions: the reversible choices get the
+  scrutiny and the irreversible ones get a sentence in a footnote.</p>
+</div>
+
+<div class="box def">
+  <span class="label">The questions to answer before collecting, not after</span>
+  <ol class="tight">
+    <li>What is the <b>population</b>, and what is the frame? Where do they differ? (§2)</li>
+    <li>What is the <b>label</b>, exactly, and is it a proxy for something else? (§6)</li>
+    <li>What will be <b>different at deployment</b>, and does the split reflect it? (§25)</li>
+    <li>What <b>provenance</b> is being recorded, per record? (§32)</li>
+    <li>What is the <b>irreducible error</b>, estimated from annotator agreement? (§5, §14)</li>
+    <li>What would make this dataset <b>unusable</b>, and would you find out?</li>
+  </ol>
+  <p>Six questions. Answering them costs a day at the start and cannot be done at all at the
+  end.</p>
+</div>
+
+<div class="box intuition">
+  <span class="label">The one thing to carry forward</span>
+  <p><b>Scale improves precision and does nothing for validity.</b></p>
+  <p>Figure 1 is the whole part: an interval of $\pm 0.003$ around an estimate that is wrong by
+  0.09. Every failure in Part B has this shape: the number gets tighter, more confident and
+  more reportable while the thing it measures drifts away from the thing you wanted.</p>
+  <p>Which gives the habit worth taking into Part XIV. When a number improves, ask what it is a
+  number <i>about</i>: which frame, which labels, which split, which population. The metric
+  cannot tell you, and by the time deployment does, the decisions that determined it were made
+  years earlier by someone who was not thinking about your problem.</p>
+</div>

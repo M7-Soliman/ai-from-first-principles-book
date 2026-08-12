@@ -1,0 +1,172 @@
+<h2><span class="part-kicker">Build</span>The project</h2>
+
+<p class="lede">Ten to fifteen hours, and the centrepiece of the book so far. You build an
+automatic differentiation engine from nothing, then a neural network library on top of it,
+then train something real with it.</p>
+
+<h3><span class="num">P.1</span> What you are building</h3>
+
+<p><b><code>tinygrad</code></b>: a working autograd engine and the network library it
+supports.</p>
+
+<p>The rule: <b>no framework, no autograd, at any stage.</b> NumPy for array arithmetic only.
+Everything else is yours, and by the end you will have rebuilt the core of PyTorch in a few
+hundred lines.</p>
+
+<h3><span class="num">P.2</span> Stage 1: the scalar engine</h3>
+
+<p>Start with one value at a time. It is unbearably slow and it is the clearest possible
+version of the idea.</p>
+
+<table class="compact">
+  <thead><tr><th>Piece</th><th>Notes</th></tr></thead>
+  <tbody>
+    <tr><td><code>Value</code></td><td>Holds data, grad, parents, and a local <code>_backward</code>.</td></tr>
+    <tr><td><code>+ - * / **</code></td><td>Each records how to send a gradient to its parents.</td></tr>
+    <tr><td><code>relu</code>, <code>tanh</code>, <code>exp</code>, <code>log</code></td><td>Same pattern, one local derivative each.</td></tr>
+    <tr><td><code>backward()</code></td><td>Topological sort, then reverse walk. Accumulate with <code>+=</code>.</td></tr>
+  </tbody>
+</table>
+
+<p><b>Deliverable:</b> a gradient check against numerical differentiation on ten randomly
+generated expressions, including at least one that <b>reuses a value</b>, since that is
+exactly where accumulation bugs hide.</p>
+
+<h3><span class="num">P.3</span> Stage 2: the network library</h3>
+
+<ul>
+  <li><code>Neuron</code>, <code>Layer</code>, <code>MLP</code>: built from <code>Value</code>.</li>
+  <li><code>parameters()</code>: returns every trainable value, so the optimiser can find them.</li>
+  <li>Losses: squared error and cross-entropy, the second from logits.</li>
+  <li>An <code>SGD</code> optimiser with momentum: reuse Part III's.</li>
+  <li><code>zero_grad()</code>, and a comment explaining why it is necessary.</li>
+</ul>
+
+<p><b>Deliverable:</b> train it on XOR and reach near-zero loss. Then train it on a spiral or
+two-moons dataset and plot the decision boundary.</p>
+
+<h3><span class="num">P.4</span> Stage 3: make it fast</h3>
+
+<p>Rewrite the engine to operate on <b>arrays</b> rather than scalars. The structure is
+identical; only the local derivatives change from numbers to matrix expressions.</p>
+
+<ul>
+  <li><code>Tensor</code> wrapping a NumPy array, with the same graph machinery.</li>
+  <li>Matrix multiply, with the backward pass you derived in §14.</li>
+  <li>Broadcasting, and its backward pass, which must <b>sum</b> over broadcast axes. This
+  is the step people get wrong.</li>
+  <li>Softmax and log-softmax, fused and stable (Part III §4).</li>
+</ul>
+
+<p><b>Deliverable:</b> identical gradients to Stage 1 on the same problems, and a measured
+speedup. Report the factor.</p>
+
+<h3><span class="num">P.5</span> Stage 4: train something real</h3>
+
+<ol>
+  <li>Load a real classification dataset: handwritten digits is the traditional choice.</li>
+  <li>Train a two-hidden-layer network on it with your own library.</li>
+  <li>Apply Part VI's discipline: train/validation/test, and Part V's intervals on the final
+  number.</li>
+  <li>Reproduce §20's diagnostic sequence, including deliberately breaking the model and
+  confirming the overfit-ten-examples test catches it.</li>
+</ol>
+
+<h3><span class="num">P.6</span> Stage 5: reproduce the part</h3>
+
+<p>Use your library as an instrument. One figure and caption each:</p>
+
+<ol>
+  <li><b>Vanishing gradients.</b> 25 layers, sigmoid versus ReLU, gradient by layer.</li>
+  <li><b>Initialisation.</b> Activation scale by depth at three scales.</li>
+  <li><b>Cross-entropy versus squared error</b> from a badly wrong start.</li>
+  <li><b>Dead ReLUs</b> against learning rate.</li>
+  <li><b>Residual connections</b> restoring gradient flow in the sigmoid network.</li>
+</ol>
+
+<h3><span class="num">P.7</span> Stretch</h3>
+
+<ul>
+  <li><b>Batch normalisation</b>, including the backward pass, the hardest derivation here.</li>
+  <li><b>Gradient checkpointing</b>, with peak memory measured.</li>
+  <li><b>Adam</b> on your own engine, reusing Part III's implementation.</li>
+  <li><b>A convolution layer</b> and its backward pass, which is the first section of the
+  part that follows.</li>
+</ul>
+
+<h3><span class="num">P.8</span> Done when</h3>
+
+<ul class="checklist">
+  <li>Gradient checks pass on expressions that reuse values.</li>
+  <li>XOR trains to near-zero loss from several random seeds.</li>
+  <li>The array engine gives identical gradients to the scalar one.</li>
+  <li>You have measured and reported the vectorisation speedup.</li>
+  <li>A real dataset trains, with an interval on the reported accuracy.</li>
+  <li>All five reproduction figures exist.</li>
+  <li>Your README names something the framework does that now seems obvious.</li>
+</ul>
+
+<div class="box why">
+  <span class="label">Why this project</span>
+  <p>This is the project the whole book has been building toward. Every earlier one supplied
+  a piece: Part 0's gradient checker verifies it, Part I's matrix operations run inside it,
+  Part II's cross-entropy is its loss, Part III's optimisers drive it, Part V's intervals
+  evaluate it, Part VI's methodology governs the experiment.</p>
+  <p>After it, no framework is a black box. You will know why gradients accumulate, why the
+  graph is retained, what detaching does, why in-place operations are dangerous, and what a
+  custom backward has to provide. Those stop being rules to remember and become consequences
+  of a design you built.</p>
+</div>
+
+<h2 class="nobreak"><span class="part-kicker">Assess</span>Checkpoint</h2>
+
+<ul class="checklist">
+  <li>Explain why no linear model can represent XOR.</li>
+  <li>Explain what a hidden layer does, in terms of features.</li>
+  <li>Show that a network with identity activations is equivalent to one layer.</li>
+  <li>State the universal approximation theorem and give three things it does not promise.</li>
+  <li>Give two arguments for depth over width.</li>
+  <li>Write the forward pass of a two-layer network with shapes.</li>
+  <li>Choose the output unit and loss for four different target types, and say why.</li>
+  <li>Explain why cross-entropy pairs with sigmoid and softmax.</li>
+  <li>Show that squared error's gradient vanishes on a saturated sigmoid, and cross-entropy's does not.</li>
+  <li>Explain why weights cannot start at zero, and why biases can.</li>
+  <li>Derive the $1/\sqrt{n}$ initialisation scale, and the factor of 2 for ReLU.</li>
+  <li>Draw a small expression as a computational graph.</li>
+  <li>Say when to use forward mode and when reverse, and why.</li>
+  <li>Write down the four backpropagation equations.</li>
+  <li>Do a two-layer forward and backward pass by hand with numbers.</li>
+  <li>Explain why the backward pass needs the forward activations.</li>
+  <li>Explain gradient checkpointing and what it trades.</li>
+  <li>Say which statistic of $p(y\mid\mathbf{x})$ squared error recovers, and which absolute error does.</li>
+  <li>Explain why a squared-error generative model produces blurry output.</li>
+  <li>Distinguish symbol-to-number from symbol-to-symbol differentiation, and say what the second buys.</li>
+  <li>Write the Hessian-vector product identity and say what it costs.</li>
+  <li>Explain vanishing gradients from the product form, with the 0.25 number.</li>
+  <li>Give four fixes for vanishing gradients and say what each attacks.</li>
+  <li>Explain what a dead ReLU is and why it never recovers.</li>
+  <li>State the diagnostic order for a training run that is not working.</li>
+  <li>Explain why autograd accumulates gradients rather than assigning them.</li>
+</ul>
+
+<table class="compact">
+  <thead><tr><th>Score</th><th>Verdict</th></tr></thead>
+  <tbody>
+    <tr><td><b>21–26</b></td><td>Go on. You understand the object.</td></tr>
+    <tr><td><b>16–20</b></td><td>Reread what you missed, then continue.</td></tr>
+    <tr><td><b>11–15</b></td><td>Do the project's Stages 1 and 2: building it fixes most of this.</td></tr>
+    <tr><td><b>Under 11</b></td><td>Reread §§12–17. Backpropagation carries this part, and it is worth the second pass.</td></tr>
+  </tbody>
+</table>
+
+<div class="box intuition">
+  <span class="label">The one thing to carry forward</span>
+  <p><b>A network is a composed function, and backpropagation is the chain rule with
+  bookkeeping.</b></p>
+  <p>There is no additional principle. Convolution, recurrence and attention change what the
+  composed functions <i>are</i>; they do not change how the gradient is computed, what the
+  loss means, or how the optimiser works.</p>
+  <p>That is why this part is the last one that introduces genuinely new machinery. Everything
+  after it is architecture, which is a much smaller thing than it looks from
+  outside.</p>
+</div>

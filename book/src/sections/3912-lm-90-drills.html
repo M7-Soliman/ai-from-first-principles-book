@@ -1,0 +1,444 @@
+<h2><span class="part-kicker">Practice</span>Drills</h2>
+
+<p class="lede">Fifty-four problems. The tokenizer half is fully self-contained: you build BPE from
+scratch and measure its pathologies. The evaluation half builds the instruments this part argues
+are missing.</p>
+
+<h3><span class="num">Tier 0</span> Estimate first</h3>
+
+<div class="drill">
+  <div class="head"><span class="tier est">Estimate</span>E1 &middot; The size of a context</div>
+  <p>A 32-layer model with 32 heads of dimension 128, serving one sequence at 8,192 tokens in fp16. Write down the KV cache size.</p>
+  <div class="ans"><b>Answer.</b> <b>4.3&nbsp;GB</b>, or about <b>0.5&nbsp;MB per token</b>. It scales linearly with context and with batch size, so it is the KV cache and not the weights that decides how many users a server holds, and it is why every long-context method in Part XX §12 is really a memory method. <i>Score yourself: within a factor of two is a pass, and an order of magnitude out is worth understanding before you go on.</i></div>
+</div>
+
+<h3><span class="num">Tier 1</span> Warm-up</h3>
+
+<div class="drill">
+  <div class="head"><span class="tier warm">Warm</span>W1 · Why not characters or words</div>
+  <p>Give the failure of each.</p>
+  <div class="ans"><b>Answer.</b> Characters give very long sequences, and attention is quadratic in
+  length. Words give an unbounded vocabulary and an unknown token that throws information away.
+  Subwords are the compromise.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier warm">Warm</span>W2 · Why BPE never needs an unknown token</div>
+  <div class="ans"><b>Answer.</b> It starts from bytes, and every input is bytes. Anything unseen
+  falls back to shorter pieces rather than failing.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier warm">Warm</span>W3 · The arithmetic failure</div>
+  <p>Where does it come from, and what is the fix?</p>
+  <div class="ans"><b>Answer.</b> From the tokenizer. If digits may merge, numbers of the same
+  length decompose differently and place value is invisible in the input. The fix is a
+  pre-tokenization rule that splits every digit (a tokenizer change, not a modelling one).</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier warm">Warm</span>W4 · The fertility gap</div>
+  <p>Name three consequences of a tokenizer trained mostly on English.</p>
+  <div class="ans"><b>Answer.</b> Cost, since pricing is per token; context, since a fixed window
+  holds less; and quality, since more tokens per unit of meaning means longer dependencies. None is
+  a claim about which languages are harder.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier warm">Warm</span>W5 · Why next-token prediction was enough</div>
+  <div class="ans"><b>Answer.</b> To predict the next token over a large corpus you must model what
+  generates the text. The objective is trivial and the competence needed to minimise it is not
+  obviously bounded, and this was discovered empirically rather than predicted.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier warm">Warm</span>W6 · Why in-context learning is not mysterious</div>
+  <div class="ans"><b>Answer.</b> Corpora are full of documents with internal structure, and
+  predicting their later parts requires inferring the pattern from their earlier parts. Reading a
+  rule from context was selected for by the objective.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier warm">Warm</span>W7 · Why writing the steps helps</div>
+  <div class="ans"><b>Answer.</b> A transformer does fixed computation per token. Generated tokens
+  are additional forward passes with the earlier outputs in context, so depth in time substitutes
+  for depth in layers. It is compute allocation, not a prompting trick.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier warm">Warm</span>W8 · What instruction tuning teaches</div>
+  <p>And what the data volume tells you.</p>
+  <div class="ans"><b>Answer.</b> An interface, not a capability. Thousands of examples against
+  trillions of pretraining tokens; that ratio is the evidence, and it predicts the limit: absent
+  capability produces a confident, well-formatted failure.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier warm">Warm</span>W9 · Capability against reliability</div>
+  <p>A model is right 95% of the time. What happens over twenty steps?</p>
+  <div class="ans"><b>Answer.</b> About 36%. Benchmarks measure "can it ever"; deployments need
+  "does it always", and the gap is where most engineering effort goes.</div>
+</div>
+
+<h3><span class="num">Tier 2</span> Core</h3>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C1 · Build BPE</div>
+  <p>Implement pre-tokenization, training and encoding. Train on a corpus you generate and confirm
+  the sequence shortens substantially against byte level.</p>
+  <div class="ans"><b>Answer.</b> Train on unique chunk <b>types</b> weighted by frequency, not on
+  the raw stream: the difference is seconds against hours. And check that a corpus of a few
+  repeated sentences produces a degenerate tokenizer that memorises whole sentences as single
+  tokens; diversity matters more than size.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C2 · Merge order matters</div>
+  <p>Apply merges greedily by longest match, and in training order. Find an input where they
+  differ.</p>
+  <div class="ans"><b>Answer.</b> They do differ, and training order is correct: the vocabulary
+  was built in that order and the model was trained on that segmentation.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C3 · Measure fertility</div>
+  <p>Train on one kind of text, then measure tokens per character on text in another script, on
+  rare words, on code and on digits.</p>
+  <div class="ans"><b>Answer.</b> Several times worse for anything unseen, and the multiplier tracks
+  the UTF-8 byte width of the script. Report this before choosing a tokenizer, because it is cheap
+  then and impossible later.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C4 · Break place value, then fix it</div>
+  <p>Train two tokenizers on the same text, one allowing digits to merge. Tokenize a set of numbers
+  and find two of the same length with different token counts.</p>
+  <div class="ans"><b>Answer.</b> They exist and are easy to find. With the digit-splitting rule it
+  is always one token per digit. That single rule is why modern models do arithmetic better.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C5 · The vocabulary curve</div>
+  <p>Sweep vocabulary size and plot tokens for a fixed text against the embedding and output layer
+  size. Find where the marginal token saved stops being worth the parameters.</p>
+  <div class="ans"><b>Answer.</b> The sequence shortens with diminishing returns and the embedding
+  grows linearly, so there is an interior optimum, and it moves with model width, since a wider
+  model pays more per vocabulary entry.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C6 · Spelling, from the tokens</div>
+  <p>Take a set of words, tokenize them, and check how many are a single token. Then ask what
+  counting their letters requires.</p>
+  <div class="ans"><b>Answer.</b> For a single-token word the letters are not in the input as
+  separate objects. The task is about structure the model cannot see, which is a different problem
+  from one it does badly.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C7 · In-context learning, constructed</div>
+  <p>Build a task with a <b>fresh random</b> input-to-label mapping per example, so nothing about it
+  can be in the weights. Train a model on many such tasks and test on new ones.</p>
+  <div class="ans"><b>Answer.</b> The freshness is the whole design. Any in-context result on a
+  familiar task is confounded by the model already knowing it.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C8 · Permute the labels</div>
+  <p>Evaluate C7's model with correct, cyclically permuted, and random demonstration labels.</p>
+  <div class="ans"><b>Answer.</b> If the model reads the mapping, permuting drives accuracy
+  <i>below</i> chance (it returns the permuted answer, reliably and wrongly) while randomising
+  leaves it at chance exactly. Below-chance is the diagnostic to want: at-chance under permutation
+  would only mean the model was confused, whereas below-chance means it followed the demonstrations
+  precisely where they led. If performance instead survives randomisation, the demonstrations were
+  supplying only the format, and which you observe depends on whether the mapping was already
+  learnable from the weights.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C9 · How many demonstrations</div>
+  <p>Sweep the number of examples from zero upward and plot accuracy. Then ask whether your
+  construction guarantees that the query symbol appears among the demonstrations, and run it
+  again both ways.</p>
+  <div class="ans"><b>Answer.</b> The two constructions give opposite curves, and the difference is
+  the whole lesson. If the query is guaranteed to be demonstrated, one demonstration is a trivial
+  copy and the curve <i>falls</i> as you add more: you are measuring how hard the relevant example
+  is to find, not how much examples help. If the query is drawn freely, the ceiling is chance plus
+  the probability of having been demonstrated, so the curve rises from chance towards that ceiling.
+  Neither is the number-of-demonstrations curve on its own; you have to say which you built. Figure 3
+  is the first kind.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C10 · Chain of thought, controlled</div>
+  <p>Build a task needing several sequential steps. Train two models on identical problems and
+  answers, one shown the intermediate values. Sweep the number of steps. Then separate the two things
+  that differ: give the direct model the same number of tokens before its answer, filled with a
+  padding symbol carrying no information, so it has the same forward passes but no supervision on
+  them.</p>
+  <div class="ans"><b>Answer.</b> A large gap, with the direct model at chance at every depth while
+  the model writing its work stays far above it. Do not expect the gap to grow smoothly with depth:
+  Figure 4's does not, and reading a clean trend into five noisy points is how a real effect gets
+  oversold. The gap is what replicates; its shape is not. The padding control is the one that matters
+  for the mechanism: if extra forward passes alone recover much of the gap, the tokens are doing
+  computation, and if they do not, what helped was supervision on the intermediate values. Report
+  which you found.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C11 · The chain is not faithful</div>
+  <p>Corrupt an intermediate step in a generated chain and see whether the final answer changes.
+  Then prompt toward a wrong answer and read the chain.</p>
+  <div class="ans"><b>Answer.</b> The answer often survives a corrupted step, and the chain will
+  rationalise toward a suggested conclusion. It helps and it is not a transcript, and both are true
+  at once.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C12 · Prompt sensitivity</div>
+  <p>Take one task and write eight prompts that mean the same thing. Report best, mean, worst and
+  spread.</p>
+  <div class="ans"><b>Answer.</b> The spread is usually large enough to change a conclusion.
+  Reporting the best is Part XIV §20's inflation, and a task whose score swings with formatting is
+  one the model does fragilely.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C13 · The position effect</div>
+  <p>Place a fact at controlled depths in a long context and measure retrieval accuracy against
+  depth.</p>
+  <div class="ans"><b>Answer.</b> Beginning and end are used well and the middle worse. Report the
+  depth profile rather than the window size, and note that the standard probes are now trained
+  against, so build your own.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C14 · Accuracy against reliability</div>
+  <p>Evaluate a task under several paraphrases. Report mean accuracy and the fraction correct under
+  <b>every</b> paraphrase.</p>
+  <div class="ans"><b>Answer.</b> Reliability is always at most the mean and usually far below it.
+  It is the number deployments need and essentially no benchmark reports.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C15 · The chain arithmetic</div>
+  <p>Plot end-to-end success against the number of steps, for per-step rates of 0.9, 0.95 and 0.99.
+  Find how many steps each supports at 50%.</p>
+  <div class="ans"><b>Answer.</b> 6, 13 and 68. That table is the argument for verification at every
+  step rather than better single-step accuracy.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C16 · Judge biases</div>
+  <p>Measure a judge's position bias by presenting the same pair both ways, and its verbosity bias
+  by comparing raw and length-controlled win rates.</p>
+  <div class="ans"><b>Answer.</b> Both are usually present. Randomise position and control for
+  length, and use a judge from a different family than either contestant, since self-preference is
+  not hypothetical here.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C17 · Sycophancy</div>
+  <p>Ask a set of factual questions neutrally, then again after stating a wrong position. Measure
+  how often the answer moves.</p>
+  <div class="ans"><b>Answer.</b> It moves, and the rate is a direct consequence of §27:
+  annotators preferred agreement, so the preference data rewarded it.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C18 · Both refusal rates</div>
+  <p>Build a harmful set and a benign set constructed to <i>look</i> risky. Report refusals on
+  both.</p>
+  <div class="ans"><b>Answer.</b> Reporting only the first makes a model that refuses everything
+  look perfect. The pair is the measurement, and it is Part XIV §3's precision and recall
+  again.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C19 · Best-of-$n$ inflation</div>
+  <p>Score $n$ samples with a noisy scorer and take the best. Sweep $n$ and plot the gap between the
+  selected score and the true mean.</p>
+  <div class="ans"><b>Answer.</b> It grows with $n$, exactly as Part XIV §20 measured. Report $n$,
+  and evaluate the selected answer against something the selector did not see.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C20 · Contamination, from the inside</div>
+  <p>Build a corpus and a test set with a controlled overlap. Implement the $n$-gram check and see
+  what fraction it recovers.</p>
+  <div class="ans"><b>Answer.</b> It works when you can see the corpus, and near-duplicates that are
+  not $n$-gram-identical slip through. For a model whose data is unpublished the check cannot be run
+  at all, which is the point.</div>
+</div>
+
+<h3><span class="num">Tier 3</span> Stretch</h3>
+
+<div class="drill">
+  <div class="head"><span class="tier stretch">Stretch</span>S1 · A tokenizer for your domain</div>
+  <p>Take a corpus you care about, train tokenizers at several vocabulary sizes, and measure
+  fertility on held-out text from each domain you intend to serve.</p>
+  <div class="ans"><b>Answer.</b> This is the decision §7 says is made at the point of least
+  information. Doing it deliberately once is worth more than any later fine-tune.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier stretch">Stretch</span>S2 · Induction heads, found</div>
+  <p>Train a small model on sequences with repeated random segments. Watch the loss on the repeated
+  portion during training, and look for the moment it drops sharply.</p>
+  <div class="ans"><b>Answer.</b> There is one, it is narrow, and the aggregate loss barely notices:
+  §15's point. Then find the heads responsible by ablating each and re-measuring.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier stretch">Stretch</span>S3 · Memorisation against duplication</div>
+  <p>Insert a random sequence into a corpus 1, 2, 4, ... 64 times. Train, then measure verbatim
+  recall of each.</p>
+  <div class="ans"><b>Answer.</b> Recall rises sharply with duplication, which is why deduplication
+  is the effective intervention. Part XIII §33's result, reproduced at a scale you can run.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier stretch">Stretch</span>S4 · Retrieval that misleads</div>
+  <p>Build a retrieval system, then inject known-irrelevant and known-wrong passages. Measure how
+  often each is used.</p>
+  <div class="ans"><b>Answer.</b> Both more often than you would like. Separate the two failures
+  first: run exact search to see whether retrieval or the model is at fault.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier stretch">Stretch</span>S5 · Prompt injection</div>
+  <p>Put an instruction inside a retrieved document and see whether it is followed.</p>
+  <div class="ans"><b>Answer.</b> It is. The model has no channel separating data from instructions,
+  so the separation has to be enforced outside it, which is a system design problem, not a
+  prompting one.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier stretch">Stretch</span>S6 · An agent, priced</div>
+  <p>Build a multi-step agent with a verifiable step. Measure per-step accuracy and end-to-end
+  success at several depths, and compare to C15's prediction.</p>
+  <div class="ans"><b>Answer.</b> Without verification it tracks the chained arithmetic closely.
+  With per-step verification it does not, which is the whole argument for building the verifier
+  first.</div>
+</div>
+
+<h3><span class="num">Movement G</span> Keeping and changing what a model knows</h3>
+
+<div class="drill">
+  <div class="head"><span class="tier est">Estimate</span>E2 &middot; How many edits before it breaks</div>
+  <p>A linear associative memory holds 5,000 facts. Before computing: roughly how many rank-one edits can you apply before the unedited facts are as damaged as the signal itself? Then say what that implies for using editing as a maintenance strategy.</p>
+  <div class="ans"><b>Answer.</b> About <b>5,000</b>: each edit costs roughly one fact's worth, so the store survives about as many edits as it holds facts, regardless of its dimension. If facts change at any appreciable rate you exhaust that in normal operation, which is the arithmetic case for putting changeable knowledge in retrieval rather than in weights. <i>Score yourself: within a factor of two is a pass.</i></div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier warm">Warm</span>W10 &middot; Four remedies, one problem</div>
+  <p>Name the four things you can do about forgetting, and what each one is doing.</p>
+  <div class="ans"><b>Answer.</b> Rehearse (keep old data in the mix), constrain (do not move far: small learning rate, KL penalty, low-rank adapter), average (train separately, combine weights), edit (change one thing directly). The second is four spellings of one constraint, because forgetting is a distance in parameter space.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier warm">Warm</span>W11 &middot; Why the recovery cost matters</div>
+  <p>A model loses a capability after fine-tuning. Why is that not enough to report?</p>
+  <div class="ans"><b>Answer.</b> Because what is usually lost is access rather than content: Figure 5 measures recovery 60&times; faster than original learning. A capability that returns in fifty steps of re-exposure has not been destroyed, and reporting the loss without the recovery cost overstates the damage.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier warm">Warm</span>W12 &middot; When you may average two models</div>
+  <p>What is the precondition, and why?</p>
+  <div class="ans"><b>Answer.</b> They must share an ancestor. Figure 7 measures a barrier of &minus;0.001 between two runs from a shared initialisation and +0.336 between two from distinct ones. Model soups and EMA both satisfy the condition by construction; merging across pretraining runs does not.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C21 &middot; Make forgetting happen</div>
+  <p>Train a small network on task A, then on task B, tracking A's accuracy. Give the input a task indicator, and explain why.</p>
+  <div class="ans"><b>Answer.</b> Without an indicator the two tasks share an input distribution and one output, so an input positive under A and negative under B has no correct label and no model can satisfy both. Check it: joint training from scratch should reach high accuracy on both. If it reaches about 0.65, you are measuring an impossibility rather than forgetting.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C22 &middot; Forgetting is a distance</div>
+  <p>Plot A's accuracy against the distance moved in parameter space rather than against steps. Then vary the learning rate and check the relationship survives.</p>
+  <div class="ans"><b>Answer.</b> A tight relationship (correlation about 0.97 in Figure 5) and it holds across learning rates, which is the point. It is why lower learning rates, fewer steps, KL penalties and low-rank adapters all help: each bounds the distance.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C23 &middot; Price replay</div>
+  <p>Sweep the replay fraction from 0 to 40% and plot both retention and new-task accuracy. Find the fraction at which the retention curve flattens.</p>
+  <div class="ans"><b>Answer.</b> It flattens by about 5%, and 1% already buys most of the available retention, at a cost to the new task too small to measure. Choose the fraction from the flat part of your own curve rather than from an argument, and note that the binding constraint in practice is having kept the old data at all.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C24 &middot; Find a barrier</div>
+  <p>Train two networks on the <i>same</i> task, once from a shared initialisation and once from distinct ones, and interpolate between each pair. Use a task that genuinely needs hidden structure.</p>
+  <div class="ans"><b>Answer.</b> Flat from a shared start, a deep dip from distinct starts. The task matters: on something solvable by a single direction, a wide network is over-parameterised enough that any two solutions are effectively the same function and the path is flat either way, which tells you about the task, not the landscape.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C25 &middot; Width flattens the barrier</div>
+  <p>Measure the barrier between distinct initialisations across a range of hidden widths.</p>
+  <div class="ans"><b>Answer.</b> It shrinks: about 0.34 at width 8 and 0.03 at width 128 in Figure 7. Two consequences: merging is more forgiving at scale, and a negative merging result obtained on a small model does not transfer upward. This is Part XXIII movement G's theme in another setting.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C26 &middot; Merge two fine-tunes</div>
+  <p>Fine-tune one base model on two tasks and interpolate. Compare the midpoint against each specialist on its own task and against the mean.</p>
+  <div class="ans"><b>Answer.</b> The midpoint is a genuine compromise: better on average than either endpoint, and much worse than each specialist on that specialist's task. "As good as either on both" is too strong and is the claim to check whenever a merging result is reported.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C27 &middot; Task arithmetic, with a baseline</div>
+  <p>Compute <span class="m">$\tau=\theta_{\text{ft}}-\theta_0$</span> for two tasks, evaluate <span class="m">$\theta_0+\tau_A+\tau_B$</span>, and also evaluate each fine-tune on the <i>other</i> task.</p>
+  <div class="ans"><b>Answer.</b> The cross-task number is the baseline addition must beat, and without it the claim is unfalsifiable: when the two task vectors happen to align, either model alone is already good at both. In Figure 8 the sum lifts 22 points over that baseline: real, and about a quarter short of each specialist.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C28 &middot; Interference is predictable</div>
+  <p>Correlate the cosine between task vectors with how much the sum gains. Do it against raw accuracy and against lift over the cross-task baseline.</p>
+  <div class="ans"><b>Answer.</b> The two correlations have <b>opposite signs</b>: about +0.9 against raw accuracy and &minus;0.7 against lift. Only the second is about the arithmetic. Near-orthogonal task vectors compose cleanly and aligned ones interfere: the same capacity accounting as superposition, where capacity is directions.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C29 &middot; Edit a fact exactly</div>
+  <p>Build a linear associative memory that stores its facts exactly, then apply a rank-one update mapping one key to a new value. Verify the edit is exact and measure the collateral damage.</p>
+  <div class="ans"><b>Answer.</b> The edit is exact to floating point; the rest of the store degrades by roughly one fact's worth. Store fewer facts than dimensions and <i>assert</i> the baseline error is zero; with more facts than dimensions the least-squares fit does not hold them at all, and what you would then measure as collateral damage is mostly the fit residual.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C30 &middot; Derive the DPO loss, and check it</div>
+  <p>Build a discrete preference problem: a handful of responses to one prompt, a reference policy
+  <span class="m">$\pi_{\text{ref}}$</span>, and a reward <span class="m">$r$</span>. Compute
+  §29's closed form <span class="m">$\pi^*\propto\pi_{\text{ref}}\exp(r/\beta)$</span> and confirm
+  numerically that no other policy on the simplex beats its
+  <span class="m">$\mathbb{E}_\pi[r]-\beta\,\mathrm{KL}(\pi\|\pi_{\text{ref}})$</span> value. Then
+  sample Bradley&ndash;Terry preference pairs from <span class="m">$r$</span> and fit a policy by
+  minimising the DPO loss alone (no reward model, no PPO).</p>
+  <div class="ans"><b>Answer.</b> Thousands of random policies and none beats the closed form. The
+  residual <span class="m">$r-\beta\log(\pi^*/\pi_{\text{ref}})$</span> is the same constant for
+  every response to the prompt: that constant is <span class="m">$\beta\log Z(x)$</span>, and
+  it is exactly what Bradley&ndash;Terry cancels. Fitting only the DPO loss on sampled pairs recovers
+  a policy close to <span class="m">$\pi^*$</span>, which is the "same optimum" claim, checked
+  rather than trusted.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier stretch">Stretch</span>S7 &middot; The exchange rate</div>
+  <p>Apply edits in sequence and plot the damage against the count on log axes. Fit the slope, and predict the number of edits that ruins the store before running that far.</p>
+  <div class="ans"><b>Answer.</b> Slope about 1 (linear, not accelerating) at a rate near one fact per edit, so the store is ruined after about as many edits as it holds facts, well below its dimensional capacity. Editing has an exchange rate you can compute rather than a budget you discover.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier stretch">Stretch</span>S8 &middot; Six fine-tunes in a row</div>
+  <p>Chain six fine-tunes on six tasks, evaluating all six after each stage. Then repeat with 2% replay of everything seen so far, and with a KL penalty toward the previous stage.</p>
+  <div class="ans"><b>Answer.</b> Without a remedy, accuracy on task <span class="m">$k$</span> collapses shortly after stage <span class="m">$k+1$</span> and the final model is competent at the last task only. Replay of everything so far is close to joint training and nearly as good; the KL penalty trades new-task accuracy for retention along a curve you can sweep. The instructive part is the evaluation discipline: each stage passes its own objective while the composition regresses on something no stage owns.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier stretch">Stretch</span>S9 &middot; Order effects</div>
+  <p>Train on tasks A then B, and on B then A, with everything else identical. Compare the two final models on both tasks.</p>
+  <div class="ans"><b>Answer.</b> They differ, and the last task wins, which means a post-training pipeline's ordering is a hyperparameter nobody tunes. If the ordering changes the outcome and the ordering was decided by which team finished first, that is worth knowing before it is worth optimising.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier stretch">Stretch</span>S10 &middot; Adapters as a distance constraint</div>
+  <p>Fine-tune with a low-rank adapter of increasing rank and measure both forgetting and new-task accuracy against the distance travelled.</p>
+  <div class="ans"><b>Answer.</b> Rank bounds the distance, and forgetting tracks distance rather than rank as such, which is the useful framing: an adapter is not a different mechanism from a small learning rate, it is a different way of writing the same constraint, and the two should land on one curve when plotted against distance moved.</div>
+</div>

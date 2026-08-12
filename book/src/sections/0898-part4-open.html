@@ -1,0 +1,91 @@
+<div class="partopen">
+  <div class="pnum">Part Five</div>
+  <h1>Statistics<br><span style="font-weight:300">&amp; Estimation</span></h1>
+  <p class="tag">Probability asks what data a model produces. Statistics asks the
+  question machine learning actually needs: given the data, what is the model?</p>
+  <div class="rule"></div>
+  <div class="contents">
+    <b>1–5</b> Estimators<br>
+    <b>6–7</b> Sampling distributions<br>
+    <b>8–10</b> Intervals and the bootstrap<br>
+    <b>11–16</b> Testing, and how it goes wrong<br>
+    <b>17–19</b> Bayesian estimation<br>
+    <b>20</b> The bias–variance decomposition<br>
+  </div>
+  <div class="meta">
+    20 sections · 13 figures · 33 drills · 1 project<br>
+    <b>Ends at:</b> the decomposition that every later part depends on.
+  </div>
+</div>
+
+<h2 class="nobreak">Before you start</h2>
+
+<p class="lede">Part II taught you to reason forward: given a distribution, what does a
+sample look like. This part reverses the arrow, and the reversal is where machine learning
+actually lives.</p>
+
+<h3><span class="num">§0.1</span> The direction that matters</h3>
+
+<p>Everything in Part II ran one way. Given a fair coin, what is the chance of seven heads
+in ten flips? Given a Gaussian with known mean and variance, how much mass lies beyond two
+standard deviations?</p>
+
+<p>Nobody ever handed you a fair coin. In practice you have ten flips and a question about
+the coin, and that is a different problem: harder, and the one every model in this book is
+solving. <b>Probability reasons from model to data. Statistics reasons from data to
+model.</b></p>
+
+<p>A trained model <i>is</i> an estimate. Its parameters are estimates, its reported
+accuracy is an estimate, and the claim that it beats the previous model is a claim about
+two estimates. Without the machinery in this part you can compute all of those numbers and
+say nothing defensible about any of them.</p>
+
+<h3><span class="num">§0.2</span> Four questions this part answers</h3>
+
+<p>Each of these is asked constantly in practice and answered badly.</p>
+
+<ol>
+  <li><b>My model scored 94.2% on the test set.</b> What is the uncertainty on that number?
+  Sections 6–10.</li>
+  <li><b>Model A got 94.2%, model B got 93.8%.</b> Is A actually better? Sections 11–16.</li>
+  <li><b>I tried two hundred configurations and reported the best.</b> What did that cost
+  me? Sections 14–15.</li>
+  <li><b>Why does more capacity reduce one kind of error and increase another?</b>
+  Section 20, derived rather than asserted.</li>
+</ol>
+
+<div class="box why">
+  <span class="label">Why this matters</span>
+  <p>Reported results in this field are frequently indefensible, and not because anyone is
+  dishonest. Point estimates get published with no interval. Differences well inside the
+  noise are described as improvements. Test sets get reused hundreds of times during
+  development and then treated as though they were fresh. Hyperparameter search is
+  multiple hypothesis testing and is almost never accounted for as such.</p>
+  <p>Every one of those is a mistake this part teaches you to see. That makes it the most
+  professionally consequential part of the book, in the narrow sense that it will change
+  what you are willing to claim.</p>
+</div>
+
+<h3><span class="num">§0.3</span> What you need</h3>
+
+<ul class="checklist">
+  <li><b>Part II</b>: distributions, expectation, variance, the central limit theorem, and maximum likelihood from §26. This part is its direct continuation.</li>
+  <li><b>Part 0</b>: derivatives, for §20's decomposition and the estimator algebra.</li>
+  <li><b>Part III</b>: lightly. Section 10's bootstrap is a Monte Carlo method, and §20 touches conditioning.</li>
+  <li><b>Part I</b>: barely. One or two matrix expressions.</li>
+</ul>
+
+<h3><span class="num">§0.4</span> The habit for this part</h3>
+
+<p>Earlier parts asked you to write down shapes, to say what is random, and never to trust
+an unchecked number. This part's is:</p>
+
+<p><b>Every number you report is a random variable. Say how random.</b></p>
+
+<p>An accuracy is not a property of a model; it is a property of a model <i>and</i> the
+particular test set you happened to draw. Run it on a different sample and you get a
+different number. The size of that wobble is not a detail; frequently it is larger than the
+difference you are claiming to have found.</p>
+
+<p>Getting into the habit of asking "compared to what noise?" before reporting anything is
+most of what this part is for.</p>

@@ -1,0 +1,121 @@
+<h2><span class="part-kicker">Part E</span>From a probability to a decision</h2>
+
+<p class="mvt">A calibrated probability is not an action. Turning one into the other requires a
+statement about what outcomes are worth, and that statement is not in the data, which is why a
+perfectly calibrated model can still make expensive mistakes, and why the threshold is the part
+nobody documents.</p>
+
+<h3><span class="num">§32</span> Utility, and why the loss is not it</h3>
+
+<div class="box def">
+  <span class="label">Expected utility</span>
+  <p>Given a predictive distribution <span class="m">$p(y \mid x)$</span> and a utility
+  <span class="m">$u(a, y)$</span> for taking action <span class="m">$a$</span> when the outcome is
+  <span class="m">$y$</span>, choose</p>
+  <p class="m">$$a^{*} = \arg\max_{a} \; \mathbb{E}_{y \sim p(y \mid x)}\big[u(a, y)\big]$$</p>
+  <p>The separation this enforces is the useful part. The <b>model</b> supplies
+  <span class="m">$p(y \mid x)$</span>; the <b>utility</b> is supplied by whoever bears the
+  consequences. Training loss is neither: it is a surrogate chosen for optimisation, and Part IX §3
+  said so.</p>
+</div>
+
+<div class="box why">
+  <span class="label">Why conflating them is the most common error in applied work</span>
+  <p>A model trained with cross-entropy and thresholded at 0.5 has silently asserted that a false
+  positive and a false negative cost the same. Nobody wrote that down and it is almost never true.</p>
+  <p>The fix costs nothing once the probability is calibrated: change the threshold. What it
+  requires is someone stating the ratio, which is a conversation rather than a computation, and the
+  reason it does not happen is that the default never announces itself as a choice.</p>
+</div>
+
+<h3><span class="num">§33</span> The optimal threshold</h3>
+
+<div class="box def">
+  <span class="label">Where it belongs, exactly</span>
+  <p>With cost <span class="m">$c_{\text{FP}}$</span> for a false alarm and
+  <span class="m">$c_{\text{FN}}$</span> for a miss, acting is worth it when the expected cost of
+  acting is lower:</p>
+  <p class="m">$$p \cdot 0 + (1-p)\,c_{\text{FP}} \;<\; p \cdot c_{\text{FN}} + (1-p)\cdot 0 \quad\Longleftrightarrow\quad p \;>\; \frac{c_{\text{FP}}}{c_{\text{FP}} + c_{\text{FN}}}$$</p>
+  <p>The threshold depends only on the ratio of costs, never on the base rate or the model. Equal
+  costs give 0.5, and that is the <i>only</i> circumstance in which 0.5 is correct.</p>
+</div>
+
+<h3><span class="num">§34</span> What the default costs</h3>
+
+<figure>
+  <img src="figures/uq/06-decision.svg" alt="Expected cost against decision threshold for three cost ratios, and the penalty of using 0.5 relative to optimal">
+  <figcaption><b>Figure 6.</b> Exact arithmetic on a perfectly calibrated model, calibrated by
+  construction, since the outcomes are drawn from the predicted probabilities. As the cost of a miss
+  rises relative to a false alarm, the optimal threshold falls to
+  <span class="m">$c_{\text{FP}}/(c_{\text{FP}} + c_{\text{FN}})$</span>: <b>0.167</b> at 5:1,
+  <b>0.048</b> at 20:1, <b>0.020</b> at 50:1. Using 0.5 instead costs <b>1.4×</b> the optimal at
+  10:1 and <b>4.7×</b> at 50:1. Every one of those losses comes from the threshold. The
+  probabilities were right throughout.</figcaption>
+</figure>
+
+<div class="box try">
+  <span class="label">Try it on something you run</span>
+  <p>Find the threshold in a system you operate. It is probably 0.5, and probably nobody chose it.
+  Ask what a false positive costs and what a false negative costs, in whatever units the business
+  actually uses, and compute the ratio. If it is not 1:1, you have found a free improvement, and
+  Figure 6 says how large.</p>
+</div>
+
+<h3><span class="num">§35</span> Risk aversion</h3>
+
+<div class="box intuition">
+  <span class="label">When the expectation is the wrong summary</span>
+  <p>Maximising expected utility is correct when you face the decision many times and the losses
+  add up. It is not obviously correct for a single decision with an irreversible outcome, and it is
+  not what people do.</p>
+  <p>The standard repair is a concave utility on wealth, which makes the same expectation calculus
+  produce risk-averse behaviour without changing the framework. The alternatives (conditional
+  value-at-risk, worst-case objectives) optimise a tail statistic instead of a mean, and connect
+  directly to Part XXIII §42's distributionally robust objectives and Part XXI's treatment of rare
+  harms.</p>
+  <p>The point worth carrying: <b>which functional of the predictive distribution you optimise is a
+  choice</b>, and reporting only a mean prediction has made it implicitly.</p>
+</div>
+
+<h3><span class="num">§36</span> The value of information</h3>
+
+<div class="box def">
+  <span class="label">What a measurement is worth, before taking it</span>
+  <p>The <b>expected value of information</b> is the gain in expected utility from observing
+  something before deciding:</p>
+  <p class="m">$$\mathrm{EVI} = \mathbb{E}_{z}\Big[\max_a \mathbb{E}_{y \mid z}\big[u(a,y)\big]\Big] - \max_a \mathbb{E}_{y}\big[u(a,y)\big]$$</p>
+  <p>It is never negative, and it is <b>zero whenever the observation would not change the
+  decision</b>, which is the useful part. A test that is highly informative about the outcome but
+  never flips the action is worth nothing, and a cheap test that occasionally flips it can be worth
+  a great deal.</p>
+  <p>This is the principled version of "is this feature worth collecting", and it explains why
+  feature importance is the wrong instrument for that question: importance measures effect on the
+  prediction, not effect on the decision.</p>
+</div>
+
+<h3><span class="num">§37</span> Abstention as an action</h3>
+
+<div class="box def">
+  <span class="label">Refusing, priced</span>
+  <p>Add a third action with a fixed cost <span class="m">$c_{\text{abstain}}$</span>: the cost of
+  escalating to a human, or of declining. Then abstain exactly when both other actions have higher
+  expected cost, which carves a band of probabilities around the threshold.</p>
+  <p>Part XIV §4 introduced coverage as a diagnostic. This makes it a decision with a price, and
+  §28's prediction sets make it operational: refuse when the set is larger than you can act on.</p>
+  <p>Note what this needs. A refusal policy built on uncalibrated probabilities refuses the wrong
+  cases, and one built on a point estimate refuses none of the cases where the model is confidently
+  wrong off-distribution: Figure 3's 0.790 arriving as a business outcome.</p>
+</div>
+
+<h3><span class="num">§38</span> What movement E establishes</h3>
+
+<div class="box intuition">
+  <span class="label">Three things</span>
+  <p><b>The probability and the utility come from different places.</b> The model supplies one and
+  cannot supply the other, and 0.5 is a claim about costs rather than a neutral default.</p>
+  <p><b>A perfectly calibrated model still loses money at the wrong threshold</b>: 4.7× at a 50:1
+  cost ratio in Figure 6, with nothing wrong with any probability it produced.</p>
+  <p><b>Information is worth what it changes.</b> The value of an observation is zero if it never
+  flips the decision, however predictive it is, which is a different question from the one every
+  feature-importance method answers.</p>
+</div>

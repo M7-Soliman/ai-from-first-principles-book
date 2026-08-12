@@ -1,0 +1,333 @@
+<h2><span class="part-kicker">Practice</span>Drills</h2>
+
+<p class="lede">Thirty-seven problems. Most of them are arithmetic you can do before requesting any
+hardware, which is the part's whole argument.</p>
+
+<h3><span class="num">Tier 0</span> Estimate first</h3>
+
+<div class="drill">
+  <div class="head"><span class="tier est">Estimate</span>E1 &middot; The compute in a training run</div>
+  <p>A 7-billion-parameter model trained on 2 trillion tokens. Write down the total training FLOPs before applying any formula.</p>
+  <div class="ans"><b>Answer.</b> <b>8.4&times;10<sup>22</sup></b>, from C &asymp; 6ND. That six (two for the forward pass, four for the backward) is the constant worth memorising, because it converts a model card into a compute budget, and a compute budget into a dollar figure, in one line. <i>Score yourself: within a factor of two is a pass, and an order of magnitude out is worth understanding before you go on.</i></div>
+</div>
+
+<h3><span class="num">Tier 1</span> Warm-up</h3>
+
+<div class="drill">
+  <div class="head"><span class="tier warm">Warm</span>W1 · The three quantities</div>
+  <p>Name them and give the relation between them for a dense transformer.</p>
+  <div class="ans"><b>Answer.</b> Parameters $N$, tokens $D$, compute $C \approx 6ND$: two FLOPs
+  per parameter per token forward, four backward. Inference is $2N$ per token.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier warm">Warm</span>W2 · What the irreducible term is</div>
+  <p>What is $E$ in $L = A N^{-\alpha} + E$, and why is it never checked?</p>
+  <div class="ans"><b>Answer.</b> The entropy of the data. It is not checked because estimating a
+  natural corpus's entropy is as hard as modelling it (the best estimate available <i>is</i> the
+  best model), so $E$ is fitted from the same data as everything else.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier warm">Warm</span>W3 · Sixteen bytes</div>
+  <p>How much memory does a parameter need during mixed-precision Adam training, before any
+  activations?</p>
+  <div class="ans"><b>Answer.</b> 16 bytes: 2 for the bf16 weight, 2 for its gradient, and 12 for
+  the optimiser: an fp32 master copy plus two fp32 moments. Twelve of the sixteen belong to the
+  optimiser, not the model.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier warm">Warm</span>W4 · Why bf16 needs no loss scaling</div>
+  <p>Both are 16 bits. What is different?</p>
+  <div class="ans"><b>Answer.</b> bf16 keeps fp32's 8-bit exponent and spends only 7 bits on the
+  mantissa, so it represents the same range of magnitudes more coarsely. fp16 spends 5 on the
+  exponent, so it has more precision and cannot represent small gradients at all.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier warm">Warm</span>W5 · The bubble</div>
+  <p>Give the pipeline bubble formula and its value at $P=8$, $M=8$.</p>
+  <div class="ans"><b>Answer.</b> $(P-1)/(M+P-1)$, so $7/15 \approx 47\%$. Filling and draining
+  costs $P-1$ slots whatever $M$ is, so the fraction falls with more microbatches and never reaches
+  zero.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier warm">Warm</span>W6 · What an all-reduce does not depend on</div>
+  <p>State the volume, and the variable that is conspicuously absent.</p>
+  <div class="ans"><b>Answer.</b> About $2N$ values per device, independent of the <b>batch
+  size</b>. So the communication is fixed per step while the compute is not, and the only lever is
+  tokens per device.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier warm">Warm</span>W7 · Where tensor parallelism lives</div>
+  <p>Why is it used within a node and pipeline parallelism across nodes?</p>
+  <div class="ans"><b>Answer.</b> Tensor parallelism communicates twice per layer on the critical
+  path and cannot be overlapped; pipeline parallelism sends one activation tensor per stage
+  boundary. The chatty form goes where the wires are fast.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier warm">Warm</span>W8 · The schedule error</div>
+  <p>In one sentence, what did Kaplan's study get wrong and which way did it bias the answer?</p>
+  <div class="ans"><b>Answer.</b> A cosine schedule sized for the longest run, with shorter runs
+  stopped partway down it, which penalises short runs, makes data look less valuable than it is,
+  and tilts the fitted optimum toward large models and too few tokens.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier warm">Warm</span>W9 · Why overtrain</div>
+  <p>Chinchilla says 20 tokens per parameter. Why do deployed models use hundreds?</p>
+  <div class="ans"><b>Answer.</b> Because that rule minimises <b>training</b> compute. If the model
+  will serve traffic, inference cost scales with $N$ and recurs, so the lifetime optimum is a
+  smaller model trained longer. The same arithmetic, a different objective.</div>
+</div>
+
+<h3><span class="num">Tier 2</span> Core</h3>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C1 · Count a transformer</div>
+  <p>Write the parameter count by part for a given width, depth, vocabulary and context. Confirm
+  the feed-forward is twice the attention.</p>
+  <div class="ans"><b>Answer.</b> $4d^2$ per layer for attention, $8d^2$ for the feed-forward, so
+  two thirds of the blocks are not attention. Part XII's finding, as arithmetic, and the reason MoE
+  replaces the feed-forward.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C2 · Fit a law, and break it</div>
+  <p>Generate points from a known power law, recover the parameters, then re-fit with $E$ pinned to
+  a wrong value and report the exponent you get.</p>
+  <div class="ans"><b>Answer.</b> The exponent moves. $\alpha$ and $E$ trade off over any finite
+  range, so two studies quoting different exponents may differ only in how they handled the
+  floor.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C3 · Solve the allocation</div>
+  <p>Minimise $A N^{-\alpha} + B D^{-\beta}$ subject to $6ND = C$ by hand, and confirm your code
+  agrees. What do $N$ and $D$ scale as?</p>
+  <div class="ans"><b>Answer.</b> $N \propto C^{\beta/(\alpha+\beta)}$ and
+  $D \propto C^{\alpha/(\alpha+\beta)}$. Equal exponents give the Chinchilla split, both $C^{1/2}$;
+  a larger $\beta$ pushes the budget into parameters, which is the shape of Kaplan's answer.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C4 · The lifetime optimum</div>
+  <p>Minimise $6ND + 2N S$ for serving volume $S$, at fixed target loss. Plot the optimal tokens
+  per parameter against $S$.</p>
+  <div class="ans"><b>Answer.</b> It rises without bound as $S$ grows. This is §14 as a curve, and
+  it explains ratios of hundreds without any appeal to a new scaling law.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C5 · A scaling law with a known floor</div>
+  <p>Build a synthetic source whose entropy rate you can compute exactly. Train models across at
+  least two orders of magnitude of size and fit the law. Compare the fitted $E$ to the truth.</p>
+  <div class="ans"><b>Answer.</b> The check nobody can run on real data. Also try it with a source
+  that has <b>no</b> compositional structure (independent conditionals per context) and observe
+  that no power law appears at all, because the task is memorisation rather than
+  generalisation.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C6 · Reproduce the schedule error</div>
+  <p>Train one model at several token budgets, twice: with the cosine schedule matched to each
+  budget, and with it fixed at the longest budget and stopped early. Plot the penalty.</p>
+  <div class="ans"><b>Answer.</b> The penalty is largest at the smallest budget and shrinks to zero
+  at the longest, a systematic tilt against short runs, not a constant offset. That tilt is what
+  moves the fitted optimum.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C7 · One learning rate across sizes</div>
+  <p>Fit a scaling law twice: once with a single learning rate for all sizes, once tuning it at
+  each. Compare the exponents.</p>
+  <div class="ans"><b>Answer.</b> The single-rate version penalises the largest models and flattens
+  the law. It is the same class of error as C6 at smaller stakes, and it is why §4's protocol puts
+  per-size tuning first.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C8 · The memory budget</div>
+  <p>Write a function giving GiB per device for a configuration, and use it to find the largest
+  model that trains on 8 devices of 80 GiB at context 8192.</p>
+  <div class="ans"><b>Answer.</b> Do it before requesting hardware. Note which term dominates as
+  you raise the context, and that it is the one sharding does not touch.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C9 · What sharding does not fix</div>
+  <p>Plot memory per device against sharding degree for stages 0–3, with activations included. Find
+  the degree past which more devices stop helping.</p>
+  <div class="ans"><b>Answer.</b> It flattens onto the activation floor. Anyone planning capacity
+  from the sharding factor alone will be wrong by an order of magnitude, which is why recomputation
+  and sharding are used together.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C10 · Recomputation, priced</div>
+  <p>Compare stored against recomputed activations for memory, and estimate the compute cost of
+  each. Then find the selective policy that recovers most of the memory for a fraction of the
+  compute.</p>
+  <div class="ans"><b>Answer.</b> Full recomputation costs about one extra forward pass, roughly
+  30%. Recomputing only the cheap-and-large tensors recovers most of the memory for a few per cent,
+  which is why nobody uses the all-or-nothing version.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C11 · The formats, from the bits</div>
+  <p>Implement the range and precision of a floating-point format from its exponent and mantissa
+  widths. Reproduce fp32, fp16 and bf16's known constants.</p>
+  <div class="ans"><b>Answer.</b> fp16's largest is 65504 and its smallest normal
+  $6.1\times10^{-5}$; bf16's largest is $3.4\times10^{38}$. Getting these from the bit layout is
+  worth doing once, because the whole mixed-precision discussion follows from them.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C12 · Loss scaling, derived</div>
+  <p>Take a realistic gradient distribution. Report the fraction lost in each format, then find the
+  smallest power of two that recovers 99.9% in fp16.</p>
+  <div class="ans"><b>Answer.</b> That search is what dynamic loss scaling does at run time. Note
+  that bf16 needs none of it, and that fp8 needs per-tensor scales because one global constant
+  cannot serve tensors with different magnitudes.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C13 · Data-parallel efficiency</div>
+  <p>Plot the fraction of step time spent computing against tokens per device, at three
+  interconnect bandwidths. Find the tokens per device needed for 90% at each.</p>
+  <div class="ans"><b>Answer.</b> The curves shift but do not change shape, because the
+  communication is fixed and the compute is not. This is why weak scaling works and strong scaling
+  does not.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C14 · Overlap</div>
+  <p>Model the all-reduce as overlapping with the backward pass in buckets. How much of the
+  communication can be hidden, and what limits it?</p>
+  <div class="ans"><b>Answer.</b> Most of it, except the last bucket, which has nothing left to
+  overlap with. That residue is why bucket size is tuned and why the last layer's gradients are
+  reduced first.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C15 · Enumerate the configurations</div>
+  <p>For 512 devices, list every (tensor, pipeline, data) split with tensor $\le 8$. Score each with
+  a cost model and rank them.</p>
+  <div class="ans"><b>Answer.</b> The space is small enough to search exhaustively, and doing so
+  before the run routinely finds a configuration substantially faster than the obvious one. It is a
+  discrete search, not an experiment.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C16 · The bubble, and the memory it costs</div>
+  <p>For each pipeline depth, find the microbatches needed for a 10% bubble, then compute the
+  activation memory that many microbatches in flight requires.</p>
+  <div class="ans"><b>Answer.</b> The two move against each other: the thing that shrinks the bubble
+  is the thing that fills memory. That tension is why 1F1B schedules exist, and why interleaving
+  trades communication for it.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C17 · MoE accounting</div>
+  <p>Compute total and active parameters for a model whose feed-forward blocks are replaced by
+  $E$ experts with top-$k$ routing. Then say which of the two determines memory and which
+  determines compute.</p>
+  <div class="ans"><b>Answer.</b> Total determines memory: every expert must be resident. Active
+  determines compute. Reporting only the total is how a model is described as far larger than its
+  cost, and reporting only the active hides the hardware it needs.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C18 · The balancing loss</div>
+  <p>Implement the auxiliary loss and confirm it is minimised at uniform routing and maximal under
+  collapse. Then train a small MoE with and without it and report the expert load.</p>
+  <div class="ans"><b>Answer.</b> Without it the router collapses, because an expert receiving more
+  tokens improves faster and is chosen more often, Part XIII §30's feedback loop, inside a
+  model.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C19 · Tokens dropped</div>
+  <p>For a measured routing distribution, plot the fraction of tokens dropped against capacity
+  factor. Find the factor needed for under 1%.</p>
+  <div class="ans"><b>Answer.</b> Dropped tokens pass through the residual with no expert applied,
+  and the loss curve shows a mild degradation with no indication of the cause. This is the number
+  to log, and it is off by default.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C20 · The checkpoint interval</div>
+  <p>Derive the optimal interval from the checkpoint cost and the mean time to failure, and confirm
+  numerically that it minimises the expected overhead.</p>
+  <div class="ans"><b>Answer.</b> $\sqrt{2 T_c T_f}$. Then list what must be saved besides the
+  weights (optimiser states, data position, RNG state, schedule step) because anything omitted
+  makes a resumed run differ from an uninterrupted one.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C21 · The cost model</div>
+  <p>Estimate wall-clock and dollar cost for a run of your choosing, then state the sustained-FLOPs
+  fraction you assumed and how wrong the estimate is if it is 40% instead of 100%.</p>
+  <div class="ans"><b>Answer.</b> A factor of two and a half in both schedule and budget. The
+  fraction is the assumption that most often makes a plan wrong, and it is measurable within the
+  first hour of a run.</div>
+</div>
+
+<h3><span class="num">Tier 3</span> Stretch</h3>
+
+<div class="drill">
+  <div class="head"><span class="tier stretch">Stretch</span>S1 · The full surface</div>
+  <p>Fit $L(N, D)$ jointly over a grid of sizes and budgets, then predict the loss of a run outside
+  the grid and check it.</p>
+  <div class="ans"><b>Answer.</b> The prediction is the whole practical value of scaling laws. Note
+  how far you can extrapolate before the residual grows, and treat that distance as the honest
+  limit.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier stretch">Stretch</span>S2 · Emergence, deflated</div>
+  <p>Take a multi-step task and measure both exact-match accuracy and per-step loss across model
+  sizes. Show the same runs producing a sharp curve and a smooth one.</p>
+  <div class="ans"><b>Answer.</b> If per-step accuracy $p$ improves smoothly and the metric is
+  $p^k$, the metric looks flat then rises sharply while nothing discontinuous happened. Part XIV
+  §33, at the largest scale in the field.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier stretch">Stretch</span>S3 · The critical batch size</div>
+  <p>Measure the gradient noise scale during a real run and watch it change. Then verify that
+  batches above it buy proportionally fewer steps.</p>
+  <div class="ans"><b>Answer.</b> It rises as training proceeds, which is the argument for ramping
+  the batch size. And note the conflict with §22: a batch above the critical size is buying
+  hardware utilisation with sample efficiency.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier stretch">Stretch</span>S4 · Hyperparameter transfer</div>
+  <p>Sweep the learning rate at several widths under standard parameterisation and again under μP.
+  Plot the optimum against width for both.</p>
+  <div class="ans"><b>Answer.</b> Under standard parameterisation it drifts; under μP it is
+  roughly flat, which is what makes tuning small and transferring valid. Verify on your own models
+  rather than trusting it.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier stretch">Stretch</span>S5 · Induce a loss spike</div>
+  <p>Train with a rate slightly too high in fp16 and provoke one. Then fix it four ways (clipping,
+  bf16, query–key normalisation, batch skipping) and report which worked.</p>
+  <div class="ans"><b>Answer.</b> Doing this once at small scale is worth a great deal, because at
+  large scale the spike costs a restart and you will not get to experiment.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier stretch">Stretch</span>S6 · The whole plan</div>
+  <p>Given a device count, memory per device, interconnect bandwidth and a compute budget, produce
+  a full training plan: model size, tokens, parallel configuration, batch size, checkpoint
+  interval, and a wall-clock estimate.</p>
+  <div class="ans"><b>Answer.</b> Every number in it comes from this part, and none of it requires
+  running anything. That is the claim §39 makes, and this drill is the test of it.</div>
+</div>

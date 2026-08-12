@@ -1,0 +1,146 @@
+<h2><span class="part-kicker">Part E</span>Learning against an adversary</h2>
+
+<p class="mvt">Every bound so far assumed the data was drawn independently from a fixed
+distribution. Drop that assumption entirely, let an adversary choose each example after seeing
+what you did, and there is still a theory, with guarantees that hold unconditionally. It is a
+different subject with a different currency, and it is the one that survives contact with a
+world that moves.</p>
+
+<h3><span class="num">§31</span> The online protocol</h3>
+
+<div class="box def">
+  <span class="label">The game, and what replaces risk</span>
+  <p>For <span class="m">$t = 1, \dots, T$</span>: you commit to
+  <span class="m">$w_t$</span>; the adversary reveals a loss function
+  <span class="m">$\ell_t$</span>; you suffer <span class="m">$\ell_t(w_t)$</span>.</p>
+  <p>Nothing is assumed about how the adversary chooses: no distribution, no independence, no
+  stationarity. So "true risk" has no referent, and the quantity to minimise is <b>regret</b>:</p>
+  <p class="m">$$\mathrm{Regret}_T = \sum_{t=1}^{T} \ell_t(w_t) \;-\; \min_{w \in \mathcal{W}} \sum_{t=1}^{T} \ell_t(w)$$</p>
+  <p>How much worse you did than the single best fixed choice, judged with hindsight. An algorithm
+  with regret <span class="m">$o(T)$</span> has average loss approaching the best fixed choice; it
+  is <b>no-regret</b>.</p>
+</div>
+
+<div class="box why">
+  <span class="label">Why a guarantee is possible at all against an adversary</span>
+  <p>Because the comparison is weak in a specific way: not against the best sequence of decisions,
+  which is hopeless, but against the best <b>single fixed</b> decision. The adversary can make you
+  do badly in absolute terms; it cannot make you do much worse than the best constant strategy
+  would have done on the same sequence.</p>
+  <p>That is a smaller promise than the PAC framework's, and unlike it, it requires no assumption
+  that can turn out to be false.</p>
+</div>
+
+<h3><span class="num">§32</span> Why following the leader fails</h3>
+
+<div class="box pitfall">
+  <span class="label">The obvious algorithm, and the sequence that beats it</span>
+  <p>Play whatever would have been best so far. Against an adversary this can incur regret
+  proportional to <span class="m">$T$</span>: with two actions alternating in which is best, the
+  leader flips every round and you are wrong every round, while the best fixed action is right
+  half the time.</p>
+  <p>The failure is <b>instability</b>: the algorithm's output changes completely in response to
+  one observation. Adding a regulariser that keeps consecutive decisions close (follow the
+  <i>regularised</i> leader) removes it, and the connection to §19's stability is not a coincidence:
+  in both settings, an algorithm that reacts too strongly to one point does not generalise.</p>
+</div>
+
+<h3><span class="num">§33</span> Online gradient descent</h3>
+
+<div class="box def">
+  <span class="label">The algorithm and its guarantee</span>
+  <p><span class="m">$w_{t+1} = \Pi_{\mathcal{W}}\!\left(w_t - \eta_t \nabla \ell_t(w_t)\right)$</span>:
+  one gradient step on the loss you just saw, projected back into the feasible set.</p>
+  <p>For convex losses with bounded gradients and a bounded domain, and
+  <span class="m">$\eta_t = \Theta(1/\sqrt{t})$</span>, the regret is
+  <span class="m">$O(\sqrt{T})$</span>, so average regret falls as
+  <span class="m">$O(1/\sqrt{T})$</span>. Strong convexity improves this to
+  <span class="m">$O(\log T)$</span>.</p>
+  <p>Both are tight. And the algorithm is the one from Part IX, unchanged, now carrying a guarantee
+  that assumes nothing about where the data came from.</p>
+</div>
+
+<div class="box intuition">
+  <span class="label">The connection back</span>
+  <p>An online-to-batch conversion turns any no-regret algorithm into a batch learner: run it over
+  an i.i.d. sample, average the iterates, and the regret bound becomes a risk bound. So the online
+  guarantees <b>imply</b> the statistical ones for convex problems.</p>
+  <p>Which reframes Part IX §13's stochastic gradient descent. Its analysis was presented as an
+  optimisation result about reaching a minimum. It is also a learning result, and the reason
+  averaging the iterates, Part IX §25's Polyak averaging, is the form with the guarantee.</p>
+</div>
+
+<h3><span class="num">§34</span> Multiplicative weights</h3>
+
+<div class="box def">
+  <span class="label">Combining experts</span>
+  <p>Maintain weights over <span class="m">$K$</span> experts, predict by their weighted vote, and
+  after each round multiply each weight by
+  <span class="m">$e^{-\eta \ell_t(i)}$</span>. Regret is
+  <span class="m">$O(\sqrt{T \log K})$</span>.</p>
+  <p>The <span class="m">$\log K$</span> is §4's union bound again, in a setting with no
+  distribution anywhere. You can track the best of exponentially many experts at logarithmic cost,
+  which is the same bargain that made model selection viable and here needs no i.i.d.
+  assumption.</p>
+  <p>The algorithm reappears throughout: boosting is multiplicative weights over training examples,
+  and Part XVIII §35's exploration strategies are close relatives.</p>
+</div>
+
+<h3><span class="num">§35</span> Bandits, and the cost of not seeing</h3>
+
+<div class="box shapes">
+  <span class="label">Full information against partial</span>
+  <p>In the full-information setting you learn every expert's loss. In the <b>bandit</b> setting you
+  learn only the loss of what you chose, Part XVIII §34's problem, now with a regret guarantee
+  rather than an empirical comparison.</p>
+  <p>The cost of partial feedback is a factor of <span class="m">$\sqrt{K}$</span>: regret goes from
+  <span class="m">$O(\sqrt{T \log K})$</span> to <span class="m">$O(\sqrt{TK})$</span>. That
+  quantifies exploration exactly: it is what not seeing the counterfactual costs, and it is the
+  same missing quantity as Part XXII §32's off-policy problem.</p>
+  <p><b>Contextual bandits</b> add a state before each choice, which is the formal model of most
+  recommendation and ad systems. Regret becomes
+  <span class="m">$\tilde{O}(\sqrt{TK\log|\mathcal{H}|})$</span>, the union bound, one more
+  time.</p>
+</div>
+
+<h3><span class="num">§36</span> Non-stationarity</h3>
+
+<div class="box why">
+  <span class="label">When the best fixed choice is the wrong benchmark</span>
+  <p>Regret compares against the best <i>fixed</i> decision. If the world genuinely changes, that
+  benchmark is weak: a no-regret algorithm can be matching a comparator that is itself bad.</p>
+  <p>The repairs: <b>tracking regret</b> compares against the best sequence with at most
+  <span class="m">$k$</span> switches; <b>dynamic regret</b> compares against the best decision each
+  round, and is bounded only in terms of how much the world moved.</p>
+  <p>Both formalise the same practical point Part XIV §26 made from the deployment side: a system
+  performing well against a stale baseline is not necessarily performing well.</p>
+</div>
+
+<h3><span class="num">§37</span> What the adversarial framing buys and costs</h3>
+
+<div class="box shapes">
+  <span class="label">The trade, stated plainly</span>
+  <p><b>Buys:</b> guarantees that cannot be invalidated by an assumption failing, because there are
+  no distributional assumptions. Algorithms that adapt continuously rather than being retrained.
+  And a single framework covering prediction, bandits and games.</p>
+  <p><b>Costs:</b> a weaker comparator (the best fixed decision, not the best possible). Rates of
+  <span class="m">$O(\sqrt{T})$</span> where the i.i.d. setting sometimes gives
+  <span class="m">$O(\log T)$</span> or better. And convexity, which most of the theory still needs
+  and neural networks do not have.</p>
+  <p>The honest summary: where the i.i.d. assumption holds, the statistical theory says more. Where
+  it does not, this is what remains, and what remains is unconditional.</p>
+</div>
+
+<h3><span class="num">§38</span> What movement E establishes</h3>
+
+<div class="box intuition">
+  <span class="label">Three things</span>
+  <p><b>Learning is possible with no distributional assumption at all</b>, if you weaken the
+  comparator to the best fixed decision. Regret is what replaces risk, and no-regret algorithms
+  exist with tight rates.</p>
+  <p><b>Stability is the requirement in both theories.</b> Following the leader fails for the same
+  reason an unstable algorithm fails to generalise, and adding a regulariser fixes both.</p>
+  <p><b>The union bound's logarithm reappears everywhere</b>: finite classes, expert weights,
+  contextual bandits. It is the same bargain each time: search over exponentially many options and
+  pay logarithmically.</p>
+</div>

@@ -1,0 +1,227 @@
+<h2 class="nobreak">Preface</h2>
+
+<p class="lede">Artificial intelligence is not a mystery. It is a small number of ideas,
+applied with enormous force, and every one of them can be understood by anyone willing to
+work through the arithmetic.</p>
+
+<h3><span class="num">§</span> The situation</h3>
+
+<p>We have built systems that recognise faces, translate between languages, diagnose from
+medical images, write code, and hold conversations. They are deployed in hospitals,
+courtrooms, banks and classrooms. Their behaviour affects people who never consented to
+it and mostly cannot inspect it.</p>
+
+<p>And the number of people who genuinely understand how they work (not at the level of
+calling an API, but at the level of being able to derive why a model does what it does)
+is far smaller than it should be.</p>
+
+<p>That gap is not caused by the difficulty of the material. It is caused by how the
+material is taught.</p>
+
+<h3><span class="num">§</span> Two failure modes</h3>
+
+<p>The literature splits into two kinds of text, and each fails a different reader.</p>
+
+<p><b>The tutorial</b> shows you which library functions to call. You can build something
+that works, and you learn nothing about why. When it stops working (and it will, because
+these systems fail in ways that look like nothing at all) you have no purchase on the
+problem. You are left adjusting numbers and hoping.</p>
+
+<p><b>The reference</b> states everything correctly and compresses ruthlessly. One
+paragraph carries a semester of implied background. It is written for the reader who
+already knows, and it is invaluable to that reader. For anyone else it is a wall: you read
+thirty dense pages, understand sixty percent, tell yourself the rest will come later, and
+discover four chapters on that it did not come later; it compounded.</p>
+
+<p>Neither failure is anyone's fault. Tutorials are honest about being introductions.
+References are honest about being references. What is missing is the thing in between: a
+treatment that assumes nothing, derives everything, and does not stop until the reader can
+do the work themselves.</p>
+
+<h3><span class="num">§</span> What this book is</h3>
+
+<p>A complete, self-contained treatment of artificial intelligence, built from first
+principles.</p>
+
+<p>It begins with arithmetic. Not as a gesture: literally. Part 0 rebuilds the
+mathematics from algebra through gradient descent, and ends by working a full
+backpropagation step by hand, with real numbers you can check on paper. From there the
+book builds linear algebra, probability and information theory, numerical computation, the
+theory of learning from data, and then the architectures themselves.</p>
+
+<p>The governing rule is simple and absolute: <b>nothing is assumed that has not already
+been established.</b> Every prerequisite is taught here, in order, before it is needed.
+There are no silent leaps, no "it can be shown that", no appeals to background the reader
+was supposed to acquire elsewhere.</p>
+
+<p>Where a result matters, it is derived. Where a definition looks arbitrary, the book
+explains what question it answers. Where a step usually takes a page to justify, the page
+is written. There are worked examples with actual numbers throughout, because a formula
+you have never evaluated is a formula you do not own.</p>
+
+<h3><span class="num">§</span> Who it is for</h3>
+
+<p>Anyone willing to do the exercises.</p>
+
+<p>Concretely: a student who wants the foundations rather than the recipes. A working
+engineer who has been shipping models and would like to know what they are. A researcher
+from another field who needs this one and does not have four years. Someone whose
+mathematics has gone quiet from disuse: being rusty is not being unable, and rust comes
+off faster than most people expect.</p>
+
+<p>You do not need prior machine learning, statistics, or linear algebra. You do not need
+a graduate degree, a GPU, or permission. You need arithmetic, some patience, and a
+willingness to compute things rather than read about them.</p>
+
+<h3><span class="num">§</span> Three commitments</h3>
+
+<p><b>Every figure is computed.</b> Not one is sketched, stylised or approximated. When a
+figure shows that certain directions are unchanged by a transformation, the code computed
+those directions and drew what it found. When a figure shows an optimiser diverging, those
+are real iterations at a real step size. If a picture would have to lie in order to look
+tidy, the picture is wrong and gets rebuilt.</p>
+
+<p><b>Difficulty is stated honestly.</b> Some of this material is hard. There are two or
+three places where careful readers slow down, and slowing down there is correct rather
+than a warning sign. Where something is genuinely difficult, this book says so. Where a
+result is easier than its reputation, it says that too.</p>
+
+<p><b>Understanding is verifiable.</b> Every part ends with drills backed by an automated
+test harness and a project substantial enough to expose whether you actually understood.
+Green tests mean you are right. Feeling right means nothing, and the difference between
+those two is the entire reason the exercises exist.</p>
+
+<h3><span class="num">§</span> On history</h3>
+
+<p>There is a great deal of history in these pages, more than is fashionable, and it is
+there on purpose.</p>
+
+<p>Mathematics is usually taught as though it arrived finished, a set of definitions that
+were always obviously correct, handed down from nowhere. It did not arrive that way.
+Logarithms were invented to spare astronomers years of arithmetic. Least squares was
+invented to find a lost asteroid. Probability began as a dispute over how to divide a pot
+when a game was interrupted. The decomposition at the heart of modern data analysis was
+discovered independently at least five times, which is what happens when an idea is
+genuinely natural rather than merely clever. Entropy got its name partly because of a
+joke, and the joke tells you something true about the concept.</p>
+
+<p>Knowing this changes how the material feels. A definition that looks arbitrary almost
+always turns out to be the answer to a specific question somebody urgently needed
+answered, and the question is frequently more memorable than the answer. It also supplies
+a corrective that this field badly needs: the people who built these ideas were working
+without the benefit of knowing they would work, and most of them were wrong for a while
+first.</p>
+
+<h3><span class="num">§</span> What comes after the mathematics</h3>
+
+<p>The foundations are not the destination. They are what makes the destination legible.</p>
+
+<p>Once the mathematics is in place, this book builds the systems: how a network is
+trained and why it generalises; what convolution buys and what it costs; how sequences are
+modelled and why attention displaced recurrence; how representations are learned without
+labels; how generative models sample; and how any of it is made to work at scale.</p>
+
+<p>It also takes seriously the questions that follow from the machinery: what these
+systems can and cannot do, where they fail, how those failures are detected, and what
+follows from deploying them on people. Those questions are not a coda. They are engineering
+questions, and they have technical answers that depend on understanding the mechanism.</p>
+
+<h3><span class="num">§</span> A closing note</h3>
+
+<p>If parts of this take longer than you expect, that is the material being hard, not you
+being slow. Some of these ideas took mathematicians centuries to work out properly.
+Spending a week on one of them is roughly the correct amount of time.</p>
+
+<p>The people who find this subject tractable are not the ones who found it easy. They are
+the ones who did the exercises.</p>
+
+<p style="margin-top:2.2em"><b>Soliman M.H.</b></p>
+
+<h2>How to read this book</h2>
+
+<h3><span class="num">§</span> In order, and slowly</h3>
+
+<p>The parts are sequential. Each assumes everything before it and nothing after it, which
+is unusual for a technical book and is the direct consequence of the governing rule. If
+you find yourself lost, the cause is almost always something earlier that was skimmed
+rather than something present that is too hard.</p>
+
+<p>If your mathematics is solid, Part 0 can be skimmed, but take its checkpoint first
+rather than assuming. If it is not solid, Part 0 is the difference between this book
+working and not working.</p>
+
+<h3><span class="num">§</span> Do not read passively</h3>
+
+<p>Roughly every third page asks you to compute something. The asking is the point. This
+material is a motor skill before it is a body of knowledge, and the gap between "I followed
+that" and "I can do that" is exactly where understanding fails.</p>
+
+<p>Each part ends with drills in three tiers and a project. If you are short on time, skip
+the prose and do the drills. Recognition comes from reading; fluency comes only from
+working problems; and fluency is what you actually need.</p>
+
+<h3><span class="num">§</span> The markers</h3>
+
+<div class="sixty">
+  <span class="label">In 60 seconds</span>
+  <p>Opens the load-bearing sections. The whole idea compressed to a few sentences, for
+  deciding how carefully to read, and for returning months later.</p>
+</div>
+
+<div class="box intuition">
+  <span class="label">Intuition</span>
+  <p>The picture in your head. If the formalism stops making sense, fall back here.
+  Nothing in these boxes is a proof; each is the thing a proof is trying to make
+  precise.</p>
+</div>
+
+<div class="box history">
+  <span class="label">History</span>
+  <p>Where an idea came from and what its inventor was actually trying to do. Frequently
+  the reason a definition takes the odd shape it does.</p>
+</div>
+
+<div class="box shapes">
+  <span class="label">Watch the shapes</span>
+  <p>Dimension bookkeeping. About half of all real errors in this field are shape errors,
+  and nearly all of them are preventable by writing the dimensions down.</p>
+</div>
+
+<div class="box pitfall">
+  <span class="label">Pitfall</span>
+  <p>A specific mistake that is easy to make and hard to see, usually somewhere ordinary
+  intuition is actively misleading.</p>
+</div>
+
+<div class="box why">
+  <span class="label">Why this matters</span>
+  <p>Where the idea reappears later and what breaks without it. If you wonder why you are
+  being made to learn something, look for one of these.</p>
+</div>
+
+<div class="box try">
+  <span class="label">Try it</span>
+  <p>Stop reading. Compute. Answers follow immediately, so there is no risk of getting
+  stranded, but write yours down first. Reading an answer feels like understanding and
+  is not.</p>
+</div>
+
+<p>Margin notes carry asides and cross-references that did not warrant a full box.</p>
+
+<h3><span class="num">§</span> Notation</h3>
+
+<table class="compact">
+  <tbody>
+    <tr><td>$a$, $\alpha$</td><td>scalar, plain italic</td></tr>
+    <tr><td>$\mathbf{x}$</td><td>vector, bold lowercase, a column by default</td></tr>
+    <tr><td>$A$</td><td>matrix, capital</td></tr>
+    <tr><td>$A_{i,j}$</td><td>row $i$, column $j$, <b>always row first</b></td></tr>
+    <tr><td>$x^{(i)}$</td><td>the $i$-th training example, not a power</td></tr>
+    <tr><td>$\theta$</td><td>model parameters</td></tr>
+    <tr><td>$\log$</td><td>natural logarithm unless a base is given</td></tr>
+  </tbody>
+</table>
+
+<p>Mathematics indexes from 1; code indexes from 0. Both appear here, each in its native
+convention, and the difference is flagged wherever it can bite. A full glossary sits at
+the back, with each entry pointing to the section that defines it properly.</p>

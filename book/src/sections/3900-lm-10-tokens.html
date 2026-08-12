@@ -1,0 +1,156 @@
+<h2><span class="part-kicker">Part A</span>Tokenization</h2>
+
+<h3><span class="num">§1</span> A decision images do not require</h3>
+
+<div class="sixty">
+  <span class="label">In 60 seconds</span>
+  <p>An image arrives as numbers. Text arrives as characters, and before any model sees it someone
+  must decide what the <b>units</b> are. That decision is made once, frozen into the vocabulary, and
+  it silently determines what the model finds easy, including some things it will never do
+  well.</p>
+</div>
+
+<div class="box def">
+  <span class="label">Two obvious choices, and why both fail</span>
+  <p><b>Characters.</b> A tiny vocabulary and no unknown inputs, at the cost of very long sequences,
+  and attention is quadratic in length (Part XII §13), so this is expensive in exactly the wrong
+  way.</p>
+  <p><b>Words.</b> Short sequences and a vocabulary that is unbounded: new words, names, typos,
+  compounds and every other language. Whatever you do not have becomes a single unknown symbol,
+  which throws information away irrecoverably.</p>
+  <p>Subword tokenization is the compromise, and it is not a neutral one.</p>
+</div>
+
+<h3><span class="num">§2</span> Byte-pair encoding</h3>
+
+<div class="readnow"><span class="label">Go and read</span><p><span class="src">Sennrich, Haddow &amp; Birch (2016)</span>, <i>Neural machine translation of rare words with subword units</i>. Byte-pair encoding brought to neural sequence models, and the argument for why the unknown token had to go. The algorithm is three lines and the paper is short; what makes it worth reading is how directly the motivation, rare words and morphology, leads to the method.</p></div>
+
+<div class="box def">
+  <span class="label">The algorithm, which is three lines</span>
+  <p>Start from bytes. Count every adjacent pair in the corpus, merge the most frequent into a new
+  symbol, and repeat until the vocabulary is the size you want.</p>
+  <p>The result: frequent words become single tokens, rare words split into pieces, and anything
+  never seen still encodes, because bytes are always available. No unknown token is ever needed,
+  which is the property that made it standard.</p>
+  <p>Two details that matter more than they look. Merges are not allowed to cross a
+  <b>pre-tokenization</b> boundary, so a word cannot merge with the punctuation after it. And
+  training is done on unique word <b>types</b> weighted by frequency rather than on the raw stream,
+  which is what makes it affordable.</p>
+</div>
+
+<h3><span class="num">§3</span> What a tokenizer commits you to</h3>
+
+<figure>
+  <img src="figures/lm/01-tokenizer.svg" alt="Tokens per character relative to English for several kinds of text, and tokens per number with and without the digit-splitting rule">
+  <figcaption><b>Figure 1.</b> A byte-pair encoder trained here on English, code and digits, then
+  applied to text it was not trained on. English costs <b>0.41</b> tokens per character; rare words
+  <b>1.4×</b> that; an unseen two-byte script <b>4.6×</b>; an unseen three-byte script
+  <b>7.3×</b>. Right: without a digit-splitting rule, <b>1024</b> takes two tokens and <b>9999</b>
+  takes four (both four digits, neither respecting place value).</figcaption>
+</figure>
+
+<div class="box why">
+  <span class="label">Why the fertility gap is a fairness problem and a cost problem</span>
+  <p>A tokenizer trained mostly on English represents English efficiently and everything else in
+  pieces. The consequences are all direct, and none of them is about model quality:</p>
+  <ul class="tight">
+    <li><b>Cost.</b> Priced per token, the same content costs several times more in an
+    underrepresented language.</li>
+    <li><b>Context.</b> A fixed context window holds several times less of it.</li>
+    <li><b>Quality.</b> More tokens per unit of meaning means longer dependencies for the same
+    content, and Part XI §11 says longer is harder.</li>
+  </ul>
+  <p>None of this is a claim about which languages are harder. It is a consequence of which text was
+  in the tokenizer's training corpus, decided before any model existed.</p>
+</div>
+
+<h3><span class="num">§4</span> Numbers, and the failure everyone has seen</h3>
+
+<div class="box pitfall">
+  <span class="label">Pitfall: arithmetic fails at the tokenizer, not at the model</span>
+  <p>The figure's right panel is the mechanism. With merges allowed inside numbers, <b>1024</b>
+  becomes two tokens because that digit run is frequent in the corpus, while <b>9999</b> stays at
+  four, unmerged. Two four-digit numbers, different decompositions, and neither respects place
+  value.</p>
+  <p>A model asked to add them is not working with digits in columns. It is working with tokens
+  whose boundaries fall in arbitrary places, and the carry structure of arithmetic is invisible in
+  its input. That is why large models were unreliable at multi-digit arithmetic long after they were
+  writing working code.</p>
+  <p>The fix is in the tokenizer: <b>isolate digits</b> at the pre-tokenization boundary, so runs of
+  digits cannot merge freely and place value is at least partly recoverable. Some tokenizers (Llama,
+  PaLM, Gemma) split every digit singly; the widely used GPT-3.5/4/4o family instead groups digits
+  into fixed runs of up to three, which is a weaker version of the same fix; it still stops a
+  four-digit and a five-digit number from being indistinguishable single tokens. Either way, the
+  improvement in arithmetic is a tokenizer change rather than a modelling one.</p>
+  <p>The same argument explains spelling and rhyming failures. If <i>strawberry</i> is two tokens,
+  the letters are not in the input as separate objects, so counting them is a task about something
+  the model cannot see.</p>
+</div>
+
+<h3><span class="num">§5</span> Vocabulary size</h3>
+
+<figure>
+  <img src="figures/lm/02-vocab.svg" alt="Tokens for a fixed text against vocabulary size, and the embedding and output layer size that goes with it">
+  <figcaption><b>Figure 2.</b> The trade, measured on the same text. Going from byte-level to a
+  vocabulary of <b>8,256</b> shortens the sequence by <b>2.95×</b> and grows the embedding and
+  output layers from <b>4 MiB</b> to <b>129 MiB</b> at width 4096. The sequence gain has
+  diminishing returns and the embedding cost does not.</figcaption>
+</figure>
+
+<div class="box def">
+  <span class="label">What sets the optimum</span>
+  <p>Larger vocabulary means shorter sequences, and attention is quadratic in length. It also means
+  a larger embedding matrix and a larger output softmax, both linear in vocabulary, and the output
+  layer is computed at every position.</p>
+  <p>The figure's shape is the argument: the sequence shortens quickly at first and then slowly,
+  while the embedding grows without limit. So there is an interior optimum, and it moves with the
+  model's width: a wider model pays more per vocabulary entry, so it wants a relatively smaller
+  vocabulary than the token-count curve alone suggests.</p>
+  <p>Typical modern choices are 32,000 to 256,000. The upper end is driven by multilingual coverage
+  rather than by English efficiency: buying down §3's fertility gap costs vocabulary.</p>
+</div>
+
+<h3><span class="num">§6</span> What byte-level would cost</h3>
+
+<div class="box why">
+  <span class="label">Why the obvious clean solution is not used</span>
+  <p>Operating on raw bytes removes every problem in this movement: no vocabulary decision, no
+  fertility gap, no arithmetic pathology, no unknown inputs, and identical treatment of every
+  language.</p>
+  <p>It costs roughly the sequence-length factor in the figure (three to five times more positions
+  for the same text), and attention is quadratic, so that is an order of magnitude of compute for a
+  fixed context. That is the entire reason it is not standard.</p>
+  <p>The work on removing the tokenizer is therefore mostly work on <b>hierarchy</b>: process bytes
+  locally with something cheap, pool into larger units, and run the expensive stack on those. The
+  interesting versions learn where the boundaries go rather than fixing them, which would make §3's
+  commitment a learned quantity instead of a frozen one.</p>
+</div>
+
+<h3><span class="num">§7</span> The tokenizer is frozen first</h3>
+
+<div class="box pitfall">
+  <span class="label">Pitfall: it is chosen before anything can be measured</span>
+  <p>The tokenizer must exist before pretraining starts, so it is fitted on a sample of the corpus
+  and then frozen for the model's entire life. Every downstream decision inherits it, and changing
+  it invalidates the weights completely.</p>
+  <p>Which means the decision is made at the point of <b>least</b> information: before any model
+  has been trained, before anyone knows what the model will be used for, and often before the final
+  data mixture is settled. Part XIII §34's point about data decisions being the hardest to revise,
+  in its sharpest form.</p>
+  <p>The practical advice is narrow but worth stating: measure fertility on the languages and
+  domains you actually care about <b>before</b> committing, because it is cheap then and impossible
+  later.</p>
+</div>
+
+<h3><span class="num">§8</span> What movement A establishes</h3>
+
+<div class="box intuition">
+  <span class="label">Three things</span>
+  <p><b>The units are a choice</b>, made by a frequency-counting algorithm on a corpus someone
+  selected, and frozen before the model exists.</p>
+  <p><b>Several famous failures are tokenizer failures.</b> Arithmetic, spelling and rhyming are
+  tasks about structure the model cannot see, and the fix for the first one was a change to the
+  pre-tokenization rule.</p>
+  <p><b>The cost is unevenly distributed</b>, in money and in context, along the axis of who was in
+  the training corpus.</p>
+</div>

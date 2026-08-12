@@ -1,0 +1,207 @@
+<h2><span class="part-kicker">Build</span>The project</h2>
+
+<p class="lede">Twelve to sixteen hours. You build a system whose ground truth you know, then try
+every technique in this part on it, which is the only setting where you can find out whether
+they work.</p>
+
+<h3><span class="num">P.1</span> What you are building</h3>
+
+<p><b><code>glassbox</code></b>: a small network with a known internal structure, a toolkit of
+interpretability methods applied to it, and an evaluation suite that reports what it establishes
+rather than what it measures.</p>
+
+<p>The rule that governs the whole project: <b>you must be able to check every answer</b>. Every
+system here is one you constructed, so a claim about its internals is either right or wrong and you
+can tell. That is the opposite of how interpretability is usually practised, and it is why this is
+a project rather than a reading list.</p>
+
+<h3><span class="num">P.2</span> Stage 1: build superposition, then look at it</h3>
+
+<ol>
+  <li>Implement the toy model: <span class="m">$m$</span> features into
+  <span class="m">$n \lt m$</span> dimensions, ReLU reconstruction, importance-weighted loss.</li>
+  <li>Sweep sparsity. Count represented features and measure the mean overlap.</li>
+  <li>Now examine a single "neuron": one coordinate of the hidden vector. Find its top-activating
+  inputs and write down the interpretation you would have published.</li>
+  <li>Then check it against the ground truth you have.</li>
+</ol>
+
+<p><b>Deliverable:</b> the sparsity curve, and the neuron interpretation next to what the neuron
+actually is. Step four is the point of the stage.</p>
+
+<h3><span class="num">P.3</span> Stage 2: recover the features</h3>
+
+<ol>
+  <li>Train a sparse autoencoder on the hidden activations. Sweep dictionary size and the
+  <span class="m">$\ell_1$</span> coefficient.</li>
+  <li>Measure recovery against the true directions, which you have.</li>
+  <li>Run PCA as the control and explain its ceiling before you measure it.</li>
+  <li>Widen the dictionary further and watch entries split. Decide where you would stop, and write
+  down what makes that choice arbitrary.</li>
+</ol>
+
+<p><b>Deliverable:</b> a recovery curve, the PCA control, and a paragraph on the features you did
+<i>not</i> recover, which in a real model would be invisible to you.</p>
+
+<h3><span class="num">P.4</span> Stage 3: present against used</h3>
+
+<ol>
+  <li>Train a network on a task depending on one part of its input.</li>
+  <li>Probe the hidden layer for a property of a different part, which the task never consults.</li>
+  <li>Ablate the probe's direction and re-measure the task. Include a random-direction control at
+  the same norm.</li>
+  <li>Then ablate the direction the task <i>does</i> use, so you have all three numbers.</li>
+</ol>
+
+<p><b>Deliverable:</b> the four accuracies. Predict them before running, and note which prediction
+you got wrong.</p>
+
+<h3><span class="num">P.5</span> Stage 4: localise a computation</h3>
+
+<ol>
+  <li>Train a small transformer on a task with known structure and an irrelevant input.</li>
+  <li>Build minimal pairs and sweep the patch site over layers and positions.</li>
+  <li>Read the map. Explain every zero in it: there will be at least two kinds.</li>
+  <li>Corrupt a different input and confirm the map changes as your explanation predicts.</li>
+</ol>
+
+<p><b>Deliverable:</b> the restoration grid, and a written account of what the method can and cannot
+see given the corruption you chose.</p>
+
+<h3><span class="num">P.6</span> Stage 5: optimise a proxy until it breaks</h3>
+
+<ol>
+  <li>Build a true objective and a proxy that correlates with it. Sweep selection pressure and plot
+  the true reward.</li>
+  <li>Repeat with a heavier-tailed error at matched correlation.</li>
+  <li>Add the two standard mitigations (cap the search, and ensemble the proxies) and measure
+  what each buys.</li>
+  <li>Throughout, plot the <b>proxy</b> score on the same axes.</li>
+</ol>
+
+<p><b>Deliverable:</b> the two curves, and the mitigation results with the tail statistic reported
+separately from the scale. Step four is what makes the failure legible: the proxy rises the whole
+time.</p>
+
+<h3><span class="num">P.7</span> Stage 6: an evaluation that states what it establishes</h3>
+
+<ol>
+  <li>Write the sizing calculator and use it <i>before</i> designing the evaluation.</li>
+  <li>Red-team your own system in all three modes for a fixed budget. Fix what you find.</li>
+  <li>Red-team again, from a clean start, and compare the rates.</li>
+  <li>Write the safety case: claim, evidence, assumptions, defeaters.</li>
+</ol>
+
+<p><b>Deliverable:</b> the safety case, with a stated bound rather than an absence of findings. It
+should be uncomfortable to write, and the discomfort is the accurate part.</p>
+
+<h3><span class="num">P.8</span> Stretch</h3>
+
+<ul>
+  <li><b>A dictionary on a real model</b>, with the prediction test from §15.</li>
+  <li><b>A circuit</b>, with sufficiency and necessity both checked.</li>
+  <li><b>The randomised-weights sanity check</b> applied to every method you have built.</li>
+  <li><b>A reward hack under PPO</b>, rather than under best-of-<span class="m">$n$</span>.</li>
+  <li><b>Weak-to-strong</b> at two different capability gaps.</li>
+  <li><b>Audit a published system card</b> and write the safety case it implies.</li>
+</ul>
+
+<h3><span class="num">P.9</span> Done when</h3>
+
+<ul class="checklist">
+  <li>Your toy model represents more features than it has dimensions, and you measured the
+  interference that costs.</li>
+  <li>You wrote a neuron interpretation and then checked it against the truth.</li>
+  <li>Your dictionary beats PCA and does not reach 100%, and you can say what that implies for a
+  model where you cannot check.</li>
+  <li>You have a probe above chance on a property whose ablation costs nothing, with a random
+  control.</li>
+  <li>Your patching map has at least two zeros that mean different things, and you can say
+  which.</li>
+  <li>You have a proxy whose score rose the entire time the true objective collapsed.</li>
+  <li>You measured what ensembling does to the scale and to the tail, separately.</li>
+  <li>Your safety case states a numerical bound and names a defeater.</li>
+  <li>Your README names one claim you would have published before running the control that killed
+  it.</li>
+</ul>
+
+<div class="box why">
+  <span class="label">Why this project, and why it is last</span>
+  <p>Every technique here is normally applied to systems whose internals nobody knows, which means
+  the practitioner never finds out when it fails. Building the system first inverts that: the
+  methods can be scored, and several of them score worse than their reputation.</p>
+  <p>The final item on the checklist is the one that matters. Somewhere in this project you will
+  form a confident interpretation and a control will destroy it. That experience is the actual
+  deliverable, and it is the closest thing to a transferable skill this part contains.</p>
+</div>
+
+<h2 class="nobreak"><span class="part-kicker">Assess</span>Checkpoint</h2>
+
+<ul class="checklist">
+  <li>Distinguish the four questions that get called "understanding the model", and say which are
+  currently answerable.</li>
+  <li>Define polysemanticity and explain why it is expected rather than accidental.</li>
+  <li>Define superposition and state the condition under which a model adopts it.</li>
+  <li>Say why sparsity is what makes superposition worth its interference cost.</li>
+  <li>Give three consequences of superposition for anyone analysing a network.</li>
+  <li>Write the sparse autoencoder objective and say what each term is for.</li>
+  <li>Explain why the dictionary must be wider than the activation dimension.</li>
+  <li>State what Figure 1's recovery result implies for a model where the truth is unknown.</li>
+  <li>Name the three open problems with dictionary learning.</li>
+  <li>Say what a probe establishes and what it does not, and give the measurement that separates
+  them.</li>
+  <li>Explain why a probe can exceed the network's own task accuracy on a property the network
+  ignores.</li>
+  <li>Give the three choices of ablation value and say what question each one asks.</li>
+  <li>Describe activation patching and the role of the minimal pair.</li>
+  <li>Explain why a component essential to a computation can show a patching effect of zero.</li>
+  <li>Define a circuit and list the four things a circuit claim owes you.</li>
+  <li>Say why ablation results need a random-component control.</li>
+  <li>Describe steering vectors and the measurement that makes one a causal claim.</li>
+  <li>Say what the randomised-weights check did to the saliency literature, and why it was
+  decisive.</li>
+  <li>Give the three ways out of interpretability's circularity, and the cost of each.</li>
+  <li>State the specification problem without using any word that implies agency.</li>
+  <li>Say why Goodhart's law is false as usually stated, and give the actual condition.</li>
+  <li>Explain why correlation between proxy and objective does not predict what optimisation
+  does.</li>
+  <li>Say what a KL penalty and a reward ensemble each buy, and what neither buys.</li>
+  <li>Explain why reward hacking is invisible in the training curve.</li>
+  <li>Distinguish outer and inner misalignment, and characterise the evidence for each
+  honestly.</li>
+  <li>State the scalable oversight problem and the asymmetry the proposals exploit.</li>
+  <li>Summarise debate, amplification and weak-to-strong, with the state of evidence for each.</li>
+  <li>Name four things we cannot currently specify, and why each resists.</li>
+  <li>Give four ways safety evaluation differs structurally from ordinary evaluation.</li>
+  <li>Say what red-teaming produces and what it does not.</li>
+  <li>Compute the evaluation size needed to bound a failure rate below a given number.</li>
+  <li>State what 1,000 clean evaluations establish, in a rate and in a count at a million
+  uses.</li>
+  <li>Explain why a dangerous-capability evaluation needs a control group.</li>
+  <li>State the three fairness criteria and why they cannot all hold.</li>
+  <li>Define evaluation validity and give an example where a benchmark measures the wrong
+  construct.</li>
+  <li>Explain why a negative capability result is a lower bound twice over.</li>
+  <li>Give the four sections of a safety case and say which one does the work.</li>
+  <li>Name the three changes that occur at deployment and why the model is rarely the whole
+  story.</li>
+  <li>List what to monitor and what each signal catches.</li>
+  <li>Set out the open-weights disagreement in terms both sides would accept.</li>
+  <li>Distinguish the three concentrations and say which is diffusing.</li>
+  <li>Say why "which jobs will be replaced" is the wrong unit of analysis.</li>
+  <li>Give the arithmetic of a training run's energy and say which term is usually larger.</li>
+  <li>Name four questions this book cannot answer, and why.</li>
+  <li>Distinguish the three kinds of not-knowing and what each licenses.</li>
+  <li>Give the four habits from §42, and an example of each from earlier in the book.</li>
+  <li>State the five load-bearing ideas and the five the practice taught.</li>
+</ul>
+
+<div class="box fw">
+  <span class="label">The framework, one last time</span>
+  <p>Every model in this book was four choices: a dataset, a model family, a loss, and an
+  optimiser. This part added a fifth that was implicit all along: <b>a claim about what the result
+  establishes</b>. Movement A's probes and movement D's evaluations are both measurements of a
+  trained system, and both are routinely reported as establishing more than they do.</p>
+  <p>That fifth choice is the one the framework never forced you to write down, and it is the one
+  this part exists to make explicit. Write it down.</p>
+</div>

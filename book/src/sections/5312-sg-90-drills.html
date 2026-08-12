@@ -1,0 +1,247 @@
+<h2><span class="part-kicker">Practice</span>Drills</h2>
+
+<p class="mvt">Thirty-nine drills. The harness in <code>parts/27-signals/drills/</code> covers twenty
+of them with thirty-two tests. Numpy only, and the transform is written out: an FFT you have
+built and checked against the definition is worth more than one you have imported.</p>
+
+<h3><span class="num">Tier 0</span> Estimate first</h3>
+
+<div class="drill">
+  <div class="head"><span class="tier est">Estimate</span>E1 &middot; The cost of a spectrogram</div>
+  <p>Ten seconds of stereo audio at 48&nbsp;kHz in float32, analysed with a 1,024-sample window and a 256-sample hop. Write down the raw size and the number of transforms.</p>
+  <div class="ans"><b>Answer.</b> <b>3.84&nbsp;MB</b> and <b>3,744</b> transforms, 1,872 frames per channel. At about 10<sup>4</sup> operations each that is 4&times;10<sup>7</sup> operations, which is nothing: the front end is never the bottleneck, and the reason to think about it is Figure 5's resolution trade rather than its cost. <i>Score yourself: within a factor of two is a pass, and an order of magnitude out is worth understanding before you go on.</i></div>
+</div>
+
+<h3><span class="num">Tier 1</span> Warm-up</h3>
+
+<div class="drill">
+  <div class="head"><span class="tier warm">Warm-up</span>W1 · The rate</div>
+  <p>A signal contains content up to 8 kHz. What is the minimum sample rate?</p>
+  <div class="ans"><b>Answer.</b> Just above 16 kHz. Anything less and the content above half the rate does not vanish: it comes back as a lower frequency you cannot separate from real signal.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier warm">Warm-up</span>W2 · Lost or relabelled</div>
+  <p>What exactly happens to a 12 kHz tone sampled at 16 kHz?</p>
+  <div class="ans"><b>Answer.</b> It arrives as 4 kHz. Not attenuated, not blurred: indistinguishable from a genuine 4 kHz tone, which is why no later processing recovers it.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier warm">Warm-up</span>W3 · Read Figure 1</div>
+  <p>How far does a one-pixel shift move a pooled feature after four stride-2 stages, and how does that compare with Part X §9?</p>
+  <div class="ans"><b>Answer.</b> 3.34×10⁻², against float32 rounding at 1.19×10⁻⁷. Part X measured convolution and called it exact. It is; the downsampling is not.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier warm">Warm-up</span>W4 · Why sinusoids</div>
+  <p>What property picks this basis rather than any other?</p>
+  <div class="ans"><b>Answer.</b> A shift leaves a sinusoid's frequency alone and changes only its phase. No other family does that, so it is the eigenbasis of every shift-invariant operator, the same symmetry argument as Part XXVI, with translation instead of permutation.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier warm">Warm-up</span>W5 · The cost of the definition</div>
+  <p>What does the DFT cost computed directly, and what does the FFT cost?</p>
+  <div class="ans"><b>Answer.</b> O(n²) as a matrix product against O(n log n) by divide-and-conquer. Figure 2 measures the ratio growing to 28.5× at n = 8,192 with no sign of stopping.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier warm">Warm-up</span>W6 · The theorem</div>
+  <p>State the convolution theorem and say what it makes of a filter.</p>
+  <div class="ans"><b>Answer.</b> Convolution in one domain is pointwise multiplication in the other. So a filter is a per-frequency scalar: the sinusoids are its eigenvectors and the frequency response is the list of eigenvalues.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier warm">Warm-up</span>W7 · Which half matters</div>
+  <p>Magnitude or phase, which carries the image?</p>
+  <div class="ans"><b>Answer.</b> Phase. Figure 4 measures a reconstruction correlating +0.736 with its phase donor and −0.125 with its magnitude donor. An edge is many frequencies whose crests align, and the alignment is phase.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier warm">Warm-up</span>W8 · Read Figure 5</div>
+  <p>What happens to the product of time and frequency resolution as the window grows?</p>
+  <div class="ans"><b>Answer.</b> Nothing: 1.875 at all three windows, while each factor moves sixteen-fold. Δf goes as fs/W and Δt as W/fs, so the window cancels exactly.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier warm">Warm-up</span>W9 · Two spectra</div>
+  <p>How do natural images and white noise differ in Figure 6?</p>
+  <div class="ans"><b>Answer.</b> A power law at f⁻²·⁹¹ against a flat f⁰·⁰⁰. Natural data has almost all its energy at low frequency, which is what every smoothness prior in this book is betting on.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier warm">Warm-up</span>W10 · Which first</div>
+  <p>A network fits a sum of sinusoids. In what order?</p>
+  <div class="ans"><b>Answer.</b> Low frequency first. Figure 7 measures 50 steps for f = 1 and never, within 20,000, for f = 16, and giving f = 16 four times the amplitude does not change the order.</div>
+</div>
+
+<h3><span class="num">Tier 2</span> Core</h3>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C1 · Write the DFT</div>
+  <p>Build the transform matrix and apply it. Then verify it against a known input.</p>
+  <div class="ans"><b>Answer.</b> W[k,j] = exp(−2πijk/n), and X = Wx. A pure tone landing exactly on a bin should give exactly one non-zero magnitude; anything else means a normalisation or windowing error you have just found.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C2 · Write the FFT</div>
+  <p>Implement radix-2 Cooley–Tukey and check it against C1.</p>
+  <div class="ans"><b>Answer.</b> Bit-reverse, then log₂n butterfly stages. Agreement to about 10⁻¹³ relative in float64, not exactly zero, because the naive route accumulates its own error over n terms.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C3 · Parseval</div>
+  <p>Check that energy is conserved, then break it on purpose.</p>
+  <div class="ans"><b>Answer.</b> Σ|x|² = (1/n)Σ|X|². Drop the 1/n and the check fails by exactly n, which is the point: a normalisation bug does not throw and does not look wrong, and this is the one line that catches it.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C4 · Round-trip</div>
+  <p>Transform and invert a real signal. What should the imaginary part be?</p>
+  <div class="ans"><b>Answer.</b> At rounding level. If it is not, your spectrum is not conjugate-symmetric and something upstream corrupted it.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C5 · Reproduce aliasing</div>
+  <p>Sample a sinusoid above Nyquist and identify the frequency you get.</p>
+  <div class="ans"><b>Answer.</b> |f − k·fs| for the k that brings it into range. Confirm by transforming the samples and reading off the peak: it is a single clean peak in the wrong place, not a smear.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C6 · The shift test</div>
+  <p>Write a check that a downsampling stack is shift-invariant, and watch it fail.</p>
+  <div class="ans"><b>Answer.</b> Pool the output, shift the input by one, compare. Three lines, and it is Part XXVI §1's permutation test in the translation group. It produced Figure 1.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C7 · Fix it</div>
+  <p>Add a low-pass filter before each stride and re-run C6.</p>
+  <div class="ans"><b>Answer.</b> The inconsistency drops by about an order of magnitude and does not vanish, because a small binomial kernel is not an ideal filter. Figure 1 measures 11.7× at four stages.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C8 · Convolve two ways</div>
+  <p>Convolve directly and through the transform, and time both against kernel length.</p>
+  <div class="ans"><b>Answer.</b> Identical to machine precision, and the costs cross: Figure 3 puts it at k = 256 for a signal of 2¹⁶. Vision kernels sit three orders of magnitude below that, which is why nobody does this in a conv net and everybody does it in a long-convolution model.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C9 · Zero-padding is not free</div>
+  <p>FFT convolution of two length-n signals without padding. What goes wrong?</p>
+  <div class="ans"><b>Answer.</b> You get circular convolution: the tail wraps onto the head. Pad to at least n + k − 1. This is the same wrap-around that makes Figure 1's experiment exact, used deliberately there and a bug here.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C10 · Leakage</div>
+  <p>Transform a tone at a frequency between two bins, with and without a window.</p>
+  <div class="ans"><b>Answer.</b> Unwindowed, the peak grows skirts across every bin: the DFT's periodicity assumption meeting a discontinuous seam. A Hann window widens the main lobe and drops the skirts by orders of magnitude.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C11 · Build the four filters</div>
+  <p>Construct low-pass, high-pass and band-pass kernels and verify each by its frequency response. Then check the centred difference [−1, 0, 1].</p>
+  <div class="ans"><b>Answer.</b> Transform the kernel and look. The one to check is the last: [−1, 0, 1] is exactly zero at DC <i>and</i> exactly zero at Nyquist, peaking in between. It is band-pass, so the derivative kernel inside every Sobel operator is blind to the alternating pattern a high-pass filter is meant to catch. The binomial kernels have the mirror property (an exact null at Nyquist) which is what makes them anti-aliasers.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C12 · Swap magnitude and phase</div>
+  <p>Reproduce Figure 4 with two images of your own.</p>
+  <div class="ans"><b>Answer.</b> The result looks like the phase donor every time. Then check the correlations rather than trusting your eyes, because "looks like" is the claim being tested.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C13 · The uncertainty product</div>
+  <p>Measure time and frequency resolution across window lengths.</p>
+  <div class="ans"><b>Answer.</b> The product is constant, and exactly so, not approximately, because both widths scale linearly with the window in opposite directions. There is no window that is good at both.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C14 · Build a spectrogram</div>
+  <p>Write the short-time transform and sweep the window length on a signal with both a tone and a transient.</p>
+  <div class="ans"><b>Answer.</b> The tone sharpens and the transient smears, or the reverse. Every spectrogram in every paper is a choice on this curve, and it is usually not reported.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C15 · The graph Laplacian</div>
+  <p>Compute L = D − A for a path graph and look at its eigenvectors.</p>
+  <div class="ans"><b>Answer.</b> They are cosines. The path graph's Laplacian is the second-difference operator, so its eigenbasis is the Fourier basis, which is what §25 means by saying frequency is an eigenbasis rather than a fact about waves.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C16 · Over-smoothing in the eigenbasis</div>
+  <p>Express Part XXVI's message passing as an operation on Laplacian eigenvectors.</p>
+  <div class="ans"><b>Answer.</b> It scales each eigenvector by a factor below one, more severely at high frequency, so repeated application drives everything toward the lowest mode. Over-smoothing is a low-pass filter applied too many times.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C17 · Measure a spectrum, and check the estimator</div>
+  <p>Fit a power-law exponent to natural images, and first to a synthetic image whose exponent you set.</p>
+  <div class="ans"><b>Answer.</b> Calibrate before you quote. Figure 6 recovers −1.98 and −2.94 for true −2 and −3, which is what makes its measured −2.91 a statement about the images rather than about the code.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C18 · Downsample carelessly</div>
+  <p>Reduce an image fourfold with and without filtering, and compare spectra.</p>
+  <div class="ans"><b>Answer.</b> The unfiltered version carries about three times the power across the top half of the resulting band. The discarded frequencies did not leave; they were relabelled and added to what was there.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C19 · Reproduce spectral bias</div>
+  <p>Fit a network to a sum of sinusoids and track each component.</p>
+  <div class="ans"><b>Answer.</b> Strictly in frequency order, and the highest components may never arrive. Then swap the amplitudes to confirm it is frequency and not loudness that decides.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C20 · Fourier features</div>
+  <p>Re-run C19 with the input replaced by a bank of sines and cosines.</p>
+  <div class="ans"><b>Answer.</b> The high frequencies arrive. Then push the bank's bandwidth up until the network fits noise immediately, which is the honest description of the trick: the cutoff moved from the optimiser to you.</div>
+</div>
+
+<h3><span class="num">Tier 3</span> Stretch</h3>
+
+<div class="drill">
+  <div class="head"><span class="tier stretch">Stretch</span>S1 · Audit a model you have</div>
+  <p>Take a trained image classifier and measure how its output moves under shifts of one to eight pixels.</p>
+  <div class="ans"><b>Answer.</b> Usually more than expected, and in the same units as published accuracy differences. Then check whether the architecture filters before its strides. Most do not.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier stretch">Stretch</span>S2 · Anti-alias a real network</div>
+  <p>Insert blur-before-stride throughout a small classifier, retrain, and measure both accuracy and shift-consistency.</p>
+  <div class="ans"><b>Answer.</b> Consistency improves substantially. Whether accuracy does is the measurement, and it is the part §44 says is under-reported.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier stretch">Stretch</span>S3 · Positional encoding as a bank</div>
+  <p>Plot the sinusoidal encoding's frequencies and verify that a shift acts linearly on it.</p>
+  <div class="ans"><b>Answer.</b> Each sine–cosine pair rotates by an angle depending only on the shift, so relative position is a fixed linear map. That property is the entire design rationale, and it is checkable in five lines.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier stretch">Stretch</span>S4 · Extend a context window</div>
+  <p>Implement rotary embeddings, then position interpolation, then frequency-dependent scaling, and compare on sequences longer than the training length.</p>
+  <div class="ans"><b>Answer.</b> Uniform scaling costs local discrimination; scaling only the low frequencies does not, because the fast components were fully trained and were doing a different job.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier stretch">Stretch</span>S5 · A learned front end</div>
+  <p>Train a model on a mel spectrogram and one on raw samples with a learned first layer, and compare both accuracy and cost.</p>
+  <div class="ans"><b>Answer.</b> Often close, sometimes better, at more compute, and what the learned filters converge to is worth looking at, because it is frequently something like a filterbank.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier stretch">Stretch</span>S6 · Phase in a loss</div>
+  <p>Train an audio model against a magnitude-only spectral loss and listen to the output.</p>
+  <div class="ans"><b>Answer.</b> It scores well and sounds wrong. The loss cannot see the quantity §18 measures as carrying the structure, which is why phase reconstruction is its own subject.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier stretch">Stretch</span>S7 · A long-convolution layer</div>
+  <p>Implement a sequence layer whose kernel is as long as the sequence, computed through the FFT.</p>
+  <div class="ans"><b>Answer.</b> Affordable only through the transform, which is Figure 3's right-hand branch and the reason state space models are practical at all.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier stretch">Stretch</span>S8 · Find the resampling in a pipeline you run</div>
+  <p>Trace every resize, stride, pool and rate change in a system you use, and check which of them filters first.</p>
+  <div class="ans"><b>Answer.</b> There are usually more than expected (image loading, augmentation, the model, and often the evaluation) and the ones in the data pipeline are the least likely to filter.</div>
+</div>

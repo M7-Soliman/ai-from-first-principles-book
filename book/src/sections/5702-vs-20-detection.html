@@ -1,0 +1,148 @@
+<h2><span class="part-kicker">Part B</span>Detection</h2>
+
+<p class="mvt">Twenty years of architectures for one problem, and the lineage is easier to follow as
+a sequence of answers to two questions: where do candidate objects come from, and what stops the
+background from swamping the loss.</p>
+
+<h3><span class="num">§9</span> The two-stage idea</h3>
+
+<div class="box def">
+  <span class="label">Propose, then classify</span>
+  <p>A first stage proposes a few hundred regions that might contain something; a second stage
+  classifies each and refines its box. The proposals started as a hand-designed segmentation
+  algorithm and became a small network sharing the backbone's features, which is the change that
+  made the family fast enough to use.</p>
+  <p>The operation that makes it work is <b>pooling a fixed-size feature from a variable-size
+  region</b>. Doing that by rounding to feature-map cells introduces a misalignment of up to half a
+  cell, which is invisible for classification and matters for a mask; interpolating instead of
+  rounding is the whole of the fix, and it is worth knowing because the same rounding appears
+  wherever a continuous coordinate meets a discrete grid.</p>
+</div>
+
+<h3><span class="num">§10</span> The one-stage idea</h3>
+
+<div class="box def">
+  <span class="label">Predict everywhere, all at once</span>
+  <p>Skip the proposal stage: predict a class and a box offset at every position of a feature map,
+  in one pass. Faster and simpler, and it makes §7's imbalance far worse, because now every position
+  contributes to the loss instead of a few hundred selected ones.</p>
+  <p>The accuracy gap between the families closed once the loss dealt with that imbalance, which is
+  §14; so the historical two-stage-versus-one-stage argument turned out to be an argument about
+  the loss rather than about the architecture.</p>
+</div>
+
+<h3><span class="num">§11</span> Anchors, and what replaced them</h3>
+
+<div class="readnow"><span class="label">Go and read</span><p><span class="src">Carion et al. (2020)</span>, <i>End-to-end object detection with transformers</i>. Detection as set prediction, with a matching loss and no suppression step. The strongest argument in it is the one about removing a non-differentiable, untuned post-process from the middle of a system.</p></div>
+
+<div class="box shapes">
+  <span class="label">Three ways to say where an object might be</span>
+  <p><b>Anchors.</b> A fixed set of reference boxes at every position, in several scales and aspect
+  ratios; the network predicts an offset from the nearest one. Effective, and it introduces
+  hyperparameters (how many, what shapes, what overlap counts as a match) that are tuned per
+  dataset and transfer badly.</p>
+  <p><b>Anchor-free.</b> Predict the object's centre and its extent directly. Fewer
+  hyperparameters, and the assignment of which position is responsible for which object becomes the
+  design problem instead.</p>
+  <p><b>Set prediction.</b> Emit a fixed number of queries and match them to ground truth by solving
+  an assignment problem, so the loss is permutation-invariant by construction. This removes
+  §12's suppression step entirely, which is the strongest argument for it, and it trains slowly
+  because the assignment changes between epochs.</p>
+</div>
+
+<h3><span class="num">§12</span> Non-maximum suppression</h3>
+
+<div class="box def">
+  <span class="label">The step that is not part of the model</span>
+  <p>A dense predictor fires several times on one object. Suppression sorts by confidence and
+  deletes any lower-scoring box overlapping a kept one by more than a threshold.</p>
+  <p>It is greedy, it is not differentiable, it is usually not tuned, and it decides the output. It
+  also cannot distinguish a duplicate from two genuinely overlapping objects, because the only
+  evidence it uses is overlap.</p>
+</div>
+
+<figure>
+  <img src="figures/vs/02-nms.svg" alt="Recall and precision against object spacing, for three suppression thresholds">
+  <figcaption><b>Figure 2.</b> Sixteen objects of 40 px, with three jittered proposals each, packed
+  at decreasing spacing. At a suppression threshold of 0.3 recall collapses to <b>0.328</b> when
+  the objects are 12 px apart while precision stays at <b>1.000</b>: real objects are being deleted
+  as duplicates. Raising the threshold to 0.7 keeps recall at <b>1.000</b> however tightly packed
+  and drops precision to <b>0.608</b>. There is no setting that is good at both, and the right one
+  depends on how crowded your scenes are.</figcaption>
+</figure>
+
+<h3><span class="num">§13</span> The imbalance, measured</h3>
+
+<figure>
+  <img src="figures/vs/03-imbalance.svg" alt="Negative anchors per positive against image side length, log-log">
+  <figcaption><b>Figure 3.</b> Anchor counts for a standard three-scale, three-ratio configuration
+  at strides 8, 16 and 32, with eight objects in the image. At 512 px there are
+  <b>48,384</b> anchors and about <b>672</b> negatives for every positive; at 2,048 px the ratio is
+  <b>10,752 : 1</b>. It is set by the image size and the object count, not by the dataset's class
+  frequencies, and it gets worse exactly when you raise resolution to find small objects.</figcaption>
+</figure>
+
+<h3><span class="num">§14</span> What the loss does about it</h3>
+
+<div class="readnow"><span class="label">Go and read</span><p><span class="src">Lin et al. (2017)</span>, <i>Focal loss for dense object detection</i>. The paper that closed the one-stage accuracy gap, and it is worth reading for the diagnosis rather than the fix: §3 shows the problem was the summed loss of easy negatives, not the hard ones, which is not what the name suggests.</p></div>
+
+<div class="box shapes">
+  <span class="label">Four responses, in the order they were tried</span>
+  <p><b>Sample.</b> Use a fixed ratio of negatives to positives per image. Simple, and it throws
+  away most of the data.</p>
+  <p><b>Mine the hard ones.</b> Keep the negatives with the highest loss. Better, and it is a
+  discrete selection inside a gradient method, with the instability that implies.</p>
+  <p><b>Down-weight the easy ones.</b> Multiply each example's loss by a factor that shrinks as the
+  prediction becomes confident and correct, the focal loss. This is the change that closed the
+  one-stage accuracy gap, and it works because the problem was never that negatives were hard but
+  that there were so many easy ones that their sum dominated.</p>
+  <p><b>Remove the duplicates from the problem.</b> Set prediction assigns one prediction per
+  object, so there is no imbalance to fix. Different family, same target.</p>
+</div>
+
+<div class="box why">
+  <span class="label">Why the losses for the two heads differ</span>
+  <p>Classification uses cross-entropy. Box regression cannot: a squared error on coordinates
+  weights a large box's error more than a small one's for the same relative accuracy, and it
+  optimises something the metric does not use.</p>
+  <p>Optimising IoU directly is closer to the metric and has zero gradient when the boxes do not
+  overlap, which is where a detector starts. The generalised and distance variants add a term that
+  keeps pulling in that case: the same problem, and the same shape of fix, as Part XXVIII §41's
+  transport distance replacing a divergence that is infinite on disjoint supports.</p>
+</div>
+
+<h3><span class="num">§15</span> Scale, and the pyramid</h3>
+
+<div class="readnow"><span class="label">Go and read</span><p><span class="src">Lin et al. (2017)</span>, <i>Feature pyramid networks for object detection</i>. Read beside Figure 4. The architecture is simple and the argument for it is arithmetic: small objects are not represented at the depth where the semantics live.</p></div>
+
+<figure>
+  <img src="figures/vs/04-scale.svg" alt="Feature-map pixels covering an object against number of stride-2 stages, for five object sizes">
+  <figcaption><b>Figure 4.</b> How much of a feature map an object occupies, as a backbone
+  downsamples. The area falls as the square of the stride, so a <b>16 px</b> object covers
+  <b>256</b> pixels at the input, <b>1.00</b> after four stride-2 stages and <b>0.25</b> after five.
+  Detecting from the deepest layer alone means small objects are not merely hard, they are not
+  represented.</figcaption>
+</figure>
+
+<div class="box def">
+  <span class="label">The feature pyramid</span>
+  <p>The fix is to detect from several depths at once, and the difficulty is that shallow layers
+  have the resolution and not the semantics. A pyramid adds a top-down path carrying deep features
+  back to shallow ones, so every level has both.</p>
+  <p>Assigning which level handles which object size is then a design decision, and it is the
+  place small-object performance is usually lost. Note also that this is Part XXVII §5 in another
+  costume: the downsampling that loses small objects is the same downsampling that breaks
+  shift-consistency, and both are cured by paying attention to what a stride does.</p>
+</div>
+
+<h3><span class="num">§16</span> What movement B establishes</h3>
+
+<div class="box intuition">
+  <span class="label">Three things</span>
+  <p><b>The architectural argument was a loss argument.</b> One-stage detectors caught up when the
+  loss stopped being dominated by easy background, not when the architecture changed.</p>
+  <p><b>Suppression is a hyperparameter that decides your output.</b> Figure 2 measures recall
+  0.328 against 1.000 across settings on the same proposals, with precision moving the other way.</p>
+  <p><b>Small objects are lost to arithmetic, not to difficulty.</b> Figure 4 measures a 16 px
+  object occupying one feature pixel after four stride-2 stages.</p>
+</div>

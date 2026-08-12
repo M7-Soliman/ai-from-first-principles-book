@@ -1,0 +1,286 @@
+<h2><span class="part-kicker">Practice</span>Drills</h2>
+
+<p class="lede">Thirty-two problems. This part is a set of instruments, so most of these are
+about building one and then establishing what it can and cannot see.</p>
+
+<h3><span class="num">Tier 0</span> Estimate first</h3>
+
+<div class="drill">
+  <div class="head"><span class="tier est">Estimate</span>E1 &middot; Is that difference real</div>
+  <p>Model A scores 71.2% and model B 72.0%, each on the same 2,000 test examples. Before doing any statistics, write down whether you believe the difference.</p>
+  <div class="ans"><b>Answer.</b> You should not. The half-width on a difference at that size is about <b>&plusmn;3 percentage points</b> unpaired; the gap is 0.8. Pairing on the same examples helps and does not rescue it. The reflex to build: compute the interval before you form an opinion, not after. <i>Score yourself: within a factor of two is a pass, and an order of magnitude out is worth understanding before you go on.</i></div>
+</div>
+
+<h3><span class="num">Tier 1</span> Warm-up</h3>
+
+<div class="drill">
+  <div class="head"><span class="tier warm">Warm</span>W1 · The four steps</div>
+  <p>Name them, and say which one is usually skipped.</p>
+  <div class="ans"><b>Answer.</b> Metric and target; end-to-end baseline; <b>instrument</b>;
+  change one thing. The third is skipped, and skipping it turns a diagnosis into a sequence of
+  guesses.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier warm">Warm</span>W2 · Why not accuracy</div>
+  <p>A condition affects one in a million. What accuracy does a constant "no" achieve, and what
+  do you report instead?</p>
+  <div class="ans"><b>Answer.</b> 99.9999%. Report precision and recall, or the PR curve. And note
+  the threshold is a separate decision from the model: you can move it after training.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier warm">Warm</span>W3 · Coverage</div>
+  <p>What does coverage buy, and what does it require?</p>
+  <div class="ans"><b>Answer.</b> It turns an impossible accuracy target into an achievable
+  optimisation: hold accuracy fixed by refusing when unsure, and maximise the fraction answered.
+  It requires calibrated confidence and a human able to take the remainder.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier warm">Warm</span>W4 · What temperature scaling changes</div>
+  <p>And what it cannot change.</p>
+  <div class="ans"><b>Answer.</b> It changes calibration: expected calibration error 0.320 to
+  0.058 in Figure 2, one training run's digits and expect yours to differ slightly. It cannot
+  change accuracy, on any run, because dividing every logit by the same positive number leaves
+  the ordering identical.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier warm">Warm</span>W5 · Ten examples</div>
+  <p>What does it mean if a model cannot fit ten examples, and what must you turn off first?</p>
+  <div class="ans"><b>Answer.</b> It means a bug, not underfitting: the correct behaviour is
+  known in advance, which is what makes the test unambiguous. Turn off every regulariser first,
+  or you will chase a failure that means nothing.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier warm">Warm</span>W6 · The U-curve</div>
+  <p>Why does a central difference get <i>worse</i> as $\epsilon$ shrinks past $10^{-5}$?</p>
+  <div class="ans"><b>Answer.</b> Cancellation. The two evaluations agree in more leading digits,
+  so their difference keeps fewer significant ones, and then you divide by a tiny number. Part III
+  §3, in the tool everyone uses to check gradients.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier warm">Warm</span>W7 · Why the complex step has no U</div>
+  <p>State the mechanism in one sentence.</p>
+  <div class="ans"><b>Answer.</b> It never subtracts. The derivative is read off the imaginary
+  part, which is separate storage, so $\epsilon = 10^{-150}$ is fine. Requires $f$ analytic: no
+  <code>abs</code>, no <code>max</code>, no ReLU.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier warm">Warm</span>W8 · Train high, test low</div>
+  <p>What does this pattern almost always mean?</p>
+  <div class="ans"><b>Answer.</b> A measurement error: leakage, an easier test set, or heavy
+  training-time regularization such as dropout, which raises training error by construction.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier warm">Warm</span>W9 · The one-percent rule</div>
+  <p>What ratio, and why is it a better instrument than the learning rate?</p>
+  <div class="ans"><b>Answer.</b> Update magnitude over parameter magnitude, around 1% per step.
+  Better because it is scale-free: the right learning rate depends on parameterisation and
+  layer; the right update ratio does not, so every group is comparable on one axis.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier warm">Warm</span>W10 · Best of a hundred</div>
+  <p>A hundred configurations, all truly identical at 0.80. What does the best one report?</p>
+  <div class="ans"><b>Answer.</b> About <b>0.85</b> (Figure 7). The entire 0.05 is selection on
+  validation noise, and it is larger than most claimed improvements.</div>
+</div>
+
+<h3><span class="num">Tier 2</span> Core</h3>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C1 · Metrics against the threshold</div>
+  <p>On an imbalanced problem, plot accuracy, precision, recall and $F_1$ against the decision
+  threshold. Find where each is maximised.</p>
+  <div class="ans"><b>Answer.</b> They peak at different thresholds. In Figure 1 the accuracy
+  optimum has recall <b>0.117</b> and the $F_1$ optimum has <b>0.377</b>, the same model, and
+  the metric choosing the operating point.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C2 · A reliability diagram</div>
+  <p>Bin predictions by confidence and plot bin accuracy against bin confidence. Compute the
+  expected calibration error.</p>
+  <div class="ans"><b>Answer.</b> Expect points below the diagonal: overconfidence. Use enough
+  bins to see structure and drop bins with too few points, or you are plotting noise.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C3 · Fit the temperature</div>
+  <p>Fit a single $T$ by minimising cross-entropy on validation data. Report calibration error and
+  accuracy before and after.</p>
+  <div class="ans"><b>Answer.</b> Calibration improves substantially; accuracy is
+  <b>bit-identical</b>. Assert that in code: if accuracy moved, you fitted on the wrong split or
+  changed something else.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C4 · The coverage curve</div>
+  <p>Sweep a confidence threshold and plot accuracy against coverage. Then repeat with calibrated
+  confidences.</p>
+  <div class="ans"><b>Answer.</b> The curve improves after calibration even though accuracy at
+  full coverage is unchanged, because the <b>ranking by confidence</b> is what the refusal
+  mechanism uses, and calibration makes the threshold interpretable.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C5 · Break something, then find it</div>
+  <p>Deliberately break a training loop (detach a gradient, misalign labels by one, freeze a
+  parameter group) and see which instrument catches it first.</p>
+  <div class="ans"><b>Answer.</b> The ten-example test catches most of them in seconds; the loss
+  curve catches almost none. Keep a record of which bug each instrument caught, because that is
+  the ladder of §34 derived from your own experience.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C6 · The epsilon sweep</div>
+  <p>Plot the relative error of forward, central and complex-step derivatives against $\epsilon$
+  over fifteen decades.</p>
+  <div class="ans"><b>Answer.</b> Forward and central are U-shaped with a minimum near $10^{-5}$;
+  the complex step falls monotonically and flattens at machine precision. Below about $10^{-20}$
+  the differences return relative error 1.0: the subtraction has underflowed to zero.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C7 · One difference, whole Jacobian</div>
+  <p>Check a vector-valued function's Jacobian with a single scalar finite difference using random
+  projections.</p>
+  <div class="ans"><b>Answer.</b> $h(t) = \mathbf{u}^\top g(\mathbf{x} + t\mathbf{v})$, agreeing
+  to about $10^{-10}$. Repeat with several random $\mathbf{u},\mathbf{v}$: one projection can be
+  blind to an error orthogonal to it.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C8 · Sorted mistakes</div>
+  <p>Rank training examples by the probability assigned to the correct answer and inspect the
+  worst fifty.</p>
+  <div class="ans"><b>Answer.</b> Confident errors are usually a data or pipeline defect;
+  random errors are usually hard examples. Do this on the <b>training</b> set: a systematic
+  problem shows there most clearly.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C9 · The learning curve</div>
+  <p>Measure test error against training-set size on a log scale, several seeds per point. Fit a
+  power law to the first half and check it against the second.</p>
+  <div class="ans"><b>Answer.</b> The fit extrapolates usefully for an order of magnitude and
+  then drifts: pessimistic by 1.23× in Figure 4, one training run's factor; expect a
+  similar-sized miss on yours, not that digit. Good enough to distinguish "more data will do
+  nothing" from "ten times would halve it"; not good enough to promise a number.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C10 · Grid against random</div>
+  <p>Build an objective where one hyperparameter matters and several do not. Compare grid and
+  random at equal budget as the dimension grows.</p>
+  <div class="ans"><b>Answer.</b> Random wins by a growing margin: 81× at eight dimensions.
+  Then count distinct values tested along the influential axis: that is the whole
+  explanation.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C11 · Log-uniform sampling</div>
+  <p>Sample learning rates uniformly in $[10^{-5}, 10^{-1}]$ and log-uniformly over the same
+  range. Compare the distributions per decade.</p>
+  <div class="ans"><b>Answer.</b> Uniform puts 90% of its samples in the top decade: you have
+  searched one order of magnitude and sampled the rest three times. Log-uniform spreads them
+  evenly, which is what "search over scales" means.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C12 · Successive halving</div>
+  <p>Implement it and compare against random search at equal total budget, measuring regret.</p>
+  <div class="ans"><b>Answer.</b> Identical at small budgets (halving needs room for at least one
+  elimination round), then a growing win. Report both ends; showing only the right end overstates
+  it.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C13 · Best-of-k inflation</div>
+  <p>Simulate $k$ configurations with <b>identical</b> true quality and noisy validation scores.
+  Plot the reported best against $k$.</p>
+  <div class="ans"><b>Answer.</b> Rises steadily; a fresh estimate of the winner stays flat at the
+  truth. The inflation grows with the size of the search, so more effort produces a more
+  optimistic number from the same model.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C14 · Seed variance</div>
+  <p>Train one configuration with ten seeds. Report the spread, then ask what size of improvement
+  a single run could establish.</p>
+  <div class="ans"><b>Answer.</b> Roughly: nothing smaller than the spread. Compare it against the
+  improvements reported in a paper you respect, often the same order, which is the
+  finding.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C15 · Both ablations</div>
+  <p>On a system with three components, run leave-one-out and add-one-in. Compare.</p>
+  <div class="ans"><b>Answer.</b> They disagree when components interact. A pair that is
+  individually useless and jointly essential looks worthless under add-one-in and essential under
+  leave-one-out, and reporting one of the two is how effects get attributed wrongly.</div>
+</div>
+
+<h3><span class="num">Tier 3</span> Stretch</h3>
+
+<div class="drill">
+  <div class="head"><span class="tier stretch">Stretch</span>S1 · The ladder, timed</div>
+  <p>Take a project someone else broke for you and work the ladder of §34 in order, recording how
+  long each rung took and what it eliminated.</p>
+  <div class="ans"><b>Answer.</b> Rungs one and two should take ten minutes and eliminate the two
+  most common causes. If you find yourself at rung eight, check that you actually did rung one:
+  it is the one people skip because it feels too simple.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier stretch">Stretch</span>S2 · An ablation that changes two things</div>
+  <p>Remove a regulariser without re-tuning the learning rate, then with. Compare the two
+  attributions.</p>
+  <div class="ans"><b>Answer.</b> The un-tuned version overstates the component's importance,
+  because part of the drop is a learning rate that was chosen for its presence. State which one
+  you did.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier stretch">Stretch</span>S3 · Validate a judge</div>
+  <p>Use a model to grade outputs. Then measure its agreement with human labels on a sample, and
+  test it for position and length bias.</p>
+  <div class="ans"><b>Answer.</b> Present pairs in both orders: the disagreement rate is the
+  position bias. Correlate score with length. Report agreement against inter-human agreement,
+  which bounds what any judged comparison can establish.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier stretch">Stretch</span>S4 · Slice it</div>
+  <p>Choose slices in advance from Part XIII §3's checklist and report per-slice performance
+  alongside the aggregate.</p>
+  <div class="ans"><b>Answer.</b> The worst slice is often far below the mean and does not move
+  the mean, because it is small. Report the worst slice as a headline number: it is what a user
+  in it experiences.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier stretch">Stretch</span>S5 · Close a feedback loop</div>
+  <p>Simulate a system whose decisions determine its future training data. Run it for many
+  rounds with and without a randomised holdout.</p>
+  <div class="ans"><b>Answer.</b> Without randomisation the model becomes confident about a
+  region it selected and blind outside it, and no statistic computed from the observed data
+  detects this. With a random slice the counterfactual is measurable. The cost is permanent and
+  small; the alternative is unfalsifiable.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier stretch">Stretch</span>S6 · Monitor without labels</div>
+  <p>Build the monitors of §27 and then inject three faults: a shifted input distribution, a
+  changed upstream encoding, and genuine concept drift. See which monitor catches which, and
+  how fast.</p>
+  <div class="ans"><b>Answer.</b> Input monitoring catches the encoding change almost
+  immediately and it is the most common real incident. Concept drift is slowest and only a
+  labelled stream detects it reliably, which is the argument for paying for one.</div>
+</div>

@@ -1,0 +1,295 @@
+<h2><span class="part-kicker">Part E</span>Architectures, and what each one fixed</h2>
+
+<p class="lede">Seven designs, each of which changed one thing. Read as a list of names: they are
+trivia; read as a sequence of problems and responses: they are the clearest available account
+of what actually limits a deep network, and three of the answers are things this book has
+already derived for other reasons.</p>
+
+<h3><span class="num">§20</span> LeNet to AlexNet</h3>
+
+<p>The convolutional network was essentially complete in 1989. What happened in 2012 was not
+an idea.</p>
+
+<div class="box history">
+  <span class="label">History: twenty-three years of waiting</span>
+  <p>The <span class="year">1980</span> Neocognitron already had local receptive fields,
+  parameter sharing across positions, and alternating selective and invariant layers. What it
+  did not have was backpropagation; it was trained by layerwise unsupervised clustering.</p>
+  <p>In <span class="year">1988</span> backpropagation was applied to time-delay neural
+  networks, which in modern terms are one-dimensional convolutional networks over time. In
+  <span class="year">1989</span> the same training algorithm was applied to two-dimensional
+  convolution over images, and the modern convolutional network existed. By the late
+  <span class="year">1990s</span> one such system was reading <b>more than 10% of all cheques
+  in the United States</b>.</p>
+  <p>Then very little, for a decade. In <span class="year">2012</span> AlexNet won ImageNet and
+  the commercial interest in deep learning began.</p>
+  <p>The difference was not architectural. AlexNet is LeNet, larger, with three changes that
+  this book has already covered: <b>rectifiers</b> instead of saturating units (Part VII §7),
+  <b>dropout</b> (Part VIII §19), and <b>two GPUs</b>. Plus a dataset three orders of magnitude
+  larger than anything LeNet was trained on.</p>
+  <p>Goodfellow's own assessment of why convolutional networks succeeded when general
+  backpropagation networks were thought to have failed is worth quoting the substance of: it
+  may simply be that they were cheap enough to experiment with, so people tuned them properly;
+  and that the barriers may have been <b>psychological</b>, since practitioners who did not
+  expect neural networks to work did not make a serious effort to make them work. That is an
+  uncomfortable hypothesis and it has not been refuted.</p>
+</div>
+
+<p>One AlexNet detail is worth keeping because §19 already used it. Its convolutions were
+<b>grouped</b> (the channels split across two GPUs with limited communication) for reasons
+of memory rather than modelling. Grouping was rediscovered a decade later as a deliberate
+design axis, and depthwise separable convolution is its limit. A workaround became a
+technique, which happens more often than the literature admits.</p>
+
+<h3><span class="num">§21</span> VGG, and the argument for small kernels</h3>
+
+<div class="readnow"><span class="label">Go and read</span><p><span class="src">Simonyan &amp; Zisserman (2015)</span>, <i>Very deep convolutional networks for large-scale image recognition</i>. One idea, stated in a paragraph and then applied with total consistency: only $3\times3$ kernels, stacked. Read §2.3 for the receptive-field argument worked in full. Then <span class="src">Szegedy et al. (2015)</span> on Inception, which asked why you should have to pick a kernel size at all, and which introduced the $1\times1$ reduction that §19 generalises.</p></div>
+
+<p>VGG's contribution is a single observation, applied uniformly: <b>use only $3\times3$
+kernels, and stack them.</b></p>
+
+<div class="box worked">
+  <span class="label">Worked: why two $3\times3$ layers beat one $5\times5$</span>
+  <p>Stack two $3\times3$ convolutions. §10's arithmetic gives a receptive field of
+  $1 + 2\times2 = 5$ pixels, the same as a single $5\times5$ convolution. Now count.</p>
+  <p>One $5\times5$ layer, $C$ channels in and out: $25C^2$ parameters.<br>
+  Two $3\times3$ layers: $2 \times 9C^2 = 18C^2$ parameters.</p>
+  <p><b>28% fewer, for the same reach.</b> And three $3\times3$ layers reach $7\times7$ with
+  $27C^2$ against $49C^2$: 45% fewer.</p>
+  <p>The parameter count is the smaller half of the argument. The stack also has <b>two
+  nonlinearities where the single layer had one</b>, so it can express strictly more functions
+  with strictly fewer parameters. That is an unusually clean win, and it is why $3\times3$
+  became and remains the default kernel size.</p>
+</div>
+
+<div class="box pitfall">
+  <span class="label">Pitfall: the receptive fields are the same and the models are not</span>
+  <p>The equivalence above is about the <b>theoretical</b> receptive field, and §10 measured
+  the gap between that and the effective one.</p>
+  <p>A single $5\times5$ kernel weights all 25 positions freely. Two stacked $3\times3$ layers
+  reach the same 25 positions but with a strong bias toward the centre, because the corner
+  pixels are reachable by one path and the middle by many. So the stack is not a
+  reparameterisation of the wide kernel; it is a <b>differently constrained</b> operator that
+  happens to share a support.</p>
+  <p>Usually that bias is helpful, which is why the substitution works. It is not free, and it
+  is part of why very deep stacks of small kernels have the reach problem §10 measured.</p>
+</div>
+
+<h3><span class="num">§22</span> Inception, and the cost of width</h3>
+
+<p>VGG chose one kernel size everywhere. Inception asked why you should have to choose, and
+applied several in parallel ($1\times1$, $3\times3$, $5\times5$ and a pooling path), then
+concatenated the results along the channel axis, letting the network weight them.</p>
+
+<p>That is expensive, and the fix is the operation §19 already identified. Put a
+<b>$1\times1$ convolution before each expensive branch</b> to reduce the channel count first.
+A $5\times5$ convolution from 256 channels to 64 costs $64 \times 256 \times 25 = 409{,}600$
+parameters; reduce to 32 channels with a $1\times1$ first and it is
+$32\times256 + 64\times32\times25 = 59{,}392$: a factor of seven, for an operation with a
+one-pixel receptive field.</p>
+
+<p>Inception also introduced <b>auxiliary heads</b>, which Part IX §27 already derived: extra
+classifiers attached to intermediate layers, trained on the same task and discarded
+afterwards, so lower layers receive a large gradient directly rather than through the whole
+stack. They were a response to a problem the next section solves properly.</p>
+
+<h3><span class="num">§23</span> ResNet</h3>
+
+<div class="sixty">
+  <span class="label">In 60 seconds</span>
+  <p>Deep plain networks were observed to be <b>worse on the training set</b> than shallower
+  ones, which rules out overfitting and points at optimisation. Adding the input of a block to
+  its output fixed it. This book derived the mechanism two parts ago, for a different reason,
+  and the derivation is the same one.</p>
+</div>
+
+<p>The observation that motivated ResNet is the one to hold on to, and it is easy to state
+badly. It was not that deeper networks generalised worse. It was that a 56-layer plain network
+had <b>higher training error</b> than a 20-layer one.</p>
+
+<div class="box why">
+  <span class="label">Why that specific number settles the question</span>
+  <p>Higher <i>test</i> error would have several explanations, overfitting foremost. Higher
+  <b>training</b> error rules almost all of them out.</p>
+  <p>The deeper network can express everything the shallower one can: set the extra layers to
+  the identity and you have the shallow network exactly. So the function is in the search
+  space, and gradient descent failed to find it. This is Part IX §12's difficulty, stated as
+  an experiment: <b>the model could represent it and the optimiser could not find it.</b></p>
+  <p>Part IX §26's FitNets result is the same reasoning applied to thin networks, and it is
+  worth noticing that both of the strongest architectural results of the decade were
+  established by reporting a number almost nobody reports.</p>
+</div>
+
+<div class="box def">
+  <span class="label">The residual block</span>
+  <p>$$\mathbf{y} = \mathcal{F}(\mathbf{x}) + \mathbf{x}$$</p>
+  <p>Rather than asking the block to compute the map you want, ask it to compute the
+  <b>difference</b> between that map and the identity. If the identity is a good answer, the
+  block only has to learn to output zero, which is what an initialised-near-zero layer already
+  does.</p>
+</div>
+
+<p>Part IX §27 gave the optimisation reading directly: a skip connection shortens the path
+from a lower layer's parameters to the output, so a gradient that would have been multiplied
+by twenty Jacobians has a route where it is multiplied by two. Part IX §10's drift has that
+much less distance to act over. Nothing new is needed here; the mechanism was derived when
+we asked how to make models optimisable, before there was any reason to be discussing
+images.</p>
+
+<figure>
+  <img src="figures/cv/08-depth.svg" alt="Best training loss against depth for plain and residual networks, with and without batch normalisation">
+  <figcaption><b>Figure 8.</b> Best <b>training</b> loss reached, against depth, on a fixed
+  task and budget, single seed per configuration. Left, without normalisation: the plain
+  network degrades from a small loss at four layers to <b>1.375</b> at thirty-two, which is
+  $\ln 4 = 1.386$, <b>chance</b>. It has learned nothing at all. The residual network is
+  better everywhere past depth 4 and then <b>diverges</b> at 24 and beyond. Right, with
+  batch normalisation: both train, and the residual network keeps improving with depth (0.0003
+  at depth 32) while the plain one stops at 0.002. The deep-end numbers depend on the random
+  seed and training budget, and the four-layer starting point is the least stable of all of
+  them; the <i>qualitative</i> phenomenon (plain degradation and residual monotone improvement
+  with normalisation) is the robust result that He et al. reproduced across many seeds at
+  larger scale.</figcaption>
+</figure>
+
+<div class="box pitfall">
+  <span class="label">Pitfall: three separate lessons in one figure, and the popular account has one</span>
+  <p><b>Plain networks really do degrade, and completely.</b> Not "generalise worse": a
+  32-layer plain network without normalisation sits at chance on its own training set.</p>
+  <p><b>Residual connections alone are not enough.</b> The right-hand arm of the left panel
+  diverges past depth 24. Each block <i>adds</i> to the signal, so the variance of the residual
+  stream grows with depth and eventually overflows. This is exactly why the ResNet block has
+  normalisation <b>inside</b> it, and it is a fact you can only see by trying the combination
+  nobody ships.</p>
+  <p><b>Normalisation alone gets you most of the way.</b> With batch norm, the plain network
+  trains fine to depth 32. At this scale it is <i>normalisation</i> doing the heavy lifting,
+  and the residual connection's contribution is that it keeps improving with depth where the
+  plain network plateaus. The original degradation appears at 56 layers on a much harder task
+  than fits in a figure here, and the honest summary is that the two mechanisms overlap
+  substantially rather than that one of them is the answer.</p>
+</div>
+
+<h3><span class="num">§24</span> Normalisation, and where it goes in an image</h3>
+
+<p>Part IX §23 derived batch normalisation and its two modes. Two things are specific to
+convolutional networks.</p>
+
+<p><b>The statistics are shared across space.</b> A feature map's mean and standard deviation
+are computed over the batch <i>and</i> over every spatial location, giving one pair of numbers
+per channel rather than per channel per pixel. Part IX §23 stated this as a rule; §8 of this
+part is the reason. The kernel is shared across positions, so a feature detected at the top
+left is the same feature as one detected at the bottom right, and normalising them separately
+would break the equivariance the architecture was built to have.</p>
+
+<div class="box def">
+  <span class="label">The normalisation family, by what they average over</span>
+  <p>An activation tensor has axes $(N, C, H, W)$. Every normalisation scheme is a choice of
+  which axes to compute statistics over.</p>
+  <table class="compact">
+    <thead><tr><th>Scheme</th><th>Averages over</th><th>Depends on batch size?</th></tr></thead>
+    <tbody>
+      <tr><td><b>Batch norm</b></td><td>$N, H, W$: one pair per channel</td><td><b>Yes</b></td></tr>
+      <tr><td><b>Layer norm</b></td><td>$C, H, W$: one pair per example</td><td>No</td></tr>
+      <tr><td><b>Instance norm</b></td><td>$H, W$: one pair per example per channel</td><td>No</td></tr>
+      <tr><td><b>Group norm</b></td><td>$H, W$ and a group of channels</td><td>No</td></tr>
+    </tbody>
+  </table>
+  <p>Group norm interpolates: one group is layer norm, one channel per group is instance
+  norm.</p>
+</div>
+
+<div class="box why">
+  <span class="label">Why anything other than batch norm exists</span>
+  <p>Batch norm estimates its statistics from the batch, so by Part V §3 the error in those
+  estimates falls like $1/\sqrt{N}$. At $N=32$ that is fine. At $N=2$ (which is what you get
+  when the images are large, as in segmentation and detection) the normalisation is
+  substantially noise, and it degrades.</p>
+  <p>It also creates a dependence between examples that should be independent, which is
+  awkward for anything sequential and outright wrong for some generative models.</p>
+  <p>Every alternative in the table removes the batch axis from the average, which removes the
+  problem. The cost is that they lose the mild regularising effect of batch norm's noise, and
+  on large-batch classification batch norm is still usually best. This is why vision
+  architectures kept batch norm and transformers use layer norm; different batch regimes,
+  not different beliefs.</p>
+</div>
+
+<h3><span class="num">§25</span> DenseNet, and scaling three ways at once</h3>
+
+<p>ResNet <i>adds</i> a block's input to its output. <b>DenseNet</b> concatenates instead, and
+does it with every earlier layer in a block rather than just the previous one. Each layer sees
+all preceding feature maps, which strengthens the gradient path further and encourages feature
+reuse; a layer need not re-derive something an earlier layer already computed. It is more
+parameter-efficient than ResNet and less memory-efficient, because nothing can be discarded.</p>
+
+<p><b>EfficientNet</b> asks a different question. A network has three size knobs (depth,
+width and input resolution), and the usual practice was to turn one. The observation is that
+they are coupled: a higher-resolution input needs more depth to reach across it (§10) and
+more width to represent the extra detail. So scale all three together by a fixed ratio,
+determined once by a small search and then applied at every size.</p>
+
+<div class="box why">
+  <span class="label">Why compound scaling is the shape of a later argument</span>
+  <p>Two things about EfficientNet's method matter more than the architecture it produced.</p>
+  <p><b>It treats the scaling rule as the object of study.</b> Not "here is a better model" but
+  "here is how to build a family of models at any budget". That reframing (from architecture
+  to <b>scaling law</b>) is what Part XVII is about, and this is its first appearance.</p>
+  <p><b>The search was done once, at small scale, and extrapolated.</b> That is only legitimate
+  if the optimal ratio does not depend on scale, which was an assumption, and which was later
+  found to be approximately but not exactly true. Assumptions of that form recur throughout
+  the scaling literature and are the most common place its conclusions turn out to need
+  revising.</p>
+</div>
+
+<h3><span class="num">§26</span> ConvNeXt, and the experiment that should have been done first</h3>
+
+<div class="readnow"><span class="label">Go and read</span><p><span class="src">Liu et al. (2022)</span>, <i>A ConvNet for the 2020s</i>. The method is the contribution. A ResNet is modernised one change at a time, each measured, until it matches transformers, and the reader can see exactly how much came from the training recipe and how much from architecture. Read it as a model of how an ablation should be reported, and then reread the papers whose claims it deflates.</p></div>
+
+<p>By 2020 vision transformers were outperforming convolutional networks and the conclusion
+was widely drawn that attention was the reason. ConvNeXt tested that conclusion, and the
+method is the interesting part.</p>
+
+<p>Start with a standard ResNet. Change nothing about the convolution. Adopt, one at a time,
+each of the <b>training</b> practices that had arrived with transformers: the AdamW optimiser
+of Part IX §18, a long cosine schedule with warmup, heavy augmentation, stochastic depth, label
+smoothing; and then each of the <b>architectural</b> details that were not really about
+attention: fewer and wider blocks, larger kernels, layer norm rather than batch norm, GELU
+rather than ReLU, an inverted bottleneck.</p>
+
+<p>The result was a purely convolutional network matching transformers on the benchmarks where
+they had been said to win. <b>A large share of the reported gap was the training recipe.</b></p>
+
+<div class="box why">
+  <span class="label">Why this is the most useful result in the section</span>
+  <p>Part XIV will make this a discipline; here it is a warning.</p>
+  <p>Two systems were compared, differing in <b>architecture and optimiser and schedule and
+  augmentation and regularisation</b>, and a single aggregate number was attributed to the
+  first of those. Part IX §29's ladder exists because that reasoning is wrong for a single
+  training run; ConvNeXt shows it is equally wrong for a whole subfield, for several years.</p>
+  <p>The honest 2026 position is narrower than either side claimed. Convolution and attention
+  have different inductive biases; convolution's is better when data is limited, attention's
+  scales better when data is not; the architectures have converged considerably, with
+  convolutional networks adopting transformer training recipes and transformers adopting
+  convolutional hierarchy and locality. <b>Most of what was attributed to the architecture was
+  not the architecture</b>, and §32 returns to what genuinely was.</p>
+</div>
+
+<div class="box try">
+  <span class="label">Try it</span>
+  <p>You replace a network's $5\times5$ convolutions with pairs of $3\times3$ convolutions, as
+  §21 recommends, and accuracy falls. Give three explanations consistent with that, and the
+  measurement that distinguishes them.</p>
+</div>
+
+<p><b>Answer.</b> <b>One: the effective receptive field shrank.</b> §21's equivalence is about
+the theoretical field; §10 showed the effective field of a stack is centre-weighted and
+smaller. If your task needs the corners of that $5\times5$ region, you have lost them.
+<i>Measure:</i> the gradient-based receptive field of Figure 4, before and after.</p>
+<p><b>Two: the network got deeper and the optimisation got harder.</b> You added a layer for
+every substitution. If the model has no residual connections or normalisation, §23's degradation
+is a live explanation. <i>Measure:</i> the training loss. If it rose, this is optimisation, not
+capacity, which is exactly ResNet's own diagnostic.</p>
+<p><b>Three: the regularisation total changed.</b> Fewer parameters is less capacity, and
+Part VIII §22's warning applies: if the model was already near the underfitting boundary,
+removing 28% of its parameters pushes it over. <i>Measure:</i> the train–test gap. If it
+narrowed while both errors rose, you have over-regularised.</p>
+<p>The three are distinguished by two numbers you already log, and note that only the first is
+about convolution at all. That is the general shape of §26's lesson.</p>

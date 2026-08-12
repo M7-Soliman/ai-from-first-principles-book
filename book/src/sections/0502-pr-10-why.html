@@ -1,0 +1,188 @@
+<h2><span class="part-kicker">Part A</span>Why probability</h2>
+
+<h3><span class="num">§1</span> Three kinds of uncertainty</h3>
+
+<div class="box history">
+  <span class="label">History: probability began as an argument about an interrupted game</span>
+  <p>Mathematics ignored chance for most of its history. Games of chance were thousands of
+  years old, but the idea that uncertainty could be <i>calculated</i> arrived remarkably
+  late.</p>
+  <p>The usual starting point is <span class="year">1654</span>, and a question put to
+  Blaise Pascal by a gambler, Antoine Gombaud. Two players are partway through a game of
+  chance for a pot of money when the game must be abandoned. One is ahead. <b>How should
+  the pot be divided?</b> The old answer split it by rounds already won, which is
+  obviously unfair to a player about to catch up.</p>
+  <p>Pascal wrote to Pierre de Fermat and the two worked it out in an exchange of letters
+  over that summer. Their insight was that the fair split depends not on what has already
+  happened but on the <i>possible futures</i>: enumerate the ways the remaining rounds
+  could go, and divide the pot in proportion. That is expected value, and it is §10 of
+  this part.</p>
+  <p>Girolamo Cardano had reached much of this a century earlier, being a compulsive
+  gambler with mathematical training, but his manuscript went unpublished for about a
+  hundred years and had no influence on anyone.</p>
+  <p>So the field that now underwrites insurance, statistical physics, and the loss
+  function of every classifier began with two men trying to settle a bet.</p>
+</div>
+
+<p>Computer science normally deals in certainty. A sorted list is sorted. A hash lookup
+either finds the key or does not. Machine learning breaks this, and it is worth being
+precise about why, because the three reasons call for the same tool but come from very
+different places.</p>
+
+<h4>1. The system is genuinely random</h4>
+
+<p>Some processes have no hidden answer to uncover. Quantum measurements are the
+textbook case; an idealised coin flip is the everyday one. There is nothing more to
+learn, because there is nothing more to know. This is sometimes called
+<b>aleatoric</b> uncertainty, from the Latin for dice.</p>
+
+<h4>2. We cannot observe everything</h4>
+
+<p>The coin is not really random. Given the exact force, spin, air density and table
+elasticity, the outcome is determined. But we do not have those numbers and never will,
+so from where we stand the outcome behaves as if random. Most uncertainty in the
+physical world is of this kind: deterministic underneath, unobservable in practice.</p>
+
+<h4>3. Our model is simpler than reality</h4>
+
+<p>This is the one that matters most for machine learning, and it is the least
+discussed. Suppose you predict house prices from square footage alone. Two identical
+houses sell for different amounts, because price also depends on the neighbours, the
+kitchen, the season, and the buyer's mood. Your model is not wrong so much as
+<b>incomplete</b>, and incompleteness looks exactly like randomness from inside the
+model. This is <b>epistemic</b> uncertainty, and unlike the first kind, more data or a
+better model can reduce it.</p>
+
+<div class="box intuition">
+  <span class="label">Intuition: why a simple uncertain model beats a complex certain one</span>
+  <p>You could try to eliminate case 3 by modelling everything: every buyer, every
+  neighbour, every mood. Nobody does, for two reasons. Such a model would need
+  impossible amounts of data to fit, and it would be so specific to the past that it
+  would fail on anything new: the overfitting problem of Part V §20.</p>
+  <p>So the field makes a trade that is worth naming explicitly: <b>use a simple model
+  and be honest about the uncertainty it leaves behind.</b> Probability is the language
+  for that honesty. A model that says "probably about \$400k, give or take \$50k" is
+  more useful, and more truthful, than one that insists on \$412,388.</p>
+</div>
+
+<h3><span class="num">§2</span> Two schools, and why the argument matters</h3>
+
+<div class="box history">
+  <span class="label">History: the argument was genuinely bitter</span>
+  <p>The frequentist–Bayesian split is presented today as a difference of interpretation.
+  For most of the twentieth century it was a professional feud.</p>
+  <p>Ronald Fisher, who built much of modern statistics in the <span
+  class="year">1920</span>s and <span class="year">30</span>s, regarded Bayesian reasoning
+  as an error to be stamped out, the objection being that a prior is somebody's opinion,
+  and opinions have no business inside a scientific calculation. His attacks on the
+  approach, and on the people who used it, were sustained and personal.</p>
+  <p>The Bayesian reply was that the prior is not smuggled in; it is stated openly, and
+  the alternative is not objectivity but an assumption nobody has bothered to write down.
+  Harold Jeffreys, and later Savage, Jaynes and de Finetti, argued that consistent
+  reasoning under uncertainty <i>forces</i> the Bayesian rules on you.</p>
+  <p>Two things ended the war rather than settling it. Andrey Kolmogorov's <span
+  class="year">1933</span> axiomatisation showed that both camps use the same mathematics
+  and disagree only about what it refers to. And computers arrived: Bayesian methods
+  require integrals that are hopeless by hand and routine by simulation, so the practical
+  objection dissolved.</p>
+  <p>Machine learning inherited the truce and is cheerfully unprincipled about it, as this
+  section describes.</p>
+</div>
+
+<p>There is a genuine philosophical disagreement about what a probability <i>is</i>, and
+unusually for philosophy, it has practical consequences you will run into.</p>
+
+<h4>The frequentist view: probability is a long-run rate</h4>
+
+<p>"This coin lands heads with probability 0.5" means: flip it forever and the fraction
+of heads approaches 0.5. Probability is a property of a <b>repeatable experiment</b>,
+measured by counting.</p>
+
+<p>Clean, objective, and testable. But it cannot express many statements we obviously
+want to make. What is the probability that this patient has the flu? You cannot rerun
+the patient a thousand times. The event happens once.</p>
+
+<h4>The Bayesian view: probability is a degree of belief</h4>
+
+<p>Here a probability quantifies <b>how strongly you believe something</b>, given what
+you know. "0.7 chance this patient has the flu" is a statement about your state of
+knowledge, not about a repeatable experiment. New evidence updates the number, which
+is exactly what Bayes' rule in §21 does.</p>
+
+<p>The striking result, and the reason this is not merely a matter of taste, is that if
+you want your degrees of belief to be internally consistent (no combination of bets
+that loses you money no matter the outcome) you are <b>forced</b> to obey the ordinary
+rules of probability. The same axioms fall out of both interpretations.</p>
+
+<div class="box why">
+  <span class="label">Why deep learning cares</span>
+  <p>Deep learning is cheerfully pragmatic and uses both. When we write $p(y \mid x)$
+  for a classifier's output, we mean a degree of belief about <i>this</i> image, which
+  is Bayesian. When we evaluate accuracy over a test set, we mean a long-run rate,
+  which is frequentist. The field mixes them without ceremony, and you should feel free
+  to as well, but knowing which one a given sentence means will save you real
+  confusion when reading papers.</p>
+</div>
+
+<h3><span class="num">§3</span> Random variables</h3>
+
+<div class="box def">
+  <span class="label">Definition: random variable</span>
+  <p>A <b>random variable</b> is a variable whose value is an outcome of a random
+  process. Written with a capital, $X$; a specific value it takes is written lowercase,
+  $x$.</p>
+</div>
+
+<p>That capital-versus-lowercase distinction is quietly doing a lot of work, and it is
+worth slowing down for. $X$ is <b>the whole uncertain quantity</b>: the die, before it
+is thrown. $x$ is <b>one particular value</b>: the 4 that came up. So:</p>
+
+$$P(X = 4) = \tfrac{1}{6}$$
+
+<p>reads "the probability that the random variable $X$ takes the value 4". Mixing these
+up produces sentences that look fine and mean nothing, and it is the single most common
+notational error in a first probability course.</p>
+
+<div class="box pitfall">
+  <span class="label">Pitfall: a random variable is not a variable</span>
+  <p>Despite the name, $X$ is not a placeholder awaiting a value. Formally it is a
+  <b>function</b>, mapping outcomes to numbers. Roll two dice: the outcome is the pair
+  that landed, and $X$ might be the function "add them up", giving a number from 2 to
+  12. Different functions of the same outcome are different random variables: $Y$
+  could be "the larger of the two".</p>
+  <p>You will not need the formal definition to do anything in this chapter. But
+  knowing that $X$ is a <i>function of the underlying outcome</i> makes it much clearer
+  why two random variables can be dependent: they can be reading the same underlying
+  event in two different ways.</p>
+</div>
+
+<h4>Discrete and continuous</h4>
+
+<p>Random variables come in two flavours, and nearly everything in Part B is stated
+twice because of it:</p>
+
+<ul>
+  <li><b>Discrete</b>: takes values from a countable set. A die roll, a coin flip, the
+  class label of an image, the number of words in a sentence.</li>
+  <li><b>Continuous</b>: takes values from a continuous range. A temperature, a pixel
+  intensity treated as real-valued, a network weight, tomorrow's stock price.</li>
+</ul>
+
+<p>The distinction is not pedantry: the two cases need genuinely different mathematics,
+and the continuous case has a trap in it that §5 is entirely devoted to.</p>
+
+<div class="box try">
+  <span class="label">Try it</span>
+  <p>Classify each as discrete or continuous: (a) the number of emails you get tomorrow,
+  (b) how long you wait for a bus, (c) which of 1,000 categories an image belongs to,
+  (d) a neural network's confidence score.</p>
+</div>
+
+<p><b>Answer.</b> (a) discrete: a count, $0, 1, 2, \dots$; (b) continuous: any
+non-negative real; (c) discrete: one of 1,000 labels, and note the labels need not be
+numbers at all; (d) continuous: any value in $[0,1]$.</p>
+
+<p>Case (c) is the shape of essentially every classification problem in deep learning,
+and case (d) is what the model actually outputs. A classifier is a machine that takes
+continuous inputs and produces a distribution over a discrete set, so you need both
+halves of this chapter to describe even one forward pass.</p>

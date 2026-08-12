@@ -1,0 +1,158 @@
+<h2><span class="part-kicker">Part B</span>What it is, probabilistically</h2>
+
+<p class="lede">Four sections that cost nothing computationally and change what the model
+means. The recurrent network turns out to be a graphical model with a remarkable
+parameterisation, a standard training trick turns out to be maximum likelihood rather than a
+hack, and both readings expose an assumption that nobody states.</p>
+
+<h3><span class="num">§7</span> The RNN as a graphical model</h3>
+
+<div class="sixty">
+  <span class="label">In 60 seconds</span>
+  <p>Take the chain rule of probability from Part II §8 and write the joint distribution over a
+  sequence as a product of conditionals. Done directly, that needs $O(k^\tau)$ numbers. An RNN
+  represents <b>the same full dependency structure</b>, every past value may influence every
+  future one, with a number of parameters that does not grow with $\tau$ at all.</p>
+</div>
+
+<p>Consider a sequence of discrete values with no inputs, where each step's input is the
+previous step's output. Part II §8's chain rule factorises the joint exactly:</p>
+
+$$P(\mathbf{y}) = P(y^{(1)},\ldots,y^{(\tau)}) = \prod_{t=1}^{\tau} P\big(y^{(t)} \mid y^{(t-1)},\ldots,y^{(1)}\big)$$
+
+<p>This is an identity, not a model: no independence has been assumed. The negative
+log-likelihood is $L = \sum_t L^{(t)}$, which is the loss of §4, so an RNN trained on
+next-item prediction is doing maximum likelihood on the whole sequence.</p>
+
+<div class="box worked">
+  <span class="label">Worked: what the parameterisation costs, three ways</span>
+  <p><b>A full table.</b> Store one number per possible assignment. With $k$ values and length
+  $\tau$ that is $O(k^\tau)$ entries. At $k=10$, $\tau=20$: $10^{20}$.</p>
+  <p><b>A Markov assumption.</b> Keep only edges from the last $m$ steps. Now it is
+  $O(k^{m+1})$, independent of $\tau$ (affordable), and it has thrown away every dependency
+  longer than $m$. This is the $n$-gram model, and its limitation is exactly §1's.</p>
+  <p><b>An RNN.</b> Introduce $\mathbf{h}^{(t)}$ as an intermediate quantity between past and
+  future. Every $y^{(i)}$ can influence every later $y^{(t)}$ <i>through $\mathbf{h}$</i>, so
+  the dependency structure is the <b>complete</b> graph: nothing has been assumed away. And
+  because the same conditional distribution is used at every step, the parameter count is
+  $O(1)$ in $\tau$.</p>
+</div>
+
+<div class="box why">
+  <span class="label">Why the hidden state is doing the work</span>
+  <p>It is worth being clear about where the saving comes from, because it is not obvious that
+  you can have full connectivity for free.</p>
+  <p>You cannot. The RNN represents the complete graph, but it does not represent every
+  <i>distribution</i> on that graph: the influence of $y^{(1)}$ on $y^{(20)}$ has to be
+  carried by a fixed-size vector, and §2 already established that vector is lossy. The table
+  can express any joint distribution; the RNN can express those whose long-range structure
+  fits through $\mathbf{h}$.</p>
+  <p>So the comparison in Figure 1 is not "the same thing for fewer parameters". It is
+  <b>a hypothesis about which sequences occur</b>, bought at a price of $O(k^\tau)$ to $O(1)$,
+  which is Part X §11's infinitely strong prior, in a different currency. Part X forbade
+  non-shared spatial weights; this forbids any dependency that will not fit through a
+  bottleneck.</p>
+</div>
+
+<h3><span class="num">§8</span> The assumption nobody states</h3>
+
+<p>Sharing $f$ across time assumes something specific, and it is worth writing down because it
+is false for many real sequences.</p>
+
+<div class="box def">
+  <span class="label">Stationarity</span>
+  <p>The conditional distribution of the variables at $t+1$ given those at $t$ <b>does not
+  depend on $t$</b>. The rule relating one step to the next is the same rule at step 3 and at
+  step 3,000.</p>
+</div>
+
+<p>For language that is roughly true, which is why the models work. For a financial series with
+a regime change, a recording with a scene cut, or a process with a diurnal cycle, it is false
+in a way that matters, and the model has no way to express that it is false, because it has
+one $f$.</p>
+
+<p>The obvious repair is to feed $t$ itself as an extra input at each step, letting the model
+learn whatever time-dependence exists while still sharing everything else. That is strictly
+better than a separate distribution per $t$, and it has a defect: the model must now
+<b>extrapolate</b> to values of $t$ it never saw, and Part VI §5's i.i.d. assumption gives no
+guarantee at all about that. Any reader who has watched a model behave strangely beyond its
+training sequence length has met this.</p>
+
+<div class="box why">
+  <span class="label">Why this is Part X's question, asked of time</span>
+  <p>Part X §11 closed with: what are the symmetries of this task, and which does my
+  architecture already know? A convolutional layer knows translation in space. A recurrent
+  layer knows translation in <b>time</b>: that is precisely what stationarity says.</p>
+  <p>Which makes the two parts the same argument on different axes, and it makes the failure
+  modes rhyme. Convolution is wrong when the same feature means different things in different
+  places; recurrence is wrong when the same transition means different things at different
+  times. In both cases the model cannot tell you it is wrong; it simply fits worse and you have
+  to know to look.</p>
+</div>
+
+<h3><span class="num">§9</span> Teacher forcing</h3>
+
+<p>A model with output-to-hidden recurrence (§5) has a choice during training: feed back its
+own prediction, or feed back the correct answer from the training set. The second is called
+<b>teacher forcing</b>, and it is usually described as a training trick. It is not: it falls
+directly out of maximum likelihood.</p>
+
+<div class="box worked">
+  <span class="label">Worked: teacher forcing is what the likelihood asks for</span>
+  <p>Take two steps and factorise the conditional likelihood with Part II §8's chain rule:</p>
+  <p>$$\log p\big(y^{(1)}, y^{(2)} \mid \mathbf{x}^{(1)}, \mathbf{x}^{(2)}\big)
+  = \log p\big(y^{(2)} \mid y^{(1)}, \mathbf{x}^{(1)}, \mathbf{x}^{(2)}\big)
+  + \log p\big(y^{(1)} \mid \mathbf{x}^{(1)}, \mathbf{x}^{(2)}\big)$$</p>
+  <p>Read the first term. At $t=2$ the model is asked for the probability of $y^{(2)}$
+  <b>given the true $y^{(1)}$</b>, not given whatever it happened to predict. The conditioning
+  variable is the observed value.</p>
+  <p>So maximum likelihood <i>specifies</i> that the recurrent connections be fed with the
+  targets during training. Feeding back the model's own output would be optimising a different
+  objective.</p>
+</div>
+
+<p>It also parallelises, for §5's reason: with the true $y^{(t)}$ supplied, step $t+1$ does not
+wait for step $t$. That is a large practical win and it is a consequence rather than the
+motivation.</p>
+
+<h3><span class="num">§10</span> Exposure bias, and how a sequence ends</h3>
+
+<p>Teacher forcing has a failure mode that is entirely predictable once stated, and it took the
+field some years to state it.</p>
+
+<div class="box pitfall">
+  <span class="label">Pitfall: the model never sees its own mistakes</span>
+  <p>At training time the model is always conditioned on a <b>correct</b> prefix. At generation
+  time it is conditioned on <b>its own output</b>, which contains errors.</p>
+  <p>So the input distribution at test time is one the model never trained on. And it
+  compounds: one slightly wrong token produces a prefix slightly off the training manifold,
+  which produces a worse next token, and the trajectory drifts away from anything the model
+  has an opinion about. This is <b>exposure bias</b>, and it is why free-running generation
+  from an otherwise well-trained model can degrade into repetition or nonsense after a few
+  dozen steps.</p>
+  <p>Two mitigations. Train partly on <b>free-running</b> inputs, so the model sees its own
+  outputs and learns to recover: predict the correct target several steps ahead through the
+  output-to-input path, so it learns to steer back. Or use a <b>curriculum</b>: begin fully
+  teacher-forced and randomly substitute generated values with increasing probability, which
+  is Part IX §28's stochastic curriculum applied here, and note that the stochastic form is
+  the one that was found to work there too.</p>
+</div>
+
+<p>One more piece of bookkeeping the equations do not supply: <b>when does generation stop?</b>
+The model produces one item per step and nothing in it says how many steps there are. Three
+answers are used.</p>
+
+<div class="box def">
+  <span class="label">Three ways to end a sequence</span>
+  <p><b>An end-of-sequence symbol.</b> Add an extra token to the vocabulary and put it in the
+  training data after the last real item. Generation stops when it is emitted. Simple, and only
+  available when the output is symbolic.</p>
+  <p><b>A Bernoulli continue-or-stop output.</b> An extra sigmoid unit at each step, trained
+  with cross-entropy on whether the sequence ends here. More general: it works for a sequence
+  of real numbers, where there is no vocabulary to extend.</p>
+  <p><b>Predict $\tau$ directly.</b> Factorise as $P(\mathbf{x}^{(1)},\ldots,\mathbf{x}^{(\tau)})
+  = P(\tau)\,P(\mathbf{x}^{(1)},\ldots,\mathbf{x}^{(\tau)} \mid \tau)$: sample the length, then
+  generate that many items. This needs the remaining count $\tau - t$ fed in at each step, or
+  the model has no idea it is near the end, and sequences that end abruptly, mid-sentence, are
+  the signature of having forgotten to do it.</p>
+</div>

@@ -1,0 +1,185 @@
+<h2 class="nobreak">Read this first</h2>
+
+<p class="lede">There is no Chapter 1.5 in this book. This one exists because the book's
+Part I opens by assuming a comfort with mathematics that most readers last had in a
+classroom some years ago, and being rusty is not the same as being unable.</p>
+
+<h3><span class="num">§0.1</span> Who this is for</h3>
+
+<p>You want to learn deep learning. You know there is mathematics in the way. Somewhere
+between "I did calculus once" and "I could not tell you what a derivative is right now"
+lies the truth, and you would rather fix that than keep bluffing past it.</p>
+
+<p>That is a completely ordinary place to start. Mathematical fluency decays without
+use, exactly like a language; and like a language, it comes back far faster the second
+time than it went in the first. You are not relearning this from nothing. You are
+reactivating something.</p>
+
+<p>So this document is unusually explicit. It does not skip steps on the grounds that
+they are obvious, because "obvious" is precisely what erodes first. Where a line of
+algebra has three steps, all three are written down.</p>
+
+<div class="box intuition">
+  <span class="label">What "getting your math back" actually requires</span>
+  <p>Two things, and only one of them is knowledge.</p>
+  <p><b>Recognition:</b> seeing $\frac{\partial L}{\partial w}$ and knowing what kind
+  of object it is, without a jolt of panic. This comes from exposure, and it comes
+  quickly.</p>
+  <p><b>Fluency:</b> being able to <i>do</i> it: rearrange the equation, apply the
+  chain rule, take the derivative without looking anything up. This comes only from
+  working problems, and there is no shortcut anyone has ever found.</p>
+  <p>Reading this document gives you the first. The 38 drills give you the second. If
+  you only do one, do the drills.</p>
+</div>
+
+<h3><span class="num">§0.2</span> What is actually required</h3>
+
+<p>Less than you fear. Deep learning uses a narrow slice of mathematics, very heavily.
+It is not a broad survey; it is five or six ideas applied relentlessly.</p>
+
+<p>Ranked by how much they matter:</p>
+
+<table>
+  <thead><tr><th>Idea</th><th>Why it matters</th><th>Section</th></tr></thead>
+  <tbody>
+    <tr><td><b>The chain rule</b></td><td>Backpropagation <i>is</i> the chain rule. Nothing else comes close in importance.</td><td>§17</td></tr>
+    <tr><td><b>Logarithms</b></td><td>Every loss function lives in log space. Every one.</td><td>§10–11</td></tr>
+    <tr><td><b>Partial derivatives and gradients</b></td><td>How a model learns which way to adjust each of its millions of parameters.</td><td>§22–23</td></tr>
+    <tr><td><b>Exponentials</b></td><td>Sigmoid, softmax, Gaussians: all built from $e^x$.</td><td>§9</td></tr>
+    <tr><td><b>Function composition</b></td><td>A deep network is a composition of functions. That is what "deep" means.</td><td>§7</td></tr>
+    <tr><td><b>Summation notation</b></td><td>You cannot read a single formula without it.</td><td>§12</td></tr>
+    <tr><td><b>Optimisation basics</b></td><td>Training is minimising a function. Minima are where the derivative vanishes.</td><td>§19–20</td></tr>
+    <tr><td>Integrals</td><td>Needed to <i>read</i> Part II. You will never compute one by hand.</td><td>§25</td></tr>
+    <tr><td>Trigonometry</td><td>Barely. A page, for completeness.</td><td>§13</td></tr>
+  </tbody>
+</table>
+
+<p>Notice what is <b>not</b> there: no integration techniques, no trigonometric
+identities, no series convergence, no epsilon-delta proofs, no differential equations.
+A traditional calculus sequence spends most of its time on material deep learning never
+touches. This document does not.</p>
+
+<h3><span class="num">§0.3</span> How to use it</h3>
+
+<p>Three honest routes, depending on where you are:</p>
+
+<dl>
+  <dt>Badly rusty: "I could not define a derivative right now"</dt>
+  <dd>Read straight through, do every <b>Try it</b>, then all Tier 1 and Tier 2 drills.
+  Budget two or three weeks at a relaxed pace. Do not skip Part B; the algebra is what
+  everything else stands on.</dd>
+
+  <dt>Moderately rusty: "I remember calculus, vaguely"</dt>
+  <dd>Skim Parts B and C, slow down at Part D (logarithms), read Part F and §17 with
+  full attention, then work Parts H–I properly. About a week.</dd>
+
+  <dt>Solid but never applied it to ML</dt>
+  <dd>Read §11, §17, §18, and Parts I and K. Everything else you already have. An
+  afternoon.</dd>
+</dl>
+
+<div class="box why">
+  <span class="label">The one section nobody should skip</span>
+  <p><b>§17, the chain rule.</b> If you take nothing else from this document, take that
+  section and its drills. Backpropagation (the algorithm that makes deep learning
+  possible at all) is the chain rule applied repeatedly and organised carefully.
+  Everything in Parts VII and IX of this book depends on it. It gets more room here than
+  any other topic, deliberately.</p>
+</div>
+
+<h3><span class="num">§0.4</span> The markers</h3>
+
+<div class="box intuition">
+  <span class="label">Intuition</span>
+  <p>The picture in your head: what a definition is really saying.</p>
+</div>
+
+<div class="box pitfall">
+  <span class="label">Pitfall</span>
+  <p>A specific error that is easy to make. Most of these are things that were drilled
+  out of you once and drift back when you stop practising.</p>
+</div>
+
+<div class="box why">
+  <span class="label">Why deep learning cares</span>
+  <p>Where this shows up later. Included so that you never work through something
+  without knowing what it buys you.</p>
+</div>
+
+<div class="box try">
+  <span class="label">Try it</span>
+  <p>Stop and compute. Answers come immediately after; but write yours down first, on
+  paper. Reading an answer feels like understanding and is not.</p>
+</div>
+
+<div class="box fw">
+  <span class="label">In the framework</span>
+  <p>How the idea just derived appears in PyTorch, and what the library is doing underneath.
+  Never shown before it has been built from scratch first.</p>
+  <p>There is <b>one</b> of these in Part 0, at the very end, and it exists to prove that the
+  training step you will compute by hand in §24 is the same arithmetic a framework performs.
+  Everything else here is pen and paper. They become common from Part I onward.</p>
+</div>
+
+<h3><span class="num">§0.5</span> Map</h3>
+
+<div class="toc">
+  <div class="part">Part A: Reading mathematics</div>
+  <div class="row"><span class="t">1 · How to read a formula</span></div>
+  <div class="row"><span class="t">2 · The symbols, decoded</span></div>
+
+  <div class="part">Part B: Algebra that must be automatic</div>
+  <div class="row"><span class="t">3 · Rearranging expressions</span></div>
+  <div class="row"><span class="t">4 · Powers, roots, and fractions</span></div>
+  <div class="row"><span class="t">5 · Solving for a variable</span></div>
+
+  <div class="part">Part C: Functions</div>
+  <div class="row"><span class="t">6 · What a function is</span></div>
+  <div class="row"><span class="t">7 · Composition and inverses</span></div>
+  <div class="row"><span class="t">8 · Lines, slopes, and polynomials</span></div>
+
+  <div class="part">Part D: Exponentials and logarithms</div>
+  <div class="row"><span class="t">9 · Exponentials and the number $e$</span></div>
+  <div class="row"><span class="t">10 · Logarithms</span></div>
+  <div class="row"><span class="t">11 · Why machine learning lives in log space</span></div>
+
+  <div class="part">Part E: Notation you must be able to read</div>
+  <div class="row"><span class="t">12 · Sigma and Pi</span></div>
+  <div class="row"><span class="t">13 · The trigonometry you actually need</span></div>
+
+  <div class="part">Part F: The derivative</div>
+  <div class="row"><span class="t">14 · Limits, informally</span></div>
+  <div class="row"><span class="t">15 · The derivative</span></div>
+  <div class="row"><span class="t">16 · The rules</span></div>
+  <div class="row"><span class="t">17 · The chain rule: the important one</span></div>
+
+  <div class="part">Part G: The deep learning function zoo</div>
+  <div class="row"><span class="t">18 · Differentiating the functions you will meet</span></div>
+
+  <div class="part">Part H: Optimisation in one variable</div>
+  <div class="row"><span class="t">19 · Critical points and the second derivative</span></div>
+  <div class="row"><span class="t">20 · Convexity</span></div>
+
+  <div class="part">Part I: Many variables</div>
+  <div class="row"><span class="t">21 · Functions of several variables</span></div>
+  <div class="row"><span class="t">22 · Partial derivatives</span></div>
+  <div class="row"><span class="t">23 · The gradient</span></div>
+  <div class="row"><span class="t">24 · Gradient descent</span></div>
+
+  <div class="part">Part J: Integrals</div>
+  <div class="row"><span class="t">25 · Enough integration to read Part II</span></div>
+
+  <div class="part">Part K: Numbers in a computer</div>
+  <div class="row"><span class="t">26 · Floating point, overflow, underflow</span></div>
+
+  <div class="part">Back matter</div>
+  <div class="row"><span class="t">Drills: 38 problems · Project · Checkpoint · Formula card</span></div>
+</div>
+
+<div class="box intuition">
+  <span class="label">One promise</span>
+  <p>By §24 you will differentiate a small neural network by hand and watch gradient
+  descent improve it. Not a metaphor for it: the actual computation, with numbers,
+  that a real network performs billions of times. Everything before that section exists
+  to make that one possible.</p>
+</div>

@@ -1,0 +1,82 @@
+<div class="partopen">
+  <div class="pnum">Part Three</div>
+  <h1>Numerical<br>Computation</h1>
+  <p class="tag">Mathematics assumes exact arithmetic. Machines do not have it. This part
+  is about the difference, and about the algorithms that survive it.</p>
+  <div class="rule"></div>
+  <div class="contents">
+    <b>1–4</b> Precision and its failures<br>
+    <b>5–7</b> Conditioning<br>
+    <b>8–13</b> Optimisation and curvature<br>
+    <b>14–18</b> Stochastic methods<br>
+    <b>19</b> Constrained optimisation<br>
+    <b>20</b> Least squares, three ways<br>
+  </div>
+  <div class="meta">
+    20 sections · 13 figures · 34 drills · 1 project<br>
+    <b>Ends at:</b> the same problem solved three ways, raced until two of them break.
+  </div>
+</div>
+
+<h2 class="nobreak">Before you start</h2>
+
+<p class="lede">Parts 0 through II built the mathematics. This part is where the
+mathematics meets the machine, and the machine does not cooperate.</p>
+
+<h3><span class="num">§0.1</span> What this part is about</h3>
+
+<p>Every derivation so far assumed exact arithmetic. Real numbers were real; sums were
+sums; if two expressions were algebraically equal, they were equal.</p>
+
+<p>None of that survives contact with a computer. Numbers are stored approximately.
+Algebraically identical expressions produce different answers. Some produce no useful
+answer at all. And the difference is not a rounding detail in the last decimal place: it
+is routinely the difference between a training run that converges and one that returns
+<code>nan</code> after four hundred steps for reasons nobody can locate.</p>
+
+<p>This part covers three connected things:</p>
+
+<ul>
+  <li><b>Precision</b>: what a floating point number actually is, how it fails, and the
+  small set of techniques that make code survive.</li>
+  <li><b>Conditioning</b>: why some problems amplify error catastrophically no matter how
+  good your algorithm is, and how to tell in advance.</li>
+  <li><b>Optimisation</b>: the algorithms that actually minimise things, from gradient
+  descent through curvature-aware methods to the stochastic and adaptive variants every
+  modern system uses.</li>
+</ul>
+
+<div class="box why">
+  <span class="label">Why this matters</span>
+  <p>This is the most immediately practical part of the book. Almost everything in it will
+  change what you do the next time you write code.</p>
+  <p>The failure modes here are the ones you will actually meet: a loss that becomes
+  <code>nan</code>, a model that trains beautifully at one learning rate and diverges at
+  1.2 times that rate, an optimiser that crawls for ten thousand steps on a problem another
+  optimiser solves in fifty, a linear solve that returns confident nonsense. Every one of
+  those is a topic in this part, and every one has a diagnosis.</p>
+</div>
+
+<h3><span class="num">§0.2</span> What you need</h3>
+
+<ul class="checklist">
+  <li><b>Part 0</b>: derivatives, the chain rule, gradients, and gradient descent. Section 26 introduced floating point; this part goes considerably deeper.</li>
+  <li><b>Part I</b>: matrices, eigenvalues, symmetric matrices, the SVD. Section 13's discussion of conditioning is picked up and completed here.</li>
+  <li><b>Part II</b>: expectation and variance, for the stochastic methods in §14 onward. Nothing else.</li>
+</ul>
+
+<h3><span class="num">§0.3</span> The habit for this part</h3>
+
+<p>Parts 0 and I each had one: <i>say what is random and what is fixed</i>, and
+<i>write down the shape</i>. This part's is:</p>
+
+<p><b>Never trust a number you have not sanity-checked.</b></p>
+
+<p>Floating point failures are silent. There is no exception, no warning, no crash, and the
+computation returns a number, and the number is wrong. The only defence is to know in
+advance which operations are dangerous, and to check results against something
+independent: a known answer, a second algorithm, a simulation, or a bound you can derive
+by hand.</p>
+
+<p>That habit is what §20 is built to demonstrate, and it is what the project asks you to
+practise.</p>

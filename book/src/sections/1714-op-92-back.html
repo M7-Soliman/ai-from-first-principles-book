@@ -1,0 +1,195 @@
+<h2><span class="part-kicker">Build</span>The project</h2>
+
+<p class="lede">Eight to twelve hours. You build the instruments this part kept asking for, and
+then use them to diagnose four deliberately broken training runs without looking at the
+answers.</p>
+
+<h3><span class="num">P.1</span> What you are building</h3>
+
+<p><b><code>optiscope</code></b>, a training harness that records, every epoch, the quantities
+§29's ladder needs, plus a set of sabotaged configurations to test it on.</p>
+
+<p>The rule: <b>every diagnosis must be made from the recorded measurements before the
+configuration is revealed.</b> A diagnostic that only works once you know the answer is not a
+diagnostic.</p>
+
+<h3><span class="num">P.2</span> Stage 1: the instruments</h3>
+
+<p>A training loop for a small network that logs, per epoch:</p>
+
+<ul>
+  <li>Training and validation loss, and the corresponding <b>0–1 error</b>, both per §3.</li>
+  <li>Full-batch $\|\mathbf{g}\|$ and the mean minibatch $\|\hat{\mathbf{g}}\|$, separately.
+  They tell you different things and Figure 3 plots both.</li>
+  <li><b>$\mathbf{g}^\top H\mathbf{g}$</b> by finite differences, and the implied ceiling
+  $2\mathbf{g}^\top\mathbf{g}/\mathbf{g}^\top H\mathbf{g}$ alongside your actual rate.</li>
+  <li>Per-layer activation and gradient standard deviation.</li>
+  <li>Fraction of dead units, and $\|\boldsymbol{\theta}\|$.</li>
+</ul>
+
+<p><b>Deliverable:</b> reproduce Figure 3, a run whose validation error falls to a few percent
+while the gradient norm <i>rises</i>. Report the ceiling at the first and last epoch and the
+factor between them.</p>
+
+<h3><span class="num">P.3</span> Stage 2: four sabotages, diagnosed blind</h3>
+
+<p>Write a second script that emits four broken configurations in a random order, each recording
+only what Stage 1 records. Have someone else run it, or write the diagnosis before you look.</p>
+
+<ol>
+  <li><b>Initialisation scale</b> wrong by a factor of ten, in a deep stack.</li>
+  <li><b>Learning rate</b> above the ceiling from about a third of the way through.</li>
+  <li><b>Output bias</b> at zero on a 99/1 imbalanced problem.</li>
+  <li><b>Four regularisers</b> at once, each individually defensible.</li>
+</ol>
+
+<p><b>Deliverable:</b> for each, the rung of §29's ladder that caught it and the specific number
+that gave it away. Note honestly any you got wrong: the loss curves are similar, which is the
+point of the exercise.</p>
+
+<h3><span class="num">P.4</span> Stage 3: the equivalences</h3>
+
+<p>Three measurements that each connect two things this part treated separately.</p>
+
+<ul>
+  <li><b>Damping is ridge.</b> Solve a quadratic with $[H+\alpha I]^{-1}\mathbf{g}$ at several
+  $\alpha$ and confirm the per-eigendirection shrinkage is Part VIII §4's
+  $\lambda/(\lambda+\alpha)$, the same operator, two chapters apart. Show the limit
+  $\alpha \to \infty$ becoming gradient descent at rate $1/\alpha$.</li>
+  <li><b>The one recurrence, four times.</b> Implement momentum, RMSProp's accumulator, batch
+  normalisation's running statistics and Polyak's EMA, and confirm all four are
+  $x \leftarrow \rho x + (1-\rho)u$ with different $u$. State each one's effective window.</li>
+  <li><b>Batch size and the Newton step.</b> Reproduce Figure 2's right panel and report the
+  amplification factor at your condition number.</li>
+</ul>
+
+<h3><span class="num">P.5</span> Stage 4: normalisation, honestly</h3>
+
+<ol>
+  <li>Build a deep network that fails to train from PyTorch's default initialisation.</li>
+  <li>Fix it with He initialisation alone. Record the range of workable learning rates.</li>
+  <li>Add batch normalisation <b>on top of the correct initialisation</b> and record it
+  again.</li>
+  <li>Report the best loss reached by each.</li>
+</ol>
+
+<p><b>Deliverable:</b> the widening factor, and an honest statement of whether normalisation
+lowered the best loss or only widened the range. Comparing normalisation against a <i>bad</i>
+initialisation is the standard way this measurement is overstated, and step 2 exists to
+prevent it.</p>
+
+<h3><span class="num">P.6</span> Stage 5: where the algorithm cannot help</h3>
+
+<p>Construct a problem with the structure of §12: a starting region not connected to the good
+solution by a path local descent will follow.</p>
+
+<ol>
+  <li>Confirm that SGD, momentum, Adam and L-BFGS all fail from that start.</li>
+  <li>Confirm that at least one of a different initialisation, a continuation schedule, or a
+  stochastic curriculum succeeds.</li>
+</ol>
+
+<p><b>Deliverable:</b> the table of four failures and one success, and a paragraph on why this
+is the difficulty that "just use a better optimiser" cannot address.</p>
+
+<h3><span class="num">P.7</span> Stretch</h3>
+
+<ul>
+  <li><b>Saddle-free descent.</b> On a small problem where you can afford the Hessian, replace
+  $H^{-1}$ with $|H|^{-1}$ (absolute eigenvalues) and compare against plain Newton near a
+  saddle.</li>
+  <li><b>The first epoch is special.</b> Train on a stream with no repetition and confirm that
+  training and validation loss stay together, then switch to repeated epochs and watch them
+  separate. §5's claim, made visible.</li>
+  <li><b>Curriculum, both kinds.</b> Deterministic and stochastic, against uniform sampling.
+  Report the negative result too.</li>
+  <li><b>Auxiliary heads.</b> Attach an extra output to a middle layer of a deep network, train,
+  then discard it. Measure the gradient reaching layer one with and without.</li>
+</ul>
+
+<h3><span class="num">P.8</span> Done when</h3>
+
+<ul class="checklist">
+  <li>You have a run where the gradient norm rises and validation error falls.</li>
+  <li>The step ceiling is logged alongside the learning rate, every epoch.</li>
+  <li>All four sabotages were diagnosed from measurements, with the misses recorded.</li>
+  <li>The damping–ridge equivalence is verified numerically in the eigenbasis.</li>
+  <li>All four uses of the exponential recurrence are implemented and their windows stated.</li>
+  <li>The normalisation comparison uses a correct initialisation in both arms.</li>
+  <li>Four optimisers fail on the same problem and a non-algorithmic remedy succeeds.</li>
+  <li>Your README names one thing you had been blaming on the optimiser that was not.</li>
+</ul>
+
+<div class="box why">
+  <span class="label">Why this project</span>
+  <p>Optimisation is where the gap between what practitioners can explain and what they can
+  diagnose is widest. Almost everyone can state what Adam does. Very few can say, of a run in
+  front of them, whether the problem is the initialisation, the curvature, the regularisation
+  total or the architecture, and the reason is that they have never had the instruments.</p>
+  <p>Stage 2 is the part that changes how you work. Four failures that produce similar loss
+  curves, distinguished by measurements that cost almost nothing, is an experience that does
+  not survive being read about.</p>
+</div>
+
+<h2 class="nobreak"><span class="part-kicker">Assess</span>Checkpoint</h2>
+
+<ul class="checklist">
+  <li>Name the three quantities of §1 and say which the optimiser can evaluate.</li>
+  <li>Explain why 0–1 loss cannot be minimised by gradient descent, and why no algorithm fixes it.</li>
+  <li>Say how a surrogate loss can leave you <i>better off</i> than the target would have.</li>
+  <li>Explain why training halting is not convergence, and what supplies the halt.</li>
+  <li>Give the four forces setting the batch size.</li>
+  <li>Explain why a second-order method needs a batch two orders of magnitude larger.</li>
+  <li>State in what sense the first epoch differs from every epoch after it.</li>
+  <li>Derive $\epsilon < 2\mathbf{g}^\top\mathbf{g}/\mathbf{g}^\top H\mathbf{g}$.</li>
+  <li>Say how to compute $\mathbf{g}^\top H\mathbf{g}$ without forming $H$.</li>
+  <li>Give the two symmetries that make a network unidentifiable, and say why they are harmless.</li>
+  <li>State the test that rules out local minima, and why there is no test that rules them in.</li>
+  <li>Explain why low-cost critical points tend to be minima and high-cost ones saddles.</li>
+  <li>Say why saddle points are worse for Newton's method than for gradient descent.</li>
+  <li>Explain what a cliff is, where it comes from, and why clipping preserves the direction.</li>
+  <li>Distinguish the feedforward and recurrent versions of vanishing gradients.</li>
+  <li>State §12's difficulty and say which family of remedies addresses it.</li>
+  <li>Give the linear schedule's three parameters and the conventional values of two of them.</li>
+  <li>Say why the best initial learning rate is higher than the one that looks best early.</li>
+  <li>Give the Cramér–Rao argument against pursuing faster optimisers.</li>
+  <li>Explain why momentum uses viscous drag and not the other two powers.</li>
+  <li>State exactly what Nesterov changes, and where its $O(1/k^2)$ does and does not apply.</li>
+  <li>Explain the conflict between forward and backward variance, and what Glorot does about it.</li>
+  <li>Give three cases where a bias should not start at zero, and why.</li>
+  <li>Describe the single-batch initialisation protocol and why it is cheaper than a search.</li>
+  <li>Show that damped Newton interpolates to gradient descent, and what that implies.</li>
+  <li>Explain why steepest descent with an exact line search must zigzag.</li>
+  <li>Define conjugacy and say why $\beta_t$ can be computed without $H$.</li>
+  <li>Say why BFGS tolerates a sloppier line search than conjugate gradients.</li>
+  <li>State the coordination problem and why no $n$-th order method solves it.</li>
+  <li>Explain why differentiating <i>through</i> the batch statistics is the innovation.</li>
+  <li>Say why $\gamma$ and $\beta$ do not undo the normalisation.</li>
+  <li>Give the two forms of Polyak averaging and say when each is right.</li>
+  <li>Explain what the FitNets result shows about <i>why</i> deep networks are hard.</li>
+  <li>Give the three ways continuation fails.</li>
+  <li>Say which kind of curriculum was measured not to work.</li>
+  <li>List §29's ladder in order and say what each of the first five settles.</li>
+</ul>
+
+<table class="compact">
+  <thead><tr><th>Score</th><th>Verdict</th></tr></thead>
+  <tbody>
+    <tr><td><b>29–36</b></td><td>Go on. You can diagnose a run rather than guess at it.</td></tr>
+    <tr><td><b>23–28</b></td><td>Reread what you missed, then continue.</td></tr>
+    <tr><td><b>16–22</b></td><td>Do the project's Stage 2. Building the instruments fixes most of this.</td></tr>
+    <tr><td><b>Under 16</b></td><td>Reread §§1, 6 and 29. The rest of the part is those three applied.</td></tr>
+  </tbody>
+</table>
+
+<div class="box intuition">
+  <span class="label">The one thing to carry forward</span>
+  <p><b>The optimiser is not solving your problem, and that is the arrangement rather than a
+  defect.</b></p>
+  <p>It minimises a surrogate, on a sample, from a starting point you chose, until a criterion
+  it cannot see tells it to stop. Every difficulty here follows from that, and so does every
+  remedy, which is why the four things around the optimiser matter more than which optimiser
+  you picked.</p>
+  <p>And when a run fails, the question is never "which optimiser should I try?" It is "what
+  have I measured?"</p>
+</div>

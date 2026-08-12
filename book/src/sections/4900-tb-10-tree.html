@@ -1,0 +1,120 @@
+<h2><span class="part-kicker">Part A</span>One tree</h2>
+
+<p class="mvt">A decision tree is the only model family in this book whose capacity you can
+count, whose decisions you can read off, and whose bias is a geometric statement you can draw. It
+is also, alone, mediocre. This movement builds it and then establishes exactly what it cannot
+do, which is the specification for the two movements that follow.</p>
+
+<h3><span class="num">§1</span> Why a table is not an image</h3>
+
+<div class="box why">
+  <span class="label">What tabular data does not have</span>
+  <p>Part X earned convolution from a property of images: a pixel's neighbours are meaningful, and
+  the same filter applies everywhere. Part XI earned recurrence from a property of sequences.</p>
+  <p>A table has neither. Column 7 is not adjacent to column 8 in any sense: reorder the columns
+  and nothing about the problem changes. Columns are on unrelated scales and often unrelated kinds:
+  an age, a country, a count, a boolean. There is no translation to be equivariant to and no
+  locality to exploit.</p>
+  <p>So the architectural priors that made Parts X to XII work are unavailable, and the family that
+  works instead is the one whose prior is <b>axis-aligned thresholds</b>, which is exactly what a
+  table's columns are.</p>
+</div>
+
+<h3><span class="num">§2</span> The model</h3>
+
+<div class="box def">
+  <span class="label">A decision tree</span>
+  <p>Repeatedly split the data on one feature at one threshold. Each leaf holds a constant: the
+  mean of its training targets for regression, the class proportions for classification. Prediction
+  is walking from the root to a leaf and reading the constant.</p>
+  <p>The function is <b>piecewise constant on axis-aligned boxes</b>. That is the entire hypothesis
+  class, and everything the family does well or badly follows from it.</p>
+</div>
+
+<h3><span class="num">§3</span> Choosing a split</h3>
+
+<div class="box def">
+  <span class="label">Greedy, by impurity reduction</span>
+  <p>For regression, choose the split minimising the sum of squared deviations within the two
+  children. Writing <span class="m">$G$</span> for a node's sum of targets and
+  <span class="m">$n$</span> for its count, the quantity to maximise is</p>
+  <p class="m">$$\frac{G_L^2}{n_L} + \frac{G_R^2}{n_R} - \frac{G^2}{n}$$</p>
+  <p>For classification the same shape with Gini impurity or entropy in place of the squared error.
+  In every case the choice is <b>greedy</b>: the best split now, with no lookahead.</p>
+</div>
+
+<div class="box why">
+  <span class="label">Why greedy, and what it costs</span>
+  <p>Finding the optimal tree is NP-hard. Greedy growth is the concession, and it has a specific
+  failure: a split that is worthless alone but essential in combination will not be taken. XOR is
+  the canonical case: neither feature reduces impurity at the root, so a depth-1 search finds
+  nothing, though a depth-2 tree represents it exactly.</p>
+  <p>In practice trees grow past that by luck and by noise, and the failure is real but rarely
+  fatal. It is worth knowing because it explains why boosted <i>shallow</i> trees, which are
+  strongly greedy, still capture interactions: the ensemble composes what one tree would not
+  find.</p>
+</div>
+
+<h3><span class="num">§4</span> Finding the threshold</h3>
+
+<div class="box shapes">
+  <span class="label">Exact, and the approximation everyone uses</span>
+  <p><b>Exact.</b> Sort the feature, sweep the candidate thresholds, accumulate the sums. Every
+  distinct value is a candidate, so the cost is a sort per feature per node.</p>
+  <p><b>Histogram.</b> Bin each feature once, up front, into a fixed number of buckets at quantiles
+  of the training data. A split search is then a <span class="m">$\mathrm{bincount}$</span> over
+  bins rather than a sort over rows, and the histogram of a child can be obtained by subtracting
+  its sibling's from its parent's, so only the smaller child needs computing.</p>
+  <p>This is the change that made gradient boosting practical at scale, and §22 measures what the
+  approximation costs.</p>
+</div>
+
+<h3><span class="num">§5</span> Depth, and the curve you can point to</h3>
+
+<figure>
+  <img src="figures/tb/01-tree-depth.svg" alt="Training and test error against tree depth, and the number of leaves">
+  <figcaption><b>Figure 1.</b> A single tree on 2,500 rows. Training error falls monotonically
+  toward zero: <b>0.071</b> by depth 16, where the tree has <b>1,572</b> leaves and is close to
+  memorising. Test error bottoms at <b>depth 3</b> and then rises, reaching <b>1.49×</b> its minimum
+  by depth 16. The classical bias–variance curve of Part VI §6, visible here in a way it is not for
+  a network, because the capacity is a number you can count.</figcaption>
+</figure>
+
+<div class="box intuition">
+  <span class="label">Why the tree shows the curve so cleanly</span>
+  <p>Part XXIII §23 measured a network fitting random labels and generalising anyway, which is why
+  its capacity does not predict its behaviour. A tree has no such escape: each additional level
+  doubles the boxes, each box holds fewer points, and each leaf's constant is estimated from less
+  data. Capacity and variance move together with nothing intervening.</p>
+  <p>So a tree is where the classical theory is at its most useful, and it is worth noticing that
+  the same theory told us almost nothing in Part XXIII.</p>
+</div>
+
+<h3><span class="num">§6</span> Stopping, and pruning</h3>
+
+<div class="box shapes">
+  <span class="label">Three controls, and which one to reach for</span>
+  <p><b>Maximum depth.</b> Blunt, effective, and the one to tune first.</p>
+  <p><b>Minimum samples per leaf.</b> Adapts to density (deep where there is data, shallow where
+  there is not), which is usually what you want and is why it is the better of the two.</p>
+  <p><b>Cost-complexity pruning.</b> Grow fully, then remove the subtree whose removal costs least
+  per leaf saved, generating a nested family indexed by a penalty. This is Part XXIII §20's
+  structural risk minimisation, arrived at independently and decades earlier.</p>
+  <p>Once the tree is in an ensemble, all of this matters less than it looks. A boosted tree wants
+  to be shallow because the ensemble supplies the capacity; a bagged tree wants to be deep because
+  the averaging supplies the variance reduction.</p>
+</div>
+
+<h3><span class="num">§7</span> What movement A establishes</h3>
+
+<div class="box intuition">
+  <span class="label">Three things</span>
+  <p><b>The prior is axis-aligned boxes</b>, which is the right prior for a table and the wrong one
+  for an image, the exact mirror of Part X's argument.</p>
+  <p><b>Capacity is countable and behaves classically.</b> Figure 1's test error turns at depth 3
+  and rises by half again by depth 16, with training error at 0.071. The theory Part XXIII found
+  vacuous for networks is informative here.</p>
+  <p><b>One tree is not enough.</b> Greedy growth misses interactions, the boxes make every
+  boundary a staircase, and the variance is large. The next two movements are two different
+  repairs, and they repair different things.</p>
+</div>

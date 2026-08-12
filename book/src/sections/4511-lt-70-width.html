@@ -1,0 +1,286 @@
+<h2><span class="part-kicker">Part G</span>Width</h2>
+
+<p class="mvt">Movements A to F took the sample size to infinity and asked what happens. This one
+takes the <i>width</i> to infinity instead, and the answer is stranger and more useful: the network
+becomes exactly solvable, and the solvable version cannot do the thing that makes networks work. What
+survives the disappointment is the reason a hyperparameter tuned on a small model transfers to a
+large one, a result Part XVII §34 has been using since it was written, without the theory that says
+why.</p>
+
+<h3><span class="num">§46</span> A different limit</h3>
+
+<div class="box why">
+  <span class="label">Which quantity goes to infinity</span>
+  <p>Every bound in this part so far has been an <span class="m">$n\to\infty$</span> statement: as
+  the sample grows, the empirical risk concentrates on the true risk, at a rate set by how much
+  freedom the hypothesis class had. §23 to §30 showed that argument going numerically vacuous exactly
+  where modern models live.</p>
+  <p>Take <span class="m">$m\to\infty$</span> instead: the width of a hidden layer, with the sample
+  fixed. Two things happen that have no analogue in the sample limit. The network's initial function
+  becomes a Gaussian process, exactly. And its training dynamics become <b>linear</b> in the
+  parameters, so gradient descent on a neural network becomes kernel regression, which is a closed
+  form from Part I.</p>
+  <p>This is not a bound. It is an identity in a limit, which makes it a completely different kind of
+  object from anything in movements A to F, and it fails in a completely different way.</p>
+</div>
+
+<h3><span class="num">§47</span> The neural tangent kernel</h3>
+
+<div class="box def">
+  <span class="label">Linearise around the initialisation</span>
+  <p>Write <span class="m">$f(x;\theta)$</span> for the network. First-order Taylor expansion in the
+  parameters around <span class="m">$\theta_0$</span>:</p>
+  <p class="m">$$f(x;\theta) \approx f(x;\theta_0) + \nabla_\theta f(x;\theta_0)^{\!\top}(\theta-\theta_0)$$</p>
+  <p>which is a <i>linear model</i> in the features
+  <span class="m">$\phi(x)=\nabla_\theta f(x;\theta_0)$</span>. Its kernel is</p>
+  <p class="m">$$\Theta(x,x') = \nabla_\theta f(x;\theta_0)^{\!\top}\nabla_\theta f(x';\theta_0)$$</p>
+  <p>the <b>neural tangent kernel</b>. Two facts make it more than an approximation. As
+  <span class="m">$m\to\infty$</span> with the right parameterisation, <span class="m">$\Theta$</span>
+  converges to a <b>deterministic</b> limit: it stops depending on the random initialisation. And it
+  stays <b>constant during training</b>, so the linearisation is not just accurate at
+  <span class="m">$\theta_0$</span> but along the whole trajectory.</p>
+</div>
+
+<p>Grant those two and gradient descent on the network has a closed-form solution: it is gradient
+descent on a linear model, which converges to the kernel regression solution, whose test predictions
+you can write down. Every question about generalisation becomes a question about the spectrum of a
+fixed matrix, territory Part I already covers. That is an enormous amount of structure to get for
+free, and it is why the result mattered.</p>
+
+<h3><span class="num">§48</span> How constant is constant</h3>
+
+<figure>
+  <img src="figures/lt/08-ntk-freeze.svg" alt="Relative change in the neural tangent kernel during training against width on log axes, falling as a power law with a fitted slope near minus two thirds">
+  <figcaption><b>Figure 8.</b> The empirical NTK before and after training, measured on networks whose
+  width spans 128×. Every width was trained until it halved <b>its own</b> initial loss, so all made
+  the same progress and the width is the only difference. The kernel change falls from <b>1.11 to
+  0.048</b>, a power law with fitted exponent <b>−0.65</b>. At width 2,048 the kernel still moves by
+  <b>4.8%</b>.</figcaption>
+</figure>
+
+<div class="box why">
+  <span class="label">A limit statement is not a statement about your network</span>
+  <p>"The NTK is constant during training" is true and is about <span class="m">$m=\infty$</span>. At
+  width 2,048, wider than the hidden dimension of many deployed models, the kernel moves by 4.8%,
+  and at width 16 it moves by more than its own size, which is not a perturbation at all.</p>
+  <p>Two things follow. Predictions derived from the constant-kernel assumption should be treated as
+  a leading-order term with a 1/√<span class="m">$m$</span>-ish correction, not as a description. And
+  the direction of the correction matters: the kernel does not drift randomly, it moves
+  <b>toward the data</b>, which is the next section's subject and the entire reason finite networks
+  beat their own infinite-width limits.</p>
+</div>
+
+<h3><span class="num">§49</span> Lazy and rich</h3>
+
+<div class="box def">
+  <span class="label">The regime is a property of the scale, not the architecture</span>
+  <p>Multiply a network's output by a constant <span class="m">$\alpha$</span>. Nothing about the
+  architecture changes, but the function now moves <span class="m">$\alpha$</span> times as far for
+  the same parameter change, so reaching a given loss requires the parameters to move
+  <span class="m">$1/\alpha$</span> as far. Large <span class="m">$\alpha$</span> gives the
+  <b>lazy</b> regime: parameters barely move, the linearisation is exact, and the network is kernel
+  regression. Small <span class="m">$\alpha$</span> gives the <b>rich</b> regime, where the features
+  themselves change.</p>
+  <p>Width does the same thing implicitly, which is the connection: the standard infinite-width
+  limits are lazy limits, and that is why they are solvable.</p>
+</div>
+
+<figure>
+  <img src="figures/lt/09-lazy-rich.svg" alt="Feature movement and alignment with the true direction both falling as the output scale grows, beside test error rising with output scale">
+  <figcaption><b>Figure 9.</b> A target depending on one direction in an eight-dimensional input.
+  Every arm was trained to the <b>identical</b> training loss of 0.0200, so nothing here is a
+  difference in convergence. As the output scale rises the features move five times less, test error
+  worsens <b>1.8×</b>, and the alignment of the first-layer update with the direction the target
+  actually depends on falls <b>3.5×</b>.</figcaption>
+</figure>
+
+<div class="box why">
+  <span class="label">What "does not learn features" means, as a number</span>
+  <p>The alignment column is the measurement worth having. The lazy network fits the training data
+  exactly as well as the rich one and does it <b>without ever finding the direction the data depends
+  on</b>. It is not learning a worse representation; it is not learning a representation. Kernel
+  regression with a fixed kernel is precisely a method whose features were chosen before it saw the
+  data, and the infinite-width limit says a wide network is that method.</p>
+  <p>So the NTK cannot be the explanation of why deep learning works. It is an exactly solvable model
+  of a network that has had the interesting behaviour removed, which is still worth a great deal, in
+  the way that the harmonic oscillator is worth a great deal, and is worth nothing at all if you
+  forget which one you are holding.</p>
+  <p><b>Laziness costs compute too</b>, which is not usually mentioned. Reaching the same training
+  loss took <b>17× more steps</b> at the lazy end of Figure 9 than at the rich end. The regime that
+  generalises worse is also the slower one to train.</p>
+</div>
+
+<h3><span class="num">§50</span> Three parameterisations</h3>
+
+<div class="box shapes">
+  <span class="label">Where the width shows up decides what the limit is</span>
+  <p><b>Standard.</b> Initialise every layer with variance 1/fan-in, put no width factor in the
+  forward pass, use one learning rate everywhere. What almost everybody does.</p>
+  <p><b>NTK.</b> Initialise at unit variance and put <span class="m">$1/\sqrt{m}$</span> explicitly
+  in the forward pass. Constructed so the kernel has a finite limit, and it does, at the price of
+  §49: the features stop moving.</p>
+  <p><b>μP (maximal update).</b> Three changes together. The output layer is initialised at
+  <span class="m">$1/m$</span>, so the network starts at the zero function. The output layer's
+  learning rate falls like <span class="m">$1/m$</span>. And the <b>input layer's learning rate grows
+  like <span class="m">$m$</span></b>. The combination is chosen so that activations, and their
+  updates, are <span class="m">$\Theta(1)$</span> in width, the largest updates that do not blow up,
+  which is what "maximal" names.</p>
+</div>
+
+<div class="box why">
+  <span class="label">Why all three parts of μP are needed</span>
+  <p>The third one is the easy one to omit and it is the one that matters. With the output layer
+  small and slow and nothing compensating on the input side, the features move like
+  <span class="m">$1/m$</span>, which makes μP <i>lazier</i> than NTK parameterisation, the precise
+  opposite of the property it exists to have. The scheme is not a list of tricks with an
+  independently useful subset; it is one solution to one system of constraints, and two thirds of it
+  is worse than none.</p>
+</div>
+
+<h3><span class="num">§51</span> The coordinate check</h3>
+
+<figure>
+  <img src="figures/lt/10-coord-check.svg" alt="Change in the network output after one step against width, flat for NTK and muP and growing steeply for standard parameterisation, beside relative feature movement flat only for muP">
+  <figcaption><b>Figure 10.</b> One optimiser step, widths 64 to 4,096. Under standard
+  parameterisation the change in the network's <i>output</i> grows by a factor of <b>53</b> across a
+  64× width range, close to linear in width. NTK and μP are both flat. The second panel separates
+  them: NTK parameterisation buys its stability by letting the features stop moving, at the same rate
+  standard parameterisation does; <b>μP is the only one that is stable and still learning</b>.</figcaption>
+</figure>
+
+<div class="box try">
+  <span class="label">The diagnostic, in full</span>
+  <p>Take one optimiser step at three widths. Record the mean absolute change in each layer's
+  activations, and in the output. <b>Plot against width on log axes and look for flat lines.</b></p>
+  <p>A rising line means the update size depends on the width, so no single learning rate is correct
+  across scales and any hyperparameter you tuned is tied to the width you tuned it at. A falling line
+  in the feature panel means that layer is going lazy and will stop contributing as you scale.</p>
+  <p>It costs one step, not a training run, and it catches the failure before a sweep does. This is
+  the whole of what §52 rests on: the transfer property is a consequence of the flat lines, not an
+  additional empirical fact.</p>
+</div>
+
+<h3><span class="num">§52</span> Why hyperparameters transfer</h3>
+
+<figure>
+  <img src="figures/lt/11-transfer.svg" alt="Test error against learning rate for five widths, with the optimum shifting steadily left under standard parameterisation and sitting at the same place under muP">
+  <figcaption><b>Figure 11.</b> Test error against learning rate at five widths. Under standard
+  parameterisation the optimum moves <b>17.8× over a 16× width range</b>: it tracks
+  <span class="m">$1/m$</span> almost exactly. Under μP it is unchanged from width 128 to 1,024. Stars
+  mark each curve's minimum.</figcaption>
+</figure>
+
+<div class="box why">
+  <span class="label">What Part XVII §34 was relying on</span>
+  <p>Part XVII §34 tunes hyperparameters on a small model and uses them on a large one. Figure 11 is
+  why that is allowed and why it is not automatic. Under standard parameterisation the answer you get
+  from the small sweep is <b>wrong by the width ratio</b>, and it is wrong in the expensive
+  direction, since the learning rate that was optimal at small scale is far too large at large scale.
+  Every hour of small-scale tuning is then actively misleading.</p>
+  <p>Under μP the optimum sits still, so the sweep transfers. The honest bound from this measurement:
+  residual drift is <b>below a factor of 1.33 over an 8× width range</b>, which is the resolution of
+  the grid rather than zero. Transfer is a very good approximation, not an identity, and a claim of
+  exactness should be treated as untested rather than true.</p>
+  <p>This is the movement's practical payoff. It is also an unusually clean example of theory paying
+  for itself: the limit that turned out <i>not</i> to explain generalisation turned out to explain
+  something that saves a great deal of money.</p>
+</div>
+
+<h3><span class="num">§53</span> Depth, and what a random network does to a signal</h3>
+
+<div class="box def">
+  <span class="label">Two inputs, many layers</span>
+  <p>Take two inputs and push them through a randomly initialised network. Track the correlation
+  between their representations layer by layer. It converges to a fixed point, and which fixed point
+  depends on the initialisation variance <span class="m">$\sigma_w^2$</span>.</p>
+  <p><b>Ordered</b> (small <span class="m">$\sigma_w^2$</span>): correlation → 1. Every input produces
+  the same representation and the network cannot tell them apart. <b>Chaotic</b> (large): correlation
+  → a fixed point well below 1, so nearby inputs are driven apart and the network forgets that
+  similar things are similar. Between them is a critical value where the approach is slowest.</p>
+</div>
+
+<figure>
+  <img src="figures/lt/12-signal-prop.svg" alt="Correlation curves converging to one or to a low fixed point depending on initialisation variance, gradient scale spanning many orders of magnitude with a crossing near 1.76, and training loss against depth for three variances">
+  <figcaption><b>Figure 12.</b> Tanh, <span class="m">$\sigma_b^2=0.05$</span>, depth 150. The
+  gradient scale over 150 layers is within 10× of one at <b>exactly one</b> of the seven variances
+  tested and is off by 10⁷ or more at its neighbours. At that same value the correlation takes
+  <b>41 layers</b> to close a factor of e, against 3 at the extremes. The third panel trains real
+  networks with the learning rate tuned at each depth.</figcaption>
+</figure>
+
+<div class="box why">
+  <span class="label">The phase diagram is not symmetric in what it costs</span>
+  <p>The third panel was meant to confirm that trainability tracks the phase diagram. It confirms
+  half of it. The <b>ordered</b> phase degrades exactly as predicted: at depth 64 it reaches a
+  training loss of 0.094 against 0.100 for predicting the mean, which is to say it does not train at
+  all. The <b>chaotic</b> phase trains perfectly at every depth tested, despite a gradient scale of
+  10¹².</p>
+  <p>The asymmetry has a reason, and it is more useful than the tidy picture would have been.
+  <b>The ordered phase destroys information; the chaotic phase only destroys scale.</b> When
+  correlations collapse to 1, every input produces the same representation and what is gone is gone;
+  no learning rate recovers it. An exploding gradient is a large number, and a large number can be
+  divided by, which is what tuning the learning rate does and what gradient clipping and normalisation
+  do more robustly.</p>
+  <p><b>Stated with its scope:</b> this is one easy task at width 64 and depth up to 64. The claim
+  supported is that exploding gradients were survivable here with a tuned rate, not that chaotic
+  initialisation is harmless.</p>
+</div>
+
+<h3><span class="num">§54</span> What initialisation is choosing</h3>
+
+<div class="box why">
+  <span class="label">Not a number, a depth scale</span>
+  <p>Initialisation is usually taught as a variance formula to be memorised: 2/fan-in for ReLU,
+  1/fan-in for tanh. Figure 12 says what the formula is <i>for</i>: it places the network at the
+  boundary between two regimes, and the quantity it controls is <b>how many layers information about
+  the input survives</b>.</p>
+  <p>That reframing explains several things at once. Why the right constant depends on the
+  nonlinearity: the fixed-point structure does. Why very deep plain networks were untrainable before
+  anyone had a residual connection or a normalisation layer, and why both fixes work: they change the
+  propagation so that criticality is automatic rather than something to be tuned onto. And why
+  scaling residual branches by <span class="m">$1/\sqrt{L}$</span> is not arbitrary: it keeps the
+  variance from growing with depth, which is the same calculation done on a different architecture.</p>
+  <p>The through-line for this whole movement: <b>the useful theory of deep networks is about
+  scales</b> (of activations, updates, gradients, and correlations) and about keeping them
+  <span class="m">$\Theta(1)$</span> as something is taken to infinity. It is much less ambitious than
+  a generalisation bound and it produces things that work.</p>
+</div>
+
+<h3><span class="num">§55</span> What to carry forward</h3>
+
+<div class="box intuition">
+  <span class="label">Five things, from this movement and the six before it</span>
+  <p><b>Learning works because averages concentrate, and the classical bounds stop being informative
+  exactly where modern models live.</b> Movements A to F establish both halves; Figure 3 measures a
+  bound of 1.1 to 10.0 on an error rate that cannot exceed 1.</p>
+  <p><b>The infinite-width limit is exactly solvable and cannot learn features.</b> Figure 9 measures
+  the alignment with the direction the target depends on falling 3.5× at identical training loss:
+  the lazy network fits the data without finding its structure.</p>
+  <p><b>"Constant during training" is a limit, not a description.</b> Figure 8 measures 4.8% kernel
+  movement at width 2,048, falling like <span class="m">$m^{-0.65}$</span> rather than the
+  <span class="m">$m^{-1/2}$</span> the scaling argument suggests.</p>
+  <p><b>μP is why a small-scale sweep transfers, and a coordinate check is how you know.</b> Figure
+  10 measures the output update growing 53× with width under standard parameterisation; Figure 11
+  measures the optimal learning rate moving 17.8× because of it. One optimiser step at three widths
+  catches this before a sweep does.</p>
+  <p><b>Initialisation chooses a depth scale, and the two ways to get it wrong are not equally
+  bad.</b> Figure 12 measures the gradient scale within 10× of one at exactly one variance of seven,
+  but the ordered side destroys information and does not train, while the chaotic side only destroys
+  scale and trains fine with a tuned rate.</p>
+</div>
+
+<div class="sixty">
+  <span class="label">Sixty seconds</span>
+  <p>Learning works because averages concentrate, and choosing a hypothesis after seeing the data
+  costs only the logarithm of how much freedom the choice had. That argument is exact, and it stops
+  being informative once the model can fit anything, which modern models can, demonstrably. What
+  remains is that the optimiser, not the objective, selects among the perfect fits, and it happens to
+  select well. Nobody can yet say why in general. Taking the width to infinity instead of the sample
+  makes the network exactly solvable and removes the only thing that made it interesting: in that
+  limit it is kernel regression with features fixed before it saw the data, and it fits just as well
+  while never finding the structure the data has. What the limit does buy is scales. Keeping
+  activations, updates and gradients order one as width or depth grows is what makes a learning rate
+  tuned on a small model correct on a large one, and what decides how many layers a signal survives.
+  Meanwhile the assumption doing the most work is not any of the theorems but the one under all of
+  them: that tomorrow's data looks like today's.</p>
+</div>

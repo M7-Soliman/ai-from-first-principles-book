@@ -1,0 +1,271 @@
+<h2><span class="part-kicker">Practice</span>Drills</h2>
+
+<p class="mvt">Forty-three drills. The harness in <code>parts/30-audio/drills/</code> covers twenty
+of them with twenty-six tests. Numpy only, and every signal synthetic, which is what lets the
+reconstruction tests assert machine precision rather than a tolerance.</p>
+
+<h3><span class="num">Tier 0</span> Estimate first</h3>
+
+<div class="drill">
+  <div class="head"><span class="tier est">Estimate</span>E1 &middot; The cost of a second of audio</div>
+  <p>One second of 16&nbsp;kHz mono speech. Before computing anything, write down: the number of samples; the number of frames at a 25&nbsp;ms window and 10&nbsp;ms hop; the size of an 80-band mel spectrogram; and how many tokens a neural codec at 75&nbsp;Hz with eight quantiser stages produces. Then write down the compression factor from the first to the last.</p>
+  <div class="ans"><b>Answer.</b> <b>16,000</b> samples, <b>~98</b> frames, <b>80&times;98 = 7,840</b> mel values, and <b>600</b> tokens. From 16,000 numbers to 600 symbols is about <b>27&times;</b> in count and far more in bits, which is the whole reason a language model can be trained on audio at all. Most people underestimate how few tokens a second of speech becomes. <i>Score yourself: within a factor of two is a pass, and an order of magnitude out is worth understanding before you go on.</i></div>
+</div>
+
+<h3><span class="num">Tier 1</span> Warm-up</h3>
+
+<div class="drill">
+  <div class="head"><span class="tier warm">Warm-up</span>W1 &middot; Why not the waveform</div>
+  <p>Give three reasons audio models rarely read raw samples.</p>
+  <div class="ans"><b>Answer.</b> Length; phase variation that changes the samples enormously and the sound not at all; and the fact that the structure (pitch, formants, timbre) is a property of the spectrum, so a model reading samples must discover the transform first.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier warm">Warm-up</span>W2 &middot; Read Figure 1</div>
+  <p>How many FFT bins does the lowest mel band pool, and the highest?</p>
+  <div class="ans"><b>Answer.</b> 3 and 42, a factor of 14. A 200&nbsp;Hz separation spans 6.3 mel bands at the bottom of the range and 0.61 at the top, falling inside a single band above about 4,560&nbsp;Hz.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier warm">Warm-up</span>W3 &middot; What the mel scale asserts</div>
+  <p>State the mel scale as a modelling assumption rather than a preprocessing step.</p>
+  <div class="ans"><b>Answer.</b> That frequency resolution should degrade with frequency the way human hearing's does. Right for speech intended for people; wrong for machine fault detection, animal vocalisation, sonar and radio, where Figure 1's pooling is discarding the signal.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier warm">Warm-up</span>W4 &middot; What a spectrogram deletes</div>
+  <p>Name the quantity a mel spectrogram discards entirely, and what Part XXVII measured about it.</p>
+  <div class="ans"><b>Answer.</b> Phase. Part XXVII Figure 4 measured a reconstruction correlating +0.736 with its phase donor and &minus;0.125 with its magnitude donor. Deleting it is why a vocoder exists.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier warm">Warm-up</span>W5 &middot; Read Figure 2</div>
+  <p>What does iterative phase estimation converge to, in each of the two spaces?</p>
+  <div class="ans"><b>Answer.</b> Spectrogram error falls monotonically from 0.666 to 0.048; waveform correlation dips and then rises to 0.53. It converges in spectrogram space and only incidentally in waveform space, which is what a metallic-sounding reconstruction is.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier warm">Warm-up</span>W6 &middot; The alignment problem</div>
+  <p>Why is speech recognition not ordinary sequence classification?</p>
+  <div class="ans"><b>Answer.</b> A hundred frames map to a dozen characters, monotonically, with no annotation of where each begins. The alignment is a latent variable and the answer is to sum over every one, Part XXVIII §12's recursion.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier warm">Warm-up</span>W7 &middot; Why CTC needs a blank</div>
+  <p>What breaks without it?</p>
+  <div class="ans"><b>Answer.</b> Repeated symbols. Consecutive identical frames collapse, so "aa" is unreachable without a blank between them, which is also why Figure 4's leaked mass lands on "a" and "b" rather than "aa" and "bb".</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier warm">Warm-up</span>W8 &middot; Read Figure 4</div>
+  <p>The audio is equally consistent with two readings. What is the best a CTC model can do?</p>
+  <div class="ans"><b>Answer.</b> 0.25 on each: half the mass leaks onto outputs the target never contains, at every input length. A property of the factorisation, not of the fit, so sharper per-frame predictions do not help.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier warm">Warm-up</span>W9 &middot; What a language model is doing there</div>
+  <p>Why does a CTC recogniser need an external language model?</p>
+  <div class="ans"><b>Answer.</b> It is restoring the term the factorisation deleted, not refining a good estimate. Which is why a transducer, which keeps that term, needs one less.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier warm">Warm-up</span>W10 &middot; The repeating syllable</div>
+  <p>An autoregressive speech synthesiser sometimes repeats a syllable forever. What removes it?</p>
+  <div class="ans"><b>Answer.</b> Predicting duration explicitly, one number per input token, and expanding deterministically. Nothing in autoregression forces the alignment to advance; an explicit duration does, and it makes speaking rate a control.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier warm">Warm-up</span>W11 &middot; Read Figure 5</div>
+  <p>At zero correlation, how much better is a vector quantiser, and why is it better at all?</p>
+  <div class="ans"><b>Answer.</b> 1.51&times;. The remaining gain is geometric: a hypercube is a poor cell because its corners are far from its centre, and no amount of decorrelation removes that.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier warm">Warm-up</span>W12 &middot; Read Figure 6</div>
+  <p>How many of 512 negatives carry the gradient at a temperature of 0.01?</p>
+  <div class="ans"><b>Answer.</b> 1.1, with the hardest one taking 98.5% of the weight. The temperature is not a scale on the logits so much as a choice of how many negatives you are training against.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier warm">Warm-up</span>W13 &middot; Read Figure 7</div>
+  <p>What does a recall@1 figure without a gallery size tell you?</p>
+  <div class="ans"><b>Answer.</b> Nothing comparable. The same embedding scores 0.49 or 0.07 depending only on how many items it was searched against.</div>
+</div>
+
+<h3><span class="num">Tier 2</span> Core</h3>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C1 &middot; Build a mel filterbank</div>
+  <p>Implement the hertz-to-mel map and the triangular filters, and check the band widths.</p>
+  <div class="ans"><b>Answer.</b> Reproduce Figure 1's 3-to-42 pooling. Then check the filterbank sums to roughly one per FFT bin in the interior: if it does not, your energy is being rescaled with frequency and every downstream statistic is tilted.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C2 &middot; Two tones, one band</div>
+  <p>Find the frequency above which a fixed separation falls inside a single mel band.</p>
+  <div class="ans"><b>Answer.</b> About 4,560&nbsp;Hz for a 200&nbsp;Hz separation in the standard configuration. Measure it as bands spanned rather than by counting spectral peaks: peak counting is not monotone in frequency, because two wide adjacent bands can still form two local maxima, so it reports a crossover that is an artefact of the criterion.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C3 &middot; Write the short-time transform and its inverse</div>
+  <p>Implement both and verify the round trip.</p>
+  <div class="ans"><b>Answer.</b> Exact to machine precision <i>on the interior</i>. The first and last window have fewer overlapping frames, so their error is boundary handling; measure there and a correct implementation looks broken.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C4 &middot; Randomise the phase</div>
+  <p>Keep the magnitude, replace the phase, and listen, or measure.</p>
+  <div class="ans"><b>Answer.</b> Identical spectrogram, correlation &minus;0.024 with the original. Which is the audio version of Part XXVII Figure 4 and the reason a magnitude-only loss cannot hear what it is doing.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C5 &middot; Iterative phase estimation</div>
+  <p>Implement it and track both the spectrogram error and the waveform correlation.</p>
+  <div class="ans"><b>Answer.</b> The first falls monotonically; the second dips before it rises and stops well short of one. Tracking only the first is how you conclude it works.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C6 &middot; The CTC collapse rule</div>
+  <p>Implement it and enumerate every frame sequence that maps to a given target.</p>
+  <div class="ans"><b>Answer.</b> Delete repeats, then delete blanks. Enumerating is how you discover that "aa" needs a blank in the middle and "aa" from two frames is unreachable, which most descriptions state and few make concrete.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C7 &middot; The forward recursion</div>
+  <p>Implement it and check against enumeration.</p>
+  <div class="ans"><b>Answer.</b> About 10<sup>&minus;15</sup>. The extended target with blanks interleaved is where the indexing goes wrong, and the enumeration check is the only thing that catches it: a transposed recursion still produces a plausible probability.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C8 &middot; Count the alignments</div>
+  <p>Count them by the same recursion with all probabilities set to one, and verify against enumeration.</p>
+  <div class="ans"><b>Answer.</b> 330 at T = 9 for a two-symbol target; 1.7&times;10<sup>6</sup> at T = 80, where enumeration is impossible. Counting by recursion is how the right panel of Figure 3 extends past the left.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C9 &middot; The leak, measured</div>
+  <p>Find the CTC distribution closest to an equal mixture of two sequences.</p>
+  <div class="ans"><b>Answer.</b> 0.25 on each, half the mass elsewhere, at every length. Optimise the per-frame logits directly rather than training a network, so the result is about the family and not about the fit.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C10 &middot; Beam search with a language model</div>
+  <p>Decode a CTC output with and without an external model.</p>
+  <div class="ans"><b>Answer.</b> The gap is large, and it is largest exactly on the ambiguous inputs Figure 4 describes. Note that the weight on the language model is a hyperparameter that trades word error rate against hallucinated fluency.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C11 &middot; Explicit duration</div>
+  <p>Expand a token sequence by predicted durations and compare against an autoregressive alignment.</p>
+  <div class="ans"><b>Answer.</b> The failure mode disappears and speaking rate becomes a multiplier you can set. The cost is that durations need supervision, usually from a forced alignment.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C12 &middot; Scalar against vector quantisation</div>
+  <p>Implement both and compare at matched bitrate across correlations.</p>
+  <div class="ans"><b>Answer.</b> Figure 5's numbers. The part to check carefully is zero correlation, where the vector quantiser still wins by half again: if yours does not, your bit accounting is wrong.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C13 &middot; Residual quantisation</div>
+  <p>Stack small codebooks, each encoding the previous stage's residual.</p>
+  <div class="ans"><b>Answer.</b> Within about 1.5&times; of full vector quantisation with a codebook of 16 rather than 256. This is how the exponential codebook is avoided, and it is what a neural codec's stages are.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C14 &middot; Codebook collapse</div>
+  <p>Train a vector quantiser and count how many entries are ever used.</p>
+  <div class="ans"><b>Answer.</b> Often far fewer than the codebook size, because unused entries receive no gradient and stay where they were initialised. Re-initialising dead entries from the data is the standard fix, and the count is the diagnostic nobody prints.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C15 &middot; The contrastive loss</div>
+  <p>Implement it symmetrically and check the gradient is zero when the matched pair is already nearest by a margin.</p>
+  <div class="ans"><b>Answer.</b> It is not zero: the softmax always pushes. That is different from a hinge loss and it is why these systems keep training long after retrieval is perfect.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C16 &middot; Effective negatives</div>
+  <p>Compute the perplexity of the softmax weights across temperature.</p>
+  <div class="ans"><b>Answer.</b> Figure 6's curve. Then check the batch size at which extra negatives stop changing it: below some temperature, a larger batch buys nothing.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C17 &middot; False negatives</div>
+  <p>Construct a batch containing two genuinely matching pairs and see what the loss does.</p>
+  <div class="ans"><b>Answer.</b> Pushes them apart, because the loss cannot distinguish a true negative from an unlabelled positive. On captioned data this is common and it is why very large batches have a ceiling.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C18 &middot; Recall against gallery size</div>
+  <p>Sweep the gallery and fit the slope per decade.</p>
+  <div class="ans"><b>Answer.</b> Roughly linear in the logarithm, at about &minus;0.11 and &minus;0.17 per decade for the two embeddings in Figure 7. Report the gallery size with the number, always.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C19 &middot; Prompt sensitivity</div>
+  <p>Score a zero-shot classifier with several wordings of the same class set.</p>
+  <div class="ans"><b>Answer.</b> Several points of spread from wording alone. A zero-shot number without its prompts is not reproducible, which is Part XX §22 in another modality.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C20 &middot; Within against across</div>
+  <p>Measure mean similarity within each modality and across, on a trained shared space.</p>
+  <div class="ans"><b>Answer.</b> Compare the two before trusting any cross-modal threshold. If they differ, a score means different things in the two directions and a threshold tuned on one does not transfer.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C21 &middot; The text-only control</div>
+  <p>Run a multimodal benchmark with the image removed.</p>
+  <div class="ans"><b>Answer.</b> Startlingly high on most of them. One line of work, rarely present, and it bounds how much of the reported score is about the other modality at all.</div>
+</div>
+
+<h3><span class="num">Tier 3</span> Stretch</h3>
+
+<div class="drill">
+  <div class="head"><span class="tier stretch">Stretch</span>S1 &middot; A recogniser, end to end</div>
+  <p>Build a small CTC recogniser on synthetic audio with known transcripts.</p>
+  <div class="ans"><b>Answer.</b> Synthetic means you know the alignment, so you can check what the model learned against what was true, which is unavailable on real speech and is most of the value.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier stretch">Stretch</span>S2 &middot; A transducer</div>
+  <p>Add a prediction network and compare against CTC on ambiguous inputs.</p>
+  <div class="ans"><b>Answer.</b> The leak of Figure 4 shrinks, because the output is no longer conditionally independent. Measure it on the same constructed ambiguity rather than on word error rate, where it is invisible.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier stretch">Stretch</span>S3 &middot; A neural codec</div>
+  <p>Build an autoencoder with a residual vector quantiser and measure rate against distortion.</p>
+  <div class="ans"><b>Answer.</b> Report the used-codebook count alongside the rate; a system with half its entries dead is running at a lower rate than it claims.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier stretch">Stretch</span>S4 &middot; A language model on audio tokens</div>
+  <p>Train a small autoregressive model over codec indices.</p>
+  <div class="ans"><b>Answer.</b> It works with no audio-specific machinery, which is the point of §22. Spend capacity on the first quantiser stage: the later stages are detail and are cheaper to predict.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier stretch">Stretch</span>S5 &middot; A learned front end</div>
+  <p>Train a filterbank from raw samples and look at what it converges to.</p>
+  <div class="ans"><b>Answer.</b> Bandpass filters at roughly logarithmic spacing, the mel scale, rediscovered. Then find a task where it beats mel, and check it is one where §4's assumption is wrong.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier stretch">Stretch</span>S6 &middot; Two towers, and the geometry</div>
+  <p>Train a contrastive pair on synthetic paired data and measure the embedding geometry throughout.</p>
+  <div class="ans"><b>Answer.</b> Retrieval works long before the geometry is tidy, which is why the arrangement of the space went unnoticed. Measure within-modality and across-modality similarity separately at every checkpoint.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier stretch">Stretch</span>S7 &middot; Temporal pairs</div>
+  <p>Train on clip-level pairs, then evaluate on a task that needs timing.</p>
+  <div class="ans"><b>Answer.</b> It fails, and clip-level retrieval cannot detect that it fails. If timing matters, the pairs and the metric both have to be temporal.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier stretch">Stretch</span>S8 &middot; Audit an audio system you run</div>
+  <p>Check the resampling, the split, the loss and the evaluation.</p>
+  <div class="ans"><b>Answer.</b> The most common findings are a resample with no anti-aliasing filter and a split that shares speakers between train and test. Both are one line and both invalidate the number above them.</div>
+</div>

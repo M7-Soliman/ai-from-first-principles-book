@@ -1,0 +1,164 @@
+<h2><span class="part-kicker">Part C</span>Too big to hold</h2>
+
+<p class="mvt">A* keeps the frontier in memory, and on any interesting problem the frontier is the
+problem. This movement is the set of things people do instead: keep only the best few, keep only the
+current one, keep none and re-derive, or keep a bound and use it to throw away whole regions
+unexamined. Each gives up something, and it is worth being precise about which thing.</p>
+
+<h3><span class="num">§15</span> Local search</h3>
+
+<div class="box def">
+  <span class="label">Forget the path</span>
+  <p>Local search holds a single complete candidate and repeatedly moves to a neighbour. There is no
+  frontier, no closed list, and no path: memory is <span class="m">$O(1)$</span> in the size of the
+  space. It applies whenever the goal is a state rather than a route to one: a schedule, a layout, a
+  set of weights.</p>
+  <p><b>Hill climbing</b> moves to the best neighbour and stops when none is better. It is
+  gradient ascent for problems with no gradient, and it fails the same way: local optima, plateaus
+  where every neighbour is equal and there is no signal about which way to go, and ridges that
+  require moving two axes at once when only single-axis moves are available.</p>
+</div>
+
+<p>The failure modes matter more than the algorithm because they name things you will meet
+elsewhere. A plateau is what a flat loss landscape looks like without a derivative to tell you it is
+flat. A ridge is what an ill-conditioned optimum looks like to a method with axis-aligned steps,
+the same pathology Part IX §14 fixed with momentum and preconditioning. Local search is where those
+shapes were first named.</p>
+
+<h3><span class="num">§16</span> Getting out</h3>
+
+<div class="box shapes">
+  <span class="label">Three escapes, in increasing order of principle</span>
+  <p><b>Random restarts.</b> Run hill climbing from many starts and keep the best. Embarrassingly
+  parallel, and if the probability of a start reaching the global optimum is <span class="m">$p$</span>,
+  the expected number of restarts is <span class="m">$1/p$</span>. Unreasonably effective, and the
+  first thing to try.</p>
+  <p><b>Simulated annealing.</b> Accept a worsening move of size <span class="m">$\Delta$</span> with
+  probability <span class="m">$e^{-\Delta/T}$</span>, and lower <span class="m">$T$</span> over time.
+  At high <span class="m">$T$</span> it wanders, at low <span class="m">$T$</span> it is hill
+  climbing, and with a slow enough schedule it converges to the global optimum, a guarantee whose
+  required schedule is too slow to use, which is honest to admit. Note the form of the acceptance
+  rule: it is Metropolis–Hastings from Part XXVIII with the temperature falling, and the connection
+  is not a coincidence.</p>
+  <p><b>Tabu search.</b> Keep a short memory of recently visited states and forbid returning to them,
+  which forces the search out of a basin it would otherwise cycle in. Cheap, unprincipled, and often
+  the best of the three on structured combinatorial problems.</p>
+</div>
+
+<h3><span class="num">§17</span> Beam search</h3>
+
+<div class="box def">
+  <span class="label">Breadth-first with a budget</span>
+  <p>Keep the <span class="m">$k$</span> best partial solutions at each depth, expand all of them,
+  score all the successors, keep the best <span class="m">$k$</span> again. Memory is
+  <span class="m">$O(k)$</span> and time is <span class="m">$O(kbd)$</span>, both linear in the
+  depth, which is the whole point.</p>
+  <p>It is incomplete and suboptimal, and it is what almost every sequence model uses at generation
+  time, so its failure modes are worth more attention than its guarantees.</p>
+</div>
+
+<figure>
+  <img src="figures/se/04-beam.svg" alt="Quality against beam width rising and saturating for two model-quality correlations, beside bars showing the percentage of instances made worse by each doubling of the beam">
+  <figcaption><b>Figure 4.</b> Beam search on a length-10 trellis where the score being maximised and
+  the quality actually wanted are two random fields at fixed correlation, so model error is held
+  constant while search error varies. Dotted lines mark the exact model optimum from dynamic
+  programming. At correlation 0.55 the beam of width <b>8 scores 10.97 against the exact optimum's
+  10.90</b>: finding the model's true argmax is <i>worse</i> than failing to find it. The right panel
+  counts single instances where doubling the beam made the answer worse: <b>34–35%</b> of them at
+  the early doublings.</figcaption>
+</figure>
+
+<h3><span class="num">§18</span> What beam search is actually doing</h3>
+
+<div class="box why">
+  <span class="label">Search error is not always error</span>
+  <p>The standard mental model (the beam is an approximation and a wider beam is a better one) is
+  wrong in a specific and useful way. The beam is approximating <b>the model's</b> optimum, and the
+  model is an approximation of <b>what you want</b>. When the second approximation is the worse of
+  the two, tightening the first makes the composition worse.</p>
+  <p>This is the honest version of the folklore that beam search regularises. It is not that a narrow
+  beam is secretly wise; it is that a narrow beam is biased toward high-probability-per-step
+  sequences and away from the exotic ones a mismatched objective rewards. The bias happens to point
+  in a useful direction. That is luck, and it stops being lucky the moment the model improves.</p>
+  <p>Two consequences worth carrying. <b>Never tune a beam width on a proxy metric</b> and expect the
+  result to hold when the model changes: Figure 4's curves are qualitatively different at the two
+  correlations. And if widening the beam degrades your metric, that is not a search bug, it is a
+  <i>measurement</i>: your objective disagrees with your metric, and you have just found out by how
+  much. The same diagnostic applies to reward models in Part XXI, and to the verifier in §41.</p>
+</div>
+
+<h3><span class="num">§19</span> Branch and bound</h3>
+
+<div class="box def">
+  <span class="label">Prove a region is worthless without looking inside it</span>
+  <p>Search the tree depth-first, keeping the best complete solution found so far, the
+  <b>incumbent</b>. At each node compute a <b>bound</b> on the best solution achievable in its
+  subtree. If the bound is no better than the incumbent, discard the entire subtree unexamined.</p>
+  <p>The result is exact: it returns the true optimum, and it returns a proof, because at termination
+  every region has either been searched or bounded away. What varies is how much of the tree survives,
+  and that is entirely a property of the bound.</p>
+</div>
+
+<figure>
+  <img src="figures/se/05-bnb.svg" alt="Nodes explored on a log axis against problem size, with the full tree, a loose bound, and a linear-programming bound diverging by orders of magnitude">
+  <figcaption><b>Figure 5.</b> 0/1 knapsack, weakly correlated instances, two bounds. The fractional
+  relaxation visits <b>23,208 nodes</b> at <span class="m">$n=30$</span>, where the tree has
+  <span class="m">$2^{30}\approx1.07\times10^{9}$</span> leaves. A bound that is merely <i>valid</i>
+  (the sum of all remaining values) needs <b>19× more nodes at <span class="m">$n=18$</span></b> and
+  did not finish within the 60,000-node cap on any instance beyond that; those points are marked, and
+  the ratio there is a lower bound rather than a measurement.</figcaption>
+</figure>
+
+<h3><span class="num">§20</span> Where bounds come from</h3>
+
+<div class="box why">
+  <span class="label">The same idea as §13, doing more work</span>
+  <p>A bound is a relaxation solved exactly, which is the identical construction as an admissible
+  heuristic, and branch and bound is A* rearranged to use memory like depth-first search. Drop the
+  integrality constraint from an integer program and you get a linear program, solvable in polynomial
+  time, whose optimum bounds the integer optimum. Drop a coupling constraint and the problem
+  separates. Drop precedence and you get a sum of independent pieces.</p>
+  <p>Figure 5 says something sharper than "a good bound is better". Both bounds are valid, so both
+  algorithms are correct and return the same answer. But one of them is a usable algorithm at
+  <span class="m">$n=30$</span> and the other is not an algorithm at all. Validity is a correctness
+  property and tightness is the entire performance story, and it is the tightness nobody puts in the
+  paper's theorem.</p>
+</div>
+
+<h3><span class="num">§21</span> Trading time for memory</h3>
+
+<div class="box shapes">
+  <span class="label">When the frontier will not fit</span>
+  <p><b>IDA*.</b> Iterative deepening with an <span class="m">$f$</span>-cost limit rather than a
+  depth limit: run a depth-first search that prunes anything with
+  <span class="m">$f \gt  \text{limit}$</span>, and if it fails, raise the limit to the smallest
+  <span class="m">$f$</span> that was pruned. Memory <span class="m">$O(d)$</span>, optimal with an
+  admissible heuristic, and it re-expands everything each round. It is how the 15-puzzle was first
+  solved optimally, and it is the right answer whenever nodes are cheap to regenerate and expensive
+  to store.</p>
+  <p><b>Memory-bounded A*.</b> Run A* until memory is full, then drop the worst frontier node and
+  record its <span class="m">$f$</span> value in its parent, so the region can be regenerated if
+  everything else turns out worse. Optimal if the optimal solution fits in the memory you have,
+  which is the sort of guarantee that sounds weak and is exactly what you want.</p>
+  <p><b>Bidirectional search.</b> Search forward from the start and backward from the goal until the
+  frontiers meet: <span class="m">$2b^{d/2}$</span> instead of <span class="m">$b^{d}$</span>. The
+  same square-root saving §36 gets from move ordering, and far harder to implement correctly, because
+  detecting the meeting and proving the meeting point optimal are both fiddly and the backward
+  successors may not be computable at all.</p>
+</div>
+
+<h3><span class="num">§22</span> Choosing to stop being optimal</h3>
+
+<div class="box why">
+  <span class="label">A decision to make explicitly, once</span>
+  <p>This movement is a sequence of surrenders and it is worth writing down what each one costs, in
+  the order you should consider them.</p>
+  <p><b>Keep optimality, lose memory guarantees</b>: A* with a good heuristic. <b>Keep optimality,
+  pay time for memory</b>: IDA*, branch and bound. <b>Keep a bound on suboptimality</b>: weighted
+  A* at 1.25× when the guarantee said 8×. <b>Keep nothing but an answer</b>: beam search, local
+  search, sampling.</p>
+  <p>Most systems land in the last category by accident rather than decision, usually because the
+  first thing anyone implements is sampling and it works well enough. The reason to know the ladder
+  is that when it stops working well enough, "sample more" is the worst of the available moves and
+  the one everybody reaches for. §41 measures why.</p>
+</div>

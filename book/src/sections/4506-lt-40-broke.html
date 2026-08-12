@@ -1,0 +1,194 @@
+<h2><span class="part-kicker">Part D</span>Where the theory broke</h2>
+
+<p class="mvt">Everything so far is correct and, at the sizes anyone uses, numerically worthless.
+This movement measures how worthless, establishes that the failure is structural rather than a
+loose constant, and goes through what has been proposed instead, with the current state of the
+evidence for each, which is weaker than the volume of writing suggests.</p>
+
+<h3><span class="num">§23</span> The bound against the gap it bounds</h3>
+
+<figure>
+  <img src="figures/lt/03-bound-vs-gap.svg" alt="VC bound and measured generalisation gap for a linear classifier, and the same bound evaluated at neural network sizes">
+  <figcaption><b>Figure 3.</b> Left: for a linear classifier in 10 dimensions the bound is real but
+  loose: <b>14×</b> the measured gap at <span class="m">$n = 100$</span>, and <b>111,642×</b> at
+  <span class="m">$n = 7{,}618$</span>, where the gap has essentially closed and the bound is still
+  0.112. Right: the same bound with the VC dimension taken as the parameter count. At 25,000
+  parameters on 50,000 samples it reads <b>1.1</b>; at 100 million parameters on a million samples,
+  <b>10.0</b>. An error rate cannot exceed 1, so all three say nothing whatsoever.</figcaption>
+</figure>
+
+<div class="box def">
+  <span class="label">Vacuous</span>
+  <p>A bound is <b>vacuous</b> when it permits values the quantity cannot take. A generalisation
+  bound above 1 is satisfied by every possible classifier including a random one, so it excludes
+  nothing and carries no information.</p>
+  <p>The bounds on the right of Figure 3 are not merely loose. They are not statements about the
+  model at all.</p>
+</div>
+
+<div class="box why">
+  <span class="label">Why this is not fixable by sharpening the constants</span>
+  <p>Modern networks routinely have more parameters than training samples, so
+  <span class="m">$d/n > 1$</span> and the bound is at least
+  <span class="m">$\sqrt{d/n} > 1$</span> before any constant is chosen. No improvement to the
+  proof helps.</p>
+  <p>Worse, the argument cannot be rescued by observing that the effective capacity is smaller than
+  the parameter count, because the capacity is <b>demonstrably</b> maximal: a standard network
+  trained on randomly labelled data reaches zero training error. It can fit any labelling of the
+  training set, so its VC dimension is at least <span class="m">$n$</span>, so uniform convergence
+  over that class provably gives nothing; §13's lower bound applies.</p>
+  <p>And yet the same network trained on the real labels generalises well. Both facts hold at once,
+  which means <b>the explanation cannot be a property of the hypothesis class</b>. It has to involve
+  the data, the algorithm, or both.</p>
+</div>
+
+<div class="readnow"><span class="label">Go and read</span><p><span class="src">Zhang et al.
+(2017)</span>, <i>Understanding deep learning requires rethinking generalization</i>. The
+randomised-label experiment, run cleanly, with the consequences stated plainly. Short, and the
+argument is entirely available to a reader of movement B: the paper's contribution is noticing
+that an obvious experiment settles a question the field had assumed was open.</p></div>
+
+<h3><span class="num">§24</span> Interpolation is not overfitting</h3>
+
+<div class="box intuition">
+  <span class="label">The classical picture, and where it came from</span>
+  <p>The U-shaped curve, error falling then rising as capacity grows, is real and is a statement
+  about a regime. It describes what happens up to the point where the model can fit the training
+  data exactly, and the classical theory was built when that was where practice lived.</p>
+  <p>Past that point there are many exact fits, and which one you get is no longer determined by
+  the objective. The curve does not continue upward, because the question has changed from "how
+  well can it fit" to "which of the perfect fits does the algorithm choose".</p>
+</div>
+
+<h3><span class="num">§25</span> Double descent</h3>
+
+<figure>
+  <img src="figures/lt/04-double-descent.svg" alt="Test error against number of random features, showing a peak at the interpolation threshold and a second descent">
+  <figcaption><b>Figure 4.</b> Random-feature regression on 120 training points, sweeping the
+  number of features through the interpolation threshold. Test error peaks at <b>4.708</b> at
+  <span class="m">$p = 115$</span>, almost exactly <span class="m">$p = n$</span>, then falls
+  again, reaching <b>0.224</b> in the heavily overparameterised regime. The best fit below the
+  threshold is <b>0.541</b>, so the second descent ends up <b>less than half</b> the classical
+  optimum. Adding capacity past the point of exact fit made the model better.</figcaption>
+</figure>
+
+<div class="box why">
+  <span class="label">Why the peak is where it is</span>
+  <p>At <span class="m">$p = n$</span> there is exactly one interpolating solution and no freedom
+  to choose. The design matrix is square and typically ill-conditioned (Part III §5's condition
+  number, arriving as a statistical phenomenon), so the unique exact fit has enormous norm and is
+  wildly sensitive to the noise.</p>
+  <p>With <span class="m">$p \gg n$</span> the system is underdetermined and there are infinitely
+  many exact fits, most of them badly behaved. The minimum-norm one is not, and that is what the
+  solver returns. The second descent is entirely a statement about <b>which solution gets
+  picked</b>, which is §27.</p>
+</div>
+
+<div class="box pitfall">
+  <span class="label">Pitfall: this does not license unlimited capacity</span>
+  <p>Double descent is real in this setup and in others, and it is not a general licence. The peak
+  is a genuine hazard: a model sized near <span class="m">$n$</span> can be far worse than one
+  either smaller or larger, so capacity chosen by a coarse sweep can land in the worst place
+  available.</p>
+  <p>And the second descent depends on the implicit bias being a good one for the problem. Nothing
+  guarantees that in general, which is the honest limit of the result.</p>
+</div>
+
+<div class="readnow"><span class="label">Go and read</span><p><span class="src">Belkin, Hsu, Ma &amp; Mandal (2019)</span>, <i>Reconciling modern machine-learning practice and the classical bias–variance trade-off</i>. Already read at Part V §20; it belongs here too, as the curve this section explains. It named the interpolation threshold and drew the second descent past it on real models rather than a constructed example. Read it for the picture; §25's job is the mechanism the picture leaves open, which §27 then closes.</p></div>
+
+<h3><span class="num">§26</span> Benign overfitting</h3>
+
+<div class="box def">
+  <span class="label">Fitting the noise without being hurt by it</span>
+  <p>In high dimension an interpolating estimator can absorb the noise into directions that carry
+  little of the signal and contribute little to the test error. The fit is exact on the training
+  points and the damage is spread thinly enough not to matter.</p>
+  <p>This is now understood precisely for linear regression: the condition involves how the
+  covariance spectrum decays, and there are sharp characterisations of when interpolation is benign.
+  For deep networks it remains an analogy rather than a theorem.</p>
+</div>
+
+<h3><span class="num">§27</span> What the optimiser chooses</h3>
+
+<figure>
+  <img src="figures/lt/05-implicit.svg" alt="Norm and test error of four solutions that all fit the training data exactly">
+  <figcaption><b>Figure 5.</b> An underdetermined problem (40 points, 300 parameters) where
+  infinitely many parameter settings fit the training data exactly. All four here have training
+  error below <b>~10<sup>−28</sup></b>, floating-point noise, not a further-optimised fit.
+  Gradient descent started from zero lands on the minimum-norm solution, agreeing to
+  <b>fifteen digits</b>, with norm 0.852 and test error <b>6.219</b>. Two other exact fits of the same
+  data have norms 2.69 and 10.26 and test errors <b>12.776</b> and <b>109.462</b>. The objective
+  does not distinguish them; the algorithm does.</figcaption>
+</figure>
+
+<div class="box def">
+  <span class="label">Implicit regularization</span>
+  <p>When the objective has many minimisers, the optimisation procedure selects among them. That
+  selection is <b>implicit regularization</b>: a bias with the effect of a penalty that was never
+  written into the loss.</p>
+  <p>The clean cases are known. Gradient descent from zero on underdetermined least squares
+  converges to the minimum <span class="m">$\ell_2$</span>-norm solution; Figure 5 measures it to
+  fifteen digits. On separable data with logistic loss, it converges in direction to the
+  maximum-margin separator, which is §18's bound arriving without anyone asking for it.</p>
+</div>
+
+<div class="box why">
+  <span class="label">Why this is the most promising direction, and what it still lacks</span>
+  <p>It has the right shape. The bound must depend on the algorithm, because the class provably
+  cannot supply one, and implicit regularization is a statement about the algorithm.</p>
+  <p>What is missing is the deep case. The results above are for linear models and specific losses.
+  For a network trained with Adam, momentum, weight decay, batch normalisation and augmentation,
+  there is no characterisation of what is implicitly preferred, and each of those components
+  changes it. This is the honest state: the correct <i>form</i> of an explanation, without the
+  explanation.</p>
+</div>
+
+<h3><span class="num">§28</span> Flatness, and the trouble with it</h3>
+
+<div class="box shapes">
+  <span class="label">A proposal, and three objections</span>
+  <p>The claim: solutions in flat regions of the loss surface generalise better than those in sharp
+  ones, on the intuition that flatness means insensitivity to perturbation.</p>
+  <p><b>It is not reparameterisation invariant.</b> Rescaling one layer up and the next down leaves
+  the function unchanged and can make a flat minimum sharp. Any measure of sharpness must handle
+  this, and the naive ones do not.</p>
+  <p><b>The correlation is not causation.</b> Flat solutions do tend to generalise better; whether
+  flatness is the mechanism or a symptom of one is not established: the same gap between a
+  favourable number and what it is evidence for as this part's own §36, where a no-regret guarantee
+  does not establish that the comparator it beat was any good, and Part XXII's whole subject.</p>
+  <p><b>Optimising for it works anyway.</b> Sharpness-aware minimisation improves test accuracy
+  reliably, which is evidence the quantity is doing something, and is not evidence that the
+  explanation is right. Part XVI's mode collapse is the precedent: a real effect with a wrong
+  standard account.</p>
+</div>
+
+<h3><span class="num">§29</span> Norm-based bounds, and the ones that are not vacuous</h3>
+
+<div class="box why">
+  <span class="label">Progress, honestly stated</span>
+  <p>Replacing the parameter count with a norm of the weights gives bounds that are sometimes
+  non-vacuous. The strongest results come from PAC-Bayes: bound the risk of a <i>distribution</i>
+  over hypotheses in terms of its divergence from a prior, and compress the network so the posterior
+  is cheap to describe. These have produced genuinely non-vacuous numbers on real networks and real
+  data.</p>
+  <p>Two caveats to keep. The bounds are non-vacuous, around 0.2 to 0.5 where the true error is
+  a few percent, rather than tight, so they exclude something but not much. And they typically
+  bound a compressed or stochastic version of the network rather than the one you deployed.</p>
+  <p>This is real progress and it is not a solution. It is worth stating in that order.</p>
+</div>
+
+<h3><span class="num">§30</span> What movement D establishes</h3>
+
+<div class="box intuition">
+  <span class="label">Three things</span>
+  <p><b>The classical bounds are vacuous at real sizes, provably.</b> Figure 3 measures 1.1 to 10.0
+  where an error rate cannot exceed 1, and the randomised-label experiment shows the capacity really
+  is maximal, so §13's lower bound forecloses any distribution-free repair.</p>
+  <p><b>Capacity past the interpolation threshold can help.</b> Figure 4's second descent reaches
+  0.224 against a classical best of 0.541, because past that point the question stops being how
+  well the class can fit and becomes which exact fit the algorithm picks.</p>
+  <p><b>The answer must involve the algorithm.</b> Figure 5 shows four solutions with identical
+  training error and test errors from 6.2 to 109.5; gradient descent finds the best of them to
+  fifteen digits. That is the right shape for an explanation, and for deep networks it is a shape
+  without contents.</p>
+</div>

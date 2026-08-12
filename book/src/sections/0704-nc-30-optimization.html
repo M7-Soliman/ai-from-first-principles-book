@@ -1,0 +1,353 @@
+<h2><span class="part-kicker">Part C</span>Optimisation and curvature</h2>
+
+<h3><span class="num">§8</span> The optimisation problem</h3>
+
+<div class="sixty">
+  <span class="label">In 60 seconds</span>
+  <p>Nearly everything in this book is an instance of one problem: find the input that
+  minimises a function. Training is that. Fitting is that. Inference frequently is too. The
+  rest of this part is about how it is actually done, and about the two things that make it
+  hard: <b>curvature</b> and <b>noise</b>.</p>
+</div>
+
+<p>The problem, stated once:</p>
+
+$$\boldsymbol{\theta}^{*} = \argmin_{\boldsymbol{\theta}} \; f(\boldsymbol{\theta})$$
+
+<p>Here $f$ is the <b>objective</b>, and when it measures how badly a model is doing we
+call it the <b>loss</b> or <b>cost</b>. Maximising is the same problem with a sign flip, so
+nothing is lost by only ever discussing minimisation.</p>
+
+<p>Part 0 §19 gave the condition for a minimum in one variable: the derivative vanishes,
+and the second derivative is positive. The multivariable version:</p>
+
+<div class="box def">
+  <span class="label">Conditions for a local minimum</span>
+  <p><b>First order (necessary):</b> $\nabla f(\boldsymbol{\theta}) = \mathbf{0}$, meaning every
+  partial derivative is zero.</p>
+  <p><b>Second order (sufficient):</b> the Hessian $H$ is positive definite, meaning the surface
+  curves upward in <i>every</i> direction.</p>
+</div>
+
+<p>The word "every" in that second condition is doing far more work than it appears to,
+and §18 is about what it costs.</p>
+
+<h3><span class="num">§9</span> Gradient descent: step size and convergence</h3>
+
+<p>Part 0 §24 gave the algorithm and showed empirically that the learning rate decides
+between crawling, converging and exploding. Here is why, quantitatively.</p>
+
+<p>Take the simplest non-trivial objective, a quadratic bowl $f(\mathbf{x}) =
+\tfrac12 \mathbf{x}^\top A \mathbf{x}$ with $A$ symmetric positive definite. Its gradient
+is $A\mathbf{x}$, so one step of gradient descent is</p>
+
+$$\mathbf{x}_{t+1} = \mathbf{x}_t - \alpha A \mathbf{x}_t = (I - \alpha A)\,\mathbf{x}_t$$
+
+<p>Each step multiplies by the matrix $I - \alpha A$. After $t$ steps you have multiplied
+by $(I - \alpha A)^t$; Part I §17 tells us exactly what repeated multiplication does:
+work in the eigenbasis, where each direction is scaled independently by $(1 - \alpha
+\lambda_i)^t$.</p>
+
+<div class="box def">
+  <span class="label">The convergence condition</span>
+  <p>Descent converges if and only if $|1 - \alpha\lambda_i| < 1$ for every eigenvalue,
+  which requires</p>
+  <p>$$0 < \alpha < \frac{2}{\lambda_{\max}}$$</p>
+  <p>The <b>largest</b> curvature sets the maximum safe step. Exceed it and that direction
+  amplifies every iteration, and the whole thing diverges.</p>
+</div>
+
+<p>Now the trap. The step size is capped by $\lambda_{\max}$, but progress along the
+<i>flattest</i> direction is governed by $\lambda_{\min}$. With the best possible step
+size, the rate of convergence works out to depend on</p>
+
+$$\frac{\lambda_{\max} - \lambda_{\min}}{\lambda_{\max} + \lambda_{\min}} = \frac{\kappa - 1}{\kappa + 1}$$
+
+<p>where $\kappa = \lambda_{\max}/\lambda_{\min}$ is the condition number from §5. When
+$\kappa = 1$ that ratio is 0 and you arrive in a single step. When $\kappa = 1000$ it is
+$0.998$, and each iteration removes two-tenths of one percent of the error.</p>
+
+<div class="box intuition">
+  <span class="label">Intuition: the narrow valley</span>
+  <p>An ill-conditioned bowl is a long narrow valley. Standing on its wall, the steepest
+  direction points mostly <i>across</i> the valley toward the opposite wall, not along it
+  toward the minimum.</p>
+  <p>So descent bounces from wall to wall, making rapid progress in the direction that
+  does not matter and creeping along the one that does. You cannot fix this by increasing
+  the step size, because the step size is already capped by the steep direction. That is
+  the bind, and every method in Part D exists to escape it.</p>
+</div>
+
+<h4>The assumption the guarantee rests on</h4>
+
+<p>The convergence analysis above is for a quadratic, which has a constant Hessian. For a
+general function, the question is how much the gradient can change between two nearby
+points, because a very rapidly changing gradient means the local linear model expires
+almost immediately and the guaranteed improvement fails to materialise.</p>
+
+<div class="box def">
+  <span class="label">Definition: Lipschitz continuity of the gradient</span>
+  <p>The gradient $\nabla f$ is <b>$L$-Lipschitz</b> if there is a constant $L$ such that</p>
+  <p>$$\|\nabla f(\mathbf{x}) - \nabla f(\mathbf{y})\| \leq L\,\|\mathbf{x} - \mathbf{y}\|$$</p>
+  <p>for every pair of points $\mathbf{x}$, $\mathbf{y}$. $L$ is the <b>Lipschitz constant</b>,
+  the maximum rate at which the gradient can change.</p>
+</div>
+
+<p>For a quadratic $f(\mathbf{x}) = \tfrac12\mathbf{x}^\top A\mathbf{x}$, the gradient is
+$A\mathbf{x}$ and the Lipschitz constant is $\lambda_{\max}$, the largest eigenvalue,
+exactly the quantity that set the stability limit above. That is not a coincidence. For any
+smooth function, $L$ is an upper bound on the spectral norm of the Hessian, and the step
+size condition $\alpha < 2/L$ is precisely the quadratic stability condition with $L$ in
+place of $\lambda_{\max}$.</p>
+
+<p>The Lipschitz condition is the standard assumption under which first-order methods
+receive any formal guarantee. It says the gradient does not jump faster than you step,
+which is what allows a local measurement to be trusted for the length of one step. Without
+it, the gradient you computed is already stale before you land.</p>
+
+<h3><span class="num">§10</span> Curvature and the Hessian</h3>
+
+<div class="box def">
+  <span class="label">Definition: the Hessian</span>
+  <p>The matrix of all second partial derivatives:</p>
+  <p>$$H_{i,j} = \frac{\partial^2 f}{\partial \theta_i \, \partial \theta_j}$$</p>
+  <p>It is symmetric whenever $f$ is twice continuously differentiable, because
+  $\partial^2 f/\partial x\,\partial y$ and $\partial^2 f/\partial y\,\partial x$ are the
+  same number.</p>
+</div>
+
+<p>Symmetric is exactly the hypothesis of Part I's spectral theorem, so the Hessian always
+has real eigenvalues and perpendicular eigenvectors. Those are not technical conveniences;
+they are the whole reason curvature is analysable:</p>
+
+<div class="box def">
+  <span class="label">What the eigenvalues mean</span>
+  <p>Each <b>eigenvector</b> of $H$ is a direction; the corresponding <b>eigenvalue</b> is
+  the curvature along it. Positive means the surface bends upward, negative downward,
+  near-zero means flat.</p>
+</div>
+
+<figure>
+  <img src="figures/nc/04-curvature.svg" alt="Three quadratic surfaces with eigenvector directions and their curvatures">
+  <figcaption><b>Figure 4.</b> Contours of three quadratics with the eigenvectors of their
+  Hessians drawn, green for positive curvature and pink for negative. Left: equal curvature
+  in both directions, $\kappa = 1$, circular contours. Middle: a twelvefold ratio,
+  producing the narrow valley of §9. Right: one direction curves up and one curves down: a saddle, and neither a minimum nor a maximum.</figcaption>
+</figure>
+
+<h4>The Taylor expansion, since everything below rests on it</h4>
+
+<p>The next line introduces a tool this book has not used before and will not stop using
+after, so it is worth a paragraph rather than a symbol.</p>
+
+<p>The idea is this: <b>a complicated function can be replaced, near a single point, by a
+simple one that agrees with it there.</b> Not everywhere (that would be too much to ask),
+but in a neighbourhood, and the smaller the neighbourhood the better the agreement. Which
+simple function? The one that matches as many derivatives as you are willing to pay
+for.</p>
+
+<p>Take a function of one variable and stand at a point $a$. Three successively better
+descriptions:</p>
+
+<table class="compact">
+  <thead><tr><th>Approximation</th><th>Matches</th><th>Picture</th></tr></thead>
+  <tbody>
+    <tr><td>$f(a)$</td><td>the value</td><td>a flat line at the right height</td></tr>
+    <tr><td>$f(a) + f'(a)(x-a)$</td><td>value and slope</td><td>the tangent line</td></tr>
+    <tr><td>$f(a) + f'(a)(x-a) + \tfrac12 f''(a)(x-a)^2$</td><td>value, slope and curvature</td><td>the best-fitting parabola</td></tr>
+  </tbody>
+</table>
+
+<div class="box intuition">
+  <span class="label">Intuition: describing where you are on a road</span>
+  <p>A satellite navigation system reporting your position could say three things, each
+  more informative than the last.</p>
+  <p><b>"You are at mile 12."</b> True, and useless for predicting the next few seconds.
+  That is the constant term.</p>
+  <p><b>"...heading north at 60 mph."</b> Now you can predict where you will be shortly,
+  and the prediction is good for as long as nothing changes. That is the linear term, the
+  tangent line, and it is exactly what a gradient gives you.</p>
+  <p><b>"...and the road is curving left."</b> Now your prediction survives longer, because
+  you have accounted for the fact that the direction itself is changing. That is the
+  quadratic term, and the curvature is the second derivative.</p>
+  <p>Each term extends how far ahead you can see before the description fails. And each is
+  <i>local</i>: none of them knows about a bridge ten miles away. That locality is the
+  permanent caveat on everything built from a Taylor expansion, and §12's fourth objection
+  to Newton's method is precisely it.</p>
+</div>
+
+<p>Two things make this the right tool here. First, <b>you already have the ingredients</b>:
+the gradient and the Hessian are exactly the first and second derivatives, so the
+approximation costs nothing beyond what you were computing anyway. Second, the quadratic
+truncation is not merely a convenience: it is the <i>simplest</i> approximation that has a
+minimum at all. A linear approximation is a tilted plane, which slopes off to infinity and
+has no bottom to aim at. You need the quadratic term before "step to the minimum of the
+model" is even a sentence.</p>
+
+<p>Note also what happens when the function <i>is</i> quadratic. Then the third derivative
+and everything after it are zero, the expansion is not an approximation but an exact
+rewriting, and any method built on it lands the answer in one move. That is the whole
+explanation of Figure 5, one section from now.</p>
+
+<p>So: the Hessian gives the local quadratic picture of any function. Taylor expanding
+around a point $\boldsymbol{\theta}_0$:</p>
+
+$$f(\boldsymbol{\theta}) \approx f(\boldsymbol{\theta}_0) + \nabla f^\top (\boldsymbol{\theta}-\boldsymbol{\theta}_0) + \tfrac12 (\boldsymbol{\theta}-\boldsymbol{\theta}_0)^\top H (\boldsymbol{\theta}-\boldsymbol{\theta}_0)$$
+
+<p>Three terms: the current value, the slope, and the curvature. Gradient descent uses the
+first two and throws away the third. Everything in the rest of this part is about what you
+can buy with the term it discards.</p>
+
+<h3><span class="num">§11</span> Newton's method</h3>
+
+<div class="sixty">
+  <span class="label">In 60 seconds</span>
+  <p>Fit a quadratic to the function at your current point and jump straight to that
+  quadratic's minimum. The update is $\boldsymbol{\theta} \leftarrow \boldsymbol{\theta} -
+  H^{-1}\nabla f$. On a genuinely quadratic objective it arrives in <b>one step</b>,
+  regardless of conditioning, because it rescales each direction by its own curvature
+  rather than using one global step size.</p>
+</div>
+
+<p>The derivation is short. Take the quadratic approximation above, differentiate it with
+respect to $\boldsymbol{\theta}$, and set the result to zero:</p>
+
+$$\nabla f + H(\boldsymbol{\theta} - \boldsymbol{\theta}_0) = \mathbf{0} \quad\Longrightarrow\quad \boldsymbol{\theta} = \boldsymbol{\theta}_0 - H^{-1}\nabla f$$
+
+<figure>
+  <img src="figures/nc/05-descent-vs-newton.svg" alt="Gradient descent zigzagging over 40 steps versus Newton arriving in one">
+  <figcaption><b>Figure 5.</b> The same objective, curvature ratio 14:1. Left: forty steps
+  of gradient descent, still visibly zigzagging. Right: Newton's method, one step, exactly
+  onto the minimum. Both are real iterations. The difference is entirely that Newton knows
+  the curvature and gradient descent does not.</figcaption>
+</figure>
+
+<div class="box intuition">
+  <span class="label">Intuition: $H^{-1}$ undoes the distortion</span>
+  <p>Gradient descent applies the same step size to every direction, which is wrong
+  whenever directions have different curvature. Multiplying by $H^{-1}$ divides each
+  direction by its own curvature: a large step where the surface is flat, a small one
+  where it is steep.</p>
+  <p>Equivalently: Newton's method changes coordinates so the valley becomes a circular
+  bowl, takes the obvious step, and changes back. It is <b>conditioning-independent</b> by
+  construction, which is precisely the property §9 showed gradient descent lacks.</p>
+</div>
+
+<div class="box history">
+  <span class="label">History: three names, and only one of them is on it</span>
+  <p>Newton described a method for finding roots around <span class="year">1669</span>,
+  but the version he wrote is nearly unrecognisable: it is algebraic, applies only to
+  polynomials, and does not use derivatives.</p>
+  <p>Joseph Raphson published a simplified iterative form in <span
+  class="year">1690</span>, which is closer to what is taught. Neither used calculus
+  notation. It was Thomas Simpson in <span class="year">1740</span> who gave the modern
+  derivative-based statement, extended it to systems of equations, and (critically)
+  applied it to <b>optimisation</b> rather than only to root-finding, by seeking the zero
+  of the derivative.</p>
+  <p>The method used in this section is essentially Simpson's. It is called Newton's, and
+  Raphson gets an occasional hyphen. Stigler's Law, met in Part I §9 and Part II §15,
+  claims another one.</p>
+</div>
+
+<h3><span class="num">§12</span> Why nobody uses Newton at scale</h3>
+
+<p>Newton's method is better than gradient descent in every way except the ones that
+matter for large models. Four objections, in increasing order of severity.</p>
+
+<h4>1. The Hessian is enormous</h4>
+
+<p>For $n$ parameters the Hessian has $n^2$ entries. At a modest $n = 10^6$ that is $10^{12}$
+numbers, several terabytes, for one matrix, that must be rebuilt every iteration.
+Contemporary models have far more parameters than that. This objection alone ends the
+discussion for deep networks.</p>
+
+<h4>2. Solving with it is expensive</h4>
+
+<p>Even when the matrix fits, solving $H\mathbf{d} = -\nabla f$ costs on the order of
+$n^3$ operations, against $n$ for a gradient step.</p>
+
+<h4>3. It is attracted to the wrong points</h4>
+
+<p>Newton's method solves $\nabla f = \mathbf{0}$. It does not distinguish minima from
+maxima from saddles; it converges happily to any of them. At a saddle, where $H$ has
+negative eigenvalues, the "step toward the minimum" of the local quadratic can point
+<i>uphill</i>. Given §18's result about how common saddles are in high dimensions, this is
+disqualifying rather than academic.</p>
+
+<h4>4. The quadratic model is only local</h4>
+
+<p>Far from a minimum the quadratic approximation may be poor, and the full Newton step
+can overshoot badly or leave the region where the model was valid at all.</p>
+
+<div class="box why">
+  <span class="label">Why this matters: what survives</span>
+  <p>The response is not to abandon curvature but to approximate it cheaply. Three
+  families, all of which you will meet:</p>
+  <ul class="tight">
+    <li><b>Quasi-Newton</b> methods build up an approximation to $H^{-1}$ from the sequence
+    of gradients already computed. L-BFGS is the standard one and is genuinely used,
+    though rarely for deep networks, because it assumes gradients are exact and §14's are
+    not.</li>
+    <li><b>Diagonal approximations</b> keep only the diagonal of $H$, costing $n$ instead
+    of $n^2$. This is the honest description of what Adam and RMSProp are doing in §16.</li>
+    <li><b>Trust regions and damping</b> add a multiple of the identity, $H + \mu I$,
+    which forces positive definiteness and interpolates between Newton and gradient
+    descent as $\mu$ grows.</li>
+  </ul>
+  <p>Every practical optimiser in this book is somewhere on the line between "ignore
+  curvature entirely" and "use it exactly". Knowing what the exact method would do is what
+  makes the approximations legible.</p>
+</div>
+
+<h3><span class="num">§13</span> Line search</h3>
+
+<p>A different response to the step size problem: rather than fixing $\alpha$ in advance,
+choose it at each iteration by trying.</p>
+
+<p>Having computed a descent direction $\mathbf{d}$, the natural question is how far to go
+along it. That is a one-dimensional problem: minimise $\phi(\alpha) = f(\boldsymbol{\theta}
++ \alpha\mathbf{d})$, and it can be attacked directly.</p>
+
+<figure>
+  <img src="figures/nc/13-line-search.svg" alt="Backtracking line search halving the step until the objective decreases">
+  <figcaption><b>Figure 6.</b> Backtracking line search with the Armijo condition
+  ($c=0.1$). Starting on a steep downslope at $x_0=0.5$, the optimistic step of 2.0 and the
+  halved step of 1.0 both fail the sufficient-decrease test; they land above the Armijo
+  threshold and are rejected (pink). The next halving to 0.5 satisfies the condition and
+  is accepted (green). Two rejections before acceptance, exactly as the algorithm is
+  designed to work.</figcaption>
+</figure>
+
+<p>In practice nobody minimises $\phi$ exactly; it is not worth the function evaluations.
+Instead you accept any step that decreases the objective by <i>enough</i>, where "enough"
+is made precise by requiring the decrease to be at least some fraction of what the slope
+predicted. That is the <b>Armijo condition</b>, and backtracking until it holds is the
+standard cheap line search.</p>
+
+<div class="box pitfall">
+  <span class="label">Pitfall: line search is largely absent from deep learning</span>
+  <p>Everything above is standard in classical optimisation and rare in neural network
+  training. The reason is §14: with stochastic gradients, the objective you evaluate is
+  noisy, so "did the loss decrease?" is not a question a single evaluation can answer. A
+  line search on a noisy objective chases noise.</p>
+  <p>So deep learning replaced adaptive step sizes with <b>schedules</b> (§17) and
+  <b>per-parameter scaling</b> (§16), both of which work without needing to re-evaluate the
+  objective. This is worth knowing when you read the classical literature and wonder why
+  its central techniques are missing from practice.</p>
+</div>
+
+<div class="box try">
+  <span class="label">Try it</span>
+  <p>A quadratic has Hessian eigenvalues $\lambda = \{0.5,\ 20\}$. What is the largest
+  stable learning rate for gradient descent? What is the condition number? Roughly how many
+  iterations to reduce the error by a factor of 100?</p>
+</div>
+
+<p><b>Answer.</b> Stability requires $\alpha < 2/\lambda_{\max} = 2/20 = 0.1$.</p>
+<p>The condition number is $20/0.5 = 40$. The per-iteration error factor is
+$(\kappa-1)/(\kappa+1) = 39/41 \approx 0.951$.</p>
+<p>To reach a factor of $0.01$ we need $0.951^t = 0.01$, so
+$t = \ln(0.01)/\ln(0.951) \approx 92$ iterations. Newton's method would take one. That gap
+(92 against 1, on a two-dimensional problem with a mild condition number of 40) is why
+curvature is worth so much, and why Part D spends five sections trying to recover some of
+it cheaply.</p>

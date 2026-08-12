@@ -1,0 +1,166 @@
+<h2><span class="part-kicker">Part B</span>Exact inference, and the models that permit it</h2>
+
+<p class="mvt">For a small class of structures the posterior can be computed exactly, in polynomial
+time, with no approximation anywhere. That class is worth knowing precisely: partly because those
+models are still deployed, and mostly because everything in the next two movements is what you do
+when your model falls outside it.</p>
+
+<h3><span class="num">§9</span> The query, and the three kinds</h3>
+
+<div class="box shapes">
+  <span class="label">What "inference" is asking for</span>
+  <p><b>Marginal.</b> <span class="m">$p(x_i \mid \mathbf{e})$</span>: the distribution of one
+  variable given the evidence. This is what a filter, a classifier and a posterior all want.</p>
+  <p><b>Most probable configuration.</b> <span class="m">$\arg\max_{\mathbf{x}} p(\mathbf{x} \mid
+  \mathbf{e})$</span>: the single best joint assignment, which is <i>not</i> the assignment of
+  each variable's most probable value and can have probability zero under it.</p>
+  <p><b>Evidence.</b> <span class="m">$p(\mathbf{e})$</span>: the normalising constant, needed for
+  model comparison and for learning.</p>
+  <p>The first and third have the same algorithm with different bookkeeping; the second replaces
+  every sum with a max.</p>
+</div>
+
+<h3><span class="num">§10</span> Variable elimination</h3>
+
+<div class="box def">
+  <span class="label">Distribute the sum</span>
+  <p>The naive marginal sums the joint over every configuration of everything else. The observation
+  that saves it is that sums distribute over products: a factor not involving the variable being
+  summed can be pulled outside the sum.</p>
+  <p class="m">$$\sum_{x_3} \psi_1(x_1,x_2)\,\psi_2(x_2,x_3) \;=\; \psi_1(x_1,x_2) \sum_{x_3} \psi_2(x_2,x_3)$$</p>
+  <p>Eliminate variables one at a time, each time multiplying together the factors that mention it
+  and summing it out, leaving a new factor. The cost is set by the largest intermediate factor
+  created, and the order of elimination decides how large that gets.</p>
+</div>
+
+<h3><span class="num">§11</span> Treewidth, and the wall</h3>
+
+<div class="box why">
+  <span class="label">The one number that decides whether exact inference is possible</span>
+  <p>The size of the largest intermediate factor, minimised over elimination orders, is one more
+  than the graph's <b>treewidth</b>: treewidth is defined as that size minus one, so that a tree's
+  chain-like elimination, which never creates a factor over more than two variables, comes out to 1
+  rather than 2. Exact inference costs exponential time in the treewidth, and nothing better is
+  available: finding the optimal order is itself hard, and the exponential dependence cannot be
+  removed.</p>
+  <p>Treewidth is 1 for a tree, small for a chain, and grows with the side length of a grid, which
+  is why exact inference is routine on a sequence and impossible on an image. A model's tractability
+  is a property of its graph, decided before any data arrives, and it is worth computing before
+  choosing an algorithm.</p>
+</div>
+
+<h3><span class="num">§12</span> Sequences: the forward–backward algorithm</h3>
+
+<div class="box def">
+  <span class="label">A hidden Markov model</span>
+  <p>A chain of latent states, each depending only on its predecessor, each emitting one
+  observation:</p>
+  <p class="m">$$p(\mathbf{z}, \mathbf{x}) \;=\; p(z_1)\prod_{t=2}^{T} p(z_t \mid z_{t-1})
+  \prod_{t=1}^{T} p(x_t \mid z_t)$$</p>
+  <p>Variable elimination on a chain has a name. The <b>forward</b> pass accumulates
+  <span class="m">$\alpha_t(z) = p(z_t = z, x_{1:t})$</span>, the <b>backward</b> pass accumulates
+  <span class="m">$\beta_t(z) = p(x_{t+1:T} \mid z_t = z)$</span>, and their product is the
+  posterior over each state. Cost <span class="m">$O(TK^2)$</span> against
+  <span class="m">$K^T$</span> for enumerating paths.</p>
+</div>
+
+<figure>
+  <img src="figures/pb/02-exact.svg" alt="Left: operation counts for path enumeration and forward-backward against sequence length. Right: difference between a Kalman filter and the analytic posterior against number of observations">
+  <figcaption><b>Figure 2.</b> <b>Left:</b> the same posterior by two routes. Enumerating every state
+  sequence costs <span class="m">$K^T$</span> and forward–backward costs
+  <span class="m">$TK^2$</span>; the second is cheaper from <b>T = 3</b> and by a factor of
+  <b>9.4&times;10<sup>10</sup></b> at T = 25. They agree to <b>5.2&times;10<sup>&minus;15</sup></b>
+  over every length that enumeration can still reach. <b>Right:</b> a Kalman filter against the
+  analytic posterior for the same linear-Gaussian system, agreeing to
+  <b>4&times;10<sup>&minus;11</sup></b> on the mean and <b>3&times;10<sup>&minus;11</sup></b> on the
+  variance. Neither of these is an approximation.</figcaption>
+</figure>
+
+<h3><span class="num">§13</span> Linear-Gaussian: the Kalman filter</h3>
+
+<div class="box def">
+  <span class="label">The continuous case that stays closed</span>
+  <p>Replace the HMM's discrete states with continuous ones, linear transitions and Gaussian noise:</p>
+  <p class="m">$$\mathbf{z}_t = F\mathbf{z}_{t-1} + \mathbf{w}_t, \qquad
+  \mathbf{x}_t = H\mathbf{z}_t + \mathbf{v}_t$$</p>
+  <p>Gaussians are closed under linear maps and under conditioning, so every posterior in the
+  recursion is Gaussian and the whole filter is bookkeeping on a mean and a covariance. The
+  <b>predict</b> step pushes both through <span class="m">$F$</span> and adds process noise; the
+  <b>update</b> step conditions on the observation.</p>
+  <p>The Kalman gain is the weight given to the new observation against the prediction, and it is
+  not a tuning parameter: it is what the arithmetic of conditioning produces. Figure 2's right
+  panel is the check: the filter <i>is</i> the posterior, to floating point.</p>
+</div>
+
+<div class="box shapes">
+  <span class="label">Three things to know before using one</span>
+  <p><b>Smoothing beats filtering</b> when you can wait. The filter conditions on the past; the
+  backward pass adds the future, and the resulting estimate is strictly better.</p>
+  <p><b>Nonlinear variants are approximations</b> and stop being exact. The extended filter
+  linearises and the unscented filter propagates sigma points; both can diverge, and neither carries
+  the guarantee this section is about.</p>
+  <p><b>Particle filters</b> handle arbitrary dynamics by sampling, at the cost of movement D's
+  variance problem, and they degenerate in high dimensions for the reason §26 gives.</p>
+</div>
+
+<h3><span class="num">§14</span> Learning with hidden variables</h3>
+
+<div class="box why">
+  <span class="label">Why maximum likelihood stops being easy</span>
+  <p>With everything observed, maximum likelihood for these models is counting. With latent
+  variables the likelihood contains a sum inside a logarithm
+  (<span class="m">$\log \sum_z p(x, z \mid \theta)$</span>), which does not decompose, and the
+  closed-form solution disappears.</p>
+  <p>The observation that rescues it: <i>if</i> you knew the latent values, the problem would be
+  easy again. So alternate between inferring them and re-fitting as though they were observed.
+  That is the next section, and its guarantee is better than the description suggests.</p>
+</div>
+
+<h3><span class="num">§15</span> EM, and what it guarantees</h3>
+
+<div class="box def">
+  <span class="label">Expectation–maximisation</span>
+  <p><b>E step:</b> compute the posterior over latents under the current parameters. <b>M step:</b>
+  maximise the expected complete-data log-likelihood under that posterior.</p>
+  <p>The guarantee is that each iteration cannot decrease the observed-data likelihood. It comes
+  from the same inequality as movement C's: the E step makes a lower bound on the likelihood tight
+  at the current parameters, and the M step raises the bound, so the likelihood is raised at least
+  as much. <b>EM is coordinate ascent on the objective of §18</b>, which is why the two movements
+  are the same subject.</p>
+</div>
+
+<figure>
+  <img src="figures/pb/03-em.svg" alt="Left: log-likelihood against EM iteration for fourteen restarts. Right: percentage of restarts missing the true components against component separation">
+  <figcaption><b>Figure 3.</b> A two-component Gaussian mixture. <b>Left:</b> the log-likelihood
+  never decreased on any of <b>1,600</b> runs. <b>Right:</b> how often 200 random restarts fail to
+  recover the components that generated the data, with two standard errors. In the identifiable
+  regime the failure rate <b>rises with separation</b> (5.5% at 1.5&sigma; to 14.0% at
+  5&sigma;) rather than falling. The two hollow points are separations at which the best restart
+  also misses: there the components are not identifiable from the data at all, and the number is
+  measuring estimation rather than optimisation.</figcaption>
+</figure>
+
+<div class="box why">
+  <span class="label">Why the failure rate rises with separation</span>
+  <p>The intuition says overlapping components are harder, and for <i>estimation</i> that is right:
+  it is why the two hollow points exist. For <i>optimisation</i> it is backwards, and the mechanism
+  is worth holding on to.</p>
+  <p>Well-separated components create genuinely distinct basins. A restart that happens to put both
+  means inside one cluster cannot escape, because moving a mean across the gap means crossing
+  territory where the likelihood is worse. When the components overlap the surface is nearly
+  unimodal and there is nowhere to get stuck.</p>
+  <p>The practical reading: <b>random restarts are not optional</b>, and the temptation to skip them
+  on an easy-looking, well-separated problem is exactly backwards.</p>
+</div>
+
+<h3><span class="num">§16</span> What movement B establishes</h3>
+
+<div class="box intuition">
+  <span class="label">Three things</span>
+  <p><b>Exact inference is elimination, and its cost is treewidth.</b> Polynomial on chains and
+  trees, exponential on grids, and decided by the graph before any data arrives.</p>
+  <p><b>Forward–backward and the Kalman filter are not approximations.</b> Figure 2 checks both
+  against the exact answer at 10<sup>&minus;15</sup> and 10<sup>&minus;11</sup>.</p>
+  <p><b>EM never goes down and often stops early.</b> Figure 3 measures monotonicity on 1,600 runs
+  and a failure-to-recover rate that <i>grows</i> with how well separated the components are.</p>
+</div>

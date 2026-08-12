@@ -1,0 +1,153 @@
+<h2><span class="part-kicker">Part D</span>Geometry</h2>
+
+<p class="mvt">A camera is a measuring instrument with known equations. This movement is the part of
+perception where the answer is constrained by algebra rather than by data, which means some errors
+cannot be trained away, and some accuracies cannot be exceeded however good the network is.</p>
+
+<h3><span class="num">§25</span> The pinhole camera</h3>
+
+<div class="readnow"><span class="label">Go and read</span><p><span class="src">Hartley &amp; Zisserman</span>, <i>Multiple View Geometry in Computer Vision</i>. The reference for this movement, and one of the few textbooks in this list that has not been superseded. Chapters 6 and 9 are the ones to read; the rest is there when you need it. Nothing in it depends on what models are fashionable, which is the point.</p></div>
+
+<div class="box def">
+  <span class="label">The projection</span>
+  <p>A point <span class="m">$(X, Y, Z)$</span> in front of the camera lands at</p>
+  <p class="m">$$u = f_x \frac{X}{Z} + c_x, \qquad v = f_y \frac{Y}{Z} + c_y$$</p>
+  <p>Everything in this movement follows from the <span class="m">$1/Z$</span>. Depth is divided
+  out, so it is not recoverable from one view; equal displacements at different depths produce
+  unequal image motion; and the derivative of image position with respect to depth falls as
+  <span class="m">$1/Z^2$</span>, which is §29's error growth before any noise is mentioned.</p>
+</div>
+
+<h3><span class="num">§26</span> Intrinsics and extrinsics</h3>
+
+<div class="box shapes">
+  <span class="label">Two matrices, and which one moves</span>
+  <p><b>Intrinsics</b> <span class="m">$K$</span>: focal lengths, principal point, skew. Properties
+  of the camera and lens. Fixed unless the lens is changed or the image is resized, and resizing an
+  image without rescaling <span class="m">$K$</span> is a bug that produces plausible, wrong
+  geometry.</p>
+  <p><b>Extrinsics</b> <span class="m">$[R \mid t]$</span>: where the camera is and where it is
+  pointing. Change every frame on a moving platform, and are what a calibration between sensors
+  establishes.</p>
+  <p>Together: <span class="m">$\mathbf{x} \sim K[R \mid t]\mathbf{X}$</span>. A large share of
+  multi-sensor bugs are one of these being stale, in the wrong frame, or in the wrong units.</p>
+</div>
+
+<h3><span class="num">§27</span> Distortion, and calibration</h3>
+
+<div class="readnow"><span class="label">Go and read</span><p><span class="src">Zhang (1999)</span>, <i>Flexible camera calibration by viewing a plane from unknown orientations</i>. The checkerboard calibration everybody uses. Short, and reading it once removes the sense that calibration is a black box in somebody's library.</p></div>
+
+<figure>
+  <img src="figures/vs/06-calibration.svg" alt="Reprojection error against distance from the image centre, for three levels of radial distortion, log scale">
+  <figcaption><b>Figure 6.</b> What ignoring radial distortion costs, for a 1,024 px wide-angle
+  camera. The error is <b>exactly zero</b> at the principal point and grows with radius: at a mild
+  <span class="m">$k_1 = -0.05$</span> it reaches <b>75.9 px</b> at the corner, and at
+  <span class="m">$k_1 = -0.15$</span> it reaches <b>164 px</b>. No detector localises to
+  within 164 pixels, so on an uncalibrated wide-angle camera the geometry is the dominant error and
+  nothing about the network is relevant to it.</figcaption>
+</figure>
+
+<div class="box pitfall">
+  <span class="label">Pitfall: the centre of the image lies to you</span>
+  <p>Every distortion effect vanishes at the principal point and grows outward. So a system
+  developed and debugged on centred objects looks calibrated, and fails at the edges of the frame,
+  which is where the merging vehicle is.</p>
+  <p>Two practical consequences. Check reprojection error <b>as a function of radius</b>, never as
+  a single average. And re-calibrate: mounts shift, temperature changes focal length slightly, and
+  a calibration from the factory is a claim about a camera that no longer exists.</p>
+</div>
+
+<h3><span class="num">§28</span> Two views, and the epipolar constraint</h3>
+
+<div class="box def">
+  <span class="label">The one-dimensional search</span>
+  <p>A point in one image constrains its match in another to a line, the epipolar line, because
+  the point, its two projections and the two camera centres are coplanar. Algebraically
+  <span class="m">$\mathbf{x}'^\top F \mathbf{x} = 0$</span>.</p>
+  <p>This turns matching from a two-dimensional search into a one-dimensional one, which is a large
+  reduction and the reason stereo is tractable. <b>Rectification</b> warps both images so the
+  epipolar lines are horizontal rows, after which the search is along a scanline and the disparity
+  is a single number per pixel.</p>
+</div>
+
+<h3><span class="num">§29</span> Triangulation, and its error</h3>
+
+<div class="box def">
+  <span class="label">Depth from disparity</span>
+  <p class="m">$$Z = \frac{f b}{d} \qquad\Longrightarrow\qquad
+  \left|\frac{\partial Z}{\partial d}\right| = \frac{fb}{d^2} = \frac{Z^2}{fb}$$</p>
+  <p>So a fixed disparity error becomes a depth error growing with the <b>square</b> of range, and
+  shrinking with the product of focal length and baseline. Both halves of that are design levers and
+  both are bounded by the vehicle.</p>
+</div>
+
+<figure>
+  <img src="figures/vs/07-stereo.svg" alt="Depth error from a tenth of a pixel of disparity error against true depth, for three baselines, log scale">
+  <figcaption><b>Figure 7.</b> Depth error from <b>0.1 px</b> of disparity error, at
+  <span class="m">$f = 800$</span> px. The fitted exponent against range is <b>2.000</b>, as the
+  algebra requires. With a 12 cm baseline the error is <b>0.10 m</b> at 10 m and <b>10.4 m</b> at
+  100 m; doubling the baseline halves it, measured at <b>2.042</b>. A stereo rig that is excellent
+  in a car park is unusable at motorway range, and no amount of training changes the
+  exponent.</figcaption>
+</figure>
+
+<div class="box why">
+  <span class="label">What this decides about a sensor suite</span>
+  <p>Sub-pixel disparity estimation is worth a great deal, because the error is proportional to it.
+  Halving the disparity error is exactly as valuable as doubling the baseline, and usually cheaper.</p>
+  <p>Beyond some range, stereo stops being a depth sensor and becomes a direction sensor. That range
+  is computable from the figure before any data is collected, and it is the argument for a
+  time-of-flight sensor, for motion parallax over a long baseline in time, or for accepting that
+  distant objects are tracked rather than ranged.</p>
+</div>
+
+<h3><span class="num">§30</span> Structure from motion, and bundle adjustment</h3>
+
+<div class="box def">
+  <span class="label">Solving for everything at once</span>
+  <p>Given many views of many points, recover the camera poses and the 3-D points together by
+  minimising total reprojection error. This is a large sparse nonlinear least-squares problem, and
+  the sparsity (each point appears in few views) is what makes it solvable at scale.</p>
+  <p>It is Part XXVIII's maximum likelihood with a Gaussian noise model, and the Jacobian structure
+  is a graphical model's. What it needs from the front end is not accuracy so much as <b>correct
+  correspondences</b>: a few wrong matches will drag the solution anywhere, which is why robust
+  losses and consensus estimation belong here rather than being an afterthought.</p>
+</div>
+
+<h3><span class="num">§31</span> Bird's-eye view, and what the transform assumes</h3>
+
+<div class="box shapes">
+  <span class="label">The representation a planner wants</span>
+  <p>A planner reasons in a top-down metric frame, not in image space. Getting there from cameras
+  is the central architectural problem of a modern driving stack, and there are three approaches.</p>
+  <p><b>Homography.</b> Warp the image plane to the ground plane directly. Exact <i>if</i> the
+  world is flat and the extrinsics are right, and wrong in proportion to how untrue that is, so
+  everything above the road surface is smeared.</p>
+  <p><b>Lift and splat.</b> Predict a depth distribution per pixel, project the features into 3-D,
+  and pool into top-down cells. Handles height, and inherits monocular depth's ambiguity from §20.</p>
+  <p><b>Query the images.</b> Give each top-down cell a query that attends to the image features
+  that project into it. No explicit depth, geometry used only to decide where to look, and the
+  approach current multi-camera systems have converged on.</p>
+</div>
+
+<aside class="mnote"><b>Left out on purpose:</b> neural radiance fields and neural rendering
+(optimising a volumetric scene representation so that it reproduces a set of training views, then
+querying it from a new viewpoint) answer a different question from the rest of this movement.
+Everywhere else here the camera is fixed and the question is where something is; view synthesis
+fixes the scene and asks what a camera would see from somewhere it never stood. The machinery it
+needs (differentiable volume rendering, an implicit scene function trained by gradient descent) has
+more in common with Part XVI's generative models than with the projective geometry this movement
+develops, and is not covered here.</aside>
+
+<h3><span class="num">§32</span> What movement D establishes</h3>
+
+<div class="box intuition">
+  <span class="label">Three things</span>
+  <p><b>Some errors are geometric and no model fixes them.</b> Figure 6 measures 164 px of
+  reprojection error from uncorrected distortion, which is two orders of magnitude beyond any
+  detector's localisation accuracy.</p>
+  <p><b>Stereo depth error grows as the square of range</b>, measured at an exponent of 2.000, so a
+  sensor's usable range is computable before it is built.</p>
+  <p><b>Calibration is a live quantity, not a constant</b>, and it must be checked against radius
+  rather than averaged over the image.</p>
+</div>

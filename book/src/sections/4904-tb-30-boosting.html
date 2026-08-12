@@ -1,0 +1,206 @@
+<h2><span class="part-kicker">Part C</span>Boosting</h2>
+
+<p class="mvt">Bagging attacks variance by averaging independent fits. Boosting attacks bias by
+fitting each model to what the previous ones left behind: a completely different mechanism that
+happens to use the same base learner. It is the method that wins tabular competitions, and the
+reason is as much engineering as statistics.</p>
+
+<h3><span class="num">§16</span> Additive modelling</h3>
+
+<div class="box def">
+  <span class="label">Build the function in stages</span>
+  <p>Rather than fitting one model, build <span class="m">$F(x) = \sum_{m} \nu\, f_m(x)$</span> by
+  adding one term at a time, each chosen to reduce the loss given everything already added.</p>
+  <p>Nothing here is specific to trees. What makes trees the right base learner is that they are
+  cheap, they need no feature scaling, they handle mixed types, and, most importantly, they are
+  <b>high bias when shallow</b>, which is what a stagewise procedure wants. A boosted ensemble of
+  deep trees works far less well, and the reason is that each term is supposed to be a small
+  correction.</p>
+</div>
+
+<h3><span class="num">§17</span> Gradient boosting, derived</h3>
+
+<div class="readnow"><span class="label">Go and read</span><p><span class="src">Friedman (2001)</span>, <i>Greedy function approximation: a gradient boosting machine</i>. The derivation this section follows, generalising boosting to gradient descent where the parameter being optimised is the function itself. Read §4 for shrinkage: exactly what Figure 4 measures below, in the paper that introduced it. Then <span class="src">Chen &amp; Guestrin (2016)</span>, <i>XGBoost: a scalable tree boosting system</i>, the engineering realisation fifteen years later: read §2 for the second-order gain expression that scores a split and sets the leaf in one computation, and the unusually candid systems section on why it is fast.</p></div>
+
+<div class="box def">
+  <span class="label">Gradient descent in function space</span>
+  <p>Treat the loss as a function of the <i>predictions</i>
+  <span class="m">$F(x_i)$</span> rather than of parameters. The negative gradient at each training
+  point,</p>
+  <p class="m">$$g_i = -\left.\frac{\partial \ell(y_i, F)}{\partial F}\right|_{F = F(x_i)}$$</p>
+  <p>is the direction each prediction should move. That direction exists only at the training
+  points, so fit a tree to it (the tree is how the step generalises to inputs you have not seen)
+  and take a step of size <span class="m">$\nu$</span> along the result.</p>
+  <p>For squared loss <span class="m">$g_i$</span> is the residual, which recovers the intuitive
+  "fit what is left over". For logistic loss it is
+  <span class="m">$y_i - p_i$</span>. Part IX's gradient descent, with the function itself as the
+  parameter.</p>
+</div>
+
+<div class="box def">
+  <span class="label">The second-order refinement</span>
+  <p>Using the curvature as well gives the leaf value in closed form. With gradients
+  <span class="m">$g_i$</span>, curvatures <span class="m">$h_i$</span> and an
+  <span class="m">$L^2$</span> penalty <span class="m">$\lambda$</span> on the leaf,</p>
+  <p class="m">$$w^{*} = \frac{\sum_{i \in \text{leaf}} g_i}{\sum_{i \in \text{leaf}} h_i + \lambda}, \qquad \text{gain} = \frac{\left(\sum g_i\right)^2}{\sum h_i + \lambda}$$</p>
+  <p>The same expression scores a candidate split and sets the leaf, which is what makes the split
+  search and the leaf fit one computation. This is the form modern implementations use, and Part
+  IX §19's damped Newton method is what it is.</p>
+  <p>The <span class="m">$\text{gain}$</span> above is the per-child objective term. A full split
+  score, as in Chen &amp; Guestrin (2016) Eq. 7, takes this term for the left child plus this term
+  for the right child, subtracts the parent's version of the same term, subtracts a per-leaf
+  penalty <span class="m">$\gamma$</span> for the extra leaf created, and carries an overall factor
+  of <span class="m">$\tfrac{1}{2}$</span>. None of the three changes which split maximises the
+  score (the parent term and <span class="m">$\gamma$</span> are the same additive constant for
+  every candidate at a node, and <span class="m">$\tfrac{1}{2}$</span> scales every candidate
+  alike), so the simpler expression above is what to carry in your head, and the fuller one is
+  what §19's penalties act on.</p>
+</div>
+
+<h3><span class="num">§18</span> Shrinkage</h3>
+
+<figure>
+  <img src="figures/tb/04-boosting.svg" alt="Test error against the number of trees for four learning rates, and the best error within a fixed budget">
+  <figcaption><b>Figure 4.</b> Four learning rates on the same data. At <span class="m">$\nu = 1$</span>
+  the ensemble reaches its best test error after <b>46 trees</b> and then degrades: it is
+  overfitting, visibly, in a way boosting is often said not to. Smaller steps reach a better place
+  and need more of them; at <span class="m">$\nu = 0.03$</span> the curve is <b>still improving</b>
+  when the four-hundred-tree budget runs out, so its point on the right panel is a statement about
+  the budget rather than about the learning rate.</figcaption>
+</figure>
+
+<div class="box why">
+  <span class="label">Two things the figure settles</span>
+  <p><b>Boosting can overfit.</b> The folk claim that it does not comes from AdaBoost's margin
+  behaviour on separable classification, and it does not transfer. With enough trees and a large
+  step, test error turns around.</p>
+  <p><b>The number of trees and the learning rate are one hyperparameter, not two.</b> Halving
+  <span class="m">$\nu$</span> roughly doubles the trees needed. The practical procedure is to fix
+  <span class="m">$\nu$</span> as small as the compute budget tolerates and choose the number of
+  trees by early stopping on a validation set, which turns a two-dimensional search into a
+  one-dimensional one, done for free during fitting.</p>
+</div>
+
+<div class="box history">
+  <span class="label">History: from a reweighting trick to a gradient</span>
+  <p><span class="year">1997</span> Freund &amp; Schapire's AdaBoost reweighted the training set
+  after every round, upweighting whatever the previous classifier had got wrong, and came with a
+  proof that training error fell toward zero. It was presented as a reweighting scheme, not as an
+  optimisation.</p>
+  <p><span class="year">1999</span> Breiman's <i>Prediction games and arcing algorithms</i> recast
+  AdaBoost as a form of gradient descent in a space of functions. <span class="year">2000</span>
+  Friedman, Hastie &amp; Tibshirani's <i>Additive logistic regression</i> showed, from a different
+  direction, that AdaBoost was already fitting an additive model by stagewise optimisation of one
+  specific exponential loss.</p>
+  <p><span class="year">2001</span> Friedman's <i>Greedy function approximation</i> generalised that
+  observation to gradient descent in function space for any differentiable loss, the derivation
+  above. AdaBoost's margin-maximising behaviour on separable data, the source of the "boosting
+  doesn't overfit" folklore, is a property of the exponential loss on that kind of problem, and it
+  was carried across to the general method by reputation rather than by proof. Figure 4 is that
+  carry-over failing.</p>
+  <p><span class="year">2016</span> Chen &amp; Guestrin's XGBoost added the second-order refinement
+  above and, as much as any single idea, an implementation fast enough to iterate on from a laptop,
+  which is most of why gradient boosting displaced AdaBoost in practice, and it was an engineering
+  advance rather than a statistical one.</p>
+</div>
+
+<h3><span class="num">§19</span> The other regularisers</h3>
+
+<div class="box shapes">
+  <span class="label">Four, and what each restrains</span>
+  <p><b>Tree depth or leaf count.</b> Caps the order of interaction each term can express: depth
+  <span class="m">$k$</span> allows interactions of order <span class="m">$k$</span>. This is the
+  most consequential structural choice and 3 to 6 covers most problems.</p>
+  <p><b>Minimum child weight.</b> Refuses splits whose child carries too little curvature, which
+  prevents leaves fitted to a handful of points.</p>
+  <p><b>Row and column subsampling.</b> Bagging's randomness inside boosting. Cheap, and it
+  regularises and accelerates at once.</p>
+  <p><b>Explicit penalties:</b> <span class="m">$\lambda$</span> on the leaf values,
+  <span class="m">$\gamma$</span> per additional leaf. These enter the gain expression directly, so
+  a split is not taken unless it pays for itself.</p>
+</div>
+
+<aside class="mnote"><b>Also available:</b> a monotonic constraint forces a leaf's prediction to move in one direction as a chosen feature increases, encoding a known sign directly rather than hoping the data implies it, supported by XGBoost and LightGBM, and worth reaching for whenever domain knowledge already gives you the sign for free.</aside>
+
+<h3><span class="num">§20</span> Categorical features</h3>
+
+<div class="box shapes">
+  <span class="label">Three encodings, and the trap in the best one</span>
+  <p><b>One-hot.</b> Safe, and it makes a high-cardinality column into hundreds of nearly-empty
+  binary features that trees split on badly.</p>
+  <p><b>Ordered by target statistic.</b> Sort the categories by their mean target and treat the
+  result as ordinal. For squared loss this is provably the optimal split of the categories, and it
+  is what good implementations do.</p>
+  <p><b>Target encoding.</b> Replace the category with its target mean outright.</p>
+  <p>The last two share a leak: the target mean of a category is computed from rows that include the
+  row being encoded, so the feature carries the answer. On a rare category with one row it carries
+  it exactly. The repair is to compute the statistic out-of-fold or on preceding rows only, and
+  omitting it is one of the most common ways a tabular model looks excellent in validation and fails
+  in production: Part XIII §11's leakage, in the encoder.</p>
+</div>
+
+<h3><span class="num">§21</span> Missing values</h3>
+
+<div class="box intuition">
+  <span class="label">A tree can learn where to send them</span>
+  <p>Rather than imputing, send missing values to whichever child gives the better gain, and learn
+  that direction at each split. It costs one extra evaluation per split and needs no assumption
+  about what the missingness means.</p>
+  <p>This is a genuine advantage over the alternatives, and it has a consequence worth stating: the
+  model can exploit missingness that is <b>informative</b>. If a field is blank precisely when the
+  outcome is unusual, the tree will find it, which is useful when the pattern will persist and is
+  a trap when it is an artefact of how the training data was collected.</p>
+</div>
+
+<h3><span class="num">§22</span> Histogram splitting, measured</h3>
+
+<figure>
+  <img src="figures/tb/05-binning.svg" alt="Test error against the number of bins per feature, and the number of candidate splits evaluated">
+  <figcaption><b>Figure 5.</b> Binning each feature into a fixed number of buckets before growing
+  anything. Accuracy improves steeply to about <b>32 bins</b> and then <i>worsens</i>: the finest
+  binning tested is measurably worse than the best, so the coarse grid is not only an approximation
+  but also a constraint on which splits can be chosen at all. The right panel is exact arithmetic:
+  at 32 bins a node evaluates <b>32</b> candidate thresholds per feature where exact search would
+  evaluate <b>4,000</b>, a factor of <b>125</b>.</figcaption>
+</figure>
+
+<div class="box why">
+  <span class="label">Why the coarser grid can win</span>
+  <p>A finer grid offers more thresholds, and more thresholds means more chances for one of them to
+  fit noise. Part XIV §20's biased maximum again: the best of 255 candidates is more optimistically
+  biased than the best of 32.</p>
+  <p>So binning is doing two jobs. The one it is famous for is speed. The one it is not is
+  regularisation of the split choice, and on this data that is worth as much.</p>
+</div>
+
+<h3><span class="num">§23</span> What the implementations actually differ on</h3>
+
+<div class="readnow"><span class="label">Go and read</span><p><span class="src">Ke et al. (2017)</span>, <i>LightGBM: a highly efficient gradient boosting decision tree</i>. Histogram splitting, leaf-wise growth and the sibling-subtraction trick of §4, all argued and measured in one paper. Read it for the case that most of what separates a fast implementation from a slow one is engineering rather than statistics, which is the claim this section makes about all three libraries below.</p></div>
+
+<div class="box shapes">
+  <span class="label">Three libraries, three choices</span>
+  <p><b>XGBoost</b> introduced the second-order formulation of §17 with explicit
+  <span class="m">$\lambda$</span> and <span class="m">$\gamma$</span> penalties, and grows trees
+  level by level.</p>
+  <p><b>LightGBM</b> grows leaf-wise, always splitting the leaf with the highest gain, which
+  reaches a given loss with fewer leaves and overfits more readily, so it needs its leaf count
+  capped. Its histogram implementation and the sibling-subtraction trick of §4 are the source of
+  most of its speed.</p>
+  <p><b>CatBoost</b> attacks §20's leak directly with ordered target statistics, computing each
+  row's encoding from rows preceding it in a random permutation.</p>
+  <p>None of these differences is large next to getting the validation right, which is §29.</p>
+</div>
+
+<h3><span class="num">§24</span> What movement C establishes</h3>
+
+<div class="box intuition">
+  <span class="label">Three things</span>
+  <p><b>Boosting is gradient descent with the function as the parameter</b>, and the tree is how a
+  step defined at the training points generalises off them.</p>
+  <p><b>It overfits, and its two main hyperparameters are one.</b> Figure 4 shows the turn at
+  <span class="m">$\nu = 1$</span> after 46 trees, and small rates still improving at the budget,
+  so fix the rate low and early-stop the count.</p>
+  <p><b>The engineering is not incidental.</b> Figure 5's binning buys a factor of 125 in candidate
+  splits and improves accuracy up to a point, and the categorical encoding that works best is the
+  one that leaks unless computed out-of-fold.</p>
+</div>

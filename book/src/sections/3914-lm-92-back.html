@@ -1,0 +1,192 @@
+<h2><span class="part-kicker">Build</span>The project</h2>
+
+<p class="lede">Ten to fourteen hours. You build a tokenizer, measure what it commits you to, and
+then build the evaluation instruments this part argues almost nobody has.</p>
+
+<h3><span class="num">P.1</span> What you are building</h3>
+
+<p><b><code>lmkit</code></b>: a byte-pair tokenizer with a measurement suite, a small model trained
+on a task with a known rule, and an evaluation harness that reports reliability rather than
+accuracy.</p>
+
+<p>The rule: <b>construct the task so the answer cannot be memorised</b>. Every in-context result in
+this project uses a mapping drawn fresh at test time, because that is the only version of the
+experiment that means anything.</p>
+
+<h3><span class="num">P.2</span> Stage 1: the tokenizer</h3>
+
+<ol>
+  <li>Pre-tokenization, training on chunk types weighted by frequency, and encoding in merge
+  order.</li>
+  <li>Verify: sequences shorten, anything encodes, and a corpus of a few repeated sentences produces
+  a degenerate tokenizer that memorises whole sentences.</li>
+  <li>Measure fertility on held-out text in several scripts and domains.</li>
+  <li>Sweep vocabulary size and plot tokens against embedding bytes.</li>
+</ol>
+
+<p><b>Deliverable:</b> the fertility table and the vocabulary curve. Pick the vocabulary you would
+actually use, and write down why.</p>
+
+<h3><span class="num">P.3</span> Stage 2: break place value</h3>
+
+<ol>
+  <li>Train two tokenizers on identical numeric text, one allowing digits to merge.</li>
+  <li>Tokenize a range of numbers under both. Find pairs of the same length with different token
+  counts.</li>
+  <li>Then train a small model to add two numbers under each tokenizer and compare accuracy.</li>
+</ol>
+
+<p><b>Deliverable:</b> the token-count table, and the accuracy difference. Step three is the one
+that converts a curiosity about tokenization into a claim about capability.</p>
+
+<h3><span class="num">P.4</span> Stage 3: in-context learning</h3>
+
+<ol>
+  <li>Build a task whose input-to-label mapping is drawn <b>fresh</b> for every example.</li>
+  <li>Train on many such tasks; evaluate on mappings never seen.</li>
+  <li>Run three conditions: correct, cyclically permuted, and random demonstration labels.</li>
+  <li>Sweep the number of demonstrations from zero.</li>
+</ol>
+
+<p><b>Deliverable:</b> the three accuracies against chance, and the demonstration curve. Predict all
+four before running them.</p>
+
+<h3><span class="num">P.5</span> Stage 4: the steps are the computation</h3>
+
+<ol>
+  <li>Build a task requiring several sequential steps with a known answer.</li>
+  <li>Train two models on identical problems and answers, one shown the intermediate values.</li>
+  <li>Sweep the number of steps and plot both, and their gap.</li>
+  <li>Then corrupt an intermediate step at generation time and see whether the answer changes.</li>
+</ol>
+
+<p><b>Deliverable:</b> the gap, and the faithfulness result. If your gap is flat, your task does not
+require sequential computation and the experiment is not testing what you think. Do not expect the
+gap to grow smoothly with depth: once the direct model is at chance it can fall no further, while
+the chain has more steps in which to err.</p>
+
+<h3><span class="num">P.6</span> Stage 5: evaluate honestly</h3>
+
+<ol>
+  <li>Write eight paraphrases of one task. Report best, mean, worst and spread.</li>
+  <li>Report accuracy and <b>reliability</b>: correct under every paraphrase.</li>
+  <li>Implement the chained-success arithmetic and find how many steps your model supports at
+  50%.</li>
+  <li>Build a judge, and measure its position bias and its verbosity bias.</li>
+  <li>Implement best-of-$n$ and measure the inflation as $n$ grows.</li>
+</ol>
+
+<p><b>Deliverable:</b> a results table that reports spread rather than a best number, and reliability
+alongside accuracy. Then write the same results the way a paper would, and compare.</p>
+
+<h3><span class="num">P.7</span> Stretch</h3>
+
+<ul>
+  <li><b>Induction heads</b>: find the moment they form, and ablate to find which heads.</li>
+  <li><b>Memorisation against duplication</b>, at 1 to 64 repetitions.</li>
+  <li><b>The position effect</b>: a needle at controlled depths.</li>
+  <li><b>Retrieval that misleads</b>: inject irrelevant and wrong passages.</li>
+  <li><b>Prompt injection</b> through a retrieved document.</li>
+  <li><b>An agent</b>, priced against the chained arithmetic, with and without verification.</li>
+</ul>
+
+<h3><span class="num">P.8</span> Done when</h3>
+
+<ul class="checklist">
+  <li>Your tokenizer shortens sequences, encodes anything, and you have measured its fertility on
+  text it was not trained on.</li>
+  <li>You have two same-length numbers that tokenize differently, and the accuracy cost of that.</li>
+  <li>Your in-context task uses a mapping that cannot be in the weights.</li>
+  <li>You have the permuted-label result and can say what it establishes.</li>
+  <li>Your chain-of-thought gap is large at every depth, and you can say why its shape is not the result.</li>
+  <li>You have checked whether the chain is faithful.</li>
+  <li>You report reliability and spread, not accuracy and a best number.</li>
+  <li>Your README names one result that changed when you stopped reporting the best prompt.</li>
+</ul>
+
+<div class="box why">
+  <span class="label">Why this project</span>
+  <p>Stage 3 is the reason for the construction rule. Almost every published in-context learning
+  result is on a task the model may already know, which makes the central question (is it reading
+  the demonstrations or recognising the task) unanswerable from the result. Building the fresh
+  mapping takes twenty lines and makes the question answerable.</p>
+  <p>Stage 5 is the second reason. The instruments there are not exotic; they are ten-line functions.
+  They are simply not what gets reported, and computing them once on your own results changes how
+  you read everyone else's.</p>
+</div>
+
+<h2 class="nobreak"><span class="part-kicker">Assess</span>Checkpoint</h2>
+
+<ul class="checklist">
+  <li>Say why text needs a decision images do not, and give the two obvious choices and their
+  failures.</li>
+  <li>Describe byte-pair encoding and why it never needs an unknown token.</li>
+  <li>Say what pre-tokenization is for.</li>
+  <li>Give three consequences of a tokenizer's fertility gap.</li>
+  <li>Explain the arithmetic failure and its fix.</li>
+  <li>Say why spelling and rhyming are hard for the same reason.</li>
+  <li>Give both sides of the vocabulary-size trade.</li>
+  <li>Say what byte-level tokenization would cost and why it is not standard.</li>
+  <li>Say when the tokenizer is chosen relative to everything else, and why that matters.</li>
+  <li>State the pretraining objective and why it turned out to be sufficient.</li>
+  <li>List the components of a pretraining run and say how many are specific to language.</li>
+  <li>Say what code in the mixture appears to buy.</li>
+  <li>Explain why the late-training mixture confounds alignment comparisons.</li>
+  <li>Describe context extension and why rotary embeddings make it tractable.</li>
+  <li>Distinguish a context window from long-context ability, and give the measurement.</li>
+  <li>Give the rough order in which capabilities appear during training.</li>
+  <li>Say what determines whether a sequence is memorised, and the effective intervention.</li>
+  <li>Explain why a smooth loss curve is compatible with discrete capability changes.</li>
+  <li>Give three things pretraining does not provide.</li>
+  <li>Describe in-context learning and say why the objective already required it.</li>
+  <li>Give the experiment that separates reading the mapping from reading the format.</li>
+  <li>Explain why the literature disagrees about randomised labels.</li>
+  <li>Say why writing intermediate steps helps, in terms of computation per token.</li>
+  <li>Say why a reasoning trace is not an explanation.</li>
+  <li>Explain why prompt sensitivity is a measurement problem.</li>
+  <li>Give three things prompting cannot fix.</li>
+  <li>Say what instruction tuning teaches, and what the data volume implies.</li>
+  <li>Give the three stages of the pipeline and why the third exists.</li>
+  <li>Say what a preference dataset encodes, and two biases it is known to carry.</li>
+  <li>Explain what the KL penalty in RLHF controls.</li>
+  <li>Say what DPO removes and what it gives up.</li>
+  <li>Give the evidence that alignment is largely an interface change, and what that does not
+  mean.</li>
+  <li>Name four measurable post-training failure modes and their common cause.</li>
+  <li>Define the alignment tax and its mechanism.</li>
+  <li>Say why jailbreaks are a persistent property rather than a bug list.</li>
+  <li>Give four things retrieval buys that fine-tuning does not.</li>
+  <li>Separate the two failure points of a retrieval system.</li>
+  <li>Say what tools change, and the pattern they share with verifiable rewards.</li>
+  <li>Give three failure modes of agents and the thing that fixes them.</li>
+  <li>Describe four mechanisms for spending compute at inference.</li>
+  <li>Say why best-of-$n$ is Part XIV §20 in a new costume.</li>
+  <li>Explain prompt injection and why it has no clean fix inside the model.</li>
+  <li>Give four reasons evaluating a language model is hard.</li>
+  <li>Describe the benchmark lifecycle and the structural defences.</li>
+  <li>Name four things that cannot currently be measured well.</li>
+  <li>Distinguish capability from reliability and say which benchmarks report.</li>
+</ul>
+
+<table class="compact">
+  <thead><tr><th>Score</th><th>Verdict</th></tr></thead>
+  <tbody>
+    <tr><td><b>37–46</b></td><td>Go on. You will ask what a number measures before quoting it.</td></tr>
+    <tr><td><b>28–36</b></td><td>Reread what you missed, then continue.</td></tr>
+    <tr><td><b>19–27</b></td><td>Do the project's Stages 3 and 5. A constructed task and honest instruments fix most of this.</td></tr>
+    <tr><td><b>Under 19</b></td><td>Reread §§4, 19 and 44. The tokenizer, the permuted labels and the reliability gap carry the part.</td></tr>
+  </tbody>
+</table>
+
+<div class="box intuition">
+  <span class="label">The one thing to carry forward</span>
+  <p><b>Almost nothing here is specific to language.</b></p>
+  <p>The architecture is Part XII's, the objective Part XVI's, the scaling Part XVII's, the alignment
+  machinery Part XVIII's, the serving Part XIX's. What is genuinely particular is the tokenizer, and
+  it turns out to explain a family of failures that looked like reasoning failures.</p>
+  <p>A language model is not a new kind of object. It is the objects of the preceding nine parts,
+  composed, at a scale where the composition produced behaviour nobody designed.</p>
+  <p>And the second thing, because deployment turns on it: <b>capability is not reliability.</b>
+  Benchmarks measure the first. Almost all the engineering that makes these systems usable is about
+  the second.</p>
+</div>

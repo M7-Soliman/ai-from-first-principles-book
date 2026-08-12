@@ -1,0 +1,207 @@
+<h2><span class="part-kicker">Build</span>The project</h2>
+
+<p class="lede">Ten to fourteen hours. You write the convolution (forward, backward and fast),
+then use it to establish, by measurement, which of this part's claims are theorems and which
+are folklore.</p>
+
+<h3><span class="num">P.1</span> What you are building</h3>
+
+<p><b><code>conv-from-scratch</code></b>: a convolutional layer in NumPy with no framework
+anywhere in the forward or backward path, a working classifier built from it, and an
+instrument for looking at what the network has actually learned.</p>
+
+<p>The rule: <b>every gradient is checked against finite differences before it is trusted</b>,
+and every performance claim is timed rather than counted.</p>
+
+<h3><span class="num">P.2</span> Stage 1: the operation, three ways</h3>
+
+<p>Implement the same convolution three times and confirm they agree:</p>
+
+<ul>
+  <li><b>By explicit matrix.</b> Build $M$ as in §4 and multiply. Correct, hopeless, and the
+  reference the other two are checked against. Report its size, its nonzero count and its
+  number of distinct values.</li>
+  <li><b>By loops</b> over output positions.</li>
+  <li><b>By im2col</b> plus a single matrix multiply.</li>
+</ul>
+
+<p><b>Deliverable:</b> the three agree to floating-point rounding; a timing table; and the
+measured size of the im2col buffer as a multiple of the input. Support stride, padding,
+dilation and groups, and verify the output-size formula of §5 against every combination.</p>
+
+<h3><span class="num">P.3</span> Stage 2: backward, and the gradient check</h3>
+
+<p>Implement §16's other two operations: the gradient with respect to the kernel and the
+gradient with respect to the input.</p>
+
+<ol>
+  <li>Verify that the input gradient equals a full-padding convolution with the flipped kernel,
+  the exact result of §16, so demand exactness rather than a tolerance.</li>
+  <li>Check both gradients against central finite differences on small random tensors.</li>
+  <li>Repeat with stride 2, with asymmetric padding, and with groups greater than one. This is
+  where the bugs are.</li>
+</ol>
+
+<p><b>Deliverable:</b> a gradient check that passes for every combination of stride, padding,
+dilation and groups you support, and a note on the step size at which the finite difference
+stops being the more accurate of the two; see Part III §3.</p>
+
+<h3><span class="num">P.4</span> Stage 3: a network, and the properties it should have</h3>
+
+<p>Assemble a classifier and train it on data you generate, so you control the structure. Then
+measure the four properties this part claims:</p>
+
+<ul>
+  <li><b>Equivariance</b> of the convolutional stack, for translations, rotations and scalings,
+  excluding a border wide enough that wrap-around does not contaminate it.</li>
+  <li><b>Invariance</b> of the pooled representation, with the reference <i>unshifted</i>. Get
+  this distinction wrong once, deliberately, and see what it appears to show.</li>
+  <li><b>The receptive field</b>, by backpropagating from a single output unit. Both the
+  nonzero support and the 95% region, against depth.</li>
+  <li><b>The parameter and FLOP counts</b>, against the formulas of §6.</li>
+</ul>
+
+<p><b>Deliverable:</b> Figures 3, 4 and 5 reproduced from your own code, and the measured
+log-log slope of the effective receptive field against depth.</p>
+
+<h3><span class="num">P.5</span> Stage 4: degradation, and what fixes it</h3>
+
+<p>The experiment that produced ResNet, at a scale you can afford.</p>
+
+<ol>
+  <li>Train plain networks at increasing depth without normalisation. Record the best
+  <b>training</b> loss, and confirm it degrades.</li>
+  <li>Add residual connections. Find the depth at which the unnormalised residual network
+  <b>diverges</b>, and explain it from §23.</li>
+  <li>Add normalisation to both. Report all four curves.</li>
+</ol>
+
+<p><b>Deliverable:</b> the 2×2 comparison, and a paragraph attributing the improvement between
+normalisation and the residual connection rather than to one of them. If your plain network
+reaches $\ln C$ for $C$ classes, say so: that is chance, and it is a more striking result than
+"worse".</p>
+
+<h3><span class="num">P.6</span> Stage 5: look at what it learned</h3>
+
+<ol>
+  <li>Display the first-layer kernels. Fit Gabor functions and report the $R^2$ distribution.</li>
+  <li>Build a Gabor quadrature pair from §31's formula, confirm orthogonality, and measure the
+  complex cell's invariance as a stimulus translates.</li>
+  <li>Regenerate your data with different structure (bars, then blobs, then something with
+  natural-image statistics) and see how the learned filters change.</li>
+</ol>
+
+<p><b>Deliverable:</b> a statement of what the first layer learned and what that says about the
+<b>data</b> rather than about convolution. If your filters are not Gabors, that is a finding
+rather than a failure, and §31's pitfall says why.</p>
+
+<h3><span class="num">P.7</span> Stretch</h3>
+
+<ul>
+  <li><b>Locally connected against convolutional</b>, at several training-set sizes. Find the
+  crossover, or establish that there is none in your range.</li>
+  <li><b>Permute the pixels</b> and retrain both a convolutional and a dense model. The
+  asymmetry is §11's prior, priced.</li>
+  <li><b>Checkerboards.</b> Build an encoder–decoder, produce the artefact deliberately by
+  choosing $k \bmod s \neq 0$, then remove it two different ways.</li>
+  <li><b>Dilation and gridding.</b> Compare dilation schedules $2,2,2,2$ and $1,2,5,9$ by
+  looking at the gradient receptive field, not the accuracy.</li>
+  <li><b>Winograd</b> for $3\times3$, against direct convolution: correctness, speed, and the
+  precision you lose.</li>
+</ul>
+
+<h3><span class="num">P.8</span> Done when</h3>
+
+<ul class="checklist">
+  <li>Three implementations of convolution agree to rounding, and one of them is fast.</li>
+  <li>The input gradient is shown to equal a flipped full convolution <b>exactly</b>.</li>
+  <li>Gradient checks pass with stride, padding, dilation and groups all non-trivial.</li>
+  <li>Translation equivariance measures at float32 rounding; rotation and scale do not.</li>
+  <li>Your effective receptive field grows measurably more slowly than $1+2L$.</li>
+  <li>The invariance measurement and the equivariance measurement are distinguished, in code.</li>
+  <li>You have a plain network at chance on its own training set, and know why.</li>
+  <li>Your README names one thing you believed about convolution that the measurements
+  contradicted.</li>
+</ul>
+
+<div class="box why">
+  <span class="label">Why this project</span>
+  <p>Convolution is the operation people are most likely to have used for years and never
+  implemented. That is usually harmless, and it stops being harmless at exactly the points this
+  part is about: why the memory went where it went, why the receptive field is smaller than the
+  formula, why the transpose needs to be told its output size, and why a deep network stops
+  training.</p>
+  <p>Stage 2 is the one that changes things. Deriving that the backward pass of a convolution
+  is a convolution takes ten minutes; getting it to agree with finite differences under stride
+  and groups takes an afternoon, and afterwards you will never again be unsure what a framework
+  is doing when you pass it those arguments.</p>
+</div>
+
+<h2 class="nobreak"><span class="part-kicker">Assess</span>Checkpoint</h2>
+
+<ul class="checklist">
+  <li>Give the parameter count of a dense layer and a convolution on the same image, and say
+  how each scales with resolution.</li>
+  <li>State the convolution formula, and say what cross-correlation changes and why nobody
+  minds.</li>
+  <li>Explain in what sense convolution is a matrix multiplication, and name the two constraints
+  on that matrix.</li>
+  <li>Give the output-size formula, and say why kernels are usually odd.</li>
+  <li>Say what a stride is equivalent to, and why the equivalent form is not used.</li>
+  <li>Give the shapes and parameter count of a multi-channel convolution, and say which factor
+  costs compute but no parameters.</li>
+  <li>Distinguish sparse interaction from parameter sharing, and name a layer with each alone.</li>
+  <li>Explain why parameter sharing amplifies data, not just saves memory.</li>
+  <li>Define equivariance, and name two transformations convolution is not equivariant to.</li>
+  <li>Distinguish equivariance from invariance, including how the measurements differ.</li>
+  <li>State how the theoretical receptive field grows, how the effective one grows, and why.</li>
+  <li>Give three design consequences of the effective receptive field being smaller.</li>
+  <li>State convolution and pooling as infinitely strong priors.</li>
+  <li>Explain why convolutional and non-convolutional models are not comparable on the same
+  benchmark.</li>
+  <li>Say what pooling buys, what it costs, and why modern architectures use less of it.</li>
+  <li>Explain what cross-channel pooling can learn that spatial pooling cannot.</li>
+  <li>Show that the backward pass of a convolution is a convolution.</li>
+  <li>Say why the transpose must be told its output size.</li>
+  <li>Describe im2col and state its memory cost as a multiple of the input.</li>
+  <li>Derive the depthwise separable ratio, and say why the speedup is smaller than it.</li>
+  <li>Explain what a $1\times1$ convolution is, given that it sees one pixel.</li>
+  <li>Give VGG's argument for stacked $3\times3$ kernels, and one way the substitution is not
+  an equivalence.</li>
+  <li>State the observation that motivated ResNet, and why <i>training</i> error was the
+  informative measurement.</li>
+  <li>Say why an unnormalised residual network diverges with depth.</li>
+  <li>Name four normalisation schemes by which axes they average over, and say why batch norm
+  has competitors.</li>
+  <li>Explain why batch norm shares its statistics across spatial positions.</li>
+  <li>State the checkerboard condition and two ways to avoid it.</li>
+  <li>Say what dilation buys and what gridding is.</li>
+  <li>Give the condition under which convolution handles variable-size inputs, and a case it
+  does not.</li>
+  <li>Explain the complex cell as an $L^2$ norm of a quadrature pair, and what it is invariant
+  to.</li>
+  <li>Say what the Gabor correspondence does and does not establish.</li>
+  <li>Give the four things convolution cannot do, and which one attention addresses.</li>
+</ul>
+
+<table class="compact">
+  <thead><tr><th>Score</th><th>Verdict</th></tr></thead>
+  <tbody>
+    <tr><td><b>26–32</b></td><td>Go on. You can read an architecture as a set of claims about the data.</td></tr>
+    <tr><td><b>20–25</b></td><td>Reread what you missed, then continue.</td></tr>
+    <tr><td><b>14–19</b></td><td>Do the project's Stage 2. Implementing the backward pass fixes most of this.</td></tr>
+    <tr><td><b>Under 14</b></td><td>Reread §§4, 9 and 11. The matrix view, the exact symmetry, and the prior carry the whole part.</td></tr>
+  </tbody>
+</table>
+
+<div class="box intuition">
+  <span class="label">The one thing to carry forward</span>
+  <p><b>An architecture is a symmetry you have decided the data has, encoded so firmly that the
+  model cannot consider anything else.</b></p>
+  <p>Convolution encodes one (translation) and every property in this part follows: the
+  parameter saving, the data efficiency, the exact equivariance, the invariance pooling buys,
+  and all four of §32's limits.</p>
+  <p>Carry the question rather than the answer. For every layer you meet from here on: <b>what
+  has it been told, and is that true here?</b> Part XI asks it of sequences, and Part XII of an
+  architecture that was built by answering it with "almost nothing".</p>
+</div>

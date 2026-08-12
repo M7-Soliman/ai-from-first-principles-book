@@ -1,0 +1,112 @@
+<h2><span class="part-kicker">Part E</span>One model, several modalities</h2>
+
+<p class="mvt">Two towers keep the modalities apart and compare them at the end. The alternative is
+to put everything into one sequence and let a single model attend across it, which is what current
+systems do, and which raises a question about the geometry of the space they build.</p>
+
+<h3><span class="num">§33</span> Getting a second modality into a language model</h3>
+
+<div class="box shapes">
+  <span class="label">Three ways, in increasing cost</span>
+  <p><b>Project into the token space.</b> Encode the image, map the features through a small
+  network to the language model's embedding dimension, and prepend them as though they were tokens.
+  Cheap, and the language model is usually frozen, so the whole system is one small trained
+  module.</p>
+  <p><b>Cross-attend.</b> Insert layers that attend from the text stream into the image features.
+  More capacity for interaction and it modifies the language model, so it must be trained.</p>
+  <p><b>Tokenise and train jointly.</b> Quantise the image or audio into discrete tokens (§22's
+  codec) and train one model over the mixed sequence. Uniform, expensive, and the only route that
+  lets the model <i>generate</i> the other modality as naturally as it generates text.</p>
+</div>
+
+<h3><span class="num">§34</span> The resolution problem, in tokens</h3>
+
+<div class="box why">
+  <span class="label">Why a high-resolution image is expensive in a way an image model's is not</span>
+  <p>An image at 336 pixels square with a patch size of 14 is 576 tokens. At 1,000 pixels it is over
+  five thousand, and attention is quadratic, so a page of text photographed at readable resolution
+  can cost more than the document it contains.</p>
+  <p>The responses are all compressions: pool the visual tokens, use a fixed number of learned
+  queries to summarise them, or tile the image and process tiles separately. Each throws away
+  something, and which one is right depends on whether the task needs global layout or local
+  detail, which is Part XXIX §15's pyramid question in a different currency.</p>
+</div>
+
+<h3><span class="num">§35</span> The geometry of the shared space</h3>
+
+<div class="readnow"><span class="label">Go and read</span><p><span class="src">Liang, Zhang, Kwon, Yeung &amp; Zou (2022)</span>, <i>Mind the gap: understanding the modality gap in multi-modal contrastive representation learning</i>. The paper Figure 8 draws: contrastively trained towers occupy separate, non-overlapping regions of the shared sphere, attributed to a "cone effect" already present at initialisation and preserved rather than removed by the contrastive loss. Read their Theorem 1 alongside this book's own attempt to reproduce it: two <i>linear</i> maps from Gaussian inputs are isotropic and show no gap at all, which is why the figure here is drawn rather than measured and why depth, not the loss, is the paper's real claim.</p></div>
+
+<figure class="illus">
+  <img src="figures/au/08-modality-gap.svg" alt="Schematic of two clusters of embeddings occupying separate regions of a sphere, with lines joining matched pairs">
+  <figcaption><span class="illus-tag">Illustrative</span><b>Figure 8.</b> What a contrastively
+  trained shared space is reported to look like. The two modalities occupy separate regions of the
+  sphere rather than interleaving, with matched pairs facing each other across the gap. Retrieval
+  depends only on a pair being closer to each other than to the alternatives, which the arrangement
+  permits, so a system can work perfectly well while the two modalities never share a
+  neighbourhood. This diagram carries no measured quantities.</figcaption>
+</figure>
+
+<div class="box why">
+  <span class="label">What this means for anything downstream</span>
+  <p>Retrieval only needs a ranking, so a separation between the modalities costs it nothing,
+  which is why the arrangement went unnoticed for a while.</p>
+  <p>It matters for everything else. Arithmetic on embeddings across modalities is unsafe if they
+  sit in different regions. A classifier trained on one modality's embeddings and applied to the
+  other's is being asked to extrapolate. And a similarity score is comparable within a modality and
+  not across, so a threshold tuned on one does not transfer.</p>
+  <p>The practical rule is to <b>calibrate any cross-modal similarity threshold on cross-modal
+  pairs</b>, and never to assume that a score means the same thing in both directions.</p>
+</div>
+
+<h3><span class="num">§36</span> Fusion, and when it should happen</h3>
+
+<div class="box shapes">
+  <span class="label">Early, late, and why the answer is usually early</span>
+  <p><b>Late fusion</b> combines per-modality predictions. Robust to a missing modality, trivially
+  parallel, and unable to use any interaction between them.</p>
+  <p><b>Early fusion</b> combines representations before the decision, so the model can use the
+  interaction, which is where the value in multimodality is, since anything derivable from one
+  modality alone did not need the other.</p>
+  <p>The complication early fusion brings is <b>missing modalities</b>. A model trained on both and
+  given one degrades unpredictably unless it was trained with dropout on whole modalities, which is
+  cheap and is the thing most often left out.</p>
+</div>
+
+<h3><span class="num">§37</span> Alignment in time</h3>
+
+<div class="box pitfall">
+  <span class="label">Pitfall: a clip-level embedding has no time in it</span>
+  <p>§31's construction gives one vector per clip, and audio-visual questions are usually about
+  <i>when</i>. Which speaker is talking now, whether the sound matches the action, where the event
+  is.</p>
+  <p>Two things follow. Training on clip-level pairs teaches co-occurrence rather than
+  synchrony: a model can score a video highly because dogs and barking co-occur, having learned
+  nothing about alignment. And evaluating on clip-level retrieval cannot detect that. If timing is
+  the point, the pairs and the metric both have to be temporal.</p>
+</div>
+
+<h3><span class="num">§38</span> Evaluating a multimodal model</h3>
+
+<div class="box why">
+  <span class="label">The difficulty that is specific to this subject</span>
+  <p>A benchmark of image questions can often be answered from the question alone: language priors
+  carry a startling fraction of them, and a text-only model scoring well is the diagnostic. The
+  minimum honest control is therefore to <b>run the model without the image</b> and report that
+  number beside the real one. It is one line and it is rarely present.</p>
+  <p>Two further controls are worth the same effort: pair each question with a second image where
+  the answer differs, so a model must actually look; and check for contamination, which is worse
+  here than in text because image captions are widely duplicated across the web.</p>
+</div>
+
+<h3><span class="num">§39</span> What movement E establishes</h3>
+
+<div class="box intuition">
+  <span class="label">Three things</span>
+  <p><b>Getting a modality into a language model is a choice among three costs</b>, and the
+  tokenising route is the only one that lets the model generate the other modality.</p>
+  <p><b>The shared space need not be shared.</b> Retrieval needs only a ranking, so a system can
+  work while the two modalities occupy separate regions, which makes cross-modal thresholds and
+  cross-modal arithmetic unsafe by default.</p>
+  <p><b>The control that matters is running the model without the other modality</b>, because a
+  benchmark that a text-only model can answer is measuring the text.</p>
+</div>

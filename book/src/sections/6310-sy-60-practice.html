@@ -1,0 +1,120 @@
+<h2><span class="part-kicker">Part F</span>Practice</h2>
+
+<p class="mvt">What to measure before optimising anything, what to state before claiming anything is
+secure, and, because this part sits closest to the line, what this book can and cannot
+establish about either.</p>
+
+<h3><span class="num">§40</span> Before you optimise</h3>
+
+<div class="box try">
+  <span class="label">Four measurements, in order, and most work stops after two</span>
+  <p><b>Where does the time go?</b> Profile before changing anything. The distribution is almost
+  always concentrated, and optimising outside the top few kernels cannot move the total.</p>
+  <p><b>Which side of the roofline is the hot kernel on?</b> Compute its arithmetic intensity.
+  Memory-bound means move less data; compute-bound means do less arithmetic or use fewer bits. These
+  are disjoint sets of remedies and applying the wrong one wastes the week.</p>
+  <p><b>How close is it to the relevant ceiling?</b> At 80% of achievable bandwidth there is nothing
+  left; at 15% there is an access-pattern problem.</p>
+  <p><b>Is communication exposed or overlapped?</b> For a distributed job this is usually the
+  largest single item and it is invisible in a kernel profile; it shows as a gap.</p>
+</div>
+
+<h3><span class="num">§41</span> What to report about performance</h3>
+
+<div class="box shapes">
+  <span class="label">Six things</span>
+  <p><b>The hardware.</b> Every number in movement A and B is a property of a machine.</p>
+  <p><b>Arithmetic intensity</b> for any kernel you claim to have optimised.</p>
+  <p><b>Achieved fraction of the relevant ceiling</b>, not raw throughput: 40 GFLOP/s means nothing
+  without the peak beside it.</p>
+  <p><b>Batch size and precision</b>, since both change the regime rather than the constant.</p>
+  <p><b>For a distributed number, the topology</b> and which axis was placed where.</p>
+  <p><b>For serving, a tail percentile and the utilisation it was measured at</b>, because those two
+  numbers are not separable.</p>
+</div>
+
+<h3><span class="num">§42</span> What to state before claiming security</h3>
+
+<div class="box shapes">
+  <span class="label">Five things</span>
+  <p><b>The threat model</b>: capability, goal, knowledge. Without it a defence is not a claim.</p>
+  <p><b>Which attack</b> an empirical robustness number was measured against, and whether it was
+  adapted to the defence.</p>
+  <p><b>The privacy unit</b>, per record or per person, and the total budget across the whole
+  training run rather than one step, accounted properly: basic composition (§26) is a valid but
+  loose upper bound, and the moments accountant / Rényi-DP with subsampling amplification (§27) is
+  what a real run should report.</p>
+  <p><b>What the defence does not cover.</b> Rate limiting raises extraction's cost by a factor;
+  Figure 8 measures sixteen. That is a useful sentence and "we rate limit" is not.</p>
+  <p><b>Whether an architectural control exists</b>, since §38 says that is what actually protects a
+  deployment.</p>
+</div>
+
+<h3><span class="num">§43</span> Where this connects</h3>
+
+<div class="box shapes">
+  <span class="label">Six places</span>
+  <p><b>Part XVII §16–§28.</b> This part is the layer below: what a collective costs and why
+  topology decides where an axis goes.</p>
+  <p><b>Part XIX §3.</b> Arithmetic intensity was introduced there as a concept; Figure 1 is it
+  measured, with an exception the concept does not predict.</p>
+  <p><b>Part XIII §21 and §33.</b> Deduplication is a privacy control, and memorisation is the leak
+  that needs no attack.</p>
+  <p><b>Part XXI §26 and §36.</b> Red-teaming and open weights are this movement's questions asked
+  about capability rather than about systems.</p>
+  <p><b>Part XXIV §33.</b> Every defence has a threshold, and the cost ratio is what sets it.</p>
+  <p><b>Part XXXI §35.</b> The shield is §37's remedy: privilege bounded by architecture rather than
+  by the model behaving.</p>
+</div>
+
+<h3><span class="num">§44</span> What is unsolved, and what this part cannot establish</h3>
+
+<div class="box why">
+  <span class="label">Four, and a statement about evidence</span>
+  <p>This is the part of the book that sits closest to what this book's standard of evidence will support. The
+  systems half is measurable on any machine and was measured. <b>Several claims in the privacy and
+  adversarial movements are not establishable at the scale a figure script reaches</b>, and are
+  presented as relationships rather than as numbers. That is a weaker standard than the rest of the
+  book holds to, and it is marked on every figure it applies to.</p>
+  <p><b>Not yet measured.</b> What differential privacy costs at frontier scale, at a budget anyone
+  would call strong. The published points are sparse and not comparable.</p>
+  <p><b>Not currently measurable.</b> Whether a model contains a backdoor. Accuracy is exactly what
+  a backdoor preserves, and no general detection method exists.</p>
+  <p><b>Genuinely open.</b> Separating instruction from data for a model with one input channel.
+  Everything deployed is mitigation rather than solution.</p>
+  <p><b>Not empirical.</b> What level of leakage is acceptable, and to whom. Part XXI's subject.</p>
+</div>
+
+<h3><span class="num">§45</span> What to carry forward</h3>
+
+<div class="box intuition">
+  <span class="label">Five things</span>
+  <p><b>The currency is bytes moved.</b> Figure 1 puts the ridge at 1.96 flops per byte, and
+  everything below it is waiting for memory however fast the arithmetic gets.</p>
+  <p><b>The two transformations that matter change no arithmetic.</b> Figure 2 measures fusion at
+  7.5&times; on a chain of eight; Figure 3 measures blocking at 3.5&times;, with the block size
+  predictable from cache size rather than swept.</p>
+  <p><b>The ring is optimal in volume and not in latency.</b> Figure 4 measures two buffers per
+  worker against linear growth, a factor of 32 at 64 workers, and real libraries still switch
+  algorithm by message size.</p>
+  <p><b>Query access is disclosure.</b> Figure 8 measures a clone at 95% agreement in 40 queries
+  against a victim fitted on thousands of examples, with label-only outputs costing sixteen times
+  more and failing to prevent it.</p>
+  <p><b>What protects a deployment is architecture.</b> Least privilege, isolation and confirmation
+  work against attacks nobody has thought of; a robustness number does not.</p>
+</div>
+
+<div class="sixty">
+  <span class="label">Sixty seconds</span>
+  <p>Underneath every model is a machine that can do a hundred arithmetic operations in the time it
+  takes to fetch one number, so the quantity that predicts how long anything takes is bytes moved
+  rather than operations counted, and the two transformations that make numerical code fast, fusing
+  chains and blocking for cache, change no arithmetic at all. Across machines the same logic holds:
+  the ring all-reduce is used everywhere because its volume per worker does not grow with the worker
+  count, and putting the chattiest parallelism axis on the slowest links costs more than any kernel
+  optimisation recovers. Then the adversarial half, where the average case stops being the question.
+  A model leaks its training data by several routes, one of which needs no attack at all; query
+  access alone is enough to clone it; and the thing that actually protects a deployed system is not
+  a property of the model but the architecture around it: least privilege, isolation, and asking
+  before doing anything hard to undo.</p>
+</div>

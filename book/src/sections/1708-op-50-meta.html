@@ -1,0 +1,523 @@
+<h2><span class="part-kicker">Part E</span>Reparametrisation and meta-algorithms</h2>
+
+<p class="lede">Not algorithms so much as templates: things you do <i>around</i> an optimiser
+that change how hard its job is. The most important of them is not an optimiser at all.</p>
+
+<h3><span class="num">§22</span> The coordination problem</h3>
+
+<div class="sixty">
+  <span class="label">In 60 seconds</span>
+  <p>Backpropagation computes each parameter's gradient <b>on the assumption that every other
+  parameter stays fixed</b>. You then update all of them at once. In a deep network the
+  discrepancy is not a small correction: it involves terms of every order up to the depth,
+  and a second-order method cannot account for them either. This is the problem batch
+  normalisation was invented to sidestep.</p>
+</div>
+
+<p>Take the smallest network that shows it: one unit per layer, no activation function.</p>
+
+$$\hat{y} = x\,w_1 w_2 w_3 \cdots w_l$$
+
+<p>The output is linear in $x$ and thoroughly <b>nonlinear in the weights</b>; it is a product
+of $l$ of them. Suppose you want to decrease $\hat{y}$ by $0.1$. Backpropagation gives you
+$\mathbf{g} = \nabla_{\mathbf{w}}\hat{y}$, first-order reasoning says a step of
+$-\epsilon\mathbf{g}$ decreases $\hat{y}$ by $\epsilon\,\mathbf{g}^\top\mathbf{g}$, so you set
+$\epsilon = 0.1/\mathbf{g}^\top\mathbf{g}$ and take the step.</p>
+
+<p>What you actually get is</p>
+
+$$x(w_1 - \epsilon g_1)(w_2 - \epsilon g_2)\cdots(w_l - \epsilon g_l)$$
+
+<p>Multiply that out. Beyond the first-order terms there are second-order terms such as
+$\epsilon^2 g_1 g_2 \prod_{i=3}^{l} w_i$, third-order terms, and so on up to order $l$.</p>
+
+<div class="box why">
+  <span class="label">Why this cannot be fixed by a better optimiser</span>
+  <p>Look at that one second-order term. Its size is governed by $\prod_{i=3}^{l} w_i$, the
+  product of the weights in <b>every other layer</b>. If those weights are below one it is
+  negligible. If they are above one it is exponentially large in the depth.</p>
+  <p>So the correct learning rate for layer 1 depends on the current values of layers 3
+  through $l$, and changes as they train. There is no single $\epsilon$ that is right for the
+  network, and no schedule that anticipates it.</p>
+  <p>Second-order methods exist precisely to account for interactions between parameters, and
+  they help. But they account for interactions of order <b>two</b>, and a network of depth $l$
+  has significant interactions up to order $l$. Even second-order methods are expensive enough
+  to require approximations that prevent them from capturing all the second-order structure,
+  let alone the rest. Building an $n$-th order optimiser for $n > 2$ is hopeless.</p>
+  <p>That is the argument that motivated batch normalisation, and it is worth appreciating
+  what kind of argument it is: <b>not "our optimisers are not good enough" but "no optimiser of
+  this kind can be".</b> The response was to change the model rather than the algorithm.</p>
+</div>
+
+<p>Even in the benign case the discrepancy is measurable. Requesting a 50% reduction in
+$\hat{y}$ on a six-factor product, first-order reasoning over-promises: the actual reduction
+is <b>81%</b> of the predicted one with all weights at 1, and that is the <i>worst</i> case:
+redistributing the weights across the layers with their product held fixed only closes the gap,
+approaching (never reaching) <b>100%</b> as the product concentrates onto one dominant weight
+and $\hat{y}$ becomes nearly linear in the one left small. Figure 5 is the same
+parameterisation in its catastrophic regime, where first-order reasoning predicted a decrease
+and the step produced an <b>increase of three million fold</b>.</p>
+
+<h3><span class="num">§23</span> Batch normalisation</h3>
+
+<div class="readnow"><span class="label">Go and read</span><p><span class="src">Ioffe &amp; Szegedy (2015)</span>, <i>Batch normalization: accelerating deep network training by reducing internal covariate shift</i>. The method, from its authors. Then <span class="src">Santurkar et al. (2018)</span>, <i>How does batch normalization help optimization?</i>, which argues that the explanation in the first paper's <b>title</b> is wrong and that the real effect is on the smoothness of the loss surface. Read them in that order and back to back: it is the shortest illustration in this book of a method outliving its own account of itself.</p></div>
+
+<p>The idea is to make certain quantities <b>standardised by definition</b>, so that no update
+to any lower layer can change them.</p>
+
+<div class="box def">
+  <span class="label">The operation</span>
+  <p>Let $H$ be a minibatch of activations arranged as a design matrix, one example per row,
+  one unit per column. Replace it with</p>
+  <p>$$H' = \frac{H - \boldsymbol{\mu}}{\boldsymbol{\sigma}},
+  \qquad
+  \boldsymbol{\mu} = \frac{1}{m}\sum_i H_{i,:},
+  \qquad
+  \boldsymbol{\sigma} = \sqrt{\delta + \frac{1}{m}\sum_i (H - \boldsymbol{\mu})^2_i}$$</p>
+  <p>broadcasting $\boldsymbol{\mu}$ and $\boldsymbol{\sigma}$ across rows, elementwise within
+  each row. The $\delta \approx 10^{-8}$ is there because $\sqrt{z}$ has an undefined gradient
+  at $z = 0$, Part III §2's territory, and not optional.</p>
+  <p>The rest of the network then operates on $H'$ exactly as it operated on $H$.</p>
+</div>
+
+<p>Everything hinges on a detail that is easy to read past.</p>
+
+<div class="box intuition">
+  <span class="label">Intuition: the innovation is that you differentiate through the statistics</span>
+  <p>$\boldsymbol{\mu}$ and $\boldsymbol{\sigma}$ are computed <i>from</i> $H$, and
+  backpropagation goes <b>through</b> that computation, not around it.</p>
+  <p>The consequence is decisive. Suppose the gradient would like to increase the mean of some
+  unit. It cannot: whatever the lower layers do to raise $\boldsymbol{\mu}$, the normalisation
+  subtracts it straight back out. Because the normalisation is inside the graph, that
+  cancellation is <b>visible to the gradient</b>, and the component of the gradient that
+  proposed the increase is zeroed. The optimiser stops asking for something it cannot have.</p>
+  <p>Compare the two things people tried first. Adding a <b>penalty</b> encouraging normalised
+  statistics gives imperfect normalisation, since the penalty is one term among many.
+  <b>Renormalising after each step</b> (outside the graph) is worse: the optimiser proposes
+  changing the mean, the renormalisation undoes it, and the two fight each other forever, which
+  is exactly the wasted work batch normalisation eliminates.</p>
+  <p>So batch normalisation is not "normalise the activations". It is <b>reparametrise the
+  model so that the activations are normalised by construction</b>, and the difference between
+  those two sentences is the whole method.</p>
+</div>
+
+<p>Return to §22's chain $\hat{y} = xw_1w_2\cdots w_l$ and normalise $h_{l-1}$. If $x$ is a
+unit Gaussian then $h_{l-1}$ is Gaussian too, since everything between them is linear, but
+with drifting mean and variance. After normalisation $\hat{h}_{l-1}$ has zero mean and unit
+variance <b>for almost any update to the lower layers</b>, and $\hat{y} = w_l\hat{h}_{l-1}$ is
+a one-parameter problem. The higher-order interactions are gone.</p>
+
+<p>They are gone because the lower layers no longer do anything. In this linear example that is
+the entire trade: ease of learning bought by making the lower layers useless, since the first
+and second moments are all a linear network can influence. It is a fair objection to the toy
+model and it does not carry over. In a network with nonlinearities the lower layers perform
+nonlinear transformations, and normalisation standardises only each unit's mean and variance,
+leaving the <b>relationships between units</b> and each unit's <b>higher moments</b> free to
+change.</p>
+
+<div class="box def">
+  <span class="label">Why $\gamma$ and $\beta$ are not self-defeating</span>
+  <p>In practice one uses $\gamma H' + \beta$ rather than $H'$, with $\gamma$ and $\beta$
+  learned. At first glance this is absurd: you set the mean to zero and then added a parameter
+  that lets it be anything again.</p>
+  <p>The resolution is that the new parameterisation represents <b>the same family of
+  functions</b> with <b>different learning dynamics</b>. Before, the mean of $H$ was determined
+  by a complicated interaction among every parameter in every layer below. Now it is determined
+  by $\beta$, and by nothing else.</p>
+  <p>That is the same quantity reached by a route gradient descent can actually follow. It is
+  also why normalising units reduces expressive power and $\gamma, \beta$ restore it at no cost
+  to the property that made normalisation worth doing.</p>
+</div>
+
+<figure>
+  <img src="figures/op/09-batchnorm.svg" alt="Best training loss against learning rate, with and without batch normalisation">
+  <figcaption><b>Figure 9.</b> An eight-layer network on the same task, swept over four decades
+  of learning rate. <b>Both arms use He initialisation</b>, so this isolates the normalisation
+  rather than comparing it against a bad default. Rates that reach a loss below 0.35 span
+  <b>0.031–0.236</b> without normalisation, a factor of 8, and <b>0.0024–1.81</b> with it, a
+  factor of 748, a <b>98-fold</b> widening. The best loss anywhere was 0.019 plain against
+  0.057 normalised: batch normalisation widened the range of workable rates and did
+  <b>not</b> lower the floor. Single seed on this machine; a different torch version or
+  hardware will move the exact factors and the best-loss figures; the direction of the
+  effect (wider range, no better floor) will not.</figcaption>
+</figure>
+
+<p>That last sentence is the part usually left out. On this problem, a practitioner who found
+the right learning rate without normalisation got a better model than one who used it. What
+normalisation bought was that almost any learning rate worked, which, given how much of
+practice is spent finding a learning rate, is worth more than it sounds, and is a different
+claim from "it makes models better".</p>
+
+<div class="box pitfall">
+  <span class="label">Pitfall: where to apply it, and the bias that becomes redundant</span>
+  <p>Most layers have the form $\phi(XW + \mathbf{b})$. Normalise <b>$XW$</b>, not $X$.</p>
+  <p>The input $X$ to a layer is usually the output of a previous nonlinearity, so its
+  statistics are markedly non-Gaussian and less amenable to being fixed by subtracting a mean
+  and dividing by a standard deviation. $XW$ is a sum of many terms and is closer to the shape
+  the operation assumes.</p>
+  <p>And <b>drop the bias</b>. $\mathbf{b}$ shifts the mean; the normalisation subtracts the
+  mean; $\beta$ adds one back. The layer's own bias is exactly redundant with $\beta$, and
+  keeping it gives you two parameters for one degree of freedom, harmless but pointless, and
+  a signal that the author has not thought about what the normalisation does.</p>
+  <p>In a convolutional network, apply the <b>same</b> $\boldsymbol{\mu}$ and
+  $\boldsymbol{\sigma}$ at every spatial location within a feature map, so that the statistics
+  of a feature do not depend on where in the image it was found.</p>
+</div>
+
+<div class="box history">
+  <span class="label">History: the ambition that was too expensive</span>
+  <p>Since the final layer can learn a linear transformation anyway, you might want to remove
+  <b>all</b> linear relationships between units within a layer, full whitening rather than just
+  per-unit standardisation. That was the approach that inspired batch normalisation, published
+  the same year.</p>
+  <p>Eliminating all linear interactions requires the covariance matrix of the layer's
+  activations and its inverse square root, which is $O(n^3)$ in the layer width, per batch.
+  Standardising each unit separately is $O(n)$. Batch normalisation is the cheap approximation
+  that won, and the more principled version remains impractical.</p>
+  <p>It is worth noting alongside the fact that batch normalisation's <i>stated</i>
+  explanation (that it reduces "internal covariate shift") has since been disputed, while
+  the method keeps working. Part VIII §23 made the same observation about dropout. The
+  derivation above, which is about coordination rather than covariate shift, is the part that
+  survives the argument.</p>
+</div>
+
+<div class="box fw">
+  <span class="label">In the framework: the two modes, and why one of them can crash</span>
+<pre><code>bn = nn.BatchNorm1d(<span class="n">128</span>)          <span class="c"># or BatchNorm2d for feature maps</span>
+<span class="c"># bn.weight is gamma (init 1), bn.bias is beta (init 0)</span>
+<span class="c"># bn.eps = 1e-5 is the delta; bn.momentum = 0.1 sets the running average</span>
+
+layer = nn.Sequential(
+    nn.Linear(<span class="n">256</span>, <span class="n">128</span>, bias=<span class="k">False</span>),   <span class="c"># &lt;- no bias: beta already has it</span>
+    nn.BatchNorm1d(<span class="n">128</span>),               <span class="c"># normalise XW, not X</span>
+    nn.ReLU(),
+)
+</code></pre>
+  <p><b>What each piece corresponds to.</b> <code>weight</code> and <code>bias</code> are
+  $\gamma$ and $\beta$, initialised to 1 and 0 so the layer starts as pure normalisation.
+  <code>eps</code> is $\delta$; PyTorch uses $10^{-5}$ rather than the $10^{-8}$ of the
+  derivation. <code>momentum</code> governs the running averages kept for test time:
+  $\text{running} \leftarrow (1-\rho)\,\text{running} + \rho\,\text{batch}$ with
+  $\rho = 0.1$, the exponentially decaying average of §25, used here for a different
+  purpose.</p>
+  <p><b>Why the two modes exist.</b> Training uses the <i>current batch's</i>
+  $\boldsymbol{\mu}$ and $\boldsymbol{\sigma}$, because that is what makes the normalisation
+  part of the graph and gives §23's cancellation. Evaluation cannot: the prediction for one
+  example would depend on which other examples happened to be alongside it, which is not a
+  model. So <code>model.eval()</code> switches to the stored running averages. Feeding
+  identical input in the two modes gives different output <b>by design</b>.</p>
+  <p><b>What breaks.</b> Three failures, all traceable to the derivation.</p>
+  <p><b>A batch of one, in training mode, raises.</b> The standard deviation of a single
+  example does not exist, and PyTorch says so: <code>Expected more than 1 value per channel
+  when training</code>. It is one of the few places a framework refuses rather than silently
+  producing something wrong, and it is the right behaviour.</p>
+  <p><b>Forgetting <code>model.eval()</code></b> gives predictions that depend on batch
+  composition, a result that changes when you reorder the test set. This is Part IV §14's
+  silent bug in a second guise, and unlike the dropout version it also corrupts the running
+  statistics, since a forward pass in training mode updates them.</p>
+  <p><b>Very small batches degrade it.</b> The statistics are estimated from $m$ examples with
+  the $1/\sqrt{m}$ error of Part V §3. At $m = 2$ the normalisation is mostly noise. This is
+  the reason layer normalisation and group normalisation exist: they compute statistics across
+  <i>features</i> rather than across the batch, so batch size stops mattering, which is why
+  transformers use layer norm and convolutional networks historically did not.</p>
+</div>
+
+<h3><span class="num">§24</span> Coordinate descent</h3>
+
+<p>Minimise with respect to $x_i$, then $x_j$, then the next, cycling through all of them. You
+are guaranteed to reach a local minimum. <b>Block coordinate descent</b> does the same with
+groups of variables at a time, and the unqualified term usually covers both.</p>
+
+<p>It makes sense in exactly two situations: when the variables separate into groups with
+relatively isolated roles, or when optimising one group is far cheaper than optimising all of
+them.</p>
+
+<div class="box worked">
+  <span class="label">Worked: sparse coding, where the split is exact</span>
+  <p>$$J(H, W) = \sum_{i,j}\big|H_{i,j}\big| + \sum_{i,j}\Big(X - W^\top H\Big)^2_{i,j}$$</p>
+  <p>Find a dictionary $W$ that linearly decodes activations $H$ back into the data $X$, with
+  $H$ sparse. Most formulations also constrain the norms of $W$'s columns, to block the
+  degenerate solution with tiny $H$ and enormous $W$.</p>
+  <p>$J$ is <b>not convex</b> in $(H, W)$ jointly. But it is convex in $W$ with $H$ fixed
+  (a least-squares problem) and convex in $H$ with $W$ fixed (an $L^1$-penalised least-squares
+  problem, Part VIII §5). So alternating between the two turns one non-convex problem into a
+  sequence of convex ones, each solvable by efficient machinery.</p>
+</div>
+
+<p>The failure mode is equally clean, and it is the mirror image of the success.</p>
+
+<p>Consider $f(\mathbf{x}) = (x_1 - x_2)^2 + \alpha(x_1^2 + x_2^2)$. The first term wants the
+two variables equal; the second wants both near zero; the solution is both exactly zero.
+Newton's method solves it in <b>one step</b>, since it is a positive definite quadratic.</p>
+
+<p>Coordinate descent is dismal for small $\alpha$, because the first term will not let either
+variable move far from the other's current value, so the pair inches toward the origin
+together. Minimising exactly in each coordinate gives $x_1 \leftarrow x_2/(1+\alpha)$, so a
+full sweep multiplies the pair by $1/(1+\alpha)^2$, geometric decay with a ratio that
+approaches one as $\alpha$ shrinks. Measured, from $(1, -1)$ to $10^{-6}$:</p>
+
+<table class="compact">
+  <thead><tr><th>$\alpha$</th><th>1</th><th>0.1</th><th>0.01</th><th>0.001</th></tr></thead>
+  <tbody>
+    <tr><td><b>Coordinate sweeps</b></td><td>11</td><td>73</td><td>695</td><td>6,912</td></tr>
+    <tr><td><b>Newton steps</b></td><td>1</td><td>1</td><td>1</td><td>1</td></tr>
+  </tbody>
+</table>
+
+<p>The lesson generalises past this example. <b>Coordinate descent is fast exactly when the
+coordinates are nearly independent, and its cost grows without bound as they become
+coupled</b>, which is a restatement of the conditioning story of Part III §5 in a different
+algorithm, and a reason it appears in sparse coding and almost nowhere in deep learning.</p>
+
+<h3><span class="num">§25</span> Polyak averaging</h3>
+
+<p>An idea so simple it is easy to dismiss: average the points the optimiser visited.</p>
+
+$$\hat{\boldsymbol{\theta}}^{(t)} = \frac{1}{t}\sum_{i=1}^{t} \boldsymbol{\theta}^{(i)}$$
+
+<p>On convex problems this has strong convergence guarantees. On neural networks the
+justification is heuristic and it works anyway. The picture behind it is the one Part III §15
+used for momentum, read differently: <b>an optimiser may cross a valley many times without
+ever landing near the bottom, but the average of points on either side is near the
+bottom.</b></p>
+
+<figure>
+  <img src="figures/op/10-polyak.svg" alt="An SGD trajectory on a noisy quadratic with its running mean, and distance to the optimum for both">
+  <figcaption><b>Figure 10.</b> SGD on a noisy quadratic with curvature ratio 45:1, 800 steps.
+  Left: the iterate (grey) crosses the valley repeatedly and settles into a wide cloud around
+  the optimum; the running mean (green) cuts straight through it. Right: averaged over the
+  last 150 steps, the raw iterate sits <b>0.843</b> from the optimum, the running mean
+  <b>0.078</b> (<b>11× closer</b>) and an exponential moving average with $\alpha = 0.995$
+  sits at 0.293, 2.9× closer. The plain mean wins here <i>because</i> this problem is convex
+  and stationary, which is precisely the assumption the exponential version gives up.</figcaption>
+</figure>
+
+<p>That last clause is the reason both forms exist. In a non-convex problem the trajectory may
+visit genuinely different regions, separated by barriers. Averaging in points from the distant
+past (from a region the optimiser has since left and should not return to) is not a sensible
+thing to do. So the standard form for neural networks discards old history:</p>
+
+$$\hat{\boldsymbol{\theta}}^{(t)} = \alpha\,\hat{\boldsymbol{\theta}}^{(t-1)} + (1-\alpha)\,\boldsymbol{\theta}^{(t)}$$
+
+<p>which is Part III §15's exponentially decaying average yet again, now applied to the
+parameters rather than to the gradients. The same one-line recurrence has now appeared as
+momentum, as RMSProp's accumulator, as batch normalisation's running statistics, and here.
+It is worth registering that as a pattern rather than four coincidences.</p>
+
+<div class="box fw">
+  <span class="label">In the framework: and the interaction with §23 that catches people</span>
+<pre><code><span class="k">from</span> torch.optim.swa_utils <span class="k">import</span> AveragedModel, SWALR, update_bn
+
+swa = AveragedModel(model)                          <span class="c"># plain running mean</span>
+ema = AveragedModel(model,                          <span class="c"># or an EMA</span>
+        avg_fn=<span class="k">lambda</span> a, c, n: <span class="n">0.999</span>*a + <span class="n">0.001</span>*c)
+sched = SWALR(opt, swa_lr=<span class="n">0.05</span>)
+
+<span class="k">for</span> epoch <span class="k">in</span> range(n_epochs):
+    train_one_epoch(model, opt)
+    <span class="k">if</span> epoch &gt;= start_averaging:
+        swa.update_parameters(model)
+        sched.step()
+
+update_bn(train_loader, swa)      <span class="c"># &lt;- required, and easy to forget</span>
+</code></pre>
+  <p><b>What each piece corresponds to.</b> <code>AveragedModel</code> keeps a second copy of
+  the parameters and updates it on each <code>update_parameters</code> call; with no
+  <code>avg_fn</code> it computes the plain running mean of §25, and the lambda above turns it
+  into the exponential version with $\alpha = 0.999$. <code>SWALR</code> holds the learning
+  rate at a constant, deliberately largish value during the averaging phase, because the point
+  is to sample the neighbourhood widely and average, not to anneal into one spot.</p>
+  <p><b>Why the last line is not optional.</b> The averaged parameters are a point the model
+  has <b>never actually occupied</b>, so no forward pass has ever been run with them. If the
+  network contains batch normalisation, its running $\boldsymbol{\mu}$ and
+  $\boldsymbol{\sigma}$ belong to the <i>final</i> weights, not the averaged ones, and they can
+  be badly wrong for a set of weights that was never used. <code>update_bn</code> runs the
+  training data through the averaged model in training mode to recompute them.</p>
+  <p><b>What breaks.</b> Skipping <code>update_bn</code> gives an averaged model that is worse
+  than the un-averaged one, often much worse, for a reason that has nothing to do with
+  averaging. It is the most common way this technique gets tried once and abandoned, and it
+  is a direct consequence of §23's two modes, which is why these two sections belong
+  together.</p>
+</div>
+
+<h3><span class="num">§26</span> Pretraining, transfer, and hints</h3>
+
+<div class="readnow"><span class="label">Go and read</span><p><span class="src">Romero et al. (2015)</span>, <i>FitNets: hints for thin deep nets</i>. The result described below, and worth reading for what it chooses to measure. Almost no paper reports the <b>training</b> error of a model that failed, but that is the number which distinguishes "could not represent it" from "could not find it", and it is the one that makes this an optimisation result rather than a capacity one.</p></div>
+
+<p>If a model is too hard to optimise, train a simpler one first. If a task is too hard, train
+on an easier one first. Both are <b>pretraining</b>, and both are instances of a general
+strategy worth naming.</p>
+
+<div class="box def">
+  <span class="label">Greedy algorithms, and why an inferior answer is often the right one</span>
+  <p>A <b>greedy</b> algorithm breaks a problem into components and solves each in isolation.
+  Combining individually optimal components is not guaranteed to be jointly optimal, and usually
+  it is not.</p>
+  <p>It is used anyway for two reasons. It is far cheaper than solving for the joint optimum,
+  and the answer is often good enough. And it composes with a <b>fine-tuning</b> stage: use the
+  greedy solution as the starting point for joint optimisation, which then runs faster and
+  finds a better solution than it would have from scratch.</p>
+  <p>That last point is the one that matters, and it is §12's argument again. The greedy phase
+  is not competing with joint optimisation. It is <b>choosing where joint optimisation
+  starts</b>.</p>
+</div>
+
+<p><b>Greedy supervised pretraining</b> applies this layer by layer. Train a shallow network on
+the task. Discard its output layer, keep the hidden layer, and train a <i>new</i> shallow
+network on top of the first hidden layer's outputs, with the same objective. Repeat. Each layer
+receives direct supervision, which is the hypothesis for why it helps: the intermediate levels
+of a deep hierarchy get guidance they would otherwise only receive through many layers of
+backpropagation.</p>
+
+<p>The idea survives in coarser and more practical forms. One influential recipe trained an
+eleven-layer convolutional network, then used its first four and last three layers to
+initialise a nineteen-layer network with randomly initialised middle layers, and trained the
+whole thing jointly. <b>Transfer learning</b> is the same move across tasks: pretrain on a
+large labelled set, keep the first $k$ layers, and train on a different, smaller task.</p>
+
+<div class="box why">
+  <span class="label">Why hints work, and what they show about the difficulty</span>
+  <p>The <b>FitNets</b> result is the sharpest evidence that deep networks fail for
+  optimisation reasons rather than representational ones.</p>
+  <p>Train a shallow, wide <b>teacher</b>, easy to optimise. Then train a much deeper, thinner
+  <b>student</b>, eleven to nineteen layers, which SGD would ordinarily struggle with. The
+  student is trained on two objectives at once: predict the task output, and predict the
+  <b>middle hidden layer of the teacher</b>, through extra parameters that regress one onto the
+  other.</p>
+  <p>Without the hint, the student performs very poorly, <b>on the training set as well as the
+  test set</b>. That detail is the whole result. Poor test performance alone would suggest
+  overfitting or insufficient capacity. Poor <i>training</i> performance says the network could
+  represent the function and the optimiser could not find it.</p>
+  <p>A thin deep network may generalise better than a wide shallow one and certainly costs less
+  to run. What stood between the field and using them was not expressiveness. It was
+  optimisation, and a hint on one middle layer was enough to remove the obstacle.</p>
+</div>
+
+<h3><span class="num">§27</span> Designing models to be optimisable</h3>
+
+<p>The most effective response to a hard optimisation problem is frequently not a better
+optimiser.</p>
+
+<div class="box def">
+  <span class="label">The claim, stated at full strength</span>
+  <p><b>Most of the progress in training neural networks over the past thirty years came from
+  changing the model family, not the optimisation procedure.</b> Stochastic gradient descent
+  with momentum, used in the 1980s, remains in use in state-of-the-art systems.</p>
+</div>
+
+<p>What "easier to optimise" meant in practice was, repeatedly, <b>more linear</b>. The LSTM,
+the rectified linear unit and the maxout unit all move toward more linear functions than the
+sigmoidal units they replaced, and the reasons are the ones this part has been accumulating.</p>
+
+<p>Gradients flow through many layers provided the Jacobian of each linear transformation has
+reasonable singular values, Part I §19's language, and §10's condition. And a linear function
+increases consistently in one direction, so even when the output is badly wrong it is clear
+from the local gradient which way it should move. Put together:</p>
+
+<div class="box intuition">
+  <span class="label">Intuition: the architecture is answering §12's question</span>
+  <p>§12 said the hardest difficulty is that the locally best direction need not point toward
+  a distant good solution, and that nothing in the algorithm toolkit addresses it.</p>
+  <p>Modern architectures address it, from the other side. <b>They are designed so that local
+  gradient information corresponds reasonably well to moving toward a distant solution.</b>
+  A saturating sigmoid gives a gradient near zero when the answer is very wrong: the local
+  signal is weakest exactly when the distance is greatest. A ReLU gives a gradient of one no
+  matter how wrong the answer is.</p>
+  <p>That is not a property of the loss surface being nicer by luck. It is a property somebody
+  chose, and it explains why the switch from sigmoid to ReLU did more for deep learning than
+  any optimiser published in the same decade.</p>
+</div>
+
+<p>Two more design moves do the same job structurally rather than pointwise.</p>
+
+<p><b>Skip connections</b> add a linear path between distant layers, shortening the path from a
+lower layer's parameters to the output. A gradient that would have been multiplied by twenty
+Jacobians now has a route where it is multiplied by two, and §10's drift has that much less
+distance to act over.</p>
+
+<p><b>Auxiliary heads</b> attach extra copies of the output to intermediate layers, trained on
+the same task, and discard them once training is done. Lower layers then receive a large
+gradient directly rather than through the whole stack. This is greedy layerwise pretraining's
+benefit obtained in a single training phase: the hints of §26, delivered by architecture
+instead of by a schedule.</p>
+
+<h3><span class="num">§28</span> Continuation methods and curriculum learning</h3>
+
+<div class="readnow"><span class="label">Go and read</span><p><span class="src">Bengio et al. (2009)</span>, <i>Curriculum learning</i>. The paper that connected shaping (long known in animal training) to continuation methods, and made it a thing you could reason about rather than a folk practice. Read it alongside Zaremba and Sutskever's later finding that only the <b>stochastic</b> curriculum helps, which is the pitfall at the end of this section and the reason most implementations of the idea do nothing at all.</p></div>
+
+<p>The last strategy attacks the difficulty §12 named, and it is the only one in this part that
+tries to change the landscape rather than the starting point or the step.</p>
+
+<div class="box def">
+  <span class="label">Continuation</span>
+  <p>Build a sequence of objectives $J^{(0)}, J^{(1)}, \ldots, J^{(n)}$ over the same
+  parameters, increasingly difficult, with $J^{(n)} = J$, the one you actually want.</p>
+  <p>"Easier" means <b>well behaved over more of parameter space</b>, so that a random
+  initialisation is more likely to land somewhere local descent can work from. Solve $J^{(0)}$,
+  use its solution to initialise $J^{(1)}$, and continue.</p>
+  <p>The traditional construction is <b>blurring</b>: $J^{(i)}(\boldsymbol{\theta}) =
+  \mathbb{E}_{\boldsymbol{\theta}' \sim \mathcal{N}(\boldsymbol{\theta},\, \sigma_i^2)}
+  \big[J(\boldsymbol{\theta}')\big]$, approximated by sampling. Many non-convex functions
+  become approximately convex when blurred, and the blur often preserves enough information
+  about where the global minimum is to track it down.</p>
+</div>
+
+<figure>
+  <img src="figures/op/11-continuation.svg" alt="A non-convex objective at four blur levels with the minimum tracking to the global one, and a function that never convexifies">
+  <figcaption><b>Figure 11.</b> Left: a one-dimensional objective at $\sigma = 3.0, 1.6, 0.8$
+  and $0$, with strict local descent run from $\theta_0 = 5.5$ on each and each solution used
+  to start the next. Plain descent on $J$ stops at $\theta = 4.18$, where $J = 1.40$ (✗). The
+  continuation path runs $-1.75 \to -1.73 \to -1.52 \to -1.45$ and lands on the <b>global</b>
+  minimum, $J = -2.375$. Right: the second failure mode. Blurring $J = -\tfrac{1}{2}\boldsymbol{\theta}^\top
+  \boldsymbol{\theta}$ leaves the curvature at <b>exactly $-1$</b> and drops the whole curve by
+  $\sigma^2/2$: a Gaussian blur of a quadratic adds a constant and changes nothing
+  else, so no amount of blurring will ever make it convex. Both panels are computed on a grid
+  three times wider than shown, because a kernel of width $5\sigma$ on a narrow grid is
+  dominated by its own edge padding.</figcaption>
+</figure>
+
+<div class="box pitfall">
+  <span class="label">Pitfall: the three ways continuation fails</span>
+  <p><b>It can be correct and still too expensive.</b> The sequence may need so many stages
+  that the total cost is prohibitive. NP-hard problems remain NP-hard when continuation applies
+  to them; nothing here is a free lunch.</p>
+  <p><b>The function may never become convex.</b> The right panel of Figure 11 is the standard
+  counterexample, and it is not exotic: any objective with a concave quadratic component
+  behaves this way, because convolving a quadratic with a Gaussian adds a constant and does
+  nothing else.</p>
+  <p><b>It may convexify and track to the wrong minimum.</b> The blurred function's minimum can
+  move continuously to a <i>local</i> minimum of the original rather than the global one. The
+  method offers no warning when this happens; the path looks exactly the same.</p>
+</div>
+
+<p>Continuation was designed to defeat local minima, and §7 and §8 say local minima are not the
+main problem. It survives that revision because the easier objectives help in ways that have
+nothing to do with minima: they eliminate flat regions, they reduce the variance of gradient
+estimates, they improve the conditioning of the Hessian, and (the one that matters most)
+they improve the correspondence between local update directions and progress toward a distant
+solution, which is §12's difficulty stated exactly.</p>
+
+<h4>Curriculum learning</h4>
+
+<p><b>Curriculum learning</b>, or shaping, is continuation in disguise: begin with simple
+concepts and progress to complex ones that build on them. Make $J^{(i)}$ easier by increasing
+the influence of simpler examples (weighting their contribution more heavily, or sampling them
+more often) and reduce that emphasis over training.</p>
+
+<p>The idea long predates its formalisation. It was known to accelerate animal training, it has
+been shown to match how humans teach: teachers start with easy, prototypical examples and
+refine the boundary with harder ones later, and curriculum-based instruction beats uniform
+sampling for human learners.</p>
+
+<div class="box pitfall">
+  <span class="label">Pitfall: a deterministic curriculum does not work</span>
+  <p>The most useful practical finding about curricula is a negative one, from work on training
+  recurrent networks to capture long-term dependencies.</p>
+  <p>A <b>deterministic</b> curriculum (easy examples first, then harder ones, in order)
+  gave <b>no improvement at all</b> over ordinary training on the full set.</p>
+  <p>A <b>stochastic</b> curriculum did, and substantially. There, a random mix of easy and
+  difficult examples is presented throughout, and only the <i>average proportion</i> of
+  difficult ones increases over time. The model always sees some of everything.</p>
+  <p>If you are going to use a curriculum, use the stochastic form. The obvious implementation
+  is the one that was measured and found not to help.</p>
+</div>

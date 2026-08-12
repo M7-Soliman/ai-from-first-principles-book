@@ -1,0 +1,324 @@
+<h2><span class="part-kicker">Part A</span>The objects</h2>
+
+<h3><span class="num">§1</span> Why linear algebra, in one honest paragraph</h3>
+
+<p>Here is the entire justification, and it is worth more than a page of hedging: <b>a
+neural network is a stack of matrix multiplications with a simple nonlinear function
+sprinkled between them.</b> That is not a simplification for beginners. That is
+literally what the object is. When you train a network on a GPU, upwards of ninety
+percent of the electricity is spent multiplying matrices. Linear algebra is not
+background material for deep learning in the way that, say, chemistry is background
+material for cooking. It is the material.</p>
+
+<p>So a specific, useful way to read Part I: you are learning to read the source
+code of the thing you want to build.</p>
+
+<p>To make that concrete before we have any tools: here is a complete two-layer
+neural network, the kind that classifies handwritten digits:</p>
+
+$$\hat{\mathbf{y}} = f\big(W_2 \, g(W_1 \mathbf{x} + \mathbf{b}_1) + \mathbf{b}_2\big)$$
+
+<p>Right now that is probably noise. By the end of Section 8 you will read it the way
+you read a sentence: $\mathbf{x}$ is the image, $W_1$ and $W_2$ are the things we
+learn, $g$ and $f$ are simple fixed functions, and the whole expression is a
+recipe that turns pixels into a guess. Every symbol in it is defined in this chapter.
+That is the climb.</p>
+
+<div class="box why">
+  <span class="label">Why deep learning cares</span>
+  <p>The specific reason matrices dominate is <b>hardware</b>. A GPU is, in essence, a
+  machine built to multiply matrices very fast in parallel. Expressing a computation
+  as matrix operations is what makes it fast enough to be worth doing. A model that
+  cannot be written in this language cannot be trained at scale, which means the
+  mathematics here is not just descriptive, it actively shapes which ideas in the
+  field succeed.</p>
+</div>
+
+<h3><span class="num">§2</span> Scalars, vectors, matrices, tensors</h3>
+
+<p>There are four objects, and they form a ladder where each rung adds one index. That
+is the whole classification: it is genuinely no deeper than counting indices.</p>
+
+<h4>Scalar: zero indices</h4>
+
+<p>A single number. $s = 3.7$. That is it. We write scalars in ordinary italic
+lowercase, and say what kind they are: "let $n \in \mathbb{N}$ be the number of
+layers", or "let $\alpha \in \mathbb{R}$ be the learning rate."</p>
+
+<p>Read $\in$ as "is an element of" or just "is a", and $\mathbb{R}$ as "the real
+numbers", meaning ordinary numbers with decimal points, as opposed to integers or
+complex numbers. So $\alpha \in \mathbb{R}$ is the mathematician's way to write
+<code>alpha: float</code>.</p>
+
+<h4>Vector: one index</h4>
+
+<p>An ordered list of numbers. We write vectors in bold lowercase, and identify a
+single entry with a subscript:</p>
+
+$$\mathbf{x} = \begin{bmatrix} x_1 \\ x_2 \\ x_3 \end{bmatrix}, \qquad \mathbf{x} \in \mathbb{R}^3$$
+
+<p>The notation $\mathbf{x} \in \mathbb{R}^3$ says: three real numbers, in a fixed
+order. Order matters: $(1, 2, 3)$ and $(3, 2, 1)$ are different vectors, exactly as
+they would be different Python lists.</p>
+
+<p>The subscript picks one out: $x_2$ is the second entry, a scalar. Note it is not
+bold, because it is a scalar rather than a vector; the boldness is doing real work in
+this notation, and it repays attention.</p>
+
+<div class="box pitfall">
+  <span class="label">Pitfall: indexing from one</span>
+  <p>Mathematics indexes from 1; Python indexes from 0. The first entry of $\mathbf{x}$
+  is $x_1$ here and <code>x[0]</code> in your editor. This causes a
+  genuinely large number of off-by-one bugs, and there is no fix other than staying
+  awake. When translating a formula to code, convert indices deliberately rather than
+  by reflex.</p>
+</div>
+
+<h4>Matrix: two indices</h4>
+
+<div class="box history">
+  <span class="label">History: the word "matrix" means womb</span>
+  <p>Rectangular arrays of numbers were used for centuries before anyone named them. The
+  name arrived in <span class="year">1850</span>, from James Joseph Sylvester, and his
+  reasoning is worth knowing because it inverts what you would expect.</p>
+  <p>In Sylvester's time <b>determinants</b> were the object of study: the important
+  quantity, the thing theorems were about. The grid of numbers was merely the thing you
+  extracted determinants <i>from</i>. So he called it a <i>matrix</i>, borrowing the Latin
+  word for womb: the thing that gives birth to determinants.</p>
+  <p>His friend Arthur Cayley then spent the <span class="year">1850</span>s and
+  <span class="year">60s</span> showing that the container was more interesting than the
+  thing it contained, defining matrix multiplication, the identity, the inverse, and
+  establishing that matrices form an algebra in their own right.</p>
+  <p>The hierarchy has since completely reversed. Matrices are central to modern
+  mathematics and computation; determinants, as §22 will note, are a fine conceptual tool
+  and a poor numerical one. The subordinate object outgrew the one it was named
+  after.</p>
+</div>
+
+<p>A rectangular grid. Bold capital, two subscripts, <b>row first, then column</b>:</p>
+
+$$A = \begin{bmatrix} A_{1,1} & A_{1,2} \\ A_{2,1} & A_{2,2} \\ A_{3,1} & A_{3,2} \end{bmatrix}, \qquad A \in \mathbb{R}^{3 \times 2}$$
+
+<p>So $A \in \mathbb{R}^{3 \times 2}$ is three rows, two columns. $A_{2,1}$ sits in row
+2, column 1. Rows before columns, always, everywhere, without exception: this
+convention is worth burning in now, because a surprising amount of later confusion is
+just row/column order slipping.</p>
+
+<p>Two pieces of shorthand you will meet constantly:</p>
+<ul>
+  <li>$A_{i,:}$: the whole of row $i$, as a vector.</li>
+  <li>$A_{:,j}$: the whole of column $j$, as a vector. The colon means "all of them".</li>
+</ul>
+
+<p>Column notation matters more than it looks, because Section 4 will show that the
+<i>columns</i> of a matrix are the key to understanding what it does.</p>
+
+<h4>Tensor: three or more indices</h4>
+
+<p>Same idea, more axes. A colour image is naturally a tensor with three indices (height, width, and colour channel), so $\mathsf{A}_{i,j,k}$ is the intensity of
+channel $k$ at pixel $(i,j)$.</p>
+
+<div class="box pitfall">
+  <span class="label">Pitfall: "tensor" means two different things</span>
+  <p>In physics and differential geometry, a tensor is an object with specific
+  transformation properties under change of coordinates, and the definition has real
+  content. In deep learning, "tensor" means <b>an array with any number of axes</b>,
+  and carries no additional meaning whatsoever. PyTorch and TensorFlow use the second
+  sense. If you have taken a physics course, deliberately set that meaning aside, as it
+  will only slow you down here.</p>
+</div>
+
+<h4>The whole ladder in one table</h4>
+
+<table>
+  <thead><tr><th>Object</th><th>Indices</th><th>Notation</th><th>Example</th><th>NumPy shape</th></tr></thead>
+  <tbody>
+    <tr><td>Scalar</td><td>0</td><td>$s$</td><td>learning rate $0.01$</td><td><code>()</code></td></tr>
+    <tr><td>Vector</td><td>1</td><td>$\mathbf{x}$</td><td>one data point, 784 features</td><td><code>(784,)</code></td></tr>
+    <tr><td>Matrix</td><td>2</td><td>$A$</td><td>a batch of 32 such points</td><td><code>(32, 784)</code></td></tr>
+    <tr><td>Tensor</td><td>3+</td><td>$\mathsf{A}$</td><td>32 colour images, 64×64</td><td><code>(32, 3, 64, 64)</code></td></tr>
+  </tbody>
+</table>
+
+<p>Notice the third row. A batch of vectors is a matrix: one row per example. This is
+how essentially all machine learning code is organised, and it is why matrices matter
+even when your conceptual object is a single data point.</p>
+
+<div class="box shapes">
+  <span class="label">Watch the shapes</span>
+  <p>From here on, every object gets its shape written down at first mention. When you
+  read $W \in \mathbb{R}^{10 \times 784}$, say to yourself: ten rows, seven hundred
+  eighty-four columns. When you read $\mathbf{x} \in \mathbb{R}^{784}$: a list of 784
+  numbers. Doing this out loud for the first few days feels excessive and works
+  extremely well.</p>
+</div>
+
+<h4>Grounding it in code</h4>
+
+<p>Everything above, in NumPy. Run this, actually run it, the muscle memory is the
+point:</p>
+
+<pre><code><span class="c"># the four objects, and the only property that distinguishes them</span>
+<span class="k">import</span> numpy <span class="k">as</span> np
+
+s = np.array(<span class="n">3.7</span>)                      <span class="c"># scalar</span>
+x = np.array([<span class="n">1.0</span>, <span class="n">2.0</span>, <span class="n">3.0</span>])            <span class="c"># vector</span>
+A = np.array([[<span class="n">1.</span>, <span class="n">2.</span>], [<span class="n">3.</span>, <span class="n">4.</span>], [<span class="n">5.</span>, <span class="n">6.</span>]])  <span class="c"># matrix, 3 rows x 2 cols</span>
+T = np.zeros((<span class="n">2</span>, <span class="n">3</span>, <span class="n">4</span>))                <span class="c"># tensor, 3 axes</span>
+
+<span class="k">for</span> name, obj <span class="k">in</span> [(<span class="s">"s"</span>, s), (<span class="s">"x"</span>, x), (<span class="s">"A"</span>, A), (<span class="s">"T"</span>, T)]:
+    print(<span class="s">f"{name}:  shape={obj.shape}   ndim={obj.ndim}"</span>)
+
+<span class="o">### s:  shape=()          ndim=0</span>
+<span class="o">### x:  shape=(3,)        ndim=1</span>
+<span class="o">### A:  shape=(3, 2)      ndim=2</span>
+<span class="o">### T:  shape=(2, 3, 4)   ndim=3</span>
+
+<span class="c"># row first, then column -- always</span>
+print(A[<span class="n">1</span>, <span class="n">0</span>])      <span class="c"># row 1, col 0 (0-indexed) -> the math A_{2,1}</span>
+print(A[<span class="n">1</span>, :])      <span class="c"># all of row 1      -> [3. 4.]</span>
+print(A[:, <span class="n">0</span>])      <span class="c"># all of column 0   -> [1. 3. 5.]</span>
+</code></pre>
+
+<p><code>ndim</code> is exactly the index count from our ladder. That is the whole
+classification, expressed as one attribute.</p>
+
+<div class="box fw">
+  <span class="label">In the framework: why everything is called a tensor</span>
+  <p>The same four objects in PyTorch, which is the library the rest of this book will use
+  when it uses one at all:</p>
+<pre><code><span class="k">import</span> torch
+
+s = torch.tensor(<span class="n">3.7</span>)                          <span class="c"># shape ()        ndim 0</span>
+x = torch.tensor([<span class="n">1.</span>, <span class="n">2.</span>, <span class="n">3.</span>])                  <span class="c"># shape (3,)      ndim 1</span>
+A = torch.tensor([[<span class="n">1.</span>,<span class="n">2.</span>],[<span class="n">3.</span>,<span class="n">4.</span>],[<span class="n">5.</span>,<span class="n">6.</span>]])      <span class="c"># shape (3, 2)    ndim 2</span>
+T = torch.zeros(<span class="n">2</span>, <span class="n">3</span>, <span class="n">4</span>)                     <span class="c"># shape (2, 3, 4) ndim 3</span>
+
+A[<span class="n">1</span>, <span class="n">0</span>]     <span class="c"># 3.0        -- row first, then column, exactly as in the maths</span>
+A[<span class="n">1</span>]        <span class="c"># [3., 4.]   -- all of row 1</span>
+A[:, <span class="n">0</span>]     <span class="c"># [1., 3., 5.] -- all of column 0</span>
+</code></pre>
+  <p><b>The naming is the thing to understand.</b> A scalar, a vector and a matrix are all
+  <code>torch.Tensor</code>. The library has no separate types for them, and this is
+  deliberate rather than lazy: it is the ladder of §2 taken seriously. If the only
+  difference between the four objects is how many indices they carry, then one type with a
+  <code>shape</code> attribute expresses that exactly, and a function written for one rank
+  frequently works unchanged for another.</p>
+  <p>Recall the pitfall above: "tensor" here carries none of its meaning from physics. The
+  library is simply using the word for "array with any number of axes", and
+  <code>ndim</code> is the count.</p>
+  <p><b>What differs from NumPy, and why.</b> Two things, both of which will matter
+  later:</p>
+  <ul class="tight">
+    <li><b>The default type is 32-bit</b>, where NumPy's is 64-bit.
+    <code>torch.tensor([1.0]).dtype</code> is <code>float32</code>. This is not a detail:
+    it halves memory and roughly doubles throughput on a GPU, and it costs you half your
+    significant digits. Part III §1 is about what that buys and what it costs.</li>
+    <li><b>A tensor knows where it lives.</b> <code>x.device</code> is <code>cpu</code> or
+    <code>cuda:0</code>, and operations require their operands to be in the same place. This
+    is the single most common error message a beginner meets, and it exists because moving
+    data between processor and accelerator is expensive enough that the library refuses to
+    do it silently.</li>
+  </ul>
+  <p>TensorFlow uses the identical model: <code>tf.constant([1., 2., 3.])</code>, with
+  <code>.shape</code> and <code>.dtype</code>. Everything in this part about shapes transfers
+  between the two without change, because it is a fact about the mathematics rather than
+  about either library.</p>
+</div>
+
+<div class="box try">
+  <span class="label">Try it</span>
+  <p>Without running anything: what is the shape of a batch of 16 greyscale images,
+  each 28 by 28 pixels? And how many numbers is that in total?</p>
+</div>
+
+<p><b>Answer.</b> Shape <code>(16, 28, 28)</code>, a 3-axis tensor. Total count
+$16 \times 28 \times 28 = 12{,}544$ numbers. The shape is the whole story: multiply
+its entries and you get the memory footprint. (If the images were colour, you would
+have <code>(16, 3, 28, 28)</code> and three times the numbers.)</p>
+
+<h3><span class="num">§3</span> Two ways to see a vector</h3>
+
+<p>A vector is a list of numbers. But there are two mental pictures for that list, and
+fluent people switch between them constantly without noticing. Learning to switch
+deliberately is worth doing early.</p>
+
+<figure>
+  <img src="figures/la/01-two-views.svg" alt="A vector drawn as an arrow and as a point">
+  <figcaption><b>Figure 1.</b> The same two numbers, $(3, 2)$, under both readings.
+  On the left an arrow: a displacement, three across and two up, with no fixed
+  starting place. On the right a point: a specific location in the plane. Neither is
+  more correct; each is convenient for different things.</figcaption>
+</figure>
+
+<h4>View 1: a vector is an arrow</h4>
+
+<p>An instruction for movement: go 3 units right, 2 units up. The arrow has a
+<b>direction</b> and a <b>length</b>, and crucially it does not care where it starts.
+This picture makes addition obvious: to add two vectors, walk the first, then walk
+the second from wherever you landed. It makes scaling obvious too: $2\mathbf{v}$ is
+the same direction, twice as far, and $-\mathbf{v}$ is the same distance backwards.</p>
+
+<h4>View 2: a vector is a point</h4>
+
+<p>A location: the place you get to from the origin. This picture is the right one for
+data. A data point with 784 pixel values is a single point in a 784-dimensional space,
+and a dataset of 60,000 such images is a cloud of 60,000 points in that space.</p>
+
+<p>The point view is what makes machine learning geometric. Similar images sit near
+each other; classification becomes the problem of carving the space into regions;
+PCA in Section 23 becomes the question of which direction the cloud is longest along.
+None of that language is available under the arrow view alone.</p>
+
+<div class="box intuition">
+  <span class="label">Intuition: when to use which</span>
+  <p>Use <b>arrows</b> when you are thinking about operations: adding, scaling,
+  transforming, or asking what a matrix does. Use <b>points</b> when you are thinking
+  about data: distances, clusters, neighbourhoods, or spread. When a passage stops
+  making sense, a genuinely reliable debugging move is to try the other picture.</p>
+</div>
+
+<h4>The dimension problem, and how to survive it</h4>
+
+<p>Both pictures are drawable in two and three dimensions. Deep learning routinely uses
+784, or 4096, or several million. Nobody visualises that. Not your professor, not the
+authors of this book.</p>
+
+<p>What experienced people actually do is reason in two or three dimensions and then
+carry the conclusion upward, because <b>almost every fact in this chapter is
+dimension-independent</b>. "The set of points reachable by combining two independent
+vectors is a plane" is true in $\mathbb{R}^3$ and equally true in $\mathbb{R}^{784}$,
+it is just a two-dimensional plane sitting inside a very large room.</p>
+
+<p>So: draw the 2-D picture without guilt. It is not a childish version of the real
+thing; it is the real thing with the irrelevant dimensions omitted.</p>
+
+<div class="box pitfall">
+  <span class="label">Pitfall: where low-dimensional intuition genuinely fails</span>
+  <p>A few facts do break in high dimensions, and it is worth knowing they exist so
+  you are not blindsided later. In high-dimensional space, randomly chosen vectors are
+  almost always nearly perpendicular to each other; nearly all the volume of a ball
+  sits close to its surface; and the ratio between the nearest and farthest points in
+  a random cloud approaches one, which is why distance-based methods degrade as
+  dimension grows. None of these matter for Part I, and all of them are worth
+  remembering when you meet the "curse of dimensionality" in Part VI §21.</p>
+</div>
+
+<h4>Vector addition and scaling, concretely</h4>
+
+<p>Both operations work entry by entry, which is the simplest possible rule:</p>
+
+$$\mathbf{u} + \mathbf{v} = \begin{bmatrix} 1 \\ 4 \end{bmatrix} + \begin{bmatrix} 3 \\ -1 \end{bmatrix} = \begin{bmatrix} 4 \\ 3 \end{bmatrix}, \qquad 2.5\,\mathbf{u} = \begin{bmatrix} 2.5 \\ 10 \end{bmatrix}$$
+
+<p>Addition requires both vectors to have the same length; you cannot add a vector in
+$\mathbb{R}^3$ to one in $\mathbb{R}^4$, and NumPy will tell you so in a way we decode
+in Appendix C. Scaling by a scalar touches every entry.</p>
+
+<p>Putting these two operations together gives the single most important construction
+in the chapter, which we will name properly in Section 11 and use constantly before
+then: a <b>linear combination</b>, meaning scale some vectors and add the results:</p>
+
+$$c_1 \mathbf{v}_1 + c_2 \mathbf{v}_2 + \cdots + c_k \mathbf{v}_k$$
+
+<p>Almost everything ahead (matrix multiplication, span, rank, eigenvectors, PCA) is
+a question about linear combinations wearing a different hat.</p>

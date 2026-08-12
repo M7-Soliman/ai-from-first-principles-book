@@ -1,0 +1,26 @@
+# Pinned so the book's figures and drills reproduce.
+#
+# Written after two silent regressions in one session: scikit-learn was
+# uninstalled, breaking four Part XV tests, and NumPy 2.0 removed
+# ndarray.ptp(), breaking one in Part XVI. Both are now fixed at the source —
+# the drills implement those models directly, which is what the book teaches —
+# but nothing warned that the ground had moved.
+#
+# Python 3.13.3   Node v22.22.2
+
+# --- required: every drill, every test, and the build
+numpy==2.2.5
+scipy==1.18.0
+matplotlib==3.11.1     # also a DATA dependency: Part XXVII's figures use the
+                       # photograph, elevation model and scan in mpl-data/sample_data,
+                       # so a version that drops them breaks three figures.
+torch==2.13.0
+pypdf==6.14.2
+pikepdf==10.11.0
+reportlab==5.0.0
+pytest==9.1.1
+
+# --- required only to REGENERATE Part XV's figures, which use t-SNE.
+# No drill and no test depends on it. Everything else that once did now
+# implements the model directly.
+# scikit-learn==1.8.0

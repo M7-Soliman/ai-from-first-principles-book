@@ -1,0 +1,259 @@
+<h2><span class="part-kicker">Part D</span>What fixes it</h2>
+
+<p class="lede">Every remedy in this part is the same idea at a different level of
+sophistication: <b>build a path through time along which the product of derivatives is near
+one.</b> Skip connections do it with an integer, leaky units with a fixed real number, and
+gated units with a number the network computes for itself at every step.</p>
+
+<h3><span class="num">§16</span> Skip connections through time</h3>
+
+<p>An ordinary recurrent connection runs from step $t$ to step $t+1$. Add connections that
+span $d$ steps and a gradient can travel back along the long edges, encountering $\tau/d$
+factors rather than $\tau$.</p>
+
+<p>The decay is therefore exponential in $\tau/d$ rather than in $\tau$, which is a real
+improvement and a limited one. The short connections are still there, so explosion is still
+exponential in $\tau$: you have improved the vanishing without touching the explosion, and
+you have added a hyperparameter, $d$, that fixes the reachable time scale in advance.</p>
+
+<h3><span class="num">§17</span> Leaky units</h3>
+
+<p>Replace the integer $d$ with a real number and the same idea becomes smooth and adjustable.
+Give a unit a <b>linear self-connection</b> with weight near one:</p>
+
+$$\mu^{(t)} = \alpha\,\mu^{(t-1)} + (1-\alpha)\,v^{(t)}$$
+
+<p>which is a running average: the same exponentially decaying accumulator that appeared as
+momentum's velocity (Part III §15), RMSProp's gradient accumulator (Part III §16), batch
+normalisation's running statistics (Part IX §23), and Polyak averaging (Part IX §25). This is
+now its fifth appearance. The derivative along the self-connection is exactly $\alpha$ per step,
+so the path from $\mu^{(0)}$ to $\mu^{(t)}$ contributes $\alpha^t$, and choosing $\alpha$ near one
+makes that as close to unity as you like.</p>
+
+<figure>
+  <img src="figures/sq/06-leaky.svg" alt="Weight on past inputs against age for four values of alpha, and the effective memory horizon">
+  <figcaption><b>Figure 6.</b> Left: how much weight a leaky unit places on an input $t$ steps
+  back, for four values of $\alpha$. Right: the effective memory, $1/(1-\alpha)$:
+  $\alpha = 0.9$ remembers about ten steps, $\alpha = 0.99$ about a hundred. The same quantity
+  as momentum's window in Part III §15, and for the same reason: both are geometric
+  series.</figcaption>
+</figure>
+
+<div class="box why">
+  <span class="label">Why $1/(1-\alpha)$ keeps appearing</span>
+  <p>The same update rule ($x \leftarrow \rho x + (1-\rho)u$) has now appeared five times:
+  momentum's velocity (Part III §15), RMSProp's gradient accumulator (Part III §16), batch
+  normalisation's running statistics (Part IX §23), Polyak averaging (Part IX §25), and now
+  a hidden unit's memory. In every case it sums a geometric series with ratio $\rho$,
+  weighting the last $1/(1-\rho)$ inputs appreciably and almost nothing before that.</p>
+  <p>Registering it as <b>one mechanism with five uses</b> rather than five coincidences is worth
+  more than any of the individual facts.</p>
+</div>
+
+<p>Two ways to set the time constants. Fix them, sample once at initialisation and leave them,
+which gives you a network with a <b>spectrum</b> of time scales, some units watching the last
+two steps and some the last hundred. Or make them parameters and learn them. Both help; having
+a range of scales appears to matter more than getting any one of them right.</p>
+
+<p>A third variant is worth naming because it does something the others do not. Rather than
+<i>adding</i> long connections, <b>remove the short ones</b> from some units, forcing them to
+operate on a long time scale. A skip connection lets a unit attend to the distant past; a
+removed short connection makes it. Groups of units updated at different frequencies is the
+same idea made discrete.</p>
+
+<h3><span class="num">§18</span> The LSTM</h3>
+
+<div class="sixty">
+  <span class="label">In 60 seconds</span>
+  <p>A leaky unit's $\alpha$ is fixed. Sometimes you want to remember for a hundred steps and
+  then, on seeing a particular input, forget everything and start again. Make $\alpha$ a
+  <b>function of the input</b> (computed by the network, at every step, per unit), and you
+  have an LSTM. Everything else is bookkeeping around that one change.</p>
+</div>
+
+<div class="readnow"><span class="label">Go and read</span><p><span class="src">Hochreiter &amp; Schmidhuber (1997)</span>, <i>Long short-term memory</i>. Long, and worth it for the framing: the paper is written as an <i>error-flow analysis</i> first and an architecture second, so the cell is derived from what the gradient needs rather than proposed and justified. Note that the original has no forget gate: it was added three years later by <span class="src">Gers, Schmidhuber &amp; Cummins (2000)</span>, which is also where the bias-of-1 advice of §20 comes from.</p></div>
+
+<p>Leaky units accumulate. What they cannot do is <b>clear</b>. If a sequence is made of
+sub-sequences and a unit should gather evidence within each one, something must reset it at the
+boundary, and you would rather the network learned when to do that than fixed it in advance.</p>
+
+<div class="box def">
+  <span class="label">The LSTM cell</span>
+  <p>A <b>forget gate</b>, which is the leaky unit's $\alpha$ made conditional:</p>
+  <p>$$f^{(t)} = \sigma\Big(b^f + U^f\mathbf{x}^{(t)} + W^f\mathbf{h}^{(t-1)}\Big)$$</p>
+  <p>An <b>input gate</b> $g^{(t)}$, with the same form, deciding what is allowed into the cell:</p>
+  <p>$$g^{(t)} = \sigma\Big(b^g + U^g\mathbf{x}^{(t)} + W^g\mathbf{h}^{(t-1)}\Big)$$</p>
+  <p>The cell state updates with a self-loop whose weight is $f^{(t)}$, the leaky unit's
+  $\alpha$, now computed by the network at every step:</p>
+  <p>$$s^{(t)} = f^{(t)} s^{(t-1)} + g^{(t)}\,\tanh\Big(b + U\mathbf{x}^{(t)} + W\mathbf{h}^{(t-1)}\Big)$$</p>
+  <p>The cell candidate uses $\tanh$ rather than $\sigma$ so that the cell can hold both
+  positive and negative values; a sigmoid candidate would push the cell state positive only.
+  An <b>output gate</b> $q^{(t)}$ decides what the rest of the network gets to see:</p>
+  <p>$$q^{(t)} = \sigma\Big(b^q + U^q\mathbf{x}^{(t)} + W^q\mathbf{h}^{(t-1)}\Big)
+  \qquad h^{(t)} = \tanh\big(s^{(t)}\big)\, q^{(t)}$$</p>
+  <p>All three gates are sigmoids, so they lie in $(0,1)$ and act as soft switches. The
+  $\tanh$ in $h^{(t)}$ squashes the accumulated cell magnitude back into $(-1,1)$ before the
+  output gate multiplies it: it is not a gate, it is a nonlinearity that keeps the hidden
+  state bounded.</p>
+</div>
+
+<div class="mnote">This section names the input gate $g^{(t)}$, following Goodfellow's notation; §21's
+framework box and the drills instead follow PyTorch's convention, where $g$ denotes the $\tanh$
+cell candidate above and the input gate is $i$, same two objects, the letters swapped between
+sources.</div>
+
+<div class="box intuition">
+  <span class="label">Intuition: the whole design in one line</span>
+  <p>Compare the cell update with §17's leaky unit:</p>
+  <p>$$\mu^{(t)} = \alpha\,\mu^{(t-1)} + (1-\alpha)v^{(t)}
+  \qquad\text{against}\qquad
+  s^{(t)} = f^{(t)} s^{(t-1)} + g^{(t)} v^{(t)}$$</p>
+  <p>They are the same equation. The differences are that $\alpha$ has become $f^{(t)}$, which
+  the network computes rather than you, and that the two coefficients are now independent, so
+  the cell can retain <i>and</i> absorb, or retain and ignore, rather than trading one against
+  the other.</p>
+  <p>That is the entire idea. <b>The time constant of integration is an output of the model</b>,
+  so a network with fixed parameters can integrate over two steps in one context and two hundred
+  in another, decided by what it is reading.</p>
+  <p>The gradient consequence is immediate. Along the cell's self-loop the derivative is
+  $\prod_t f^{(t)}$ rather than a product of Jacobians, a product of numbers the network
+  chooses, which it can keep near one for as long as it needs to. §11's exponential decay is
+  not defeated so much as <b>put under the model's control</b>.</p>
+</div>
+
+<h3><span class="num">§19</span> What the gates actually do</h3>
+
+<p>The equations say what the gates are. Training one and reading them says what they do.</p>
+
+<figure>
+  <img src="figures/sq/07-gates.svg" alt="Mean gate activations over time and the growth of the cell state magnitude">
+  <figcaption><b>Figure 7.</b> An LSTM trained to 100% on a 30-step version of Figure 5's task,
+  with its gates read out (a single training run, and the exact digits below will shift with
+  torch version, hardware and seed). The forget gate settles at <b>0.905</b>: the cell keeps
+  90.5% of itself per step, so a value written at step 0 still carries weight <b>0.055</b> at
+  step 29. A comparable non-gated decay of 0.5 per step would leave $1.9\times10^{-9}$. Right:
+  the mean cell magnitude grows from 0.17 to 6.7, a factor of 40: the cell is
+  <b>integrating</b>, not merely holding.</figcaption>
+</figure>
+
+<p>Two readings worth separating. The forget gate near 0.9 is the mechanism working exactly as
+designed: the network has discovered that this task needs a long time constant and set one.
+The factor-of-forty growth in the cell magnitude is the input gate continuing to admit the
+noise that follows the signal: the cell integrates everything it is given, and what makes the
+task solvable is that the <i>signal</i> survives alongside, not that the noise is excluded.</p>
+
+<h3><span class="num">§20</span> The forget-gate bias</h3>
+
+<p>Figure 5 showed the gated architectures doing worse than a vanilla RNN at long lags, which
+is not what anyone expects. Here is why, and it is a one-line fix that most treatments omit.</p>
+
+<figure>
+  <img src="figures/sq/08-forget-bias.svg" alt="LSTM accuracy against sequence length for four forget-gate bias initialisations">
+  <figcaption><b>Figure 8.</b> The same LSTM, the same task, the same optimiser: varying only
+  the <b>initial value of the forget gate's bias</b>. At $T = 40$: the PyTorch default reaches
+  <b>0.769</b> and a bias of 1 reaches <b>0.997</b>. At $T=80$, where the task is beyond every
+  variant, a bias of 2 still leads at 0.899 against the default's 0.723. Mean of five seeds;
+  expect these gaps to move with torch version and hardware: the ranking is the reproducible
+  part, not the third digit.</figcaption>
+</figure>
+
+<div class="box why">
+  <span class="label">Why the default handicaps the architecture that was built to fix this</span>
+  <p>A bias of zero puts the forget gate at $\sigma(0) = 0.5$ at initialisation. So an untrained
+  LSTM <b>halves its cell state at every step</b>, a memory horizon of about one step, and the
+  gradient along the self-loop decaying as $0.5^t$, which is precisely the vanishing the cell
+  exists to prevent.</p>
+  <p>The network can learn to open the gate. But it has to learn it <i>through</i> a gradient
+  that the closed gate is busy destroying, which is a chicken-and-egg problem, and on a long
+  task it frequently does not get there in the budget available.</p>
+  <p>Initialising the bias to 1 puts the gate at $\sigma(1) = 0.73$; to 2, at 0.88. The cell
+  starts in a retaining regime, the gradient reaches back far enough to learn from, and the
+  network can adjust from there.</p>
+  <p>This is Part IX §17's gate-bias rule ("set the bias so the gate starts open, or the thing
+  it controls never gets a chance to learn"), and Figure 8 is that rule costing well over twenty
+  points of accuracy when ignored, on this run. It is also, on the evidence of §14, large enough
+  to reverse the headline comparison between architectures.</p>
+</div>
+
+<h3><span class="num">§21</span> GRU, and the honest comparison</h3>
+
+<div class="readnow"><span class="label">Go and read</span><p><span class="src">Greff et al. (2017)</span>, <i>LSTM: a search space odyssey</i>. Eight LSTM variants, thousands of runs, and a clear answer: none of them reliably beats the standard cell, and the <b>forget gate</b> is the component that matters. Read it beside <span class="src">Jozefowicz, Zaremba &amp; Sutskever (2015)</span>, which searched over ten thousand architectures and found that adding a bias of 1 to the forget gate makes the plain LSTM as strong as anything the search produced. Two large studies whose main finding is that an initialisation was doing the work.</p></div>
+
+<p>Which parts of the LSTM are necessary? The gated recurrent unit is the most successful
+attempt to find out, and it removes one gate by merging two decisions.</p>
+
+<div class="box def">
+  <span class="label">The gated recurrent unit</span>
+  <p>Two gates, each a sigmoid: an <b>update</b> gate $u^{(t)}$ (controlling what is kept versus
+  replaced) and a <b>reset</b> gate $r^{(t)}$ (controlling how much of the previous state enters
+  the candidate):</p>
+  <p>$$u^{(t)} = \sigma\!\Big(b^u + U^u\mathbf{x}^{(t)} + W^u\mathbf{h}^{(t-1)}\Big)
+  \qquad r^{(t)} = \sigma\!\Big(b^r + U^r\mathbf{x}^{(t)} + W^r\mathbf{h}^{(t-1)}\Big)$$</p>
+  <p>The update is then:</p>
+  <p>$$h^{(t)} = u^{(t)} h^{(t-1)} + \big(1 - u^{(t)}\big)\,\tanh\Big(b + U\mathbf{x}^{(t)} + W\big(\mathbf{r}^{(t)}\odot\mathbf{h}^{(t-1)}\big)\Big)$$</p>
+  <p>There is no separate cell state and no output gate: the state is exposed directly, and the
+  two coefficients $u^{(t)}$ and $1-u^{(t)}$ sum to one, so the GRU's forgetting and admission
+  are one decision rather than two independent ones. Fewer parameters, fewer operations, and
+  (in most comparisons) the same accuracy.</p>
+</div>
+
+<div class="box why">
+  <span class="label">Why there is no winner, and what that tells you</span>
+  <p>Many variants have been proposed and systematically compared. The findings are consistent
+  and worth stating plainly:</p>
+  <ul class="tight">
+    <li><b>No variant clearly beats both LSTM and GRU</b> across a range of tasks.</li>
+    <li>The <b>forget gate is the crucial ingredient</b>: remove it and performance collapses;
+    the others matter much less.</li>
+    <li>Adding a <b>bias of 1 to the forget gate</b> makes the plain LSTM as strong as the best
+    variant found by search.</li>
+  </ul>
+  <p>Read those three together and the conclusion is uncomfortable and correct: the architecture
+  search largely rediscovered an initialisation. Figure 8 is that result at a scale you can
+  reproduce in an afternoon, and it is Part IX §18's answer about optimisers arriving in a
+  different literature: <b>the returns to understanding one mechanism well exceed the returns
+  to picking the right variant.</b></p>
+</div>
+
+<div class="box fw">
+  <span class="label">In the framework, and the default you now have a reason to override</span>
+  <p>Having derived the cell, the mapping is direct. What matters is the argument that is not
+  there.</p>
+<pre><code><span class="k">import</span> torch.nn <span class="k">as</span> nn
+
+rnn  = nn.RNN(<span class="n">64</span>, <span class="n">128</span>, batch_first=<span class="k">True</span>, nonlinearity=<span class="s">"tanh"</span>)
+lstm = nn.LSTM(<span class="n">64</span>, <span class="n">128</span>, num_layers=<span class="n">2</span>, batch_first=<span class="k">True</span>)   <span class="c"># section 23</span>
+gru  = nn.GRU(<span class="n">64</span>, <span class="n">128</span>, batch_first=<span class="k">True</span>, bidirectional=<span class="k">True</span>)  <span class="c"># section 22</span>
+
+output, (h_n, c_n) = lstm(x)      <span class="c"># output: every step. h_n: the last one.</span>
+
+<span class="c"># section 20: there is no forget_bias argument, so do it yourself</span>
+<span class="k">for</span> name, p <span class="k">in</span> lstm.named_parameters():
+    <span class="k">if</span> <span class="s">"bias"</span> <span class="k">in</span> name:
+        n = p.shape[<span class="n">0</span>] // <span class="n">4</span>
+        <span class="k">with</span> torch.no_grad():
+            p[n:<span class="n">2</span>*n].fill_(<span class="n">1.0</span>)     <span class="c"># gate order is i, f, g, o</span>
+</code></pre>
+  <p><b>What each piece corresponds to.</b> <code>output</code> holds $\mathbf{h}^{(t)}$ for
+  every step: use it when there is a loss at each step. <code>h_n</code> is the final state
+  only: use it as §27's context. <code>c_n</code> is the <b>cell</b> state $s^{(t)}$, which is
+  a separate thing from $h$ and exists only for the LSTM.</p>
+  <p><b>Why the slicing is what it is.</b> All four gates' parameters are stored in one
+  concatenated tensor, in the order input, forget, cell, output, so the forget gate's bias is
+  the second quarter. There are <i>two</i> bias vectors, <code>bias_ih</code> and
+  <code>bias_hh</code>, which are added together; setting one to 1 gives an effective bias
+  near 1, and setting both gives 2.</p>
+  <p><b>What breaks.</b> Three things.</p>
+  <p><b>No <code>forget_bias</code> argument exists.</b> TensorFlow's LSTM has had one,
+  defaulting to 1, for years; PyTorch does not, and its default is 0. Figure 8 measures what
+  that costs. This is the single most valuable line in this box.</p>
+  <p><b><code>batch_first</code> defaults to <code>False</code></b>, meaning the expected shape
+  is $(T, N, C)$ rather than $(N, T, C)$. A batch of 32 sequences of length 100 fed the wrong
+  way round becomes 100 sequences of length 32, which is a valid tensor of the wrong thing and
+  does not raise (Part X §6's channels-first trap, in a new axis).</p>
+  <p><b>Variable-length batches need packing.</b> Padding a batch to its longest member and
+  running it directly means the recurrence consumes the padding, and the final state is the
+  state after reading zeros. <code>pack_padded_sequence</code> exists so the recurrence stops at
+  each sequence's true end. Forgetting it degrades a model quietly and in proportion to how
+  variable your lengths are.</p>
+</div>

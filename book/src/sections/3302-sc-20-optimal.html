@@ -1,0 +1,142 @@
+<h2><span class="part-kicker">Part B</span>Compute-optimal</h2>
+
+<p class="lede">Given a fixed compute budget, how much of it should be model and how much should be
+data? The field had a confident answer for four years, and it was wrong for a reason worth
+studying.</p>
+
+<h3><span class="num">§9</span> The allocation question</h3>
+
+<div class="box def">
+  <span class="label">Stated precisely</span>
+  <p>Minimise $L(N, D)$ subject to $6ND = C$. Substituting the constraint leaves a
+  one-dimensional problem, and with the additive form of §5 it has a closed-form answer: the two
+  terms should be balanced in a ratio set by the exponents.</p>
+  <p>The answer takes the form $N \propto C^{a}$ and $D \propto C^{b}$ with $a + b = 1$. So the
+  entire dispute reduces to <b>two numbers</b>, and those two numbers decided how billions of
+  dollars of compute were spent.</p>
+</div>
+
+<h3><span class="num">§10</span> The first answer</h3>
+
+<div class="box history">
+  <span class="label">Kaplan et al., 2020</span>
+  <p>The paper that established scaling laws as a research programme. Its allocation conclusion was
+  that <b>model size should grow much faster than data</b>: roughly $N \propto C^{0.73}$ against
+  $D \propto C^{0.27}$.</p>
+  <p>Read directly: given ten times the compute, make the model about five times bigger and train
+  on only about twice the data. The paper stated the implication plainly: that large models are
+  substantially more sample-efficient, and that one should train very large models and stop well
+  before convergence.</p>
+  <p>This was believed, and it is visible in what got built. The generation of models that followed
+  were very large and, by the standard that replaced it, badly undertrained.</p>
+</div>
+
+<h3><span class="num">§11</span> The error</h3>
+
+<div class="box def">
+  <span class="label">A learning-rate schedule</span>
+  <p>The runs used a cosine learning-rate schedule whose length was set for the <b>longest</b>
+  training budget, and shorter runs were <b>stopped early</b>, partway down the cosine, with the
+  learning rate still high.</p>
+  <p>A run stopped partway down a cosine has not finished annealing, and a model whose learning rate
+  never decayed is measurably worse than the same model with a schedule that completed. So every
+  short run was penalised, and the shorter the run, the larger the penalty.</p>
+</div>
+
+<div class="box why">
+  <span class="label">Why that biases the allocation, specifically</span>
+  <p>A short run in this setting is a run with <b>few tokens</b>. Penalising short runs makes data
+  look less valuable than it is. The fitted surface therefore says the marginal token buys less
+  than it really does, so the optimiser puts the budget into parameters instead.</p>
+  <p>The bias is not noise and it does not average out. It is a <b>systematic tilt</b> in one
+  direction, produced by a single implementation choice that would not appear in any description of
+  the method.</p>
+</div>
+
+<figure class="illus">
+  <img src="figures/sc/02-schedule-illus.svg" alt="Loss against training tokens for a matched schedule and a fixed-length schedule stopped early, and the two published allocation exponents">
+  <figcaption><span class="illus-tag">Illustrative</span><b>Figure 2.</b> Left: the penalty from a
+  schedule sized for the longest run falls hardest on the shortest runs, tilting the fitted surface
+  rather than offsetting it. Right: the allocation each answer implies. Drawn rather than measured:
+  the effect only appears in runs near convergence across a wide range of budgets. The two
+  exponents are the published ones, attributed in the legend; no other number here is a
+  measurement.</figcaption>
+</figure>
+
+<h3><span class="num">§12</span> The correction</h3>
+
+<div class="readnow"><span class="label">Go and read</span><p><span class="src">Hoffmann et al. (2022)</span>, <i>Training compute-optimal large language models</i>. Chinchilla, and the most consequential methodological correction of the decade. Read §3 for what the schedule error actually was, and note that the answer was established three independent ways that agreed, which is what makes it convincing where a single fit would not be. Then <span class="src">Kaplan et al. (2020)</span>, which it corrects, and which is worth reading second so you can see how reasonable the original looked.</p></div>
+
+<div class="box history">
+  <span class="label">Hoffmann et al., 2022: Chinchilla</span>
+  <p>Re-ran the study with the schedule matched to each run's budget, and with three independent
+  estimation methods that agreed with each other. The answer changed to roughly
+  $N \propto C^{0.5}$ and $D \propto C^{0.5}$: <b>parameters and data should grow together</b>, at
+  about <b>20 tokens per parameter</b>.</p>
+  <p>The demonstration was a model with <b>four times fewer parameters</b> than the largest of the
+  previous generation, trained on four times the data at the same compute, which outperformed it
+  across the board.</p>
+  <p>The consequence for the field was immediate and large: the same compute, reallocated, bought a
+  substantially better model. Nothing about the architecture or the objective changed.</p>
+</div>
+
+<div class="box why">
+  <span class="label">Why this is the most instructive result in the part</span>
+  <p>The original study was competent, influential and peer-reviewed. Its data was real and its
+  analysis followed. What went wrong was a <b>detail of experimental procedure</b>, one that is
+  not part of the method being studied, that would not normally be reported in detail, and that
+  interacted with the independent variable.</p>
+  <p>This is Part XIV's whole subject arriving at the largest scale in the field. A confound that
+  varies <i>with</i> the thing you are varying is not noise; it is a systematic error, and the
+  spread across seeds will not reveal it. The only defence is the one Part XIV §21 names: when you
+  change the independent variable, ask what else changed with it.</p>
+  <p>Worth noting how it was found: not by re-deriving anything, but by re-running the experiment
+  with one procedural choice fixed. The correction is available to anyone willing to repeat the
+  work.</p>
+</div>
+
+<h3><span class="num">§13</span> The frontier, and what bounds it</h3>
+
+<div class="box def">
+  <span class="label">Reading the allocation rule</span>
+  <p>At roughly 20 tokens per parameter, the two exponents being equal means the loss curve in
+  $\log N$ and $\log D$ has a single valley whose floor runs along a diagonal. Being off the
+  diagonal in either direction costs, and the cost is gentle nearby and steep far away, which is
+  why the rule is worth following approximately and not worth agonising over.</p>
+  <p><b>The data bound.</b> The rule assumes tokens are available. Once a corpus is exhausted, more
+  compute cannot buy more data, and the frontier stops being reachable: repeating data helps for a
+  few epochs and then stops (Part XIII §21). This is now a live constraint at the largest scales
+  and it is the reason data curation became a first-class subject.</p>
+</div>
+
+<h3><span class="num">§14</span> Why models are deliberately overtrained</h3>
+
+<div class="box why">
+  <span class="label">Compute-optimal is optimal for training, not for use</span>
+  <p>Chinchilla's rule minimises <b>training</b> compute for a given loss. If the model will then
+  serve many requests, training compute is a one-off and inference compute is recurring, and
+  inference cost scales with $N$, not with $D$.</p>
+  <p>So the right objective is total lifetime compute, $6ND + 2N \cdot (\text{tokens served})$. Once
+  the second term is large, the optimum moves to a <b>smaller model trained on more data</b> than
+  the training-optimal rule says: pay more once, pay less forever.</p>
+  <p>This is why current models are trained far past 20 tokens per parameter: ratios of hundreds
+  are ordinary. That is not a repudiation of Chinchilla; it is Chinchilla's objective replaced with
+  a different and more relevant one, and the arithmetic is the same arithmetic.</p>
+  <p>The general lesson is worth extracting: <b>an optimum is only as good as the quantity it
+  optimises.</b> Both answers here are correct for their own objective, and the interesting work
+  was noticing that the objective everyone had been using was not the one they wanted.</p>
+</div>
+
+<h3><span class="num">§15</span> What this movement establishes</h3>
+
+<div class="box intuition">
+  <span class="label">Three things</span>
+  <p><b>The allocation question has an answer</b>, it follows from a fitted surface and a
+  constraint, and it is worth computing rather than guessing.</p>
+  <p><b>The answer was wrong for four years because of a learning-rate schedule.</b> Not a
+  theoretical error, not bad data: a procedural detail that varied with the independent
+  variable.</p>
+  <p><b>And the corrected answer is optimal for a question you may not be asking.</b> If the model
+  will serve traffic, train it smaller and longer than the rule says, because the rule's objective
+  ends at the end of training and yours does not.</p>
+</div>

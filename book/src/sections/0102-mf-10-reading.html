@@ -1,0 +1,260 @@
+<h2><span class="part-kicker">Part A</span>Reading mathematics</h2>
+
+<h3><span class="num">§1</span> How to read a formula</h3>
+
+<p>Before any content, a skill nobody teaches explicitly: <b>how to read mathematical
+notation without freezing.</b></p>
+
+<p>Most people read a formula the way they read a sentence: left to right, at speed,
+expecting to understand by the end. That fails, and the failure feels like stupidity
+when it is actually a technique problem. Mathematics is compressed. A single line can
+hold a paragraph of meaning, and it has to be decompressed deliberately.</p>
+
+<p>It is worth being precise about what goes wrong, because the diagnosis contains the
+cure. When you read ordinary English you can afford to move fast, because English is
+enormously redundant. If you miss a word, the words around it usually tell you what the
+missing one must have been; if you mishear a syllable, grammar repairs it before you
+notice. Mathematics has none of that padding. Every symbol is load-bearing. Change one
+subscript and the statement becomes false, and nothing else in the line will warn you.
+So the reading strategy that serves you everywhere else (sweep forward, let the gist
+accumulate) is exactly wrong here, and worse, it fails <i>silently</i>. You finish the
+line, feel that you followed it, and have absorbed nothing.</p>
+
+<p>The second problem is that a formula is not written in the order it should be read.
+Prose is built to be consumed front to back. A formula is a <b>structure</b> (closer to
+a diagram than a sentence), and its most important feature is rarely at the left-hand
+end. You have to find the shape of it first and then climb down inside, which means your
+first pass over an unfamiliar formula should not be a reading at all. It should be a
+survey: what <i>kind</i> of thing is this, before what does it say.</p>
+
+<h4>The procedure</h4>
+
+<p>Take this, which you will meet in Part II:</p>
+
+$$\mathcal{L}(\theta) = -\frac{1}{m}\sum_{i=1}^{m} \log p(y^{(i)} \mid x^{(i)}; \theta)$$
+
+<p>If that looks like noise, good: that is the honest reaction, and here is how to take
+it apart.</p>
+
+<p><b>Step 1: find the equals sign.</b> Everything left of it is a name; everything right
+is the recipe. So $\mathcal{L}(\theta)$ is just a label for whatever the right side
+computes. Something called $\mathcal{L}$ that depends on something called $\theta$.</p>
+
+<p><b>Step 2: identify the outermost operation.</b> Ignore the interior entirely. Here
+it is: negative, times one-over-$m$, times a sum. So the whole thing is
+<i>the negative average of some quantity</i>. That alone is real progress.</p>
+
+<p><b>Step 3: unpack one level.</b> What is being averaged? The thing after the $\sum$:
+$\log p(\dots)$. The log of something.</p>
+
+<p><b>Step 4: name every symbol out loud, even the ones you know.</b> $m$ is a count,
+probably of training examples, given the $i=1$ to $m$. The superscript $(i)$ means
+"belonging to example $i$", not an exponent. $\theta$ is parameters. The bar $\mid$
+means "given".</p>
+
+<p><b>Step 5: say the whole thing in English.</b> "The loss is the negative average, over
+all $m$ training examples, of the log probability the model assigns to the correct
+answer."</p>
+
+<p>That sentence is the formula. Nothing was lost. The notation is shorter, not
+deeper.</p>
+
+<p>Look back at what that actually took. You did no algebra. You computed nothing. You
+used no fact you did not already possess when you started. All you did was <b>locate the
+structure</b> (outermost operation first, then one level in, then the individual symbols)
+and refuse to advance until every level had a name you could say out loud. That is the
+whole technique, and it survives contact with formulas far uglier than this one, because
+ugliness in mathematics is almost always <i>depth of nesting</i> rather than genuine
+difficulty. A frightening expression is usually four unfrightening ones stacked.</p>
+
+<p>The step people skip is the fourth, and it is the one that does the work. Naming
+symbols you already know feels like a waste of time, so the eye slides over $m$ and
+$\theta$ and lands on whatever looks unfamiliar. But the unfamiliar part is almost never
+where the difficulty lives. The difficulty lives in a superscript you assumed was an
+exponent, or a subscript whose index you never checked, or a semicolon you read as a
+comma. Saying every symbol aloud is slow precisely because it forces you to look at the
+parts your eye wants to skip, and those are the parts that were going to cost you an
+hour later.</p>
+
+<p>One more habit, and it costs nothing: <b>read with a pen</b>. Not to take notes, but to
+copy the formula out yourself, once, slowly, as you take it apart. Writing it by hand
+drags your attention through every symbol in sequence, which is exactly what reading it
+silently permits you to avoid. Nearly everyone who works in a mathematical field does
+this, and nearly nobody mentions to students that they do, which leaves the impression
+that professionals simply look at a page and understand it. They do not. They have a
+pen.</p>
+
+<div class="box intuition">
+  <span class="label">Intuition: notation is compression, not encryption</span>
+  <p>Mathematical notation exists because writing that English sentence every time
+  would be unbearable. It is an abbreviation system built by people who got tired of
+  writing things out, not a code designed to exclude you.</p>
+  <p>The corollary matters: <b>anything written in symbols can be said in words.</b> If
+  you cannot say a formula in English, you have not read it yet, and no amount of
+  staring will change that. Decompose instead.</p>
+</div>
+
+<div class="box pitfall">
+  <span class="label">Pitfall: reading at prose speed</span>
+  <p>A page of mathematics can take an hour, and that is normal rather than a sign of
+  trouble. Professional mathematicians read their own field's papers slowly, with a
+  pen. If you are moving through this document at reading speed, you are moving too
+  fast, and the feeling of "I sort of followed that" is precisely what evaporates when
+  you try to use it.</p>
+</div>
+
+<h3><span class="num">§2</span> The symbols, decoded</h3>
+
+<p>A reference for everything you will meet. Skim it now; come back when something
+unfamiliar appears.</p>
+
+<p>Before the tables, a word about why there are Greek letters at all, since the usual
+suspicion (that they exist to make the subject look harder than it is) is
+understandable and wrong. Mathematics ran out of alphabet. A single equation in this
+book may carry an input, a weight, a bias, a learning rate, a count of examples, an
+index over those examples, a regularisation strength, and a target, and every one of
+them needs a symbol short enough to write a hundred times. Latin letters were exhausted
+centuries ago, so the field reached for the next alphabet its readers could be assumed
+to recognise, and then for boldface, and then for hats and bars and tildes.</p>
+
+<p>What follows from that is more useful than it sounds. Because the letters were
+allocated by convention rather than logic, <b>the convention is real information</b>. A
+paper that writes $\alpha$ almost certainly means a step size; $\theta$ almost certainly
+means the parameters being learned; $\lambda$ almost certainly means either a
+regularisation strength or an eigenvalue, and the surrounding sentence tells you which
+within a few words. You are not decoding a cipher. You are recognising vocabulary, and
+like all vocabulary it becomes invisible with exposure; after a hundred pages you will
+read $\nabla_\theta L$ the way you read a road sign, without translating.</p>
+
+<h4>Greek letters, and what they conventionally mean</h4>
+
+<div class="box history">
+  <span class="label">History: why the words look like that</span>
+  <p>Two of the most ordinary words in this book are the same man's name, worn down by
+  a thousand years of transmission.</p>
+  <p>Around <span class="year">820</span>, the Persian scholar Muhammad ibn Musa
+  al-Khwarizmi wrote a treatise whose title contained the phrase <i>al-jabr</i>,
+  roughly "restoration", the operation of moving a subtracted term to the other side of
+  an equation to make it positive. Latin translators kept the word. <b>Al-jabr became
+  algebra.</b></p>
+  <p>His own name fared similarly. Latinised as <i>Algoritmi</i>, it came to mean the
+  step-by-step calculating procedures his work described. <b>Al-Khwarizmi became
+  algorithm.</b></p>
+  <p>So when you write an algorithm to do algebra, you are saying his name twice.</p>
+</div>
+
+<table class="compact">
+  <thead><tr><th>Symbol</th><th>Name</th><th>Usually means</th></tr></thead>
+  <tbody>
+    <tr><td>$\alpha$</td><td>alpha</td><td>learning rate; a step size</td></tr>
+    <tr><td>$\beta$</td><td>beta</td><td>momentum coefficient; a second parameter</td></tr>
+    <tr><td>$\delta$, $\Delta$</td><td>delta</td><td>a small change; a difference</td></tr>
+    <tr><td>$\epsilon$</td><td>epsilon</td><td>something tiny; noise; a safety constant</td></tr>
+    <tr><td>$\theta$</td><td>theta</td><td><b>the parameters of a model</b>: extremely common</td></tr>
+    <tr><td>$\lambda$</td><td>lambda</td><td>regularisation strength; an eigenvalue</td></tr>
+    <tr><td>$\mu$</td><td>mu</td><td>a mean</td></tr>
+    <tr><td>$\sigma$, $\Sigma$</td><td>sigma</td><td>standard deviation; the sigmoid; a covariance matrix</td></tr>
+    <tr><td>$\Sigma$</td><td>capital sigma</td><td><b>summation</b>: see §12</td></tr>
+    <tr><td>$\Pi$</td><td>capital pi</td><td>product</td></tr>
+    <tr><td>$\phi$</td><td>phi</td><td>a parameter, often of a Bernoulli</td></tr>
+    <tr><td>$\nabla$</td><td>nabla / del</td><td><b>gradient</b>: see §23</td></tr>
+    <tr><td>$\partial$</td><td>partial</td><td>partial derivative: see §22</td></tr>
+    <tr><td>$\eta$</td><td>eta</td><td>learning rate (an alternative to $\alpha$)</td></tr>
+  </tbody>
+</table>
+
+<div class="box pitfall">
+  <span class="label">Pitfall: the same letter means different things</span>
+  <p>$\sigma$ is standard deviation <i>and</i> the sigmoid function. $\Sigma$ is
+  summation <i>and</i> a covariance matrix. $\lambda$ is regularisation strength
+  <i>and</i> an eigenvalue. There is no fixing this; the conventions grew up in
+  different fields and collided.</p>
+  <p>Context resolves it, and there is a reliable tell: <b>if it has an argument in
+  parentheses, it is a function.</b> $\sigma(x)$ is the sigmoid; a bare $\sigma$ or
+  $\sigma^2$ is a standard deviation.</p>
+</div>
+
+<h4>The decorations: subscripts, superscripts, hats and bars</h4>
+
+<p>More reading errors come from these than from any symbol in the tables, because they
+are small, they are easy to skim past, and several of them look identical to things they
+are not.</p>
+
+<p>A <b>subscript</b> almost always means "which one". In $x_3$ the 3 selects the third
+component of a vector; in $w_{ij}$ the pair selects a single entry of a matrix. Read a
+subscript as an index into something; the mental translation is <code>x[3]</code>, and
+that translation is exact.</p>
+
+<p>A <b>superscript</b> is where the trouble is, because it does two entirely different
+jobs. Bare, it is a power: $x^2$ is $x$ squared. Wrapped in parentheses, it is an index:
+$x^{(i)}$ means <i>the $i$-th training example</i> and has nothing to do with
+exponentiation. Machine learning uses this second form constantly, because the subscript
+slot is already taken by the components of each example, so $x^{(i)}_j$ is the $j$-th
+feature of the $i$-th example, and both numbers are indices while neither is a power.
+When a superscript appears in this book and it is not obviously an exponent, check for
+the parentheses.</p>
+
+<p>The accents are simpler and consistent. A <b>hat</b>, $\hat{y}$, marks an estimate:
+something the model produced, as opposed to the truth. A <b>bar</b>, $\bar{x}$, marks an
+average. A <b>star</b> or asterisk, $\theta^*$, marks the optimal value, the one you wish
+you had. So $\hat{y}$ versus $y$ is prediction versus reality, and the entire enterprise
+of training is the business of shrinking the distance between a symbol with a hat and the
+same symbol without one.</p>
+
+<h4>Operators and relations</h4>
+
+<table class="compact">
+  <thead><tr><th>Symbol</th><th>Read as</th><th>Note</th></tr></thead>
+  <tbody>
+    <tr><td>$\in$</td><td>"is in", "is an element of"</td><td>$x \in \mathbb{R}$ = "$x$ is a real number". A type annotation.</td></tr>
+    <tr><td>$\mathbb{R}$</td><td>the real numbers</td><td>ordinary numbers with decimals</td></tr>
+    <tr><td>$\mathbb{R}^n$</td><td>lists of $n$ real numbers</td><td>a vector</td></tr>
+    <tr><td>$\approx$</td><td>approximately equals</td><td></td></tr>
+    <tr><td>$\propto$</td><td>is proportional to</td><td>equal up to a constant factor</td></tr>
+    <tr><td>$\equiv$</td><td>is defined as</td><td>also written $:=$</td></tr>
+    <tr><td>$\forall$</td><td>for all</td><td></td></tr>
+    <tr><td>$\exists$</td><td>there exists</td><td></td></tr>
+    <tr><td>$\Rightarrow$</td><td>implies</td><td></td></tr>
+    <tr><td>$\iff$</td><td>if and only if</td><td>implication both ways</td></tr>
+    <tr><td>$\sum_{i=1}^{n}$</td><td>"sum from $i=1$ to $n$"</td><td>a <code>for</code> loop that adds: §12</td></tr>
+    <tr><td>$\prod_{i=1}^{n}$</td><td>"product from 1 to $n$"</td><td>same, but multiplying</td></tr>
+    <tr><td>$\lim_{x \to a}$</td><td>"the limit as $x$ approaches $a$"</td><td>§14</td></tr>
+    <tr><td>$\int_a^b$</td><td>"the integral from $a$ to $b$"</td><td>area under a curve: §25</td></tr>
+    <tr><td>$\frac{dy}{dx}$</td><td>"the derivative of $y$ with respect to $x$"</td><td>§15</td></tr>
+    <tr><td>$\frac{\partial f}{\partial x}$</td><td>"the partial of $f$ with respect to $x$"</td><td>§22</td></tr>
+    <tr><td>$\nabla f$</td><td>"grad $f$"</td><td>vector of all partials: §23</td></tr>
+    <tr><td>$|x|$</td><td>absolute value</td><td>magnitude, sign discarded</td></tr>
+    <tr><td>$\|x\|$</td><td>norm</td><td>length of a vector: Part I</td></tr>
+    <tr><td>$\hat{y}$</td><td>"y hat"</td><td>an estimate or prediction of $y$</td></tr>
+    <tr><td>$\bar{x}$</td><td>"x bar"</td><td>the average of $x$</td></tr>
+    <tr><td>$x^{(i)}$</td><td>"x superscript i"</td><td><b>the $i$-th example</b>, not a power; note the parentheses</td></tr>
+    <tr><td>$\arg\min_x f(x)$</td><td>"the $x$ that minimises $f$"</td><td>returns the <i>input</i>, not the minimum value</td></tr>
+  </tbody>
+</table>
+
+<div class="box pitfall">
+  <span class="label">Pitfall: $\min$ versus $\arg\min$</span>
+  <p>These return different things and confusing them will genuinely mislead you.</p>
+  <p>$\min_x f(x)$ is the <b>smallest value</b> $f$ attains. For $f(x) = (x-3)^2$, that
+  is $0$.</p>
+  <p>$\arg\min_x f(x)$ is the <b>input that achieves it</b>. For the same $f$, that is
+  $3$.</p>
+  <p>Training a model is always an $\arg\min$: you want the parameters, not the loss
+  value. Nobody cares that the loss got to 0.03; they care which weights did it.</p>
+</div>
+
+<div class="box try">
+  <span class="label">Try it</span>
+  <p>Say this in plain English, using the five-step procedure from §1:</p>
+  <p>$$\hat{\theta} = \arg\min_{\theta} \; \frac{1}{n}\sum_{i=1}^{n} \big(y^{(i)} - f(x^{(i)}; \theta)\big)^2$$</p>
+</div>
+
+<p><b>Answer.</b> Outermost operation: an $\arg\min$ over $\theta$. So we are choosing
+parameters. What are we minimising? An average ($\frac1n \sum$) over $n$ examples. Of
+what? A squared difference between $y^{(i)}$ (the true answer for example $i$) and
+$f(x^{(i)}; \theta)$ (the model's prediction for that example, using parameters
+$\theta$).</p>
+
+<p>In English: <b>"choose the parameters that minimise the average squared error between
+the model's predictions and the true answers."</b> That is linear regression, and the
+formula says nothing more than that sentence does.</p>

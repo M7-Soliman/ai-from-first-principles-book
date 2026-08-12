@@ -1,0 +1,328 @@
+<h2><span class="part-kicker">Practice</span>Drills</h2>
+
+<p class="lede">Thirty-two problems. This part has more exact results than any other: the matrix
+equivalence, the separable ratio, the checkerboard condition and the complex-cell invariance
+are all things you can verify to machine precision rather than to a tolerance, and a large
+share of these ask you to.</p>
+
+<h3><span class="num">Tier 0</span> Estimate first</h3>
+
+<div class="drill">
+  <div class="head"><span class="tier est">Estimate</span>E1 &middot; The cost of one conv layer</div>
+  <p>A 3&times;3 convolution mapping 256 channels to 256, applied to a 56&times;56 feature map. Write down the parameter count and the multiply&ndash;adds, before computing either.</p>
+  <div class="ans"><b>Answer.</b> <b>589,824</b> parameters and <b>1.85&times;10<sup>9</sup></b> multiply&ndash;adds. The ratio is the whole point of convolution: 3,136 operations per parameter, against one per parameter for a dense layer. Sharing does not save compute: it saves parameters, and spends them harder. <i>Score yourself: within a factor of two is a pass, and an order of magnitude out is worth understanding before you go on.</i></div>
+</div>
+
+<h3><span class="num">Tier 1</span> Warm-up</h3>
+
+<div class="drill">
+  <div class="head"><span class="tier warm">Warm</span>W1 · The count</div>
+  <p>A dense layer maps a $128\times128$ colour image to 64 feature maps of the same size. How
+  many parameters, and how many would a $3\times3$ convolution need?</p>
+  <div class="ans"><b>Answer.</b> Dense: $(128^2\times3)\times(128^2\times64) = 5.15\times10^{10}$.
+  Convolution: $64\times3\times3\times3 = 1{,}728$. Halving the image side divides the dense
+  count by <b>sixteen</b> and leaves the convolution untouched.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier warm">Warm</span>W2 · Output size</div>
+  <p>Input $32\times32$, kernel 5, stride 2, padding 2, dilation 1. What comes out?</p>
+  <div class="ans"><b>Answer.</b> $\lfloor(32 + 4 - 5)/2\rfloor + 1 = 16$. So $16\times16$,
+  and note the floor discarded nothing here, which is luck rather than design.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier warm">Warm</span>W3 · Two constraints</div>
+  <p>Name the two independent constraints convolution places on §4's matrix, and one layer
+  type that has each without the other.</p>
+  <div class="ans"><b>Answer.</b> <b>Sparsity</b>: most entries zero, which a locally
+  connected layer has without sharing. <b>Repetition</b>: the nonzeros take few distinct
+  values, which a recurrent network has without sparsity.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier warm">Warm</span>W4 · Which word</div>
+  <p>Shifting the input shifts the output identically. Is that invariance or equivariance, and
+  which does pooling give?</p>
+  <div class="ans"><b>Answer.</b> Equivariance: convolution. Pooling gives approximate
+  invariance, which is nearly the opposite: the output does not change rather than moving
+  along. The measurements differ only in whether the reference is shifted to compensate.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier warm">Warm</span>W5 · Reach</div>
+  <p>What is the theoretical receptive field of ten stacked $3\times3$ stride-1 layers, and
+  roughly what fraction of it carries most of the gradient?</p>
+  <div class="ans"><b>Answer.</b> $1+2(10) = 21$ pixels. Figure 4 measured the effective field
+  at about 60–90% of the theoretical at that depth, falling toward a third by depth 48,
+  because it grows like $\sqrt{L}$ and the theoretical field grows like $L$.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier warm">Warm</span>W6 · The separable ratio</div>
+  <p>Standard against depthwise separable, $256\to512$ with $k=3$. Give the ratio from the
+  formula and then the two parameter counts.</p>
+  <div class="ans"><b>Answer.</b> $1/512 + 1/9 = 0.1131$. Standard $512\times256\times9 =
+  1{,}179{,}648$; separable $256\times9 + 256\times512 = 133{,}376$. Ratio 0.1131: exact, not
+  approximate.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier warm">Warm</span>W7 · A one-pixel kernel</div>
+  <p>What does a $1\times1$ convolution do, given that it cannot see any spatial structure?</p>
+  <div class="ans"><b>Answer.</b> It is a dense layer applied independently at every position,
+  mixing channels and not space. That is why it appears as a channel reducer in Inception, the
+  pointwise half of a separable convolution, and the head of a segmentation network.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier warm">Warm</span>W8 · Checkerboard</div>
+  <p>Which of $(k,s) = (4,2)$, $(3,2)$, $(6,4)$, $(4,4)$ produce checkerboard artefacts?</p>
+  <div class="ans"><b>Answer.</b> $(3,2)$ and $(6,4)$. The condition is exactly $k \bmod s \neq
+  0$: $4\bmod 2 = 0$ and $4\bmod 4 = 0$ are clean, $3\bmod 2 = 1$ and $6\bmod 4 = 2$ are
+  not.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier warm">Warm</span>W9 · The right diagnosis</div>
+  <p>A 40-layer plain convolutional network without normalisation sits at chance on its
+  <i>training</i> set. What does that rule out?</p>
+  <div class="ans"><b>Answer.</b> Overfitting, and capacity. The network can express the
+  shallower network that works (set the extra layers to the identity) so the function is in
+  the search space and the optimiser failed to find it. It is an optimisation failure, which
+  is ResNet's own argument.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier warm">Warm</span>W10 · The prior</div>
+  <p>State convolution as a prior over a dense layer's weights, in two clauses.</p>
+  <div class="ans"><b>Answer.</b> Each unit's weights must be identical to its neighbour's,
+  shifted; and must be zero outside a small contiguous receptive field. Both are infinitely
+  strong: zero probability elsewhere, regardless of the data.</div>
+</div>
+
+<h3><span class="num">Tier 2</span> Core</h3>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C1 · Build the matrix</div>
+  <p>Construct $M$ explicitly for a $3\times3$ kernel on an $8\times8$ image and verify
+  $M\mathbf{x}$ against a library convolution. Count the nonzeros and the distinct values.</p>
+  <div class="ans"><b>Answer.</b> Agreement to about $10^{-16}$; $36\times64$ with <b>324
+  nonzero of 2,304</b> and only <b>9 distinct values</b>. Those two numbers are sparsity and
+  sharing respectively, and separating them is the point of the exercise.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C2 · The backward pass is a convolution</div>
+  <p>Show that $M^\top\mathbf{g}$ equals a full-padding convolution of $\mathbf{g}$ with the
+  <b>flipped</b> kernel. Verify numerically.</p>
+  <div class="ans"><b>Answer.</b> Exactly zero difference in float64. Row $q$ of $M^\top$
+  collects every kernel weight that touched input pixel $q$, and reading them off in order
+  reverses the kernel; the border pixels are reached by fewer positions, which is full padding.
+  This is why a library that can convolve can already differentiate through convolution.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C3 · Measure equivariance</div>
+  <p>Verify $f(g(\mathbf{x})) = g(f(\mathbf{x}))$ numerically for translations, then try a 90°
+  rotation and a $2\times$ rescale. Exclude a border and say why you must.</p>
+  <div class="ans"><b>Answer.</b> Translation agrees to float32 rounding, around $10^{-7}$
+  relative. Rotation and scale come out near <b>0.9 of the activation range</b>, meaning
+  unrelated. The border must be excluded because a circular shift wraps content in from the
+  far side; the margin needs to be at least the shift plus the receptive field, and getting
+  this wrong makes translation equivariance appear to fail.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C4 · Measure the receptive field</div>
+  <p>Take a stack of $3\times3$ layers, backpropagate from <b>one central output unit</b>, and
+  look at the input gradient. Plot the nonzero support and the region holding 95% of the mass,
+  against depth.</p>
+  <div class="ans"><b>Answer.</b> The support matches $1+2L$ exactly. The 95% region grows with
+  a log-log slope near <b>0.5</b> ($\sqrt{L}$) and reaches about a third of the theoretical
+  field by depth 48. Use a large enough canvas that the field never touches the edge, or you
+  will measure the canvas.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C5 · Invariance, correctly measured</div>
+  <p>Measure how much a representation changes when the input is translated, for convolution
+  alone, max pooling at two window sizes, and global pooling. State the one detail that
+  distinguishes this from C3.</p>
+  <div class="ans"><b>Answer.</b> Do <b>not</b> shift the reference. Convolution alone changes
+  by 1.4–1.5 at every shift; max-pool-4 by 0.13 at one pixel rising to 0.36 by eight; global max
+  pooling by 0.005. The graded shape of the pooling curve is the result: invariance has a
+  range, set by the window.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C6 · im2col</div>
+  <p>Implement convolution by gathering patches into a matrix and calling one matrix multiply.
+  Compare against a <b>scalar loop</b> (one multiply-accumulate per iteration, no NumPy
+  vectorisation) for correctness and for time, and measure the memory the patch matrix costs.</p>
+  <div class="ans"><b>Answer.</b> Identical to float32 rounding, thousands of times faster than
+  a genuine scalar loop, and the buffer is $k^2$ times the input, measured at 8× for $k=3$
+  and 16–17× for $k=5$. The speedup against a scalar baseline is stable. Against a baseline
+  that is itself vectorised (a spatial loop whose inner work is a numpy matmul), the im2col
+  advantage shrinks or inverts depending on hardware and BLAS configuration, because the
+  contiguous-copy cost can dominate when the matmul is already efficient. The copy is still the
+  point (the gathered matrix must be contiguous before BLAS can use it), but the comparison
+  must be honest about what the baseline is.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C7 · Gradient check the whole layer</div>
+  <p>Write forward and backward for a strided, padded, multi-channel convolution and check both
+  gradients against finite differences.</p>
+  <div class="ans"><b>Answer.</b> Agreement to about $10^{-6}$ with a central difference and a
+  step near $10^{-5}$ in float64; Part III §3's cancellation sets the floor. The stride is
+  where the errors are: the kernel gradient sums over output positions and the input gradient
+  scatters back to strided locations, and it is easy to write one as if the other's indexing
+  applied.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C8 · The separable formula</div>
+  <p>Derive $1/C_{\text{out}} + 1/k^2$ and verify it against real layer definitions across
+  several shapes.</p>
+  <div class="ans"><b>Answer.</b> $(C_{\text{in}}k^2 + C_{\text{in}}C_{\text{out}}) /
+  (C_{\text{out}}C_{\text{in}}k^2)$, and cancel. Agreement is exact (0.00e+00) because it is
+  an identity rather than an approximation. Then measure the wall-clock saving and find it is
+  far smaller than $9\times$, which is the more useful discovery.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C9 · Grouped convolution</div>
+  <p>Confirm that <code>groups=g</code> divides the parameter count by exactly $g$, and that
+  <code>groups=in_channels</code> gives the depthwise operation of §19.</p>
+  <div class="ans"><b>Answer.</b> Exactly $g$. The two limits are worth naming: $g=1$ is the
+  ordinary layer, $g=C_{\text{in}}$ is depthwise, and everything in between is a channel-mixing
+  budget. AlexNet's grouping was two GPUs; ResNeXt's was a design decision.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C10 · VGG's substitution</div>
+  <p>Show that two $3\times3$ layers match one $5\times5$ in receptive field with 28% fewer
+  parameters, then say what is <i>not</i> equivalent about them.</p>
+  <div class="ans"><b>Answer.</b> $18C^2$ against $25C^2$, same 5-pixel reach, and one extra
+  nonlinearity. Not equivalent: the stack weights the centre of that region far more heavily
+  than the corners, because corner pixels are reachable by one path and central ones by many.
+  Same support, different operator.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C11 · Depth and degradation</div>
+  <p>Train plain and residual networks at increasing depth, with and without normalisation, and
+  record the best <b>training</b> loss.</p>
+  <div class="ans"><b>Answer.</b> Without normalisation the plain network degrades to chance
+  ($\ln C$ for $C$ classes) and the residual one <b>diverges</b> past a certain depth, because
+  each block adds to the signal and the variance grows. With normalisation both train. Report
+  all four; the popular account has only one of them.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C12 · Checkerboards, exactly</div>
+  <p>Apply a transposed convolution with a constant kernel to a constant input, for several
+  $(k,s)$. Count the distinct values in the interior.</p>
+  <div class="ans"><b>Answer.</b> One when $k \bmod s = 0$, three otherwise. Using a constant
+  input and kernel is what makes it exact: any non-uniformity in the output is the operator's,
+  not the data's.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C13 · Dilation and gridding</div>
+  <p>Build a stack with dilations $2,2,2,2$ and one with $1,2,5,9$, and compare their gradient
+  receptive fields.</p>
+  <div class="ans"><b>Answer.</b> The constant-dilation stack shows a lattice: each output
+  depends only on inputs congruent modulo 2, so the sublattices never mix. Coprime dilations
+  fill the field. This is the reason published schedules are not powers of two, and it is
+  invisible unless you look at the field itself.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C14 · The complex cell</div>
+  <p>Build a Gabor quadrature pair from §31's formula and confirm the pair is orthogonal, then
+  measure how $s_0$, $s_1$ and $\sqrt{s_0^2+s_1^2}$ respond as a grating translates along the
+  preferred direction.</p>
+  <div class="ans"><b>Answer.</b> Correlation about $10^{-17}$. Each simple cell sweeps through
+  <b>199.8%</b> of its peak; the complex cell varies by <b>0.00%</b>. Negating the image flips
+  the simple cells by 200% and leaves the complex cell unchanged. Detector-then-pool, derived
+  from V1 and verified exactly.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C15 · What the network actually learns</div>
+  <p>Train a small network on a task whose structure you control, look at the first-layer
+  kernels, and fit Gabor functions to them.</p>
+  <div class="ans"><b>Answer.</b> On synthetic oriented bars the filters are clean bar
+  detectors and the Gabor fits are <b>poor</b>, median $R^2$ about 0.18. That is the correct
+  outcome: Gabors are a property of natural image statistics, not of convolution, and a
+  synthetic task with different statistics gives different filters. Many algorithms find Gabors
+  on natural images, which is why finding them tells you little about the algorithm.</div>
+</div>
+
+<h3><span class="num">Tier 3</span> Stretch</h3>
+
+<div class="drill">
+  <div class="head"><span class="tier stretch">Stretch</span>S1 · Sparsity against sharing</div>
+  <p>Implement a locally connected layer and compare it against a convolution with the same
+  connectivity, on the same task, at several training-set sizes.</p>
+  <div class="ans"><b>Answer.</b> The convolution wins, and the margin <b>widens as data
+  shrinks</b>, which is §11's prior priced empirically. With enough data the locally connected
+  layer can learn the same detector at every position; the shared one never had to. Report the
+  crossover if you find one.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier stretch">Stretch</span>S2 · Break the prior deliberately</div>
+  <p>Permute the pixels of every image with one fixed permutation and retrain. Compare a
+  convolutional network against a dense one.</p>
+  <div class="ans"><b>Answer.</b> The dense network is essentially unaffected; it never knew
+  which pixels were adjacent. The convolutional one collapses. That is what §11 means by an
+  infinitely strong prior, and it is why the two model families are not comparable on the same
+  benchmark without saying so.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier stretch">Stretch</span>S3 · Buy an invariance three ways</div>
+  <p>On a task with rotated inputs, compare rotation augmentation, pooling across rotated
+  copies of each filter, and doing nothing. Report accuracy, parameters and wall-clock.</p>
+  <div class="ans"><b>Answer.</b> All three columns matter. Augmentation is free in parameters
+  and costs training time; filter-copy pooling costs compute at every forward pass, including
+  at deployment; doing nothing costs accuracy. Which wins depends on how much data you have,
+  and the exercise is to find where the crossover is rather than to pick a winner.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier stretch">Stretch</span>S4 · The ConvNeXt ablation</div>
+  <p>Take a plain ResNet and add, one at a time, the modern training recipe (AdamW, cosine
+  schedule with warmup, heavy augmentation, label smoothing), then the architectural changes.
+  Attribute the total gain across them.</p>
+  <div class="ans"><b>Answer.</b> A large share is the training recipe rather than the
+  architecture, which is the published result and worth reproducing at small scale because it
+  changes how you read every architecture paper. Note that the ordering matters: gains are not
+  additive, and reporting only the total is how the attribution went wrong for a subfield.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier stretch">Stretch</span>S5 · Localise something</div>
+  <p>Build an encoder–decoder that predicts a coordinate to within a few pixels. Compare a
+  transposed-convolution decoder against upsample-then-convolve, and look at the outputs.</p>
+  <div class="ans"><b>Answer.</b> With a badly chosen $(k,s)$ the transposed decoder shows the
+  lattice of Figure 9 in its predictions, not merely in its images. Upsample-then-convolve
+  cannot produce it. Also measure what happens when you add skip connections from the encoder:
+  the fine spatial information was destroyed on the way down and cannot be recovered from the
+  coarse representation, so the skips are not an optimisation trick here but a
+  requirement.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier stretch">Stretch</span>S6 · Where the time goes</div>
+  <p>Profile a depthwise separable network against its standard equivalent. Compare the FLOP
+  ratio, the parameter ratio and the wall-clock ratio.</p>
+  <div class="ans"><b>Answer.</b> Parameters and FLOPs both fall by about $9\times$; latency by
+  far less, and on some hardware not at all. Depthwise convolution is memory-bound where a
+  standard convolution is compute-bound, so it does not use the arithmetic units it saved. The
+  general lesson is that a paper reporting only FLOPs is reporting the number that flattered
+  it.</div>
+</div>

@@ -1,0 +1,220 @@
+<h2><span class="part-kicker">Build</span>The project</h2>
+
+<p class="lede">Twelve to sixteen hours. You build one search framework, run five different algorithms
+inside it, and then discover experimentally how good a verifier has to be before searching against it
+is worth doing at all.</p>
+
+<h3><span class="num">P.1</span> What you are building</h3>
+
+<p><b><code>frontier</code></b>: one search interface, five algorithms behind it, three domains in
+front of it, and a measured answer to the question that decides whether test-time compute helps.</p>
+
+<p>The rule: <b>every algorithm reports nodes expanded and solution cost, and no algorithm is
+compared on time until it is compared on nodes</b>. Wall-clock hides both bugs and constant factors;
+node counts are the property of the algorithm.</p>
+
+<h3><span class="num">P.2</span> Stage 1: the interface</h3>
+
+<ol>
+  <li>Define a problem as five things: initial state, actions, transition, goal test, step cost.</li>
+  <li>Implement BFS, uniform-cost, iterative deepening and A* behind one signature.</li>
+  <li>Implement three domains: a grid with obstacles, the 8-puzzle, and one of your choosing.</li>
+  <li>Assert that all four algorithms return the same cost on unit-cost problems.</li>
+</ol>
+
+<p><b>Deliverable:</b> a table of nodes and cost, four algorithms by three domains. Step four is the
+test that matters: if uniform-cost and A* disagree by one, your heuristic is inadmissible or your
+stale-entry check is wrong, and you want to find that out now rather than in Stage 4.</p>
+
+<h3><span class="num">P.3</span> Stage 2: heuristics</h3>
+
+<ol>
+  <li>For the 8-puzzle: misplaced tiles, Manhattan, and a pattern database over one tile subset.</li>
+  <li>Verify dominance holds pointwise, then confirm the expansion counts are ordered the same way.</li>
+  <li>Build <span class="m">$h=\alpha h^*$</span> on the grid and reproduce Figure 1's shape.</li>
+  <li>Add tie-breaking toward larger <span class="m">$g$</span> and re-measure.</li>
+</ol>
+
+<p><b>Deliverable:</b> expansions against heuristic strength, with and without tie-breaking. Step four
+is the point of the stage: report how the one-line tie-break compares against everything you gained
+from a better heuristic.</p>
+
+<h3><span class="num">P.4</span> Stage 3: giving up optimality</h3>
+
+<ol>
+  <li>Weighted A* at five weights; record expansions, cost ratio, and the bound.</li>
+  <li>Build an admissible-but-inconsistent heuristic and count re-expansions.</li>
+  <li>Run the same heuristic with a hard closed list and find an instance where the answer is wrong.</li>
+  <li>Implement anytime weighted A* and plot cost and bound against time.</li>
+</ol>
+
+<p><b>Deliverable:</b> the ratio-against-bound plot, and one concrete instance where closing states
+under an inconsistent heuristic returns a suboptimal path. Step three is worth the effort: it turns
+a caveat you have read into a failure you have seen.</p>
+
+<h3><span class="num">P.5</span> Stage 4: big spaces</h3>
+
+<ol>
+  <li>Beam search over a scoring model, verified against exact dynamic programming at large widths.</li>
+  <li>Introduce a gap between the model's score and the quality you want; sweep the beam width.</li>
+  <li>Count the instances where doubling the width made the answer worse.</li>
+  <li>Branch and bound on knapsack with two bounds, reporting censored runs as censored.</li>
+</ol>
+
+<p><b>Deliverable:</b> the quality-against-width curve with the exact optimum marked, plus the
+per-instance harm rate. If your curve is monotone, your model and your metric agree and you have not
+yet built the interesting case.</p>
+
+<h3><span class="num">P.6</span> Stage 5: planning in continuous space</h3>
+
+<ol>
+  <li>A 2D configuration space with obstacles and a collision checker; count checks, not seconds.</li>
+  <li>PRM with a learning phase and a query phase; RRT and bidirectional RRT.</li>
+  <li>Shortcut smoothing, reporting path length before and after.</li>
+  <li>Shrink a corridor until the planner fails, then add obstacle-biased sampling and repeat.</li>
+</ol>
+
+<p><b>Deliverable:</b> success rate against corridor width for two sampling strategies. This is the
+number that decides whether a sampling-based planner works on a real problem, and it never appears in
+an average-case result.</p>
+
+<h3><span class="num">P.7</span> Stage 6: adversaries</h3>
+
+<ol>
+  <li>Minimax and alpha–beta on a small game; assert identical values on a thousand random trees.</li>
+  <li>Count leaves under random, best-first and worst-first ordering across depths.</li>
+  <li>Check the best-first count against <span class="m">$b^{\lceil d/2\rceil}+b^{\lfloor d/2\rfloor}-1$</span>.</li>
+  <li>Replace perfect ordering with the cheap approximation (best move from a one-ply-shallower
+  search) and measure how much of the benefit survives.</li>
+</ol>
+
+<p><b>Deliverable:</b> leaves against depth for four orderings. Step four is the one that transfers:
+perfect ordering is unavailable and most of its value is not.</p>
+
+<h3><span class="num">P.8</span> Stage 7: the verifier</h3>
+
+<ol>
+  <li>Simulate a candidate population with a base solve rate and an attractive-error mode.</li>
+  <li>Sweep the attractive share; measure verifier accuracy empirically rather than setting it.</li>
+  <li>Find the break-even accuracy at <span class="m">$k=2,4,8,16,32$</span>.</li>
+  <li>Compare argmax selection against majority voting among accepted candidates.</li>
+  <li>Now replace the simulation with something real: a generator you have (any model), a task with a
+  checkable answer, and a deliberately imperfect verifier. Measure the same curve.</li>
+</ol>
+
+<p><b>Deliverable:</b> break-even accuracy against <span class="m">$k$</span>, simulated and real, on
+the same axes. Step five is the whole project: the simulation tells you what shape to expect and
+only the real measurement tells you where your system sits on it.</p>
+
+<h3><span class="num">P.9</span> Stretch</h3>
+
+<ol>
+  <li>Learn a heuristic, calibrate it to be probabilistically admissible, and price the calibration.</li>
+  <li>Implement RRT* and show the cost curve decaying where RRT's is flat.</li>
+  <li>UCT with a learned prior over actions; measure how much prior strength substitutes for budget.</li>
+  <li>Split a fixed compute budget between generator quality and <span class="m">$k$</span>, and find
+  the optimum at two verifier accuracies.</li>
+</ol>
+
+<h3><span class="num">P.10</span> Done when</h3>
+
+<p>You can answer all of these from your own numbers rather than from this part:</p>
+
+<ul>
+  <li>State what admissibility buys and prove it in three lines.</li>
+  <li>Say how much work a perfect heuristic saves, and why it is less than expected.</li>
+  <li>Explain why half a perfect heuristic saves almost nothing.</li>
+  <li>Give the ratio between a weighted A* bound and its behaviour, from your own runs.</li>
+  <li>Show an instance where closing states under an inconsistent heuristic is wrong.</li>
+  <li>Explain when consistency is worth more than tightness, and when it is not.</li>
+  <li>Show a beam width where widening made the answer worse, and say why.</li>
+  <li>Distinguish a valid bound from a tight one, with node counts.</li>
+  <li>Say what censoring is and mark it on a plot.</li>
+  <li>Give the Knuth–Moore count and check it against your own measurement.</li>
+  <li>Explain why move ordering is worth a doubling of depth.</li>
+  <li>State the break-even verifier accuracy at <span class="m">$k=32$</span> and why it rises with
+  <span class="m">$k$</span>.</li>
+  <li>Name the four questions to ask before adding search to a system.</li>
+</ul>
+
+<div class="box why">
+  <span class="label">What this part is for, if you are building learned systems</span>
+  <p>None of the algorithms here will appear verbatim in a modern stack. What appears is their
+  vocabulary, and it is the vocabulary that is missing from most discussions of test-time compute.</p>
+  <p>When someone proposes sampling more candidates, the questions are: what is the branching factor,
+  what is the selection rule, is it admissible in any sense, what is the ceiling, and how good is the
+  scorer. Four of those five have measurable answers and one of them (the ceiling) costs a single
+  run. A team that asks them is doing search engineering. A team that does not is turning
+  <span class="m">$k$</span> up until the metric stops improving, which is the same thing done blind,
+  at greater cost, and with no way to tell a search problem from a model problem.</p>
+</div>
+
+<h2 class="nobreak"><span class="part-kicker">Assess</span>Checkpoint</h2>
+
+<ul class="checklist">
+  <li>Name the five things that define a search problem.</li>
+  <li>Say what the four uninformed algorithms differ in, and give each one's memory.</li>
+  <li>Give iterative deepening's overhead factor and say why it is a good trade.</li>
+  <li>State the four questions to ask of any search algorithm, learned ones included.</li>
+  <li>Explain why choosing the state space matters more than choosing the algorithm.</li>
+  <li>Say what the closed list is for and when discarding a closed state is unsafe.</li>
+  <li>Write A*'s priority and say why it is a lower bound on a solution through that node.</li>
+  <li>Define admissibility and prove A*'s optimality in three lines.</li>
+  <li>Give Figure 1's saving from a perfect heuristic, and say why it is only 4×.</li>
+  <li>Explain why half a perfect heuristic buys almost none of the saving.</li>
+  <li>Say what tie-breaking is worth relative to heuristic strength, and why.</li>
+  <li>State weighted A*'s guarantee and prove it.</li>
+  <li>Give Figure 2's worst measured ratio at <span class="m">$w=8$</span> and what that says about bounds generally.</li>
+  <li>Define consistency and say what it lets you do that admissibility does not.</li>
+  <li>Give Figure 3's re-expansion fraction at sparse coverage.</li>
+  <li>Say when consistency is worth more than tightness, and when it reverses.</li>
+  <li>Explain why a learned heuristic is the sparse inconsistent kind, and the two ways to use it.</li>
+  <li>Name four ways to construct a heuristic and say which is automatic.</li>
+  <li>Define dominance, and say why the maximum of admissible heuristics is free and the sum is not.</li>
+  <li>Name hill climbing's three failure modes and their equivalents in gradient methods.</li>
+  <li>Give the expected number of random restarts, and annealing's acceptance rule.</li>
+  <li>Say what beam search gives up and what it costs in memory and time.</li>
+  <li>Give Figure 4's case where the beam beats exact search, and explain it.</li>
+  <li>Give the fraction of instances a doubled beam made worse.</li>
+  <li>Explain what a degrading metric under a widened beam is actually measuring.</li>
+  <li>Say what makes branch and bound exact, and what decides its cost.</li>
+  <li>Give Figure 5's ratio between the two bounds and say which points are censored.</li>
+  <li>Explain why a bound is the same construction as an admissible heuristic.</li>
+  <li>Say what IDA* trades and when the trade goes wrong.</li>
+  <li>Give the ladder of surrenders from optimality to nothing but an answer.</li>
+  <li>Define configuration space and say why nobody computes the obstacle set.</li>
+  <li>Give the arithmetic that rules out gridding a seven-joint arm.</li>
+  <li>State what probabilistic completeness guarantees and what it does not.</li>
+  <li>Say when a PRM is right and when an RRT is, and why.</li>
+  <li>Explain RRT's Voronoi bias, and what RRT* adds.</li>
+  <li>Name the three layers of a motion stack and their clocks.</li>
+  <li>Write the UCB rule and say what each term does.</li>
+  <li>Name MCTS's four steps and say what UCT adds to a Monte Carlo average.</li>
+  <li>Give Figure 6's flat curve at low exploration and what it means for compute.</li>
+  <li>Say what replacing rollouts with a learned value changed, and what stayed the same.</li>
+  <li>Explain why alpha–beta is exact rather than approximate.</li>
+  <li>Give the Knuth–Moore count and say what ordering is worth in depth.</li>
+  <li>Say why circular reasoning about move ordering is not a problem in practice.</li>
+  <li>Distinguish normal from extensive form, and say what imperfect information breaks.</li>
+  <li>Name the three components of the propose–search–verify shape.</li>
+  <li>Say why pass@<span class="m">$k$</span> is a ceiling rather than a method.</li>
+  <li>Distinguish outcome from process verifiers and say which a tree search needs.</li>
+  <li>Give the break-even verifier accuracy at <span class="m">$k=32$</span> and why it rises with <span class="m">$k$</span>.</li>
+  <li>Explain the mechanism that makes a weak verifier worse with more candidates.</li>
+  <li>Give the four questions to ask before adding search to a system.</li>
+  <li>Name what this part deliberately leaves out, and why.</li>
+</ul>
+
+<div class="box fw">
+  <span class="label">The framework, and the thing outside it</span>
+  <p>Dataset, model family, loss, optimiser. Every part of this book until now has chosen among those
+  and then applied the result in one pass. This part is about the computation that happens after all
+  four choices are made: at the moment the system is used, on the particular question it was
+  asked.</p>
+  <p>That computation obeys its own laws, and they are older than the framework. Optimism buys
+  optimality; a bound describes the worst case rather than the behaviour; the order in which you try
+  things is worth more than the rule you use to prune them; and a selector is only worth using if it
+  is right more often than the thing it is selecting from is. <b>Training decides what your system
+  knows; search decides how much of it you can spend on a hard question</b>, and the second is the
+  half that scales with the problem rather than with the budget you had months ago.</p>
+</div>

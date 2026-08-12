@@ -1,0 +1,298 @@
+<h2><span class="part-kicker">Practice</span>Drills</h2>
+
+<p class="lede">Thirty-three problems. Most are simulations, because statistical claims are
+verifiable by counting; and counting is far more convincing than a derivation you half
+followed.</p>
+
+<h3><span class="num">Tier 0</span> Estimate first</h3>
+
+<div class="drill">
+  <div class="head"><span class="tier est">Estimate</span>E1 &middot; How many samples to see a difference</div>
+  <p>Two models differing by one percentage point in accuracy. Write down how many test examples per arm you need to detect that at 80% power, before working it out.</p>
+  <div class="ans"><b>Answer.</b> About <b>40,000 per arm</b>, from n &asymp; 16&sigma;<sup>2</sup>/&delta;<sup>2</sup> with &sigma;<sup>2</sup> = 0.25. Most people guess a few thousand. This one number explains a large fraction of the results in this field that failed to replicate. <i>Score yourself: within a factor of two is a pass, and an order of magnitude out is worth understanding before you go on.</i></div>
+</div>
+
+<h3><span class="num">Tier 1</span> Warm-up</h3>
+
+<div class="drill">
+  <div class="head"><span class="tier warm">Warm</span>W1 · Estimator or estimate</div>
+  <p>Which is a random variable: $\theta$, $\hat{\theta}$, or the number 4.7 you computed
+  this morning?</p>
+  <div class="ans"><b>Answer.</b> $\hat{\theta}$. The truth $\theta$ is a fixed unknown; 4.7
+  is one realisation. The estimator is the random one, because the data was.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier warm">Warm</span>W2 · Standard error</div>
+  <p>Data has $\sigma = 4$. You take $n = 64$ samples. What is the standard error of the
+  mean?</p>
+  <div class="ans"><b>Answer.</b> $4/\sqrt{64} = 0.5$. Note it is eight times smaller than
+  the data's spread: the estimate is far tighter than any single observation.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier warm">Warm</span>W3 · The cost of precision</div>
+  <p>You want to halve your error bars. How much more data?</p>
+  <div class="ans"><b>Answer.</b> Four times as much. Error falls as $1/\sqrt{n}$, so
+  halving it requires quadrupling $n$.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier warm">Warm</span>W4 · Accuracy interval</div>
+  <p>A model gets 90% on 400 test examples. Roughly how wide is the 95% interval?</p>
+  <div class="ans"><b>Answer.</b> $\text{SE} = \sqrt{0.9 \times 0.1/400} = 0.015$, so about
+  $\pm 3$ percentage points: $[87\%, 93\%]$. Wider than most people assume.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier warm">Warm</span>W5 · Bias of a constant</div>
+  <p>An estimator always returns 5. The truth is 5.2. What is its bias, variance, MSE?</p>
+  <div class="ans"><b>Answer.</b> Bias $-0.2$, variance 0, MSE $= 0 + 0.04 = 0.04$.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier warm">Warm</span>W6 · Degrees of freedom</div>
+  <p>Why divide by $n-1$ for the sample variance?</p>
+  <div class="ans"><b>Answer.</b> Deviations are measured from $\bar{x}$, which was itself
+  fitted to the same data and sits where the squared deviations are smallest. That makes
+  them systematically too small; $n-1$ corrects it exactly.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier warm">Warm</span>W7 · Reading a p-value</div>
+  <p>$p = 0.02$. Which statements are wrong? (a) 2% chance the null is true (b) if the null
+  were true, results this extreme occur 2% of the time (c) 98% chance the effect is
+  real</p>
+  <div class="ans"><b>Answer.</b> (a) and (c) are wrong: both invert the conditional.
+  (b) is the definition.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier warm">Warm</span>W8 · Multiple tests</div>
+  <p>Twenty independent tests at $\alpha = 0.05$. Chance of at least one false positive?</p>
+  <div class="ans"><b>Answer.</b> $1 - 0.95^{20} = 1 - 0.358 = 0.64$. Roughly two in
+  three.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier warm">Warm</span>W9 · Diagnose it</div>
+  <p>Training error 1%, test error 20%. Bias or variance?</p>
+  <div class="ans"><b>Answer.</b> Variance: it fits the training data and not the test set.
+  More data or more regularization; not more capacity.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier warm">Warm</span>W10 · Irreducible error</div>
+  <p>Labels are 5% noisy. What is the best test accuracy any model can reach?</p>
+  <div class="ans"><b>Answer.</b> About 95%. The noise is a property of the world, and no
+  model removes it. A model reporting 99% has learned the noise, which means it will not
+  reproduce.</div>
+</div>
+
+<h3><span class="num">Tier 2</span> Core</h3>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C1 · Build a sampling distribution</div>
+  <p>Draw 10,000 samples of size 20 from a skewed distribution. Histogram the sample means.
+  Compare its spread to $\sigma/\sqrt{n}$.</p>
+  <div class="ans"><b>Answer.</b> Roughly Gaussian despite the skewed source (the CLT), and
+  the measured standard deviation matches $\sigma/\sqrt{20}$ closely. Repeat with $n=5$ and
+  the residual skew is still visible.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C2 · Verify the $n-1$ correction</div>
+  <p>Estimate variance with both $n$ and $n-1$ over 20,000 samples of size 5. Compare each
+  average to the truth.</p>
+  <div class="ans"><b>Answer.</b> The $n$ version averages to $\frac{4}{5}\sigma^2$, biased
+  low by exactly $(n-1)/n$. The $n-1$ version averages to $\sigma^2$. The correction is not
+  folklore.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C3 · Confirm the MSE identity</div>
+  <p>For a deliberately biased estimator, measure bias, variance and MSE separately and check
+  $\text{MSE} = \text{Var} + \text{Bias}^2$.</p>
+  <div class="ans"><b>Answer.</b> They agree to sampling error. Try a shrinkage estimator
+  $\hat{\theta} = c\,\bar{x}$ for $c < 1$ and sweep $c$: MSE has a minimum at some $c$
+  strictly below 1, meaning the biased version wins.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C4 · Measure coverage</div>
+  <p>Build 10,000 95% intervals and count how many contain the truth. Then repeat at
+  $n = 5$.</p>
+  <div class="ans"><b>Answer.</b> About 95% at moderate $n$. At $n = 5$ with the normal
+  formula, coverage falls to roughly 88%: that is the gap Student's $t$ exists to close. Figure 4,
+  right panel.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C5 · Bootstrap a median</div>
+  <p>Implement <code>bootstrap_ci</code> and use it on a median, for which no simple formula
+  exists. Validate against a brute-force sampling distribution.</p>
+  <div class="ans"><b>Answer.</b> The bootstrap distribution closely tracks the true one:
+  Figure 5. Note the median's sampling distribution is visibly non-Gaussian and lumpy for
+  small $n$, which is exactly why you would not want to assume a formula.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C6 · Bootstrap a model metric</div>
+  <p>Take a vector of per-example correctness and bootstrap a confidence interval on
+  accuracy. Compare with the analytic $\sqrt{p(1-p)/n}$.</p>
+  <div class="ans"><b>Answer.</b> They agree closely for accuracy. The value of the bootstrap
+  is that the identical code works for F1, AUC or BLEU, where no formula is at hand.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C7 · p-values under the null</div>
+  <p>Compare two identical populations 10,000 times and histogram the p-values.</p>
+  <div class="ans"><b>Answer.</b> Uniform, with about 5% below 0.05. If your histogram is not
+  flat, your test is miscalibrated. This is the sharpest available check that a test is
+  correct.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C8 · Power curve</div>
+  <p>Measure power against effect size for $n \in \{10, 30, 100\}$. Find the effect size at
+  which $n=30$ reaches 80% power.</p>
+  <div class="ans"><b>Answer.</b> Around 0.7 standard deviations. Anything smaller and a
+  30-sample study will usually miss it. Figure 7.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C9 · Simulate the search</div>
+  <p>Generate $k$ models with <i>identical</i> true accuracy, evaluate each on the same test
+  set, report the best. Plot the optimism against $k$.</p>
+  <div class="ans"><b>Answer.</b> The reported best rises steadily above the truth. Nothing
+  improved: you selected on noise. Figure 9, and the mechanism behind every leaderboard.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C10 · Paired versus unpaired</div>
+  <p>Compare two models on the same test set, once treating the accuracies as independent and
+  once analysing per-example differences. Compare interval widths.</p>
+  <div class="ans"><b>Answer.</b> The paired interval is substantially narrower, because
+  shared example difficulty cancels. Same data, sharper conclusion, the cheapest improvement
+  in this part.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C11 · Bonferroni</div>
+  <p>Run 100 null tests. Count false positives at $\alpha = 0.05$, then at $\alpha/100$.</p>
+  <div class="ans"><b>Answer.</b> About 5 without correction, about 0.05 with. Bonferroni is
+  crude and conservative (it costs real power), but it is one line and always
+  defensible.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C12 · MAP versus MLE</div>
+  <p>Estimate a coin's bias from $k$ heads in $n$ flips, with and without a prior favouring
+  fairness. Sweep $n$ from 2 to 500.</p>
+  <div class="ans"><b>Answer.</b> At small $n$ the MAP estimate sits far closer to 0.5; by
+  $n=500$ they are indistinguishable. Figure 10. Note MLE gives $\hat\phi = 0$ after zero
+  heads, declaring the impossible; the prior fixes that.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C13 · Weight decay is a prior</div>
+  <p>Fit ridge regression at several $\lambda$. Separately, do MAP with a Gaussian prior of
+  variance $\tau^2$. Confirm $\lambda = 1/2\tau^2$ gives identical coefficients.</p>
+  <div class="ans"><b>Answer.</b> They match to numerical precision. Not analogous:
+  identical optimisation problems, as §18 derives.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C14 · Measure bias and variance</div>
+  <p>Fit polynomials of degree 0–12 on 300 fresh training sets each. Compute bias², variance
+  and total error at held-out points. Plot all three.</p>
+  <div class="ans"><b>Answer.</b> You reproduce Figure 12. The key implementation point:
+  bias needs the <i>average prediction across training sets</i>, so you must keep all 300
+  prediction vectors, not just their errors.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C15 · Shrinkage beats the obvious</div>
+  <p>Estimate a mean by $\bar{x}$ and by $c\bar{x}$ for $c \in [0,1]$. Find the $c$ minimising
+  MSE when the truth is near zero and $n$ is small.</p>
+  <div class="ans"><b>Answer.</b> The optimum is strictly below 1, and depends on the ratio
+  of truth to noise. This is the whole idea of regularization, in one dimension, with no
+  machine learning attached.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C16 · Find the bug</div>
+  <p>This reports a confidence interval on accuracy. It is too narrow. Why?</p>
+  <pre><code>acc = correct.mean()
+se  = correct.std() / len(correct)
+ci  = (acc - <span class="n">1.96</span>*se, acc + <span class="n">1.96</span>*se)</code></pre>
+  <div class="ans"><b>Answer.</b> Divided by $n$ instead of $\sqrt{n}$. With $n = 1000$ the
+  interval is about 32 times too narrow. The standard error is $s/\sqrt{n}$, the single most
+  common slip in this material.</div>
+</div>
+
+<h3><span class="num">Tier 3</span> Stretch</h3>
+
+<div class="drill">
+  <div class="head"><span class="tier stretch">Stretch</span>S1 · Reproduce double descent</div>
+  <p>Sweep random-feature model width past the number of training points. Find the peak.</p>
+  <div class="ans"><b>Answer.</b> The peak sits at width $\approx n_{\text{train}}$. Critical
+  detail: you need the <b>true minimum-norm</b> solution. <code>np.linalg.pinv</code>'s
+  default <code>rcond</code> truncates small singular values, which is implicit
+  regularization and erases the peak entirely; with the default the maximum sits at width 1,
+  which is just underfitting. Pass <code>rcond=1e-15</code>. Figure 13.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier stretch">Stretch</span>S2 · Adaptive overfitting</div>
+  <p>Simulate a researcher who repeatedly tweaks a model based on test-set feedback. Track
+  true versus reported accuracy over 200 rounds.</p>
+  <div class="ans"><b>Answer.</b> Reported accuracy climbs while true accuracy is flat. Because
+  the researcher is genuinely <i>adaptive</i> (each round's tweak can depend on every gap seen
+  so far, not just on a fixed menu of $k$ candidates chosen in advance), the gap grows faster
+  than the static max-over-$k$ rate $\sqrt{\log k / n}$ from §14; the adaptive worst case is
+  $\sqrt{k / n}$, the result behind §15's Dwork et al. (2015) reusable holdout. This is the
+  formal version of "the test set wears out", and it is why held-out sets are refreshed in
+  serious benchmarks.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier stretch">Stretch</span>S3 · The bootstrap can fail</div>
+  <p>Bootstrap the <i>maximum</i> of a sample. Compare against the true sampling
+  distribution.</p>
+  <div class="ans"><b>Answer.</b> It fails badly. The bootstrap can never produce a value
+  larger than the observed maximum, so its distribution is truncated and wrong. The bootstrap
+  assumes the statistic depends smoothly on the distribution; extremes violate that. Knowing
+  where a method breaks is part of owning it.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier stretch">Stretch</span>S4 · False discovery rate</div>
+  <p>Implement Benjamini–Hochberg and compare against Bonferroni on 1,000 tests where 50 have
+  real effects.</p>
+  <div class="ans"><b>Answer.</b> Bonferroni controls the chance of <i>any</i> false positive
+  and misses most real effects. BH controls the <i>proportion</i> of discoveries that are
+  false, and finds far more of the real ones. When you are screening many hypotheses, FDR is
+  usually the quantity you actually care about.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier stretch">Stretch</span>S5 · Confidence versus credible</div>
+  <p>Construct both intervals for the same problem. Find a case where they differ noticeably,
+  and say what each is claiming.</p>
+  <div class="ans"><b>Answer.</b> With little data and an informative prior they diverge
+  sharply. The confidence interval makes a claim about the <i>procedure's</i> long-run
+  behaviour; the credible interval makes a claim about <i>this</i> parameter, and needs a
+  prior to do so. Neither is wrong; they answer different questions, which §9 is at pains to
+  separate.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier stretch">Stretch</span>S6 · Cross-validation is biased too</div>
+  <p>Use $k$-fold CV to select among models, then report the best CV score as the performance
+  estimate. Compare against a genuinely held-out set.</p>
+  <div class="ans"><b>Answer.</b> The best CV score is optimistic, for the reason in §14:
+  you selected a maximum over many noisy estimates. Cross-validation is a good <i>selection</i>
+  procedure and a biased <i>evaluation</i> of the selected model. Nested CV separates the
+  two, at considerable computational cost.</div>
+</div>

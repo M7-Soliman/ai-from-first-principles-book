@@ -1,0 +1,128 @@
+<h2><span class="part-kicker">Part E</span>Continuous time</h2>
+
+<p class="mvt">Part XVI taught diffusion models as a ladder of discrete noise levels. The literature
+writes them as a stochastic differential equation, and the change is not cosmetic: it produces a
+second sampler that shares the first one's marginals, an exact likelihood, and a vocabulary in which
+the design choices become visible.</p>
+
+<h3><span class="num">§33</span> Brownian motion</h3>
+
+<div class="box def">
+  <span class="label">The object everything here is built from</span>
+  <p>A <b>Wiener process</b> <span class="m">$W_t$</span> starts at zero, has independent
+  increments, and <span class="m">$W_{t+\Delta} - W_t \sim \mathcal{N}(0, \Delta)$</span>.</p>
+  <p>The consequence that matters is the scaling: displacement grows as
+  <span class="m">$\sqrt{\Delta}$</span>, not as <span class="m">$\Delta$</span>. So the path is
+  continuous and nowhere differentiable, and over a short interval it moves much further than
+  anything with a velocity would. Every unfamiliar thing in this movement follows from that one
+  square root.</p>
+</div>
+
+<h3><span class="num">§34</span> Stochastic differential equations</h3>
+
+<div class="box def">
+  <span class="label">Drift and diffusion</span>
+  <p class="m">$$d\mathbf{x} \;=\; \underbrace{f(\mathbf{x}, t)\,dt}_{\text{drift}}
+  \;+\; \underbrace{g(t)\,d\mathbf{W}}_{\text{diffusion}}$$</p>
+  <p>Read as: over an instant, move deterministically by <span class="m">$f\,dt$</span> and randomly
+  by <span class="m">$g$</span> times a Gaussian of standard deviation
+  <span class="m">$\sqrt{dt}$</span>. Simulating it by Euler–Maruyama is that sentence written as
+  code, and the <span class="m">$\sqrt{\Delta t}$</span> on the noise term is the only thing that
+  distinguishes it from an ODE solver.</p>
+  <p>Part XVI's forward process is one of these: <span class="m">$f = -\tfrac{1}{2}\beta(t)\mathbf{x}$</span>
+  shrinks the data toward the origin and <span class="m">$g = \sqrt{\beta(t)}$</span> adds noise, so
+  the distribution flows from the data to a standard Gaussian. The "noise schedule" that arrives as
+  a mysterious list of numbers is <span class="m">$\beta(t)$</span>.</p>
+</div>
+
+<h3><span class="num">§35</span> Itô's lemma, and why calculus changes</h3>
+
+<div class="box why">
+  <span class="label">The chain rule acquires a term</span>
+  <p>For an ordinary function of a deterministic path, second-order terms vanish. Here they do not:
+  <span class="m">$(dW)^2 = dt$</span> rather than something negligible, because of §33's square
+  root. So</p>
+  <p class="m">$$dh(\mathbf{x}_t) \;=\; \left(\frac{\partial h}{\partial t} + f\cdot\nabla h + \tfrac{1}{2}g^2 \nabla^2 h\right) dt \;+\; g\,\nabla h \cdot d\mathbf{W}$$</p>
+  <p>The extra Laplacian term is not a correction to be dropped. It is why a martingale can have a
+  non-zero expected change under a nonlinear transformation, and, more usefully here, it is what
+  the Fokker–Planck equation for the density is built from, which is where the next section's result
+  comes from.</p>
+</div>
+
+<h3><span class="num">§36</span> The reverse-time SDE</h3>
+
+<div class="box def">
+  <span class="label">The result the whole field rests on</span>
+  <p>A diffusion run backwards in time is another diffusion, and its drift involves the gradient of
+  the log density:</p>
+  <p class="m">$$d\mathbf{x} \;=\; \left[f(\mathbf{x},t) - g(t)^2\,\nabla_{\mathbf{x}} \log p_t(\mathbf{x})\right] dt \;+\; g(t)\, d\bar{\mathbf{W}}$$</p>
+  <p>Everything in the bracket is known except <span class="m">$\nabla \log p_t$</span>, the
+  <b>score</b>. So: corrupt data with a process you designed, learn the score of the corrupted
+  distribution at every noise level, and run the reverse process to generate. That is the whole
+  algorithm, and Part XVI §23's score matching is how the score is learned.</p>
+</div>
+
+<h3><span class="num">§37</span> The probability-flow ODE</h3>
+
+<div class="box def">
+  <span class="label">The same marginals with no noise at all</span>
+  <p>There is a deterministic equation whose marginal distribution at every time matches the SDE's:</p>
+  <p class="m">$$\frac{d\mathbf{x}}{dt} \;=\; f(\mathbf{x},t) - \tfrac{1}{2}g(t)^2\,\nabla_{\mathbf{x}} \log p_t(\mathbf{x})$$</p>
+  <p>Half the score term, and no noise. The paths are completely different (this one is invertible
+  and the SDE's are not) while the distribution at each time is the same.</p>
+  <p>Three things follow. Sampling becomes deterministic given the starting noise, so a seed is a
+  sample. The map is invertible, so an image can be encoded to its latent and back. And because it
+  is a continuous normalising flow, the exact log-likelihood is available, which the SDE does not
+  give.</p>
+</div>
+
+<figure>
+  <img src="figures/pb/07-sde.svg" alt="Left: variance of generated samples against integration steps for the ODE and the SDE, with the target. Right: 24 runs from a single starting point for each">
+  <figcaption><b>Figure 7.</b> A mixture target whose exact score is available at every noise level,
+  so both integrators are compared against the truth rather than against a trained network.
+  <b>Left:</b> both approach the target variance of 4.251 as steps are added (the SDE reaching
+  4.200 and the ODE 4.110 at 100 steps), with the SDE closer at <i>every</i> step count under
+  first-order integration. <b>Right:</b> twenty-four runs from one starting point. The ODE's spread
+  is <b>exactly zero</b>; the SDE's is <b>2.03</b>.</figcaption>
+</figure>
+
+<div class="box why">
+  <span class="label">One folk claim, corrected</span>
+  <p>The ODE is often said to need fewer steps than the SDE. Figure 7 measures the opposite with
+  Euler integration, and the resolution is that the claim is about <i>higher-order solvers</i>. A
+  deterministic equation admits them and a stochastic one does not, which is where the advantage
+  comes from, not from removing the noise.</p>
+  <p>Read the other way, the noise is doing something: it is a correction that pulls a drifting
+  trajectory back toward the correct marginal, and at low step counts with a crude integrator that
+  correction is worth more than determinism.</p>
+</div>
+
+<h3><span class="num">§38</span> What this reframes about Part XVI</h3>
+
+<div class="box shapes">
+  <span class="label">Four things that were choices and looked like conventions</span>
+  <p><b>The noise schedule</b> is <span class="m">$\beta(t)$</span>, and variance-preserving against
+  variance-exploding is a choice of <span class="m">$f$</span> and <span class="m">$g$</span>
+  rather than two separate algorithms.</p>
+  <p><b>The number of sampling steps</b> is a discretisation, so a better solver buys steps directly,
+  which is what every fast sampler in the literature is.</p>
+  <p><b>Guidance</b> modifies the score, so it modifies the drift; classifier-free guidance is
+  extrapolating between two drifts and its characteristic distortion at high strength is the
+  extrapolation, not a training defect.</p>
+  <p><b>Flow matching</b> (Part XVI §32) drops the stochastic process and regresses the ODE's
+  velocity field directly, which is why it can use straighter paths and fewer steps. Movement F's
+  transport is where those straight paths come from.</p>
+</div>
+
+<h3><span class="num">§39</span> What movement E establishes</h3>
+
+<div class="box intuition">
+  <span class="label">Three things</span>
+  <p><b>Noise scales as the square root of time</b>, and every unfamiliar thing in stochastic
+  calculus, including Itô's extra term, is that fact.</p>
+  <p><b>A diffusion reversed is a diffusion whose drift needs the score.</b> That single result is
+  what makes generative diffusion possible, and Part XVI's discrete ladder is its discretisation.</p>
+  <p><b>The same marginals admit a deterministic sampler</b>, which buys invertibility and an exact
+  likelihood, and Figure 7 measures the honest cost: with a first-order solver it is <i>less</i>
+  accurate, not more.</p>
+</div>

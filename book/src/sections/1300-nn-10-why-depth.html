@@ -1,0 +1,187 @@
+<h2><span class="part-kicker">Part A</span>Why depth</h2>
+
+<h3><span class="num">§1</span> The problem that stopped the field</h3>
+
+<div class="sixty">
+  <span class="label">In 60 seconds</span>
+  <p>A linear model draws one straight boundary. Some problems need more: the smallest is
+  <b>XOR</b>, four points that no line separates. The fix is not a cleverer line but an extra
+  layer: transform the input first, then draw the line in the transformed space. That single
+  move is what "hidden layer" means.</p>
+</div>
+
+<div class="readnow"><span class="label">Go and read</span><p><span class="src">Rosenblatt (1958)</span>, <i>The perceptron: a probabilistic model for information storage</i>. Where trainable classifiers begin, and worth reading beside the press coverage it attracted. Then <span class="src">Minsky &amp; Papert (1969)</span>, <i>Perceptrons</i>, the critique this section is about. Read enough of it to see that it is <b>correct</b> and carefully limited to single layers, which makes the fifteen years that followed a fact about how the field read it rather than about what it said.</p></div>
+
+<p>Take four points and a rule: output 1 when exactly one input is on.</p>
+
+<table class="compact" style="max-width:16em">
+  <thead><tr><th>$x_1$</th><th>$x_2$</th><th>$y$</th></tr></thead>
+  <tbody>
+    <tr><td>0</td><td>0</td><td>0</td></tr>
+    <tr><td>0</td><td>1</td><td>1</td></tr>
+    <tr><td>1</td><td>0</td><td>1</td></tr>
+    <tr><td>1</td><td>1</td><td>0</td></tr>
+  </tbody>
+</table>
+
+<p>Try to separate the ones from the zeros with a straight line. You cannot; the two
+positive points sit on opposite corners, with a negative point on either side of any line you
+draw. A linear model of the form $\mathbf{w}^\top\mathbf{x} + b$ cannot represent this
+function at all, at any setting of its parameters.</p>
+
+<figure>
+  <img src="figures/nn/01-xor.svg" alt="XOR unseparable by a line, separated after a hidden layer, and the learned function">
+  <figcaption><b>Figure 1.</b> Left: the four points, with two failed attempts at a
+  separating line. Middle: the same four points after passing through a trained
+  two-unit hidden layer: two of them now coincide, and a single line separates them
+  cleanly. Right: the resulting function over the whole input plane. This is a real network,
+  trained by real backpropagation.</figcaption>
+</figure>
+
+<div class="box history">
+  <span class="label">History: the four points that caused a winter</span>
+  <p>Frank Rosenblatt's <b>perceptron</b>, from <span class="year">1958</span>, was a
+  trainable linear classifier with a learning rule guaranteed to converge if the data was
+  linearly separable. It generated enormous excitement, some of it wildly overstated in the
+  press of the time.</p>
+  <p>In <span class="year">1969</span> Marvin Minsky and Seymour Papert published a careful
+  mathematical analysis of what perceptrons could and could not do. Their central example
+  was XOR: a function of two binary inputs, trivially simple, and provably beyond a single
+  linear unit.</p>
+  <p>The critique was correct. What it did not establish (and what was widely taken from it)
+  was that <i>layered</i> networks were equally limited. Minsky and Papert noted the
+  multi-layer case was open; nobody had a training algorithm for it, which was the real
+  obstacle.</p>
+  <p>Funding and interest collapsed regardless, and neural network research entered roughly
+  fifteen lean years now called the first <b>AI winter</b>. The training algorithm that
+  resolved it (backpropagation, §14) existed in other fields for much of that period,
+  unconnected to the problem it would solve.</p>
+</div>
+
+<h3><span class="num">§2</span> What a hidden layer actually does</h3>
+
+<p>The resolution is visible in the middle panel of Figure 1, and it is worth being precise
+about.</p>
+
+<p>The network computes</p>
+
+$$\mathbf{h} = g\big(W^{(1)}\mathbf{x} + \mathbf{b}^{(1)}\big), \qquad
+  \hat{y} = \sigma\big(\mathbf{w}^{(2)\top}\mathbf{h} + b^{(2)}\big)$$
+
+<p>The second line is exactly logistic regression from Part VI §13, an ordinary linear
+classifier. The difference is that it does not act on $\mathbf{x}$. It acts on
+$\mathbf{h}$, a <b>learned representation</b> of $\mathbf{x}$.</p>
+
+<div class="box intuition">
+  <span class="label">Intuition: learn the features, then draw the line</span>
+  <p>Part VI §12 noted that linear models become nonlinear once you feed them the right
+  features, and that the limitation was never curvature; it was that <i>you</i> had to
+  choose the features.</p>
+  <p>A hidden layer chooses them for you. The first layer learns a transformation that makes
+  the problem linearly separable; the last layer solves the now-easy problem. Depth is
+  automated feature engineering, and that sentence is close to the whole idea.</p>
+</div>
+
+<div class="box pitfall">
+  <span class="label">Pitfall: without the nonlinearity, depth buys nothing</span>
+  <p>If $g$ were the identity, the network would compute
+  $W^{(2)}W^{(1)}\mathbf{x} = W\mathbf{x}$, one matrix, by associativity. A stack of linear
+  maps is a linear map, so a hundred layers would still only draw one straight boundary.</p>
+  <p>This was Part I's drill S6, and it is the formal reason the nonlinearity is not
+  optional. Everything depth provides comes from $g$ being something other than the
+  identity.</p>
+</div>
+
+<h3><span class="num">§3</span> Universal approximation</h3>
+
+<div class="sixty">
+  <span class="label">In 60 seconds</span>
+  <p>A network with <b>one</b> hidden layer, given enough units, can approximate any
+  continuous function on a bounded region to any accuracy you like. That result sounds like
+  it ends the discussion. It does not, and understanding why is more useful than the theorem
+  itself.</p>
+</div>
+
+<div class="readnow"><span class="label">Go and read</span><p><span class="src">Cybenko (1989)</span>, <i>Approximation by superpositions of a sigmoidal function</i>. Short, and worth reading <i>precisely to see how little it promises</i>: that a sufficient width exists, with no bound on it, no procedure for finding the weights, and no claim that gradient descent could. <span class="src">Hornik (1991)</span> generalises it beyond sigmoids. The gap between what these theorems say and what they are usually taken to say is the subject of the rest of this section.</p></div>
+
+<figure>
+  <img src="figures/nn/02-universal-approximation.svg" alt="A target curve approximated increasingly well by 3, 10 and 60 hidden units">
+  <figcaption><b>Figure 2.</b> The same target function fitted with 3, 10 and 60 hidden
+  units. Each is a real least-squares fit of the output layer over random hidden features.
+  More units, closer approximation, with no limit other than how many you are willing to
+  pay for.</figcaption>
+</figure>
+
+<div class="box why">
+  <span class="label">Why this matters less than it appears</span>
+  <p>The theorem is an <b>existence</b> result, and it is silent on all three things you
+  actually need.</p>
+  <p><b>How many units?</b> Possibly exponentially many in the input dimension. "Finite" is a
+  weak promise.</p>
+  <p><b>Can training find it?</b> The theorem says a good setting of the weights exists. It
+  does not say gradient descent will reach it, and the loss surface is not convex.</p>
+  <p><b>Will it generalise?</b> A network that can represent any function can represent the
+  noise too. Part VI §7 already established that unrestricted flexibility is not an asset.</p>
+  <p>So universal approximation rules out one worry (that networks are fundamentally too weak)
+  and leaves every practical question open. It is a licence, not a method.</p>
+</div>
+
+<h3><span class="num">§4</span> Why depth rather than width</h3>
+
+<p>If one hidden layer suffices in principle, why does anyone use fifty?</p>
+
+<p>Because "in principle" hides a cost. The same total budget of units, arranged deeper,
+buys far more structure than arranged wider.</p>
+
+<figure>
+  <img src="figures/nn/03-depth-vs-width.svg" alt="Region count growing with depth, and random deep networks producing more folds">
+  <figcaption><b>Figure 3.</b> Left: with a fixed budget of thirty units, the number of
+  distinct linear regions the network can carve grows <b>exponentially</b> with depth (from
+  30 at depth 1 to over 15,000 at depth 6). Right: random
+  untrained networks at three depths, where deeper ones fold the input line into more pieces,
+  before any training at all.</figcaption>
+</figure>
+
+<div class="box intuition">
+  <span class="label">Intuition: folding paper</span>
+  <p>Each layer can fold the input space, and a later layer folds the already-folded result.
+  Fold a sheet of paper once and cut it, and you get two cuts; fold it ten times and one cut
+  produces a thousand. The folds <b>compose multiplicatively</b>.</p>
+  <p>A wide shallow network must draw every region separately, so its capacity grows with the
+  number of units. A deep one reuses the earlier folds, so its capacity grows with the
+  <i>product</i> across layers. That is the same compositional prior Part VI §22 argued was
+  necessary, expressed as geometry.</p>
+</div>
+
+<p>There is a second argument, and in practice it may matter more. Depth encourages
+<b>reuse</b>. A feature computed in an early layer (an edge, a phoneme, a syntactic
+relation) is available to every later layer and to every downstream computation. A shallow
+network must rediscover it independently wherever it is needed.</p>
+
+<div class="box pitfall">
+  <span class="label">Pitfall: more depth is not free</span>
+  <p>Everything above is about what a deep network <i>can represent</i>. Whether you can
+  <i>train</i> it is a separate question, and for a long time the answer was no.</p>
+  <p>Section 18 shows the mechanism: gradients passing through many layers are multiplied by
+  one factor per layer, and products of many factors either vanish or explode. Depth was
+  understood to be desirable well before it was achievable, and the intervening work
+  (better activations, better initialisation, normalisation, residual connections) was about
+  making the gradient survive the trip.</p>
+</div>
+
+<div class="box try">
+  <span class="label">Try it</span>
+  <p>You have a budget of 64 hidden units. Sketch the argument for spending them as one layer
+  of 64, versus four layers of 16. What does each buy, and what does each risk?</p>
+</div>
+
+<p><b>Answer.</b> <b>One layer of 64:</b> guaranteed trainable, as gradients pass through a
+single layer, so nothing vanishes. Capacity grows linearly in the units, so the network can
+carve roughly 64 regions and must learn each independently.</p>
+<p><b>Four layers of 16:</b> far greater representational capacity for the same parameter
+count, because the folds compose, and features learned early are reused throughout. The
+risk is the gradient path: four layers of multiplication, and if the activations or the
+initialisation are poor, the early layers may receive almost nothing.</p>
+<p>In practice the deeper arrangement wins, <i>provided</i> you use the activations of §7 and
+the initialisation of §11. Those two sections are what converted the depth argument from
+theory into practice, and before them the shallow answer was frequently correct.</p>

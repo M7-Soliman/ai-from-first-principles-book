@@ -1,0 +1,424 @@
+<h2><span class="part-kicker">Part F</span>Decompositions</h2>
+
+<p class="lede">A decomposition breaks a matrix into simpler factors that reveal what it
+actually does. This is the mathematically deepest part of the chapter and the part
+where slowing down is correct. Sections 17 and 19 in particular deserve more than one
+reading; that is normal, not a warning sign.</p>
+
+<h3><span class="num">§17</span> Eigendecomposition</h3>
+
+<div class="sixty">
+  <span class="label">In 60 seconds</span>
+  <p>Most vectors get turned by a matrix. A few only get <b>stretched</b>, staying on
+  their own line; those are the <b>eigenvectors</b>, and the stretch factors are the
+  <b>eigenvalues</b>. They are the matrix's natural axes: viewed in that coordinate system,
+  a complicated matrix becomes a simple diagonal one. A zero eigenvalue means a direction
+  was annihilated, which is exactly what makes a matrix non-invertible.</p>
+</div>
+
+<div class="box history">
+  <span class="label">History: a word that is half German by accident</span>
+  <p>"Eigenvector" is a hybrid, and the seam is visible. German <i>eigen</i> means own, or
+  proper, or characteristic; an eigenvector is a matrix's <i>own</i> vector, the direction
+  belonging to it.</p>
+  <p>The concepts arrived in the eighteenth century through the study of rotating bodies
+  and vibrating systems: Euler and Lagrange found that a spinning object has special axes
+  about which it rotates without wobbling, which is precisely an eigenvector problem.
+  Cauchy connected the idea to quadratic forms in the <span class="year">1820</span>s.</p>
+  <p>David Hilbert, working on integral equations around <span class="year">1904</span>,
+  used <i>Eigenwert</i> and <i>Eigenfunktion</i>, and his terminology dominated. English
+  mathematicians tried "proper value", "characteristic value" and "latent root": the last
+  from Sylvester, who meant that the values lie latent in the matrix awaiting extraction.
+  All three lost.</p>
+  <p>What survived is a compound in which the German half was never translated. There is
+  no eigen in English; there is only this word.</p>
+</div>
+
+<p>Start with a question rather than a definition, because the definition is much
+easier to absorb once you know what it is answering.</p>
+
+<p>A matrix $A$ takes vectors and moves them, generally changing both direction and
+length. But maybe some special vectors only get <i>stretched</i>, staying on the line
+they started on. Do such directions exist? If so, they would be the natural axes of
+$A$: the directions along which its behaviour is simply "multiply by a number."</p>
+
+<div class="box def">
+  <span class="label">Definition: eigenvector and eigenvalue</span>
+  <p>A non-zero vector $\mathbf{v}$ is an <b>eigenvector</b> of $A$ if
+  $$A\mathbf{v} = \lambda \mathbf{v}$$
+  for some scalar $\lambda$, called the corresponding <b>eigenvalue</b>.</p>
+</div>
+
+<p>Read the equation aloud, because it is more approachable than it looks: applying the
+whole matrix $A$ to this particular vector does the same thing as multiplying it by a
+single number. All the matrix's complexity collapses, along this one direction, into
+one scalar.</p>
+
+<p>The German prefix <i>eigen</i> means "own" or "characteristic"; these are the
+matrix's own directions.</p>
+
+<figure>
+  <img src="figures/la/06-eigenvectors.svg" alt="Eigenvectors keep their direction under A">
+  <figcaption><b>Figure 6.</b> A fan of input vectors on the left; the same vectors
+  after applying $A = \left[\begin{smallmatrix} 2 & 1 \\ 1 & 2 \end{smallmatrix}\right]$
+  on the right. Almost every arrow swung to a new direction. The two coloured ones did
+  not; they only changed length, by factors of $3$ and $1$. Those are the
+  eigenvectors, and the factors are the eigenvalues. Computed with
+  <code>numpy.linalg.eigh</code>, not drawn by hand.</figcaption>
+</figure>
+
+<div class="box intuition">
+  <span class="label">Intuition: the natural axes</span>
+  <p>Picture a rubber sheet being stretched. Most drawn-on arrows change direction as
+  the sheet deforms. But there are special directions along which the stretch is purely
+  outward, with no twisting. Those are the eigenvectors, and how much the stretch
+  multiplies them is the eigenvalue.</p>
+  <p>The reason this matters: <b>in the coordinate system built from eigenvectors, a
+  complicated matrix becomes a diagonal one.</b> All the mixing between coordinates
+  disappears, and what remains is independent scaling per axis. Since §16 established
+  that diagonal matrices are trivially easy, finding eigenvectors amounts to finding the
+  point of view from which a hard problem becomes an easy one.</p>
+</div>
+
+<h4>What eigenvectors are actually for</h4>
+
+<p>The definition is easy to state and easy to forget, because on first meeting it can
+seem like a curiosity: a few directions that happen to behave unusually. Here is the
+problem they solve, and once you have seen it the whole section acquires a point.</p>
+
+<p>Ask what happens when a matrix is applied <b>over and over</b>. This is not a contrived
+question; it is the normal situation. A system that evolves in steps applies the same
+transformation each step. A recurrent network applies the same weight matrix at every
+position in a sequence. A deep network with tied weights does the same. PageRank, the
+algorithm that made Google, is one matrix applied repeatedly until the answer stops
+moving.</p>
+
+<p>Computing $A^{10}\mathbf{x}$ directly means ten matrix multiplications, and worse,
+looking at $A^{10}$ tells you nothing you could have predicted from looking at $A$. The
+entries scramble. There is no pattern to read.</p>
+
+<p>Now do it with an eigenvector. If $A\mathbf{v} = \lambda\mathbf{v}$, then applying $A$
+again just multiplies by $\lambda$ again:</p>
+
+$$A^2\mathbf{v} = A(\lambda\mathbf{v}) = \lambda A\mathbf{v} = \lambda^2\mathbf{v},
+\qquad\text{and in general}\qquad A^{k}\mathbf{v} = \lambda^{k}\mathbf{v}$$
+
+<p>Ten applications of a complicated matrix have become one number raised to the tenth
+power. And since every vector can be written as a combination of eigenvectors (when there
+is a full set), this is not a special case; it is the general one. Decompose your input
+into eigen-directions, raise each eigenvalue to the power you need, and reassemble. The
+hard problem became arithmetic.</p>
+
+<div class="box intuition">
+  <span class="label">Intuition: the eigenvalues decide the long run</span>
+  <p>That formula also tells you the fate of the system without computing anything. Each
+  direction is scaled by $\lambda^k$ at step $k$, so after many steps the direction with
+  the <b>largest $|\lambda|$ dominates everything else</b>: its component grows fastest,
+  or shrinks slowest, and the rest become negligible beside it.</p>
+  <p>Three regimes, and each is something you will meet by name:</p>
+  <ul class="tight">
+    <li><b>Largest $|\lambda| > 1$:</b> the system blows up, and it blows up along that
+    eigenvector. This is exploding gradients in a recurrent network.</li>
+    <li><b>All $|\lambda| < 1$:</b> everything decays to zero. This is vanishing
+    gradients, and Part VII's chain of shrinking factors is this statement.</li>
+    <li><b>Largest $\lambda = 1$:</b> the system settles onto that eigenvector and stays.
+    That steady state is what PageRank computes, and what a Markov chain converges to.</li>
+  </ul>
+  <p>So eigenvalues are not a technical device for factoring matrices. They are the
+  answer to "what does this thing do if you keep doing it", which is a question the rest
+  of this book asks constantly.</p>
+</div>
+
+<h4>Reading the eigenvalues</h4>
+
+<p>The sign and magnitude of $\lambda$ each say something concrete:</p>
+
+<table class="compact">
+  <thead><tr><th>Eigenvalue</th><th>Effect along that direction</th></tr></thead>
+  <tbody>
+    <tr><td>$\lambda > 1$</td><td>stretched outward</td></tr>
+    <tr><td>$\lambda = 1$</td><td>unchanged (fixed direction)</td></tr>
+    <tr><td>$0 < \lambda < 1$</td><td>compressed toward the origin</td></tr>
+    <tr><td>$\lambda = 0$</td><td><b>collapsed to zero.</b> This direction is annihilated; the matrix is singular</td></tr>
+    <tr><td>$\lambda < 0$</td><td>flipped to the opposite side, and scaled by $|\lambda|$</td></tr>
+  </tbody>
+</table>
+
+<p>The $\lambda = 0$ row connects back to §11 and deserves emphasis. A zero eigenvalue
+means some direction is mapped entirely to the origin: information destroyed, no way
+back. <b>A matrix is invertible if and only if none of its eigenvalues is zero.</b>
+That is the cleanest characterisation of invertibility we have, and it is a much
+sharper tool than the definition in §10.</p>
+
+<h4>The decomposition itself</h4>
+
+<p>Suppose $A$ is $n \times n$ and has $n$ linearly independent eigenvectors. Stack
+them as the columns of a matrix $V$, and put the eigenvalues along a diagonal matrix
+$\Lambda$. Then:</p>
+
+$$A = V \Lambda V^{-1}$$
+
+<p>Rather than accepting this, read it as a three-step story under the function view,
+remembering from §5 that the rightmost factor acts first:</p>
+
+<ol>
+  <li>$V^{-1}$: <b>translate into eigen-coordinates.</b> Re-express the incoming vector
+  in terms of the eigenvector axes rather than the standard ones.</li>
+  <li>$\Lambda$: <b>scale each axis independently.</b> In these coordinates the matrix
+  is diagonal, so this is just multiplication by a number per axis. All the work happens
+  here, and all of it is easy.</li>
+  <li>$V$: <b>translate back</b> into the original coordinate system.</li>
+</ol>
+
+<p>Every eigendecomposition says the same thing: <i>this complicated transformation is
+a simple scaling, viewed from the correct angle.</i> The two outer factors are just the
+change of perspective and its undo.</p>
+
+<h4>The symmetric case, which is the one we need</h4>
+
+<p>For general matrices, eigendecomposition is messy: eigenvalues can be complex,
+eigenvectors need not be perpendicular, and some matrices have no full set at all.
+For <b>symmetric</b> matrices, everything is clean:</p>
+
+<div class="box def">
+  <span class="label">The spectral theorem (symmetric case)</span>
+  <p>Every real symmetric matrix can be decomposed as
+  $$A = Q \Lambda Q^\top$$
+  where $\Lambda$ is diagonal with <b>real</b> eigenvalues, and $Q$ is <b>orthogonal</b>.
+  Its columns are mutually perpendicular unit eigenvectors.</p>
+</div>
+
+<p>Compare with the general form and notice the single change: $V^{-1}$ became
+$Q^\top$. That is §16's payoff arriving exactly when needed. Because $Q$ is orthogonal,
+its inverse is free, the decomposition is numerically stable, and the eigenvectors form
+a proper perpendicular coordinate system.</p>
+
+<p>This is not a niche special case. The matrices that matter most in this book (covariance matrices in §23 and Part V, Hessians in Part III, Gram matrices) are
+all symmetric. The spectral theorem is the reason those objects are tractable.</p>
+
+<div class="box pitfall">
+  <span class="label">Pitfall: eigenvectors are not unique</span>
+  <p>If $\mathbf{v}$ is an eigenvector then so is $2\mathbf{v}$, and so is
+  $-\mathbf{v}$: scaling both sides of $A\mathbf{v} = \lambda\mathbf{v}$ leaves the
+  equation true. Software resolves the ambiguity by returning unit-length eigenvectors,
+  but the <i>sign</i> stays arbitrary. So if your PCA plot comes out mirrored compared
+  to a colleague's, nothing is wrong; you have the same eigenvector with the opposite
+  sign. Do not go hunting for a bug that is not there.</p>
+  <p>Relatedly, when two eigenvalues are equal, any combination of their eigenvectors is
+  also an eigenvector, so the individual directions are genuinely not determined.</p>
+</div>
+
+<h4>How you find them</h4>
+
+<p>The definition says what an eigenvector is but not how to locate one, and the gap
+between those is worth closing, because the standard derivation moves fast enough to
+lose people.</p>
+
+<p>The trouble is that $A\mathbf{v} = \lambda\mathbf{v}$ has two unknowns tangled
+together: we know neither the direction nor the stretch factor. The move is to get
+everything onto one side. Rewrite $\lambda\mathbf{v}$ as $\lambda I \mathbf{v}$, which is
+legal because the identity does nothing, and subtract:</p>
+
+$$(A - \lambda I)\,\mathbf{v} = \mathbf{0}$$
+
+<p>Now read what that says. We need a matrix (namely $A - \lambda I$) that sends some
+<b>non-zero</b> vector to zero. A matrix that does that is exactly one that destroys
+information, which by §11 means rank-deficient, which by §10 means not invertible. An
+invertible matrix cannot send anything but zero to zero, because it could then be undone
+and you would recover two different inputs from one output.</p>
+
+<p>So the search collapses into a single condition: <b>find the values of $\lambda$ that
+make $A - \lambda I$ singular.</b> The direction $\mathbf{v}$ has dropped out entirely for
+the moment; we are hunting one number at a time. And §22 gives a test for singularity that
+is a plain equation: the determinant is zero. Solving it gives the eigenvalues, and only
+then, with $\lambda$ in hand, do you go back and solve for the direction.</p>
+
+<p>Two steps, in that order, and the order is the point. Find the stretch factors first
+by asking which ones make the matrix collapse; find the directions afterwards, when there
+is only one unknown left.</p>
+
+<div class="box pitfall">
+  <span class="label">Pitfall: this is a hand method, not a real algorithm</span>
+  <p>Everything above is how you compute a $2\times2$ or $3\times3$ example on paper, and
+  it is genuinely useful for that. It is <b>not</b> how software does it. Finding roots of
+  a polynomial is numerically unstable for anything but tiny matrices, and Abel proved in
+  <span class="year">1824</span> that no formula in radicals exists for degree five and
+  above; so for a $5\times5$ matrix there is not even an exact expression to evaluate.</p>
+  <p>Real implementations use iterative methods that never form the polynomial at all,
+  most descending from the QR algorithm of the <span class="year">1960</span>s. Do the
+  determinant route to understand what an eigenvalue <i>is</i>; call
+  <code>np.linalg.eigh</code> when you want one.</p>
+</div>
+
+<div class="worked long">
+  <span class="label">Worked example: eigendecomposition by hand</span>
+  <p>Take $A = \begin{bmatrix} 2 & 1 \\ 1 & 2 \end{bmatrix}$, the matrix from Figure 6.
+  It is symmetric, so the spectral theorem applies.</p>
+
+  <p><b>Step 1: find the eigenvalues.</b> We need $\lambda$ with
+  $A\mathbf{v} = \lambda\mathbf{v}$ for some non-zero $\mathbf{v}$; rearranged, that is
+  $(A - \lambda I)\mathbf{v} = \mathbf{0}$. A non-zero vector maps to zero exactly when
+  $A - \lambda I$ is singular, which (jumping ahead to §22) means its determinant
+  vanishes:</p>
+  <p>$\det\!\begin{bmatrix} 2-\lambda & 1 \\ 1 & 2-\lambda \end{bmatrix} = (2-\lambda)^2 - 1 = 0$</p>
+  <p>So $(2 - \lambda)^2 = 1$, giving $2 - \lambda = \pm 1$ and therefore
+  $\lambda_1 = 3$, $\lambda_2 = 1$. Both real, as promised for a symmetric matrix.</p>
+
+  <p><b>Step 2: find the eigenvector for $\lambda_1 = 3$.</b> Solve
+  $(A - 3I)\mathbf{v} = \mathbf{0}$:</p>
+  <p>$\begin{bmatrix} -1 & 1 \\ 1 & -1 \end{bmatrix}\begin{bmatrix} v_1 \\ v_2 \end{bmatrix} = \begin{bmatrix} 0 \\ 0 \end{bmatrix}$
+  &nbsp;gives&nbsp; $-v_1 + v_2 = 0$, so $v_1 = v_2$.</p>
+  <p>Any vector along $(1,1)$ works. Normalised: $\mathbf{q}_1 = \frac{1}{\sqrt2}(1,1)$.</p>
+
+  <p><b>Step 3: and for $\lambda_2 = 1$.</b> Solve $(A - I)\mathbf{v} = \mathbf{0}$:</p>
+  <p>$\begin{bmatrix} 1 & 1 \\ 1 & 1 \end{bmatrix}\mathbf{v} = \mathbf{0}$ gives
+  $v_1 + v_2 = 0$, so $v_2 = -v_1$, along $(1,-1)$. Normalised:
+  $\mathbf{q}_2 = \frac{1}{\sqrt2}(1,-1)$.</p>
+
+  <p><b>Step 4: check the theorem's promises.</b> Are they perpendicular?
+  $\mathbf{q}_1^\top\mathbf{q}_2 = \frac12(1 - 1) = 0$. Yes. Unit length? Both are.
+  So $Q = \frac{1}{\sqrt2}\begin{bmatrix} 1 & 1 \\ 1 & -1 \end{bmatrix}$ is orthogonal
+  and $\Lambda = \begin{bmatrix} 3 & 0 \\ 0 & 1 \end{bmatrix}$, with
+  $A = Q\Lambda Q^\top$.</p>
+
+  <p><b>Step 5: sanity check the picture.</b> $A$ stretches by 3 along the
+  $(1,1)$ diagonal and leaves the $(1,-1)$ diagonal alone. Look back at Figure 6: the
+  orange arrows lie along $(1,1)$ and tripled; the purple ones lie along $(1,-1)$ and
+  are unchanged. The algebra and the picture agree.</p>
+</div>
+
+<pre><code><span class="k">import</span> numpy <span class="k">as</span> np
+
+A = np.array([[<span class="n">2.</span>, <span class="n">1.</span>], [<span class="n">1.</span>, <span class="n">2.</span>]])
+w, V = np.linalg.eigh(A)          <span class="c"># eigh: for SYMMETRIC matrices. use eig otherwise.</span>
+
+print(w)                          <span class="o">### [1. 3.]   ascending order</span>
+print(V)                          <span class="o">### [[-0.707  0.707]</span>
+                                  <span class="o">###  [ 0.707  0.707]]</span>
+
+<span class="c"># the defining property, verified on the second eigenpair</span>
+print(A @ V[:, <span class="n">1</span>])                <span class="o">### [2.121 2.121]</span>
+print(w[<span class="n">1</span>] * V[:, <span class="n">1</span>])             <span class="o">### [2.121 2.121]  -- identical</span>
+
+<span class="c"># and the full reconstruction</span>
+print(V @ np.diag(w) @ V.T)       <span class="o">### [[2. 1.]  -- we get A back</span>
+                                  <span class="o">###  [1. 2.]]</span>
+</code></pre>
+
+<div class="box pitfall">
+  <span class="label">Pitfall: use <code>eigh</code> for symmetric matrices</span>
+  <p>NumPy offers <code>eig</code> for general matrices and <code>eigh</code> for
+  symmetric ones. For a symmetric input, <code>eigh</code> is faster, more accurate,
+  guarantees real output, and returns properly orthogonal eigenvectors. Using
+  <code>eig</code> on a symmetric matrix can hand you complex numbers with tiny
+  imaginary parts from rounding error, which then propagate confusingly through the rest
+  of your code. When you know the matrix is symmetric (and for covariance matrices you
+  always do), say so.</p>
+</div>
+
+<h3><span class="num">§18</span> Quadratic forms and positive definiteness</h3>
+<aside class="mnote"><b>This is the bridge</b> to optimisation: the Hessian is symmetric, and its definiteness is the second derivative test from 0 §19.</aside>
+
+<p>One more construction before the SVD, and it is the bridge from this chapter to
+optimization. Given a symmetric matrix $A$, consider the scalar-valued function</p>
+
+$$f(\mathbf{x}) = \mathbf{x}^\top A \mathbf{x}$$
+
+<p>This is a <b>quadratic form</b>. Check the shapes: $(1 \times n)(n \times n)(n \times 1)
+\to 1 \times 1$, a single number. It is the natural multi-dimensional generalisation of
+$ax^2$, and its graph is a bowl, a dome, or a saddle depending on $A$.</p>
+
+<p>The reason to care is that this expression is what a smooth function looks like near a
+critical point, in any number of dimensions. Part 0 §19 classified a one-variable minimum
+by the sign of $f''$: positive means bowl, negative means dome. In many variables the
+second derivative is not a number but a matrix, and "the sign of the second derivative"
+has to be replaced by something that makes sense for a matrix. The quadratic form is that
+replacement: it is how you ask whether a matrix curves upward, and the answer can differ
+from direction to direction.</p>
+
+<p>Which is precisely the new phenomenon. In one dimension a critical point is a minimum,
+a maximum, or nothing much. In two or more it can curve up along one axis and down along
+another at the same point, and there is no one-dimensional word for that. That is a
+saddle, and the whole reason this section exists is to give you the machinery to detect
+one.</p>
+
+<div class="worked">
+  <span class="label">Expanding one, to see it is really just a polynomial</span>
+  <p>With $A = \begin{bmatrix} 2 & 1 \\ 1 & 3 \end{bmatrix}$ and $\mathbf{x} = (x_1, x_2)$:</p>
+  <p>$\mathbf{x}^\top A \mathbf{x} = 2x_1^2 + 2x_1x_2 + 3x_2^2$</p>
+  <p>Every term is degree two, hence "quadratic". The diagonal entries of $A$ give the
+  squared terms; the off-diagonal entries give the cross terms, and they appear
+  doubled because $A_{1,2}$ and $A_{2,1}$ both contribute.</p>
+</div>
+
+<h4>Positive definiteness</h4>
+
+<p>The key question about a quadratic form is whether it is always positive.</p>
+
+<div class="box def">
+  <span class="label">Definition: the definiteness ladder</span>
+  <p>A symmetric matrix $A$ is:</p>
+  <dl>
+    <dt>Positive definite</dt>
+    <dd>$\mathbf{x}^\top A \mathbf{x} > 0$ for every non-zero $\mathbf{x}$. Equivalently: <b>all eigenvalues are strictly positive.</b></dd>
+    <dt>Positive semidefinite</dt>
+    <dd>$\mathbf{x}^\top A \mathbf{x} \geq 0$ always. All eigenvalues $\geq 0$; some may be zero.</dd>
+    <dt>Negative definite</dt>
+    <dd>$\mathbf{x}^\top A \mathbf{x} < 0$ always. All eigenvalues strictly negative.</dd>
+    <dt>Indefinite</dt>
+    <dd>Positive for some $\mathbf{x}$, negative for others. Eigenvalues of mixed sign.</dd>
+  </dl>
+</div>
+
+<p>The eigenvalue characterisation is the useful one, and it follows directly from §17.
+Rotate into eigen-coordinates using $\mathbf{y} = Q^\top\mathbf{x}$, and the form
+becomes</p>
+
+$$\mathbf{x}^\top A \mathbf{x} = \sum_i \lambda_i y_i^2$$
+
+<p>a plain weighted sum of squares. Since each $y_i^2 \geq 0$, the sign of the whole
+expression is controlled entirely by the signs of the $\lambda_i$. Every statement in
+the definition above becomes obvious in this coordinate system, which is a good
+example of what eigendecomposition is <i>for</i>.</p>
+
+<figure>
+  <img src="figures/la/11-quadratic-forms.svg" alt="Bowl and saddle surfaces for quadratic forms">
+  <figcaption><b>Figure 7.</b> Left: a positive definite matrix gives a bowl. Every
+  direction curves upward, there is exactly one lowest point, and an optimizer released
+  anywhere will roll to it. Right: an indefinite matrix gives a saddle, curving upward along
+  one direction, downward along another. The centre is a critical point but not a
+  minimum, and saddles are the dominant obstacle in high-dimensional
+  optimization.</figcaption>
+</figure>
+
+<div class="box why">
+  <span class="label">Why deep learning cares: this is the bridge to Part III</span>
+  <p>The second derivative of a multivariable function is a symmetric matrix called the
+  <b>Hessian</b>, and its definiteness classifies critical points exactly as the sign of
+  $f''$ does in single-variable calculus:</p>
+  <ul class="tight">
+    <li>Hessian positive definite → local <b>minimum</b> (a bowl).</li>
+    <li>Hessian negative definite → local <b>maximum</b> (a dome).</li>
+    <li>Hessian indefinite → <b>saddle point</b>.</li>
+  </ul>
+  <p>This is the entire content of the second derivative test, and it is why §18 exists
+  in a deep learning book at all. There is a striking consequence, developed in Part III
+  §18: in high dimensions, a critical point needs <i>every</i> eigenvalue to share a sign
+  to be a true minimum, and that becomes vanishingly unlikely as dimension grows. So the
+  critical points a large network encounters are overwhelmingly saddles rather than the
+  local minima that folklore worries about. That shift in understanding came directly
+  from taking eigenvalues seriously.</p>
+</div>
+
+<div class="box try">
+  <span class="label">Try it</span>
+  <p>Is $A = \begin{bmatrix} 3 & 0 \\ 0 & -2 \end{bmatrix}$ positive definite? What
+  shape is its quadratic form's graph? Find one $\mathbf{x}$ making the form negative.</p>
+</div>
+
+<p><b>Answer.</b> The matrix is diagonal, so the eigenvalues are the diagonal entries:
+$3$ and $-2$. Mixed signs, so it is <b>indefinite</b> (not positive definite) and the
+graph is a saddle. The form is $3x_1^2 - 2x_2^2$, so any $\mathbf{x}$ with $x_1 = 0$ and
+$x_2 \neq 0$ makes it negative; $\mathbf{x} = (0, 1)$ gives $-2$. Meanwhile
+$\mathbf{x} = (1,0)$ gives $+3$. Positive in one direction, negative in another: that is
+a saddle, seen algebraically.</p>

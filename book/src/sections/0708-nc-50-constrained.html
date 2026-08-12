@@ -1,0 +1,323 @@
+<h2><span class="part-kicker">Part E</span>Constrained optimisation</h2>
+
+<h3><span class="num">§19</span> Lagrange multipliers and KKT</h3>
+
+<div class="sixty">
+  <span class="label">In 60 seconds</span>
+  <p>Sometimes you must minimise subject to a restriction: weights on a sphere,
+  probabilities summing to one. At a constrained optimum, the objective's gradient is
+  <b>parallel to the constraint's gradient</b>: there is no way left to move that both
+  satisfies the constraint and improves the objective. Writing that condition down gives
+  the method of Lagrange multipliers.</p>
+</div>
+
+<p>The problem:</p>
+
+$$\min_{\mathbf{x}} f(\mathbf{x}) \quad \text{subject to} \quad g(\mathbf{x}) = 0$$
+
+<p>You cannot simply set $\nabla f = \mathbf{0}$, because the unconstrained minimum will
+generally violate the constraint. The question is what replaces that condition.</p>
+
+<figure>
+  <img src="figures/nc/10-constrained.svg" alt="Objective contours meeting a circular constraint tangentially">
+  <figcaption><b>Figure 12.</b> Contours of the objective and a circular constraint. The
+  optimum on the circle is where a contour is <b>tangent</b> to it. At that point the two
+  gradients lie along the same line. Anywhere else the contour crosses the circle, which
+  means you could slide along the constraint and improve, so you are not
+  optimal.</figcaption>
+</figure>
+
+<div class="box intuition">
+  <span class="label">Intuition: tangency is the whole idea</span>
+  <p>Walk along the constraint curve. At a point where a contour <i>crosses</i> it, the
+  objective is changing as you walk; one direction goes downhill, so you are not at an
+  optimum.</p>
+  <p>The only way to be stuck is if the contour is <b>tangent</b> to the constraint, so
+  that moving along the constraint changes the objective not at all to first order. And
+  tangency of a contour to a curve is exactly the statement that their two gradients (each
+  perpendicular to its own curve) point along the same line.</p>
+  <p>That perpendicularity is not a new fact. Part 0 §23 established that a gradient is
+  always perpendicular to the contours of its own function, because moving along a contour
+  leaves the value unchanged and the direction of fastest change must be at right angles to
+  it. The constraint set $g(\mathbf{x}) = 0$ <i>is</i> a contour of $g$. So $\nabla g$ is
+  perpendicular to it for exactly the same reason $\nabla f$ is perpendicular to the
+  objective's contours, and the tangency condition follows.</p>
+</div>
+
+<p>Two vectors being parallel means one is a multiple of the other:</p>
+
+$$\nabla f = -\lambda \nabla g$$
+
+<p>for some scalar $\lambda$, the <b>Lagrange multiplier</b>. Rearranged, this says that
+the stationary points of</p>
+
+$$\mathcal{L}(\mathbf{x}, \lambda) = f(\mathbf{x}) + \lambda\, g(\mathbf{x})$$
+
+<p>with respect to <i>both</i> $\mathbf{x}$ and $\lambda$ are exactly the constrained
+optima. Differentiating with respect to $\lambda$ returns $g(\mathbf{x}) = 0$, which is the
+constraint itself; so the single function $\mathcal{L}$ encodes both conditions and the
+constrained problem becomes an unconstrained one in more variables.</p>
+
+<div class="worked">
+  <span class="label">Worked: the largest a coordinate can be on a sphere</span>
+  <p>Maximise $f(x,y) = x$ subject to $x^2 + y^2 = 1$. The answer is obviously $x=1$;
+  the point is to watch the machinery produce it.</p>
+  <p>$\mathcal{L} = x + \lambda(x^2 + y^2 - 1)$</p>
+  <p>$\partial\mathcal{L}/\partial x = 1 + 2\lambda x = 0$</p>
+  <p>$\partial\mathcal{L}/\partial y = 2\lambda y = 0$</p>
+  <p>From the second equation, either $\lambda = 0$ or $y = 0$. If $\lambda = 0$ the first
+  equation reads $1 = 0$, which is impossible, so $y = 0$. The constraint then gives
+  $x = \pm 1$, and the first equation gives $\lambda = -1/(2x)$.</p>
+  <p>The maximum is at $(1, 0)$. The method found it without ever parameterising the
+  circle.</p>
+</div>
+
+<h4>What the multiplier means</h4>
+
+<p>In the worked example $\lambda$ appeared, did its job, and was discarded, which is how
+it is usually taught, and it leaves the impression that the multiplier is scaffolding. It
+is not. It carries information you frequently want, and knowing what it means is what makes
+the connection to regularization below more than an analogy.</p>
+
+<p>The multiplier is a <b>price</b>. Specifically, it measures how much the best achievable
+objective value would improve if the constraint were relaxed by one unit. Loosen the
+constraint slightly, and the optimum moves by $\lambda$ times the amount you loosened
+it.</p>
+
+<p>So a large multiplier says the constraint is expensive; it is holding you back hard, and
+buying a little more room would pay well. A multiplier of zero says the constraint costs you
+nothing, which is exactly the situation where it was not binding in the first place. That
+observation is the whole content of complementary slackness below, arrived at from the other
+direction.</p>
+
+<div class="box why">
+  <span class="label">Why this matters: it is why penalties and constraints are the same knob</span>
+  <p>This is the reading that makes regularization make sense. "Minimise the loss subject to
+  $\|\mathbf{w}\|^2 \leq c$" and "minimise loss $+\ \lambda\|\mathbf{w}\|^2$" are the same
+  problem, and $\lambda$ is the multiplier of the first stated as a coefficient in the
+  second.</p>
+  <p>The price reading tells you how they trade. Shrinking the budget $c$ raises the price
+  $\lambda$, because room you are short of is worth more. So turning up the regularization
+  coefficient is not a separate operation from tightening a constraint on the weights; it is
+  the same operation, quoted in the other currency. In economics this quantity is called a
+  shadow price, and it is the same mathematics.</p>
+</div>
+
+<h4>Inequality constraints</h4>
+
+<p>Constraints are often inequalities: a probability at most 1, a variance at least 0.
+The extension is natural once you notice that an inequality constraint is either
+<b>active</b> (you are pressed against it, and it behaves like an equality) or
+<b>inactive</b> (you are strictly inside, and it may as well not exist).</p>
+
+<div class="box def">
+  <span class="label">The KKT conditions</span>
+  <p>For $\min f(\mathbf{x})$ subject to $g(\mathbf{x}) \leq 0$, a solution must satisfy:</p>
+  <ol class="tight">
+    <li><b>Stationarity:</b> $\nabla f + \mu \nabla g = \mathbf{0}$</li>
+    <li><b>Feasibility:</b> $g(\mathbf{x}) \leq 0$</li>
+    <li><b>Non-negativity:</b> $\mu \geq 0$</li>
+    <li><b>Complementary slackness:</b> $\mu\, g(\mathbf{x}) = 0$</li>
+  </ol>
+</div>
+
+<p>The fourth condition is the elegant one. It forces at least one of $\mu$ and
+$g(\mathbf{x})$ to be zero; so either the constraint is active ($g = 0$) and its
+multiplier may be non-zero, or the constraint is slack ($g < 0$) and its multiplier must
+vanish. <b>Inactive constraints contribute nothing</b>, stated algebraically.</p>
+
+<p>The third condition encodes direction: an inequality can only push you one way. For an
+equality constraint $\lambda$ may take either sign, because the constraint restrains you
+from both sides.</p>
+
+<div class="box history">
+  <span class="label">History: a master's thesis that went unread for thirty years</span>
+  <p>These are called the Karush–Kuhn–Tucker conditions, and the first name was added
+  decades late.</p>
+  <p>Harold Kuhn and Albert Tucker published them in <span class="year">1951</span>, and
+  the result was foundational to the new field of nonlinear programming. It carried their
+  two names for years.</p>
+  <p>Then it emerged that William Karush had derived the same conditions in his <span
+  class="year">1939</span> master's thesis at Chicago, twelve years earlier. He never
+  published it. Master's theses were not widely circulated, the mathematical audience for
+  optimisation barely existed at the time, and the work simply sat.</p>
+  <p>When the priority came to light, Kuhn wrote to Karush acknowledging it and pressed for
+  the attribution to be corrected; the three-name form became standard from the
+  <span class="year">1970</span>s. It is a rare case of Stigler's Law (invoked in Part I §9
+  and Part II §15) being caught and partially reversed, and it happened because the person
+  who benefited from the error insisted on fixing it.</p>
+</div>
+
+<div class="box why">
+  <span class="label">Why this matters</span>
+  <p>Constrained optimisation appears throughout what follows. <b>Regularization</b> has a
+  constrained reading: penalising $\|\mathbf{w}\|^2$ is equivalent to constraining
+  $\|\mathbf{w}\|^2 \leq c$ for a corresponding $c$, and $\lambda$ is the multiplier, which
+  is why the penalty strength and the constraint radius are two views of one knob.</p>
+  <p>Support vector machines are a constrained problem whose entire theory runs through the
+  KKT conditions, and the support vectors are precisely the examples whose constraints are
+  active. <b>Maximum entropy</b> derivations (including the Gaussian result quoted in
+  Part II §15) are Lagrangian arguments: maximise entropy subject to matching a known mean
+  and variance.</p>
+</div>
+
+<h2><span class="part-kicker">Part F</span>The payoff</h2>
+
+<h3><span class="num">§20</span> Least squares, three ways</h3>
+
+<p class="lede">One problem, three algorithms, all correct in exact arithmetic. Two of them
+break. This section is the argument of the whole part, made concrete.</p>
+
+<p>The problem is the overdetermined system from Part I §12: given $A \in
+\mathbb{R}^{m\times n}$ with $m > n$, find the $\mathbf{x}$ minimising
+$\|A\mathbf{x} - \mathbf{b}\|_2$.</p>
+
+<h4>Method 1: the normal equations</h4>
+
+<p>Part I's drill S3 derived the condition that the residual be orthogonal to every column,
+giving</p>
+
+$$A^\top A\,\mathbf{x} = A^\top \mathbf{b}$$
+
+<p>This is the formula in every introductory treatment. It is a square system, it is cheap,
+and it is <b>numerically the worst option available</b>, because forming $A^\top A$
+squares the singular values, and therefore squares the condition number:</p>
+
+$$\kappa(A^\top A) = \kappa(A)^2$$
+
+<p>By §5's accounting, that doubles the number of digits you lose. A matrix with
+$\kappa = 10^8$ (unremarkable in real data) leaves you with nothing at all.</p>
+
+<h4>Method 2: QR factorisation</h4>
+
+<p>Write $A = QR$ with $Q$ orthogonal and $R$ upper triangular. Because orthogonal matrices
+preserve lengths (Part I §16), multiplying the residual by $Q^\top$ changes nothing about
+its norm, and the problem collapses to solving the triangular system</p>
+
+$$R\mathbf{x} = Q^\top \mathbf{b}$$
+
+<p>$A^\top A$ is never formed, so the conditioning is never squared. This is the standard
+approach in serious software.</p>
+
+<div class="box pitfall">
+  <span class="label">Pitfall: "use QR" is not specific enough</span>
+  <p>There is more than one way to compute a QR factorisation, and they are not equally
+  stable. This matters enough that the drills for this part were rewritten once it
+  surfaced.</p>
+  <p><b>Gram–Schmidt</b> comes in two forms that are algebraically identical and
+  numerically very different. <b>Classical Gram–Schmidt</b> (the version most linear
+  algebra courses teach, which orthogonalises each new vector against the whole
+  already-computed set in one shot) loses orthogonality at a rate proportional to
+  $\kappa^2$. <b>Modified Gram–Schmidt</b>, the same formula computed in a different order
+  (reorthogonalising one vector at a time as it goes), only loses it proportional to
+  $\kappa$. That is a real improvement, and it is still not enough. Measured on the
+  problems behind Figure 13, using modified Gram–Schmidt:</p>
+  <table class="compact" style="margin-top:0.6em">
+    <thead><tr><th>$\kappa(A)$</th><th>$\|Q^\top Q - I\|$, modified Gram–Schmidt</th><th>Householder</th><th>Error, modified Gram–Schmidt</th></tr></thead>
+    <tbody>
+      <tr><td>$10^{5}$</td><td>$2\times10^{-12}$</td><td>$1\times10^{-15}$</td><td>$1\times10^{-8}$</td></tr>
+      <tr><td>$10^{9}$</td><td>$8\times10^{-8}$</td><td>$8\times10^{-16}$</td><td>$24$</td></tr>
+      <tr><td>$10^{11}$</td><td>$9\times10^{-6}$</td><td>$1\times10^{-15}$</td><td>$4\times10^{5}$</td></tr>
+    </tbody>
+  </table>
+  <p>The computed $Q$ drifts away from being orthogonal exactly when you need it most, and
+  the drift eventually costs more than it looks: by $\kappa = 10^{9}$ modified
+  Gram–Schmidt's own solve error ($24$) already exceeds the normal equations' error at the
+  same conditioning (order 1), and by $\kappa=10^{11}$ it has degraded to roughly
+  $4\times10^{5}$, tens of thousands of times <b>worse than the normal equations</b>, the
+  method it was supposed to replace. Classical Gram–Schmidt, losing orthogonality at
+  $\kappa^2$ instead of $\kappa$, is worse again. Householder reflections hold orthogonality
+  at machine precision across the whole range, which is why every serious library uses
+  them.</p>
+  <p>This is §6's conditioning-versus-stability distinction one level down. The
+  <i>problem</i> is the same, and the <i>approach</i> is the same; the difference is
+  entirely in the algorithm, and it is the difference between six good digits and
+  none.</p>
+</div>
+
+<h4>Method 3: the SVD</h4>
+
+<p>Take $A = U\Sigma V^\top$ and use the pseudoinverse from Part I §20. The most expensive
+of the three and the most robust; and uniquely, it still returns a sensible answer when
+$A$ is actually rank-deficient, because you can simply discard the singular values below a
+threshold rather than dividing by them.</p>
+
+<figure>
+  <img src="figures/nc/11-least-squares.svg" alt="Solution error versus condition number for normal equations, QR and SVD">
+  <figcaption><b>Figure 13.</b> The same least squares problem solved three ways, as
+  conditioning is swept across ten orders of magnitude. The normal equations degrade at
+  roughly twice the rate of the other two on this log scale (exactly the squaring) and
+  have lost all accuracy by $\kappa \approx 10^{8}$, where QR and the SVD are still
+  returning several good digits. Real solves, real errors.</figcaption>
+</figure>
+
+<div class="box why">
+  <span class="label">Why this matters: the lesson generalises</span>
+  <p>Three algorithms. Identical in exact arithmetic. In floating point, one of them fails
+  at a condition number where the others are comfortable.</p>
+  <p><b>Algebraic equivalence does not imply numerical equivalence.</b> That single
+  sentence is what this part exists to establish, and it is why <code>np.linalg.lstsq</code>
+  does not implement the formula from the textbook. When you find a derivation that ends in
+  a clean closed form, the remaining question is always whether that form is the one to
+  compute.</p>
+</div>
+
+<div class="box try">
+  <span class="label">Try it: the last one</span>
+  <p>Your data matrix has $\kappa(A) = 10^6$. You fit by the normal equations in float64
+  and get an answer. Roughly how many digits of it can you trust, and what should you have
+  done?</p>
+</div>
+
+<p><b>Answer.</b> Forming $A^\top A$ gives $\kappa = 10^{12}$. Starting from about 16
+digits and losing 12, you retain roughly <b>four</b>, and that is optimistic, since it
+ignores every other source of error along the way.</p>
+<p>Four digits may even be sufficient, depending on what you need. The failure is not
+having known. The right move is to use QR or the SVD, which would have cost you six digits
+instead of twelve for a modest increase in computation, or in practice to call
+<code>lstsq</code>, which already does this. And in either case to have checked
+$\kappa$ first, because that number tells you in advance how much of your answer is
+real.</p>
+
+<h4>Constrained least squares: §19 and §20 meeting</h4>
+
+<p>The KKT machinery of §19 and the least-squares problem of §20 connect directly in one
+concrete case: minimise $\|A\mathbf{x} - \mathbf{b}\|^2$ subject to
+$\|\mathbf{x}\|^2 \leq 1$.</p>
+
+<p>The Lagrangian is</p>
+$$\mathcal{L}(\mathbf{x}, \lambda) = \|A\mathbf{x} - \mathbf{b}\|^2 + \lambda(\mathbf{x}^\top\mathbf{x} - 1)$$
+
+<p>Setting $\nabla_{\mathbf{x}}\mathcal{L} = 0$:</p>
+$$2A^\top(A\mathbf{x} - \mathbf{b}) + 2\lambda\mathbf{x} = \mathbf{0}$$
+$$(A^\top A + \lambda I)\,\mathbf{x} = A^\top\mathbf{b}$$
+
+<p>This is ridge regression, and $\lambda$ is the ridge parameter, except here $\lambda$
+is not a free choice. It is fixed by the requirement that the constraint be satisfied:
+$\|\mathbf{x}\|^2 = 1$. Increasing $\lambda$ shrinks $\mathbf{x}$, so you can always find
+one that lands on the sphere.</p>
+
+<div class="worked">
+  <span class="label">Worked: constrained least squares with numbers</span>
+  <p>$A = \begin{pmatrix}1 & 0 \\ 0 & 2\end{pmatrix}$, $\mathbf{b} = \begin{pmatrix}2 \\ 6\end{pmatrix}$.
+  The unconstrained solution is $\mathbf{x}^* = \begin{pmatrix}2 \\ 3\end{pmatrix}$ (reading
+  off $A^\top A = \text{diag}(1,4)$, $A^\top\mathbf{b} = (2, 12)$), with $\|\mathbf{x}^*\| =
+  \sqrt{13} \approx 3.61$, well outside the unit sphere.</p>
+  <p>With the constraint $\|\mathbf{x}\|^2 \leq 1$, the KKT solution satisfies
+  $(A^\top A + \lambda I)\mathbf{x} = A^\top\mathbf{b}$, which here gives</p>
+  <p>$$x_1 = \frac{2}{1+\lambda}, \qquad x_2 = \frac{12}{4+\lambda}$$</p>
+  <p>We need $\lambda \geq 0$ such that $x_1^2 + x_2^2 = 1$. Solving numerically:
+  $\lambda \approx 8.29$ gives $x_1 \approx 0.215$, $x_2 \approx 0.977$, with
+  $\|\mathbf{x}\| = 1.000$. Verify: $(1+8.29) \times 0.215 = 2.00 = (A^\top\mathbf{b})_1$ ✓,
+  $(4+8.29) \times 0.977 = 12.00 = (A^\top\mathbf{b})_2$ ✓.</p>
+  <p>The multiplier $\lambda \approx 8.29$ is the shadow price of the constraint exactly as
+  written, $\mathbf{x}^\top\mathbf{x} \leq c$ with $c=1$: the price per unit of the
+  <i>squared-norm</i> budget, not per unit of radius. A numerical check confirms that
+  relaxing the budget from $c=1$ to $c=1+\delta$ reduces the residual by approximately
+  $8.29\,\delta$, matching $\lambda$ exactly. The radius $r=\sqrt{c}$ is a different
+  variable, related by $c=r^2$, so relaxing the <i>radius</i> from 1 to $1+\delta$ moves
+  $c$ by $dc/dr = 2r = 2$ at $r=1$: it reduces the residual by approximately
+  $2\lambda\delta \approx 16.6\,\delta$, twice the naive reading. The multiplier prices
+  whatever variable the constraint is written in terms of, and here that variable is
+  $\|\mathbf{x}\|^2$, not $\|\mathbf{x}\|$.</p>
+</div>

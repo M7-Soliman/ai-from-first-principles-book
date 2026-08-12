@@ -1,0 +1,155 @@
+<h2><span class="part-kicker">Part D</span>The spectra of operators and of data</h2>
+
+<p class="mvt">Frequency is not only for signals. Any symmetric operator has an eigenbasis, and on a
+graph or a mesh that basis behaves like frequency does on a line. Then two measurements: what
+natural data looks like in that basis, and the order in which a network learns it.</p>
+
+<h3><span class="num">§25</span> Eigenvalues are frequencies</h3>
+
+<div class="box def">
+  <span class="label">The generalisation</span>
+  <p>Sinusoids are the eigenvectors of the second-difference operator on a line. That is the whole
+  reason they are the natural basis there: not a fact about waves, but about which operator you
+  care about.</p>
+  <p>Take a different domain with a different notion of "neighbouring" and the same construction
+  gives a different basis: the eigenvectors of that domain's Laplacian, ordered by eigenvalue. Small
+  eigenvalue means the eigenvector varies slowly across neighbours; large means it alternates. That
+  ordering <i>is</i> frequency, defined intrinsically.</p>
+</div>
+
+<h3><span class="num">§26</span> The graph Laplacian</h3>
+
+<div class="box def">
+  <span class="label">What Part XXVI was leaning on</span>
+  <p>For a graph with adjacency <span class="m">$A$</span> and degree matrix
+  <span class="m">$D$</span>, the Laplacian is <span class="m">$L = D - A$</span>, and
+  <span class="m">$x^\top L x = \sum_{(i,j) \in E} (x_i - x_j)^2$</span>, the total disagreement
+  across edges. Minimising it over unit vectors gives the smoothest non-trivial assignment, the
+  second eigenvector, and the rest follow in order of roughness.</p>
+  <p>Part XXVI §3 used the adjacency spectrum as a permutation-invariant summary and did not say
+  why it works. It works because relabelling nodes conjugates <span class="m">$L$</span> by a
+  permutation matrix, which leaves eigenvalues alone. The spectrum is the classical invariant, and
+  Part XXVI §13's over-smoothing is the low-pass filter this basis makes visible.</p>
+</div>
+
+<div class="box shapes">
+  <span class="label">Where else the same construction appears</span>
+  <p><b>Spectral clustering</b> partitions using the low eigenvectors, the graph's low
+  frequencies.</p>
+  <p><b>Positional encodings on graphs</b> (Part XXVI §22) use those eigenvectors as coordinates,
+  which is the direct analogue of the sinusoids of §33.</p>
+  <p><b>Meshes</b> use the same Laplacian with geometric weights, giving a frequency decomposition
+  of a surface. This is the machinery Part XXIX will need for shape.</p>
+</div>
+
+<h3><span class="num">§27</span> The spectrum of natural data</h3>
+
+<figure>
+  <img src="figures/sg/06-natural-spectrum.svg" alt="Left: radially averaged power spectrum of natural image tiles against white noise, log-log. Right: the spectrum after 4x downsampling with and without a low-pass filter">
+  <figcaption><b>Figure 6.</b> <b>Left:</b> radially averaged power against spatial frequency, over
+  26 non-overlapping tiles from three sources: a photograph, a digital elevation model and a
+  medical scan. The falloff is a power law over more than a decade, measured at
+  <b><i>f</i><sup>&minus;2.91</sup></b>; white noise on the same estimator gives
+  <b><i>f</i><sup>0.00</sup></b>. The estimator was checked on synthetic images with known exponents
+  in the same run, recovering &minus;1.98 and &minus;2.94 for true &minus;2 and &minus;3. <b>Right:</b>
+  the same photograph downsampled fourfold. Filtering first gives the spectrum you would expect;
+  subsampling directly leaves <b>3.1&times;</b> the power across the top half of the resulting band,
+  because the discarded frequencies did not leave; they were relabelled.</figcaption>
+</figure>
+
+<div class="box why">
+  <span class="label">Reading the exponent honestly</span>
+  <p>The canonical figure quoted for natural scenes is an exponent near 2, and this sample measures
+  2.91. The three sources here are smoother than the outdoor scenes that number comes from, and the
+  per-tile spread is wide: 1.28 to 3.58, standard deviation 0.56. So the exponent is a property of
+  this sample and is reported as one.</p>
+  <p>What is not in doubt is the shape, and the shape is what the rest of this movement uses:
+  natural data has almost all of its energy at low frequency, and white noise has it spread evenly.
+  That is the difference between the two curves and it is not subtle.</p>
+</div>
+
+<h3><span class="num">§28</span> What that licenses</h3>
+
+<div class="box intuition">
+  <span class="label">Three consequences of one measurement</span>
+  <p><b>Compression works.</b> JPEG discards high-frequency coefficients because there is little
+  there to discard. The measurement is the justification.</p>
+  <p><b>Downsampling is usually acceptable</b>, provided you filter first. Figure 6's right panel is
+  what happens when you do not, and it is Figure 1's defect seen in the other domain.</p>
+  <p><b>Smoothness priors are not arbitrary.</b> Part VIII's penalties, Part XV §5's manifold
+  assumption and Part XXVI's message passing all bet on the target being smooth. Figure 6 is the
+  measurement that bet is placed on.</p>
+</div>
+
+<h3><span class="num">§29</span> Spectral bias</h3>
+
+<figure>
+  <img src="figures/sg/07-spectral-bias.svg" alt="Recovered amplitude relative to target for five frequency components against training step, for equal amplitudes and for a case where the highest frequency has four times the amplitude">
+  <figcaption><b>Figure 7.</b> A network fitted to a sum of five sinusoids, tracking how much of
+  each component it has recovered. <b>Left:</b> equal amplitudes. It reaches 90% of the target at
+  step <b>50</b> for <i>f</i> = 1, <b>2,500</b> for <i>f</i> = 2 and <b>5,775</b> for
+  <i>f</i> = 4, and never reaches it for <i>f</i> = 8 or 16 within 20,000 steps, ending at 0.86 and
+  0.57. <b>Right:</b> the highest frequency given four times the amplitude. The order does not
+  change and <i>f</i> = 16 still finishes last, at 0.47 of its target. It is the frequency that
+  decides, not how loud the component is.</figcaption>
+</figure>
+
+<div class="box def">
+  <span class="label">Spectral bias</span>
+  <p><b>Spectral bias</b> is the tendency of a network trained by gradient descent to fit
+  low-frequency components of its target before high-frequency ones, and to fit them faster.</p>
+  <p>It is not a regulariser anyone added. It is a property of the optimisation, and it is why
+  networks generalise as often as they do: gradient descent finds the smooth explanation first, and
+  early stopping keeps it.</p>
+</div>
+
+<h3><span class="num">§30</span> Why it happens</h3>
+
+<div class="box why">
+  <span class="label">Two ways to see it, and they agree</span>
+  <p><b>Through the eigenvalues.</b> Analysed at fixed weights the training dynamics are governed by
+  the eigenvalues of a kernel that depends on the architecture, and error along an eigendirection
+  decays at a rate set by its eigenvalue. For standard networks on coordinate inputs the large
+  eigenvalues belong to smooth functions, so those directions converge first. Part XXIII's new
+  movement supplies the kernel machinery this account depends on (the neural tangent kernel and its
+  eigenvalue-governed convergence) though it is argued there for width and the lazy/rich distinction
+  generally, not stated in terms of frequency.</p>
+  <p><b>Through the parameterisation.</b> A high-frequency function needs large weights in the first
+  layer to make the preactivation vary quickly across a small input range. Initialisation puts those
+  weights near zero and gradient descent moves them slowly, so high frequencies are far from where
+  optimisation starts.</p>
+  <p>The two accounts are the same fact from either side, and the second is the one that suggests
+  the fix in §36.</p>
+</div>
+
+<h3><span class="num">§31</span> What follows for training</h3>
+
+<div class="box shapes">
+  <span class="label">Four things this explains</span>
+  <p><b>Early stopping is a low-pass filter.</b> Stop early and you keep the components fitted
+  first, which are the smooth ones. Part VIII §13 and §14 showed early stopping behaving like a
+  penalty on the weights; this says which functions the penalty prefers.</p>
+  <p><b>Learning curves are not one curve.</b> The loss is a sum over components converging at
+  different rates, which is why it plateaus and then drops again, a slower component finally
+  arriving, not the optimiser escaping anything.</p>
+  <p><b>High-frequency targets need help.</b> A coordinate network cannot represent fine detail in
+  reasonable time without §36's remedy. Figure 7 measures it failing at <i>f</i> = 16 on a target of
+  five terms.</p>
+  <p><b>Noise is high-frequency.</b> Label noise is uncorrelated between neighbouring inputs, so it
+  lives at the top of the spectrum, and spectral bias means the network fits it last. That is the
+  mechanism behind Part XIII §9's finding that networks absorb noise late.</p>
+</div>
+
+<h3><span class="num">§32</span> What movement D establishes</h3>
+
+<div class="box intuition">
+  <span class="label">Three things</span>
+  <p><b>Frequency is an eigenbasis, and every domain with a Laplacian has one.</b> Graphs and meshes
+  included, which is what Part XXVI §3's spectrum was.</p>
+  <p><b>Natural data is low-frequency and white noise is not.</b> Figure 6 measures a power law over
+  more than a decade against a flat spectrum, and that difference is what every smoothness prior in
+  this book is betting on.</p>
+  <p><b>Gradient descent fits low frequencies first.</b> Figure 7 measures 50 steps against never,
+  and shows the ordering is set by frequency rather than by amplitude. Much of what this book calls
+  implicit regularisation is this one fact.</p>
+</div>

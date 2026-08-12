@@ -1,0 +1,211 @@
+<h2><span class="part-kicker">Part B</span>Heuristics</h2>
+
+<p class="mvt">A heuristic is a guess at how far you still have to go. Everything interesting about
+informed search follows from two questions about that guess: whether it is ever an overestimate, and
+whether it changes smoothly from one state to the next. The first buys optimality. The second buys
+the right to stop thinking about a state once you have settled it, and the two are routinely
+confused, at a cost this movement measures.</p>
+
+<h3><span class="num">§7</span> Greedy best-first</h3>
+
+<div class="box def">
+  <span class="label">Sort by the guess alone</span>
+  <p>Let <span class="m">$h(n)$</span> estimate the cost from <span class="m">$n$</span> to the
+  nearest goal. Greedy best-first search expands the node with the smallest
+  <span class="m">$h$</span>, ignoring the cost already paid.</p>
+  <p>It is fast and it is wrong. Ignoring <span class="m">$g$</span> means it will happily follow a
+  long path that ends up close to the goal over a short one that is momentarily further away, so it
+  returns suboptimal solutions, and on a graph with cycles it need not terminate at all. It is worth
+  a section only because it is one of the two endpoints of a scale that A* sits in the middle of.</p>
+</div>
+
+<h3><span class="num">§8</span> A*</h3>
+
+<div class="box def">
+  <span class="label">Cost paid plus cost guessed</span>
+  <p class="m">$$f(n) = g(n) + h(n)$$</p>
+  <p><span class="m">$g(n)$</span> is the cheapest path cost found to <span class="m">$n$</span> so
+  far; <span class="m">$h(n)$</span> is the estimate of what remains. Expand the node of least
+  <span class="m">$f$</span>. That is the entire algorithm.</p>
+  <p>Setting <span class="m">$h=0$</span> gives uniform-cost search; letting
+  <span class="m">$h$</span> dominate gives greedy. A* is the interpolation, and the two properties
+  in the next sections say when the interpolation is safe.</p>
+</div>
+
+<p>It is worth seeing why <span class="m">$f$</span> is the natural quantity. Any path through
+<span class="m">$n$</span> costs <span class="m">$g(n)$</span> to reach it and at least
+<span class="m">$h(n)$</span> to finish, if <span class="m">$h$</span> never overestimates. So
+<span class="m">$f(n)$</span> is a <b>lower bound on the cost of any solution through
+<span class="m">$n$</span></b>. Expanding the smallest such bound first means you are always working
+on the most promising possibility available, and it means that the moment a goal comes off the
+frontier, no unexpanded node could lead anywhere cheaper.</p>
+
+<h3><span class="num">§9</span> Admissibility, and why it gives optimality</h3>
+
+<div class="box def">
+  <span class="label">Never an overestimate</span>
+  <p><span class="m">$h$</span> is <b>admissible</b> if <span class="m">$h(n)\le h^*(n)$</span> for
+  every <span class="m">$n$</span>, where <span class="m">$h^*$</span> is the true cost to the nearest
+  goal. Optimism, in other words: the guess may be too hopeful, never too pessimistic.</p>
+  <p><b>The proof is three lines.</b> Suppose A* is about to return a goal
+  <span class="m">$G_2$</span> with <span class="m">$g(G_2) > C^*$</span>, where
+  <span class="m">$C^*$</span> is the optimal cost. Some node <span class="m">$n$</span> on an
+  optimal path is on the frontier. Then <span class="m">$f(n)=g(n)+h(n)\le g(n)+h^*(n)=C^*
+  \lt  g(G_2)=f(G_2)$</span>, so <span class="m">$n$</span> would have been expanded first. The
+  contradiction is the theorem.</p>
+</div>
+
+<div class="box why">
+  <span class="label">What the proof does <i>not</i> say</span>
+  <p>It says nothing about how much work A* does, and it assumes the frontier always contains a node
+  on an optimal path, which is true for tree search and needs the extra condition in §12 for graph
+  search. Both gaps are where the practical trouble lives, and both are measured below.</p>
+</div>
+
+<h3><span class="num">§10</span> What a heuristic actually buys</h3>
+
+<figure>
+  <img src="figures/se/01-heuristic.svg" alt="Nodes expanded against heuristic strength on the left, falling only near the right-hand end, and path cost against heuristic strength on the right, perfectly flat">
+  <figcaption><b>Figure 1.</b> A* on 81×81 grids with random obstacles, using
+  <span class="m">$h=\alpha h^*$</span> so that <span class="m">$\alpha$</span> is exactly "how much
+  of the truth the heuristic knows". Every value of <span class="m">$\alpha$</span> returns the
+  <b>identical optimal cost</b> on every instance, so the whole effect is on work. And the work does
+  not fall smoothly: <b>4,876</b> expansions at <span class="m">$\alpha=0$</span>, still <b>4,845</b>
+  at <span class="m">$\alpha=0.5$</span>, <b>3,033</b> at 0.9, and <b>1,229</b> only at
+  <span class="m">$\alpha=1$</span>. Grey lines are the fourteen individual instances.</figcaption>
+</figure>
+
+<div class="box why">
+  <span class="label">Two surprises, and one is exact</span>
+  <p><b>Half a perfect heuristic buys one per cent of the saving.</b> That looks like a quirk of the
+  domain and is not: it is forced. A* must expand every node with <span class="m">$f \lt  C^*$</span>.
+  For a node on <i>any</i> optimal path, <span class="m">$g+\alpha h^* = C^*-(1-\alpha)h^*$</span>,
+  which is strictly below <span class="m">$C^*$</span> for every <span class="m">$\alpha\lt 1$</span>.
+  So a heuristic that is 90% of perfect still cannot prune the optimal corridor at all. The benefit
+  arrives in the last step, not gradually.</p>
+  <p><b>And a perfect heuristic still expands a quarter of the grid.</b> The saving from
+  <span class="m">$\alpha=0$</span> to <span class="m">$\alpha=1$</span> is 4.0×, not the orders of
+  magnitude the folklore promises. The reason is ties: on a grid with unit costs there are enormously
+  many equally optimal paths, all with <span class="m">$f=C^*$</span> exactly, and knowing the
+  distance to the goal does not tell you which to take. Tie-breaking, not heuristic strength, is what
+  is left on the table, which is why real implementations break ties toward larger
+  <span class="m">$g$</span>, and why that one line is worth more than a cleverer
+  <span class="m">$h$</span>.</p>
+</div>
+
+<h3><span class="num">§11</span> Giving up optimality on purpose</h3>
+
+<div class="box def">
+  <span class="label">Weighted A*</span>
+  <p class="m">$$f(n) = g(n) + w \cdot h(n), \qquad w \ge 1$$</p>
+  <p>Inflating an admissible heuristic makes it inadmissible, so optimality is gone. What replaces it
+  is a guarantee: the returned path costs at most <span class="m">$w$</span> times optimal. A bounded
+  loss, chosen in advance, in exchange for less work.</p>
+</div>
+
+<figure>
+  <img src="figures/se/02-weighted.svg" alt="Nodes expanded falling steeply with weight and then flattening, beside cost ratio curves far below the diagonal guarantee line">
+  <figcaption><b>Figure 2.</b> The same grids with <span class="m">$h=w\times$</span>Manhattan.
+  Expansions fall from <b>2,098</b> to <b>313</b> by <span class="m">$w=2$</span> and then flatten:
+  beyond <span class="m">$w\approx3$</span> the search is essentially greedy and the count is just the
+  path length. The right panel is the point: at <span class="m">$w=8$</span> the guarantee permits
+  <b>eight times</b> optimal and the worst path over fourteen instances was <b>1.25×</b>, with a mean
+  of 1.16×.</figcaption>
+</figure>
+
+<div class="box why">
+  <span class="label">A bound is a description of the worst case, not of behaviour</span>
+  <p>The gap in Figure 2 is the general lesson, and it is worth internalising because the same
+  mistake is made constantly with generalisation bounds, robustness certificates and privacy budgets.
+  A guarantee of 8× that delivers 1.25× is not a bad guarantee; it is a guarantee doing its job,
+  which is to be true of every instance including the adversarial ones you will never see.</p>
+  <p>The practical consequence is that <span class="m">$w$</span> should be chosen by measuring, not
+  by deciding how much suboptimality you can tolerate. If you need paths within 5% of optimal, do
+  not set <span class="m">$w=1.05$</span>; set it to 3 and check.</p>
+</div>
+
+<div class="box hist">
+  <span class="label">Anytime search</span>
+  <p>The natural use of the weight is not to fix it. Anytime weighted A* runs with a large
+  <span class="m">$w$</span> to get <i>some</i> solution quickly, then decreases the weight and
+  re-searches, reusing what it can, tightening the bound until the deadline. Robot planners and
+  vehicle planners are built this way because they must return something within a fixed cycle time
+  and would rather return a 1.3× path than nothing. The guarantee is what makes the early answer
+  usable: it is not merely a path, it is a path with a known worst case.</p>
+</div>
+
+<h3><span class="num">§12</span> Consistency, and the cost of not having it</h3>
+
+<div class="box def">
+  <span class="label">The triangle inequality for heuristics</span>
+  <p><span class="m">$h$</span> is <b>consistent</b> (or monotone) if for every edge
+  <span class="m">$n\to n'$</span> with cost <span class="m">$c$</span>,</p>
+  <p class="m">$$h(n) \le c(n,n') + h(n')$$</p>
+  <p>Consistency implies admissibility and is strictly stronger. It says <span class="m">$f$</span>
+  never decreases along a path, so the first time A* expands a state it has already found the
+  cheapest route to it, and closing a state is therefore safe.</p>
+</div>
+
+<figure>
+  <img src="figures/se/03-consistency.svg" alt="Stacked bars comparing a consistent heuristic against an inconsistent one with its re-expansions shown separately, across four levels of heuristic coverage">
+  <figcaption><b>Figure 3.</b> An admissible-but-inconsistent heuristic that knows
+  <span class="m">$h^*$</span> exactly on a random fraction of cells and is zero elsewhere, against a
+  consistent <span class="m">$\alpha h^*$</span> scaled to the <b>same mean value</b>, so both carry
+  the same information on average. At 20% coverage the inconsistent heuristic does <b>1.61×</b> the
+  work, and <b>59% of its expansions are re-expansions</b> of states it had already settled. The
+  consistent heuristic re-expanded zero nodes in every run, as theory requires.</figcaption>
+</figure>
+
+<div class="box why">
+  <span class="label">The result reverses, and the reversal is the useful part</span>
+  <p>At 40% coverage and above the inconsistent heuristic is <i>cheaper</i> (0.50×, 0.37×, 0.40× the
+  consistent one's work) because concentrated exact knowledge beats uniformly diluted knowledge once
+  there is enough of it, and the re-expansion penalty collapses from 59% to 1.8%.</p>
+  <p>So "consistency matters more than tightness" is true only when the heuristic is sparse. That is
+  the regime that matters for learned heuristics, which are exactly the sparse-and-inconsistent kind:
+  accurate where the training data was dense, arbitrary elsewhere, with no triangle inequality
+  anywhere. If you plug a learned <span class="m">$h$</span> into A* and close states, you have
+  quietly given up optimality; if you allow re-expansion, you have quietly given up the running time.
+  Knowing which of the two you chose is the whole of the engineering.</p>
+</div>
+
+<h3><span class="num">§13</span> Where heuristics come from</h3>
+
+<div class="box shapes">
+  <span class="label">Four constructions, in increasing order of effort</span>
+  <p><b>Relaxation.</b> Delete a constraint from the problem and solve the easier version exactly; its
+  cost is an admissible heuristic for the original, because every real solution is also a solution to
+  the relaxed problem. Manhattan distance <i>is</i> the 8-puzzle with the rule about tiles blocking
+  each other removed. This is the single most reliable source, and it is mechanical.</p>
+  <p><b>Pattern databases.</b> Project the state onto a subset of its features, enumerate that smaller
+  space exhaustively backwards from the goal, and store the exact distances in a table. Lookup is
+  <span class="m">$O(1)$</span> and the values are exact for the projection, hence admissible for the
+  original.</p>
+  <p><b>Landmarks.</b> Precompute exact distances from a handful of chosen vertices; the triangle
+  inequality then gives <span class="m">$h(n)=\max_L|d(L,\text{goal})-d(L,n)|$</span>, admissible by
+  construction. This is what makes continental-scale road routing answer in milliseconds.</p>
+  <p><b>Learning.</b> Fit a network to predict cost-to-go from states with known distances. Cheap and
+  general, and it forfeits both admissibility and consistency: see §12 for what that costs, and
+  §33 for the version that works anyway.</p>
+</div>
+
+<h3><span class="num">§14</span> Dominance, and combining</h3>
+
+<div class="box def">
+  <span class="label">More is better, if it is still admissible</span>
+  <p><span class="m">$h_2$</span> <b>dominates</b> <span class="m">$h_1$</span> if
+  <span class="m">$h_2(n)\ge h_1(n)$</span> everywhere and both are admissible. A dominant heuristic
+  never expands more nodes than the one it dominates, so between admissible heuristics, larger is
+  strictly better.</p>
+  <p>That gives a free combination: <span class="m">$h(n)=\max\bigl(h_1(n),\dots,h_k(n)\bigr)$</span>
+  is admissible whenever all the parts are, and dominates all of them. Taking the maximum of several
+  admissible heuristics is almost always worth the extra evaluations.</p>
+  <p><b>Adding them is not free.</b> <span class="m">$h_1+h_2$</span> is usually inadmissible, because
+  the two may be accounting for the same moves. It is admissible when the heuristics are
+  <i>disjoint</i> (when no single action contributes to both), which is exactly the condition that
+  makes additive pattern databases work and the reason they are built with care rather than stacked.</p>
+</div>
+
+<p>Figure 1 puts an unwelcome ceiling on all of this. If even a perfect heuristic buys 4× on a grid,
+then heuristic engineering has a limit, and past that limit the way to search a big space faster is
+not a better guess but a different algorithm. That is the next movement.</p>

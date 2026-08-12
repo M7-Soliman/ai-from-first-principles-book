@@ -1,0 +1,277 @@
+<h2><span class="part-kicker">Part B</span>Penalties</h2>
+
+<h3><span class="num">§4</span> What $L^2$ actually does to the solution</h3>
+
+<div class="sixty">
+  <span class="label">In 60 seconds</span>
+  <p>Weight decay does not shrink every weight equally. Working in the eigenbasis of the
+  loss, it keeps a fraction $\lambda_i/(\lambda_i+\alpha)$ of each direction, so directions
+  the data constrains strongly are nearly untouched, and directions it barely constrains are
+  nearly erased. <b>$L^2$ deletes the parts of the solution the data did not determine.</b></p>
+</div>
+
+<p>Everyone can state the objective:</p>
+
+$$\tilde{J}(\mathbf{w}) = J(\mathbf{w}) + \frac{\alpha}{2}\|\mathbf{w}\|_2^2$$
+
+<p>Far fewer can say what it does to the answer, and "makes the weights smaller" is not an
+answer: it does not explain why it helps, or which weights, or when it will not.</p>
+
+<h4>The derivation, which is three lines</h4>
+
+<p>Take the quadratic approximation of Part III §10 around the unregularized optimum
+$\mathbf{w}^*$, where the gradient vanishes and only the curvature survives:</p>
+
+$$\nabla J(\mathbf{w}) \approx H(\mathbf{w} - \mathbf{w}^*)$$
+
+<p>Setting the gradient of the <i>penalised</i> objective to zero gives</p>
+
+$$H(\tilde{\mathbf{w}} - \mathbf{w}^*) + \alpha\tilde{\mathbf{w}} = \mathbf{0}
+\quad\Longrightarrow\quad
+\tilde{\mathbf{w}} = (H + \alpha I)^{-1} H \mathbf{w}^*$$
+
+<p>Now use the fact that makes this readable. $H$ is symmetric, so by Part I §17 it is
+$Q\Lambda Q^\top$ with orthonormal eigenvectors, and in that basis both matrices are
+diagonal, so the whole expression decouples into one independent scalar per direction:</p>
+
+$$\tilde{w}_i = \frac{\lambda_i}{\lambda_i + \alpha}\, w^*_i$$
+
+<figure>
+  <img src="figures/rg/01-eigen-shrinkage.svg" alt="Kept fraction against eigenvalue for three penalty strengths, and test error against alpha">
+  <figcaption><b>Figure 1.</b> Left: the points are <b>measured</b> (a real ridge solution
+  divided by a real least-squares solution, direction by direction) and the curves are
+  $\lambda/(\lambda+\alpha)$ drawn over them. They coincide. Right: test error against
+  $\alpha$ on the same problem, with 50 examples and 40 parameters. The optimum is
+  <b>6.1 times better</b> than no regularization at all, and it is strictly interior.</figcaption>
+</figure>
+
+<div class="box intuition">
+  <span class="label">Intuition: read the fraction</span>
+  <p>$\lambda_i/(\lambda_i+\alpha)$ compares a direction's curvature against the penalty,
+  and the two extremes are the whole story.</p>
+  <p><b>Where the loss curves sharply</b> ($\lambda_i \gg \alpha$) the fraction is nearly 1
+  and the weight is left alone. Sharp curvature means moving that weight would hurt the
+  fit a lot: the data has an opinion about it, and the penalty defers.</p>
+  <p><b>Where the loss is nearly flat</b> ($\lambda_i \ll \alpha$) the fraction is nearly 0
+  and the weight is erased. Flat means the data barely cares what value that direction
+  takes, so its value in the unregularized fit was determined by noise, and deleting it
+  costs almost nothing and removes a source of variance.</p>
+  <p>So weight decay is not a blunt instrument. It is a filter that <b>keeps what the data
+  determined and discards what it did not</b>, and the threshold between the two is
+  $\alpha$.</p>
+</div>
+
+<p>Which finally explains the numerical story of Part III §7 and the statistical one of
+Part V §18 as the same fact. A direction with tiny $\lambda_i$ is exactly a direction that
+makes the condition number enormous, and exactly a direction whose coefficient has huge
+variance. Adding $\alpha$ fixes both, because they were one problem.</p>
+
+<h3><span class="num">§5</span> $L^1$, and where sparsity comes from</h3>
+
+<div class="readnow"><span class="label">Go and read</span><p><span class="src">Tibshirani (1996)</span>, <i>Regression shrinkage and selection via the lasso</i>. Where $L^1$ enters statistics, with the geometric argument for sparsity that this section and Part I §15 both use. Unusually readable for a methods paper, and it is explicit about the thing that made it useful: selection and shrinkage in one operation, where the previous practice needed two.</p></div>
+
+$$\tilde{J}(\mathbf{w}) = J(\mathbf{w}) + \alpha\|\mathbf{w}\|_1$$
+
+<p>The penalty is now a sum of absolute values, and the behaviour changes qualitatively
+rather than by degree.</p>
+
+<figure>
+  <img src="figures/rg/02-l1-vs-l2.svg" alt="Coefficient paths under L2 and L1 as the penalty grows">
+  <figcaption><b>Figure 2.</b> The same problem fitted at 45 penalty strengths. Three
+  features carry real signal (coloured); five are pure noise (grey). Left, $L^2$: everything
+  shrinks smoothly and <b>nothing ever reaches zero</b>. Right, $L^1$: the useless
+  coefficients hit exactly zero and stay there; at a large $\alpha$, five of eight are
+  exactly zero under $L^1$ and none are under $L^2$.</figcaption>
+</figure>
+
+<p>The reason is visible in the derivative, and it is worth one line. For $L^2$ the penalty
+contributes $\alpha w_i$ to the gradient, which <b>vanishes as $w_i$ approaches zero</b>,
+so the push toward zero weakens exactly when it would need to be strongest to finish the
+job. For $L^1$ it contributes $\alpha\,\text{sign}(w_i)$, which is <b>constant</b>. The
+push does not weaken, so a coefficient the data does not defend gets driven to zero and
+held there.</p>
+
+<div class="box intuition">
+  <span class="label">Intuition: a fixed toll versus a proportional tax</span>
+  <p>$L^2$ charges you in proportion to how large a weight is, so shrinking a weight from
+  0.1 to 0 saves almost nothing; the tax on 0.1 was already negligible. There is no reason
+  to finish.</p>
+  <p>$L^1$ charges a flat rate per unit of weight, all the way down. Going from 0.1 to 0
+  saves exactly as much per unit as going from 10 to 9.9. So if a coefficient is not
+  earning its keep, there is always a reason to remove the rest of it.</p>
+  <p>Part I §15 gave the same conclusion geometrically: the $L^1$ ball has corners on the
+  axes, and constrained optima land on corners. §7 shows both pictures at once.</p>
+</div>
+
+<h3><span class="num">§6</span> Sparse representations</h3>
+
+<p>Section 5 made the <i>weights</i> sparse. There is a second, quite different thing you
+can make sparse, and conflating them is easy because both are called sparsity.</p>
+
+<div class="box def">
+  <span class="label">Two kinds of sparsity</span>
+  <p><b>Sparse parameters:</b> most weights are zero. The model ignores most <i>inputs</i>,
+  which is feature selection. That is §5.</p>
+  <p><b>Sparse representations:</b> most <i>activations</i> are zero for any given input.
+  The model uses most of its inputs, but describes each example with only a few of its
+  internal features.</p>
+</div>
+
+<p>The second is imposed the same way, by penalising the thing you want small, except the
+penalty now falls on $\mathbf{h}$, the hidden activations, rather than on $\mathbf{w}$:</p>
+
+$$\tilde{J} = J + \alpha\|\mathbf{h}\|_1$$
+
+<p>Everything in §5 carries over unchanged, because the argument was about the shape of the
+$L^1$ penalty and never about what it was applied to. The constant gradient still drives
+small values to exactly zero; the corners of the constrained picture are still where the
+optimum lands; §7 draws it next, as Figure 3.</p>
+
+<div class="box why">
+  <span class="label">Why you would want this</span>
+  <p>A sparse representation is a statement that <b>each example should be describable by a
+  few factors out of many available</b>, not that few factors exist, which is what sparse
+  weights would say.</p>
+  <p>The distinction matters because it is the difference between a small model and a large
+  model used sparingly. A vocabulary of 10,000 features where any one image activates 50 of
+  them is a rich description and a compact one at the same time, and no choice of sparse
+  weights delivers it: sparse weights would throw 9,950 features away for <i>every</i>
+  input.</p>
+  <p>Which is exactly the preference behind sparse coding and sparse autoencoders, and it
+  is the same idea ReLU supplies for free: Part VII §7 noted ReLU produces genuinely exact
+  zeros, so a ReLU network's representations are already somewhat sparse before anyone
+  penalises anything.</p>
+</div>
+
+<p>Note that this is a regulariser on an <i>intermediate quantity</i>, which none of the
+others in Part B are. It constrains the function without constraining the parameters
+directly, and that makes it the closest thing in this part to architecture, which is §15's territory.</p>
+
+<h3><span class="num">§7</span> A penalty is a constraint</h3>
+
+<p>The two objectives below have the same solutions:</p>
+
+$$\min_{\mathbf{w}}\; J(\mathbf{w}) + \alpha\Omega(\mathbf{w})
+\qquad\text{and}\qquad
+\min_{\mathbf{w}}\; J(\mathbf{w}) \;\text{ subject to }\; \Omega(\mathbf{w}) \leq c$$
+
+<p>for a correspondence between $\alpha$ and $c$. This is Part III §19's Lagrangian
+machinery, and $\alpha$ <i>is</i> the multiplier, with the reading that section gave it:
+a <b>price</b>, measuring how much the achievable loss would improve if you were granted a
+little more room.</p>
+
+<figure>
+  <img src="figures/rg/03-constraint-view.svg" alt="Loss contours meeting an L2 ball and an L1 diamond">
+  <figcaption><b>Figure 3.</b> The same loss, the same budget, two shapes of constraint.
+  The optima were found by search over a fine grid, not drawn by hand. Under $L^2$ the
+  optimum sits at $(0.875, 0.483)$, tangency on a smooth curve, and both coordinates are
+  non-zero. Under $L^1$ it sits at $(0.990, -0.001)$: <b>on a corner, with the second
+  coordinate at zero.</b> That is sparsity, and it is a fact about the shape of the
+  budget.</figcaption>
+</figure>
+
+<p>The constrained reading is worth carrying for two practical reasons.</p>
+
+<p>It explains why turning up $\lambda$ is the same operation as tightening a budget, and
+why the exchange rate is not linear: shrinking $c$ raises the price $\alpha$, because room
+you are short of is worth more. And it makes the corner argument for $L^1$ visible in one
+picture, where the algebraic route needs the subgradient of an absolute value.</p>
+
+<h4>When the constraint is enforced directly</h4>
+
+<p>The correspondence above assumed you reach the constrained optimum indirectly, by tuning
+$\alpha$ until the penalty happens to land on the budget you wanted. There is a more literal
+route: skip the penalty term entirely, fix $c$, and after every gradient step <b>project</b>
+$\mathbf{w}$ back onto the ball if it stepped outside. That is optimisation under an
+explicit constraint rather than a penalised objective, and despite solving "the same"
+problem it behaves differently enough in practice to be worth its own name.</p>
+
+<div class="box def">
+  <span class="label">Max-norm regularization</span>
+  <p>Constrain each <i>column</i> of a weight matrix independently,
+  $\|\mathbf{w}^{(:,i)}\|_2 \leq c$, one radius per unit rather than one for the whole layer,
+  and enforce it by <b>reprojection</b>: after every update, rescale any column that now
+  exceeds $c$ back onto the ball. No Lagrange multiplier, no extra term in the loss; the
+  constraint is imposed on the parameters directly, after the optimiser has already moved
+  them.</p>
+</div>
+
+<p>Two reasons this earns more than a footnote under "constrained $L^2$, already covered".</p>
+
+<p>The first is about optimisation, not generalisation. A penalty $\alpha\mathbf{w}$ pulls
+every weight toward the origin at every step, including weights that are already small and
+correctly so. On a convex loss that pull only ever helps; on the non-convex loss a network
+actually has, it can strand the optimiser in a shallow minimum near $\mathbf{w}=\mathbf{0}$
+that it would have climbed out of without the constant inward tax: a unit contributing
+almost nothing to the function, effectively dead, and kept that way by the very term meant
+to make it generalise. Reprojection carries no such pull: it does nothing at all until a step
+overshoots the ball, so a weight already inside its budget moves exactly as an unconstrained
+one would.</p>
+
+<p>The second is that reprojection makes aggressive learning rates survivable. Weight growth
+is one of the standard ways training runs diverge: a large weight produces a large gradient,
+which grows the weight further, and the loop compounds until the numbers overflow. A hard cap
+removes the far end of that loop by construction, whatever the learning rate turns out to be,
+which is why <b>Hinton et al. (<span class="year">2012</span>)</b> paired max-norm with
+dropout in the paper that made both standard: dropout's noise wants a high learning rate to
+explore efficiently, and max-norm is what keeps that exploration from running away.</p>
+
+<div class="box history">
+  <span class="label">History: a bound from matrix factorisation, borrowed for training</span>
+  <p>Constraining the whole matrix's norm treats every column the same, but a weight
+  matrix's columns are separate units competing for one shared budget, and a bound on the
+  matrix as a whole lets one unit's weights grow at the expense of the others'. Srebro and
+  Shraibman's (<span class="year">2005</span>) generalisation bounds for matrix
+  factorisation showed that the per-column (max) norm controls capacity more tightly than
+  the matrix's overall norm, and Hinton's group carried that bound into training practice:
+  cap each unit's incoming weight vector on its own ball, not the layer's total.</p>
+</div>
+
+<p>Max-norm is a genuine alternative to weight decay, not a redundant restatement of it, and
+the two compose: nothing stops you running a penalty and a hard cap together, though in
+practice teams tend to pick one.</p>
+
+<h3><span class="num">§8</span> Under-constrained problems</h3>
+
+<p>There is a use for regularization that has nothing to do with overfitting, and it is
+easy to miss because it arrives from Part III rather than Part V.</p>
+
+<p>Some problems have <b>no unique solution at all</b>. If the data matrix has fewer rows
+than columns (more parameters than examples, which Part I §12 called the underdetermined
+case and which describes essentially every modern network), then infinitely many weight
+vectors fit the data exactly, and the least-squares problem has no single answer to return.</p>
+
+<p>A penalty resolves this by definition. Add $\alpha\|\mathbf{w}\|^2$ and the objective
+becomes strictly convex, so there is exactly one minimiser: among all the perfect fits, the
+one with the smallest norm. Part I §20's pseudoinverse returns precisely this, and now you
+can see why: the pseudoinverse <i>is</i> the limit of ridge regression as $\alpha \to 0$.</p>
+
+<div class="box why">
+  <span class="label">Why this matters more than it used to</span>
+  <p>For most of statistics' history the underdetermined case was a pathology to avoid. In
+  deep learning it is the normal condition, and the question is no longer whether a unique
+  solution exists but <b>which of the infinitely many the procedure returns.</b></p>
+  <p>Part V §20 flagged this at the double-descent figure: past the interpolation threshold
+  there are many perfect fits, and what saves you is that the optimiser picks a well-behaved
+  one. That preference is regularization, whether or not you wrote a penalty, which is
+  §3's third source, and §14's subject.</p>
+</div>
+
+<div class="box try">
+  <span class="label">Try it</span>
+  <p>A ridge fit uses $\alpha = 10$. One direction of the loss has curvature
+  $\lambda = 1000$, another has $\lambda = 0.01$. What fraction of each is kept, and what
+  does that say about which coefficient you should trust?</p>
+</div>
+
+<p><b>Answer.</b> For the sharp direction, $1000/(1000+10) = 0.990$, kept almost entirely.
+For the flat one, $0.01/(0.01+10) = 0.000999$, so about a tenth of one percent survives:
+that direction has been effectively deleted.</p>
+<p>What it says is that you should trust the first coefficient and not the second, but
+notice the reasoning runs the other way round from how it is usually taught. The penalty
+did not decide the flat direction was untrustworthy; <b>the flatness did.</b> A direction
+with curvature 0.01 is one the data barely constrains, so its unregularized value was
+mostly noise, and it would have had enormous variance across resamples. The penalty is
+acting on information that was already there in the Hessian.</p>
+<p>Which is why $\alpha$ has units and a meaning: it is the curvature below which you have
+decided the data is not speaking.</p>

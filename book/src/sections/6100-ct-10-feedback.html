@@ -1,0 +1,122 @@
+<h2><span class="part-kicker">Part A</span>Feedback</h2>
+
+<p class="mvt">The oldest idea in this part, and the one a machine-learning training makes easiest to
+miss: you do not need an accurate model to control something accurately. Measuring the error and
+correcting it converts a modelling problem into a much smaller one, and it introduces a failure
+mode that has no analogue anywhere else in this book.</p>
+
+<h3><span class="num">§1</span> Prediction is not control</h3>
+
+<div class="box why">
+  <span class="label">Three things that change when the output acts</span>
+  <p><b>The data stops being independent of you.</b> A predictor sees a distribution it did not
+  cause. A controller's action determines what it observes next, so the distribution is a
+  consequence of the policy, which is Part XVIII's premise and Part XXII's intervention, arriving
+  as an engineering constraint.</p>
+  <p><b>Errors accumulate.</b> A misclassified image is one mistake. A mistaken action moves the
+  system somewhere, and the next decision is made from there.</p>
+  <p><b>There is a deadline.</b> A controller that is right too late is wrong. Latency is part of
+  the specification, not an implementation detail, and §7 is what it does to stability.</p>
+</div>
+
+<h3><span class="num">§2</span> Open loop, and why it fails</h3>
+
+<div class="box def">
+  <span class="label">Commanding without looking</span>
+  <p>Compute the input your model says produces the outcome you want, and apply it. If the model is
+  right and nothing disturbs the system, this is optimal and cheap.</p>
+  <p>Neither condition ever holds. The error in the outcome is proportional to the error in the
+  model, so a 20% gain error is a 20% miss, and a disturbance is uncorrected forever because nothing
+  is watching.</p>
+</div>
+
+<h3><span class="num">§3</span> Closing the loop</h3>
+
+<div class="box def">
+  <span class="label">Proportional control</span>
+  <p>Measure the output, subtract it from the target, and drive the input in proportion:
+  <span class="m">$u = k_p (r - y)$</span>. The remarkable property is that the closed-loop response
+  depends on the plant's gain <span class="m">$g$</span> only through
+  <span class="m">$k_p g / (1 + k_p g)$</span>, which approaches one as the loop gain grows,
+  <b>whatever <span class="m">$g$</span> is</b>.</p>
+  <p>So a large loop gain makes the system's own parameters nearly irrelevant. That is the central
+  fact of the subject and the reason a thermostat needs no thermodynamics.</p>
+</div>
+
+<h3><span class="num">§4</span> Measured</h3>
+
+<figure>
+  <img src="figures/ct/01-feedback.svg" alt="Steady-state tracking error against model error, for open loop and three feedback gains">
+  <figcaption><b>Figure 1.</b> A first-order plant whose gain is mis-estimated. Open loop tracks the
+  error exactly: <b>0.167</b> at 20% model error. Feedback at <span class="m">$k_p = 20$</span>
+  reduces it to <b>0.040</b>, and (the part worth noticing) feedback at
+  <span class="m">$k_p = 1$</span> gives <b>0.455</b>, which is worse than not using feedback at
+  all. A proportional loop leaves an offset of <span class="m">$1/(1+k_p g)$</span> even with a
+  perfect model, so at low gain that offset exceeds the model error it was meant to
+  suppress.</figcaption>
+</figure>
+
+<div class="box why">
+  <span class="label">Two things this says</span>
+  <p><b>Feedback buys robustness, not accuracy.</b> It makes the answer insensitive to what you got
+  wrong; it does not make it right. The residual offset is a property of the loop.</p>
+  <p><b>A little feedback can be worse than none.</b> This is the sentence to keep. Adding a
+  correction term with a cautious gain, on a system you modelled well, can increase the error, and
+  the instinct that feedback is monotonically helpful is the instinct that produces it.</p>
+</div>
+
+<h3><span class="num">§5</span> The integral term</h3>
+
+<div class="box def">
+  <span class="label">Removing the offset</span>
+  <p>Accumulate the error and feed that back too: <span class="m">$u = k_p e + k_i \int e$</span>.
+  At equilibrium the integral is only constant if the error is zero, so any steady offset keeps
+  growing the input until it disappears. The offset does not shrink; it goes to zero, exactly.</p>
+  <p>The derivative term completes the trio, responding to how fast the error is changing. It damps
+  overshoot and amplifies measurement noise, which is why it is the term most often set to zero in
+  practice.</p>
+</div>
+
+<h3><span class="num">§6</span> What it costs</h3>
+
+<figure>
+  <img src="figures/ct/02-integral.svg" alt="Left: output against time for three integral gains. Right: steady-state error against integral gain, with the divergence threshold">
+  <figcaption><b>Figure 2.</b> The same plant behind an actuator that cannot move instantly.
+  <b>Left:</b> with no integral term the output settles <b>0.111</b> short, exactly
+  <span class="m">$1/(1+k_p g)$</span>; with integral action it reaches the target and overshoots on
+  the way. <b>Right:</b> the steady-state error collapses to <b>4.7&times;10<sup>&minus;15</sup></b>
+  and stays there, and above <span class="m">$k_i = 110$</span> this <span class="m">$dt=0.02$</span>
+  simulation <b>diverges</b>. That number is the discrete-time simulator's own margin, not the
+  plant's: the continuous system this section describes has characteristic polynomial
+  <span class="m">$0.15s^3 + 1.15s^2 + 9s + k_i$</span>, and Routh&ndash;Hurwitz places its true
+  stability boundary at <span class="m">$k_i \approx 69$</span>: forward-Euler's own lag pushes the
+  simulated threshold about 60% past the closed form. Exact tracking and stability margin are traded
+  against each other by one number, whichever grid you measure it on.</figcaption>
+</figure>
+
+<h3><span class="num">§7</span> Delay, and why it destabilises</h3>
+
+<div class="box pitfall">
+  <span class="label">Pitfall: the correction arrives for a situation that has passed</span>
+  <p>Every loop has lag: sensing, computing, actuating. A correction based on an old measurement is
+  applied to a system that has moved on, and if the lag is long relative to the dynamics the
+  correction can be pushing the wrong way by the time it lands. Past a point the loop oscillates,
+  and past another it diverges.</p>
+  <p>This is why <b>inference latency is a stability question and not only a performance one</b>. A
+  perception stack that takes 200 ms produces a control loop with 200 ms of dead time, and no amount
+  of accuracy compensates. It is also why Figure 2's threshold exists at all: the actuator lag is
+  what creates a margin to lose.</p>
+</div>
+
+<h3><span class="num">§8</span> What movement A establishes</h3>
+
+<div class="box intuition">
+  <span class="label">Three things</span>
+  <p><b>Feedback substitutes for knowledge.</b> High loop gain makes the plant's parameters nearly
+  irrelevant, which is why control works on systems nobody has modelled.</p>
+  <p><b>It buys robustness rather than accuracy</b>, and Figure 1 measures a case where a cautious
+  gain is worse than no feedback at all.</p>
+  <p><b>Exactness and stability trade.</b> Figure 2 measures the offset going to
+  10<sup>&minus;15</sup> and the loop diverging above a threshold you can compute, and latency
+  moves that threshold.</p>
+</div>

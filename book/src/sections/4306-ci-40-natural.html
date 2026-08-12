@@ -1,0 +1,175 @@
+<h2><span class="part-kicker">Part D</span>When you cannot randomise</h2>
+
+<p class="mvt">Movement C's estimators all require the confounding to be measured. When it is not,
+and §14 says that case is often provably hopeless by adjustment alone, the remaining move is to
+find something in the world that assigns treatment for reasons unrelated to the outcome. This
+movement is four such designs and an honest accounting of what each one assumes.</p>
+
+<h3><span class="num">§25</span> Borrowing randomness from the world</h3>
+
+<div class="box intuition">
+  <span class="label">The common structure</span>
+  <p>Every design here locates a source of variation in the treatment that is plausibly
+  independent of the outcome's other causes (a lottery, a rule, a date, a threshold) and uses
+  only that variation.</p>
+  <p>The gain is that unmeasured confounding stops mattering, because you are no longer comparing
+  the treated with the untreated. The cost is always the same shape: you now depend on an
+  assumption about the source of variation, and that assumption is untestable in exactly the way
+  the one it replaced was.</p>
+  <p>The trade is worth making when the new assumption is more defensible than the old one. That
+  is a judgement about the domain, and it is the whole skill.</p>
+</div>
+
+<h3><span class="num">§26</span> Instrumental variables</h3>
+
+<div class="box def">
+  <span class="label">The instrument, and the three things it must satisfy</span>
+  <p>An <b>instrument</b> <span class="m">$Z$</span> for the effect of <span class="m">$X$</span>
+  on <span class="m">$Y$</span> must be:</p>
+  <p><b>Relevant</b>: <span class="m">$Z$</span> actually moves <span class="m">$X$</span>. The
+  only one of the three that is testable.</p>
+  <p><b>Exogenous</b>: <span class="m">$Z$</span> is unconfounded with <span class="m">$Y$</span>.</p>
+  <p><b>Excluded</b>: <span class="m">$Z$</span> affects <span class="m">$Y$</span> <i>only</i>
+  through <span class="m">$X$</span>. No other path, at all.</p>
+  <p>Given all three, the effect is recovered by two-stage least squares: regress
+  <span class="m">$X$</span> on <span class="m">$Z$</span>, then regress <span class="m">$Y$</span>
+  on the fitted values. The first stage keeps only the part of <span class="m">$X$</span> that
+  <span class="m">$Z$</span> explains, which is, by assumption, the unconfounded part.</p>
+</div>
+
+<figure>
+  <img src="figures/ci/05-instruments.svg" alt="Two-stage least squares and OLS estimates against instrument strength, and the spread of the estimate">
+  <figcaption><b>Figure 5.</b> An unobserved confounder makes adjustment impossible; ordinary least
+  squares is biased upward throughout. Two-stage least squares recovers the true effect of
+  <b>+1.00</b> once the instrument is reasonably strong, <b>+0.998</b> at strength 0.45, with
+  the confounder never measured. At strength 0.05 it returns <b>+0.730 ± 5.006</b>: the spread is
+  five times the effect, which is the estimator reporting that it has nothing.</figcaption>
+</figure>
+
+<div class="box pitfall">
+  <span class="label">Pitfall: the exclusion restriction is where instruments die</span>
+  <p>Relevance is testable and gets tested. Exclusion is untestable and gets asserted, usually in
+  one sentence, and it is a strong claim: <i>this variable affects the outcome through no route
+  other than the treatment</i>.</p>
+  <p>Weather as an instrument for attendance also affects mood. Distance to a hospital also proxies
+  for wealth and for urbanity. Genetic variants also do other things. Every plausible instrument
+  has a candidate second path, and the question is never whether one exists but whether it is small
+  enough to ignore, which is a judgement, and belongs in the write-up as one.</p>
+</div>
+
+<div class="box why">
+  <span class="label">And the estimand narrows</span>
+  <p>With a binary treatment and heterogeneous effects, two-stage least squares does not estimate
+  the average effect. It estimates the <b>local average treatment effect</b>: the effect among the
+  units whose treatment status the instrument actually changed: the compliers.</p>
+  <p>Who those are depends on the instrument, they cannot be identified individually, and the
+  number can differ substantially from the population average. An instrument that answers a
+  narrower question correctly is often better than adjustment that answers the broad one wrongly,
+  but the narrowing has to be stated.</p>
+</div>
+
+<div class="readnow"><span class="label">Go and read</span><p><span class="src">Angrist &amp;
+Pischke (2009)</span>, <i>Mostly Harmless Econometrics</i>. The design tradition: instruments,
+differences, discontinuities, and an unusually honest running commentary on when each one is not
+credible. Read it alongside Pearl rather than instead: the two fields solved the same problem in
+different languages and are still translating.</p></div>
+
+<h3><span class="num">§27</span> Difference-in-differences</h3>
+
+<div class="box def">
+  <span class="label">Two groups, two periods</span>
+  <p>One group is treated between period one and period two; another is not. Take the change in
+  the treated group and subtract the change in the control group.</p>
+  <p class="m">$$\hat{\tau} = (\bar{Y}^{\text{treat}}_{\text{after}} - \bar{Y}^{\text{treat}}_{\text{before}}) - (\bar{Y}^{\text{ctrl}}_{\text{after}} - \bar{Y}^{\text{ctrl}}_{\text{before}})$$</p>
+  <p>Differencing within group removes any confounder that is fixed over time, however large and
+  however unmeasured. Differencing across groups removes any trend common to both.</p>
+</div>
+
+<div class="box why">
+  <span class="label">The assumption, and it is about a counterfactual</span>
+  <p><b>Parallel trends</b>: absent the treatment, the two groups' outcomes would have moved
+  together. This is a statement about a world that did not happen, so it cannot be tested.</p>
+  <p>What can be checked is whether the trends were parallel <i>before</i> treatment, and that
+  check should always be run and shown. It is evidence, not proof: pre-treatment parallelism is
+  consistent with post-treatment divergence for reasons unrelated to the treatment, and the usual
+  culprit is that whatever caused the treatment to happen when it did also affected the outcome.</p>
+</div>
+
+<h3><span class="num">§28</span> Regression discontinuity</h3>
+
+<div class="box def">
+  <span class="label">A rule with a threshold</span>
+  <p>When treatment is assigned by whether a continuous score crosses a cutoff (a test mark, an
+  income limit, a date of birth), units just above and just below are comparable in everything
+  except treatment. Compare them.</p>
+  <p>The identifying assumption is that everything else varies <b>smoothly</b> through the cutoff,
+  so any jump in the outcome at the threshold is the treatment. This is unusually credible, because
+  the cutoff is typically arbitrary and known.</p>
+</div>
+
+<div class="box shapes">
+  <span class="label">What to check, and what it costs</span>
+  <p><b>Manipulation.</b> If units can move themselves across the cutoff, those who did are
+  selected. Check the density of the running variable for a jump at the threshold.</p>
+  <p><b>Other discontinuities.</b> If a second programme uses the same cutoff, the design measures
+  both together and cannot separate them.</p>
+  <p><b>Bandwidth.</b> The estimate depends on how wide a window around the cutoff you use, and the
+  result should be reported across a range rather than at one convenient choice.</p>
+  <p><b>The estimand, again.</b> The effect is identified <i>at the cutoff</i>. Extrapolating to
+  units far from it is an assumption, not a result.</p>
+</div>
+
+<h3><span class="num">§29</span> Synthetic controls</h3>
+
+<div class="box def">
+  <span class="label">When there is exactly one treated unit</span>
+  <p>One region adopts a policy; others do not. No single comparison region is right, so build a
+  weighted combination of the untreated units that matches the treated one's pre-treatment
+  trajectory, and use its post-treatment path as the counterfactual.</p>
+  <p>The weights are chosen to fit the pre-period and are then held fixed, which is the
+  train/test discipline of Part VI applied to a causal design, and the reason the method has
+  credibility that eyeballing a comparison does not.</p>
+</div>
+
+<div class="box pitfall">
+  <span class="label">Pitfall: a good pre-period fit is not validation</span>
+  <p>With enough donor units and a short pre-period, a close fit is guaranteed and means nothing:
+  it is Part XIV §20's biased maximum, chosen over a large space of weightings. The pre-period must
+  be long relative to the number of donors, and the standard inference is a placebo test: apply the
+  method to each untreated unit in turn and see whether the real effect stands out from the
+  distribution of fake ones.</p>
+</div>
+
+<h3><span class="num">§30</span> The four designs, compared</h3>
+
+<div class="box shapes">
+  <span class="label">What each buys and what each assumes</span>
+  <p><b>Instrumental variables</b>: removes unmeasured confounding entirely. Assumes exclusion,
+  which is untestable. Estimates the effect on compliers. Fails loudly when the instrument is weak
+  (Figure 5) and silently when exclusion is violated.</p>
+  <p><b>Difference-in-differences</b>: removes any time-invariant confounder. Assumes parallel
+  trends. Estimates the effect on the treated. Partially checkable pre-treatment.</p>
+  <p><b>Regression discontinuity</b>: removes everything that varies smoothly. Assumes no
+  manipulation and no coincident policy. Estimates the effect at the cutoff. Well checkable.</p>
+  <p><b>Synthetic control</b>: handles a single treated unit. Assumes the donor pool spans the
+  counterfactual. Estimates the effect on that unit. Checkable by placebo.</p>
+  <p>Notice that none of them removes an assumption. Each <b>replaces</b> "the confounders are
+  measured" with a different untestable claim, chosen because it is easier to defend. That is what
+  causal design is: not the elimination of assumptions but their relocation to somewhere you can
+  argue about them.</p>
+</div>
+
+<h3><span class="num">§31</span> What movement D establishes</h3>
+
+<div class="box intuition">
+  <span class="label">Three things</span>
+  <p><b>Unmeasured confounding is not the end.</b> Figure 5 recovers a true effect of +1.00 from
+  data where the confounder is never observed and adjustment is provably unavailable, because the
+  design supplied variation that adjustment could not.</p>
+  <p><b>Every design relocates an assumption rather than removing one.</b> The four differ in which
+  untestable claim they need, and choosing among them is a question about the domain rather than
+  about statistics.</p>
+  <p><b>The estimand narrows every time.</b> Compliers, the treated, the cutoff, that one unit. A
+  narrower question answered credibly beats a broader one answered by assumption, and the narrowing
+  belongs in the sentence reporting the result.</p>
+</div>

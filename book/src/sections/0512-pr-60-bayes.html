@@ -1,0 +1,187 @@
+<h2><span class="part-kicker">Part F</span>Bayes</h2>
+
+<h3><span class="num">§21</span> Bayes' rule</h3>
+
+<div class="sixty">
+  <span class="label">In 60 seconds</span>
+  <p><b>Posterior $\propto$ likelihood $\times$ prior.</b> You start with a belief,
+  evidence arrives, you multiply your belief by how well each hypothesis predicted that
+  evidence, then renormalise. The rule itself is one line of algebra; its importance is
+  entirely in what the four pieces mean.</p>
+</div>
+
+<div class="box history">
+  <span class="label">History: a minister, a posthumous paper, and a secret that lasted thirty years</span>
+  <p>Thomas Bayes was a Presbyterian minister with a mathematical hobby. He worked out the
+  result now bearing his name and <b>never published it</b>. It was found among his papers
+  after his death and read to the Royal Society in <span class="year">1763</span> by his
+  friend Richard Price, who wrote the introduction and may have contributed more than is
+  usually credited.</p>
+  <p>Laplace, apparently unaware of the paper, derived the rule independently around <span
+  class="year">1774</span>, stated it in the general form used today, and spent decades
+  applying it to astronomy, demography and jurisprudence. Nearly everything now called
+  Bayesian is closer to Laplace's work than to Bayes'.</p>
+  <p>Its most consequential application stayed classified for a generation. At Bletchley
+  Park during the Second World War, Alan Turing built a sequential Bayesian procedure (he
+  called it <i>banburismus</i>) for updating beliefs about German naval Enigma rotor
+  settings as evidence accumulated, measuring the weight of evidence in units he named
+  <i>bans</i>. It cut the search space enough to make the codebreaking tractable.</p>
+  <p>The work stayed secret until the <span class="year">1970</span>s. So through the
+  decades when Fisher was arguing that Bayesian methods had no place in serious inference,
+  one of the century's most consequential statistical successes was Bayesian, and nobody
+  in the argument was permitted to know it.</p>
+</div>
+
+<p>Section 7 warned that $P(A \mid B)$ and $P(B \mid A)$ are different quantities. Often
+you can measure one but need the other. Bayes' rule is the conversion.</p>
+
+<p>The derivation is three lines. The joint probability factors two ways:</p>
+
+$$P(x, y) = P(x \mid y)P(y) \qquad\text{and}\qquad P(x, y) = P(y \mid x)P(x)$$
+
+<p>Set them equal and divide by $P(x)$:</p>
+
+$$P(y \mid x) = \frac{P(x \mid y)\, P(y)}{P(x)}$$
+
+<p>That is the whole theorem. It is not deep; it is the definition of conditional
+probability rearranged. Its importance comes entirely from what the four pieces
+<i>mean</i>.</p>
+
+<div class="box def">
+  <span class="label">The four names</span>
+  <dl>
+    <dt>$P(y \mid x)$: the <b>posterior</b></dt>
+    <dd>What you believe about $y$ after seeing the evidence $x$. This is what you want.</dd>
+    <dt>$P(x \mid y)$: the <b>likelihood</b></dt>
+    <dd>How probable the evidence would be if $y$ were true. Usually the thing you can
+    actually measure or model.</dd>
+    <dt>$P(y)$: the <b>prior</b></dt>
+    <dd>What you believed about $y$ before any evidence arrived.</dd>
+    <dt>$P(x)$: the <b>evidence</b>, or marginal likelihood</dt>
+    <dd>How probable the evidence is overall. A normalising constant, computed by
+    marginalising: $P(x) = \sum_y P(x \mid y)P(y)$.</dd>
+  </dl>
+</div>
+
+<div class="box intuition">
+  <span class="label">Intuition: Bayes' rule is how beliefs should update</span>
+  <p>Read it as a process rather than a formula:
+  $\textbf{posterior} \propto \textbf{likelihood} \times \textbf{prior}$.</p>
+  <p>You start with a belief. Evidence arrives. You multiply your belief by how well
+  each hypothesis predicted that evidence, then renormalise so the result is a
+  distribution again. Hypotheses that predicted the data well gain; those that predicted
+  it poorly lose.</p>
+  <p>The denominator is doing exactly the renormalisation from §7; it is the sum of the
+  numerator over all hypotheses. This is why you can frequently ignore it: if you only
+  need to compare two hypotheses, the shared denominator cancels.</p>
+</div>
+
+<h3><span class="num">§22</span> The base rate trap</h3>
+
+<div class="readnow"><span class="label">Go and read</span><p><span class="src">Tversky &amp; Kahneman (1974)</span>, <i>Judgment under uncertainty: heuristics and biases</i>. Not a mathematics paper, and among the most useful things you will read. It documents the fact that the error this section is about is not a lapse of arithmetic but a stable feature of how people reason, including trained clinicians, given their own data.</p></div>
+
+<div class="box history">
+  <span class="label">History: the discovery that people are predictably bad at this</span>
+  <p>The failure in this section is not carelessness. It is systematic, reproducible, and
+  documenting it launched a field.</p>
+  <p>From the late <span class="year">1960</span>s, Daniel Kahneman and Amos Tversky ran
+  experiments showing that people do not reason about probability the way the mathematics
+  prescribes. Instead they substitute simpler judgements: chiefly how
+  <i>representative</i> an example seems, or how easily one comes to mind. Base rates,
+  being abstract and unmemorable, get quietly discarded.</p>
+  <p>The medical version has been tested on doctors repeatedly since the <span
+  class="year">1970</span>s. Given a rare disease, a highly accurate test, and a positive
+  result, a large majority of practising physicians substantially overestimate the
+  probability of illness, frequently by more than an order of magnitude, and in exactly
+  the direction this section demonstrates.</p>
+  <p>Kahneman received the Nobel Memorial Prize in Economics in <span
+  class="year">2002</span> for this line of work. Tversky had died in 1996, and the prize
+  is not awarded posthumously.</p>
+  <p>Worth holding onto: if the answer here surprised you, that is the expected result,
+  and it is why the calculation is worth doing on paper rather than by instinct.</p>
+</div>
+
+<p>Here is the example that makes Bayes' rule feel necessary rather than academic. It is
+worth doing slowly, because nearly everyone gets it wrong on first encounter, including,
+in published studies, most practising physicians.</p>
+
+<div class="worked long">
+  <span class="label">Worked example: the very accurate test</span>
+  <p><b>Setup.</b> A disease affects 1 in 1,000 people. A test for it is genuinely good:
+  if you have the disease it comes back positive 99% of the time, and if you do not, it
+  falsely comes back positive only 5% of the time.</p>
+  <p>You test positive. <b>What is the probability you have the disease?</b></p>
+  <p>Write down your instinctive answer before reading on. Most people say something
+  near 95%.</p>
+
+  <p><b>Naming the quantities.</b> Let $D$ be "has the disease" and $+$ be "tests
+  positive".</p>
+  <ul class="tight">
+    <li>Prior: $P(D) = 0.001$</li>
+    <li>Likelihood (sensitivity): $P(+ \mid D) = 0.99$</li>
+    <li>False positive rate: $P(+ \mid \neg D) = 0.05$</li>
+  </ul>
+
+  <p><b>The evidence term.</b> There are two ways to test positive: being sick and
+  correctly flagged, or being healthy and wrongly flagged. Marginalise over both:</p>
+  <p>$P(+) = P(+ \mid D)P(D) + P(+ \mid \neg D)P(\neg D)
+   = (0.99)(0.001) + (0.05)(0.999) = 0.00099 + 0.04995 = 0.05094$</p>
+
+  <p><b>Apply Bayes.</b></p>
+  <p>$P(D \mid +) = \dfrac{P(+ \mid D)P(D)}{P(+)} = \dfrac{0.00099}{0.05094} \approx 0.0194$</p>
+
+  <p><b>About 1.9%.</b> Despite a positive result from a 99%-accurate test, you almost
+  certainly do not have the disease.</p>
+</div>
+
+<p>The result is so counterintuitive that it is worth seeing why it is nonetheless
+obviously correct. Forget the formula and just count people.</p>
+
+<figure>
+  <img src="figures/pr/13-base-rate.svg" alt="1000 people, 1 sick, 50 false positives">
+  <figcaption><b>Figure 13.</b> The same calculation as counting. Out of 1,000 people,
+  exactly 1 has the disease and the test almost certainly catches them. But 999 are
+  healthy, and 5% of those (about 50 people) test positive anyway. So roughly 51
+  people get a positive result and only 1 is actually sick. Hence $1/51 \approx 2\%$.
+  There is no subtlety here at all once you count.</figcaption>
+</figure>
+
+<div class="box pitfall">
+  <span class="label">Pitfall: base rate neglect</span>
+  <p>The error is ignoring how rare the condition is to begin with. When a disease is
+  rare, the healthy population is so much larger that even a small false-positive rate
+  generates more false positives than there are true cases in total.</p>
+  <p>The lesson generalises well beyond medicine: <b>a highly accurate test for a rare
+  thing produces mostly false positives.</b> This is why mass screening for rare
+  conditions is genuinely difficult, why fraud detection systems drown in false alarms,
+  and why a classifier reporting 99% accuracy on a dataset that is 99% one class has
+  told you precisely nothing.</p>
+</div>
+
+<div class="box why">
+  <span class="label">Why deep learning cares</span>
+  <p>Class imbalance is this problem wearing different clothes. Train a detector on data
+  where 0.1% of examples are positive and you will get a model with wonderful accuracy
+  and useless predictions. This is why practitioners report precision and recall rather
+  than accuracy, and why techniques like resampling and class weighting exist; they are
+  all ways of managing a base rate that would otherwise swamp the signal.</p>
+  <p>The Bayesian framing also underlies regularization, as §26 shows: a prior on the
+  weights is literally the $P(y)$ term, and maximising the posterior instead of the
+  likelihood is exactly what adding a penalty does.</p>
+</div>
+
+<div class="box try">
+  <span class="label">Try it</span>
+  <p>Same test, but now applied to a high-risk group where the disease affects 1 in 20
+  rather than 1 in 1,000. Recompute $P(D \mid +)$. What changed?</p>
+</div>
+
+<p><b>Answer.</b> Now $P(D) = 0.05$. The evidence term is
+$(0.99)(0.05) + (0.05)(0.95) = 0.0495 + 0.0475 = 0.097$, so
+$P(D \mid +) = 0.0495 / 0.097 \approx 0.51$.</p>
+
+<p>The test did not change; the population did. Moving from a 0.1% to a 5% base rate
+took the posterior from 2% to 51%, a factor of 26. This is exactly why medical tests are
+administered to people with symptoms or risk factors rather than to everyone: choosing
+who to test raises the prior, and the prior is doing more work than the test's accuracy
+is.</p>

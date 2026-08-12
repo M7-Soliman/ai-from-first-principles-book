@@ -1,0 +1,128 @@
+<h2><span class="part-kicker">Part F</span>The bottleneck</h2>
+
+<h3><span class="num">§27</span> Encoder–decoder</h3>
+
+<div class="sixty">
+  <span class="label">In 60 seconds</span>
+  <p>Everything so far maps a sequence to an output of the <b>same length</b>, or to a single
+  vector, or a vector to a sequence. Translation needs none of those: the input and output
+  lengths differ and are not known in advance. Bolting a sequence-to-vector model onto a
+  vector-to-sequence model solves it, and creates the problem this part ends on.</p>
+</div>
+
+<div class="readnow"><span class="label">Go and read</span><p><span class="src">Sutskever, Vinyals &amp; Le (2014)</span>, <i>Sequence to sequence learning with neural networks</i>. The architecture of this section, and the first competitive neural translation. Then <span class="src">Bahdanau, Cho &amp; Bengio (2015)</span>, which identifies the fixed-size context as <i>the</i> bottleneck and replaces it with a variable-length one the decoder queries. Read the second immediately after the first: it is the moment attention enters the field, and it enters as a repair rather than as a revolution.</p></div>
+
+<p>§5 gave the two halves. An RNN reading a sequence and emitting its final state is a
+<b>sequence-to-vector</b> map. An RNN conditioned on a fixed vector and generating until it
+stops is a <b>vector-to-sequence</b> map. Compose them.</p>
+
+<div class="box def">
+  <span class="label">The sequence-to-sequence architecture</span>
+  <p>An <b>encoder</b> reads $\mathbf{x}^{(1)},\ldots,\mathbf{x}^{(n_x)}$ and emits a context
+  $C$, usually a simple function of its final hidden state. A <b>decoder</b>, conditioned on
+  $C$, generates $\mathbf{y}^{(1)},\ldots,\mathbf{y}^{(n_y)}$.</p>
+  <p>The two are trained jointly to maximise
+  $\log P(\mathbf{y}^{(1)},\ldots,\mathbf{y}^{(n_y)} \mid \mathbf{x}^{(1)},\ldots,\mathbf{x}^{(n_x)})$
+  over the training pairs. Crucially $n_x$ and $n_y$ are <b>unconstrained</b>: the earlier
+  architectures all required them equal.</p>
+  <p>The context enters the decoder as its initial state, as an extra input at every step, or
+  both (§10 of ch10's three options, and all three are used). The encoder and decoder need not
+  be the same size.</p>
+</div>
+
+<p>This was proposed twice, independently, in 2014, and produced the first competitive neural
+machine translation. It is a genuinely good idea and the reason to dwell on it is the flaw
+that is visible in the definition if you look for it.</p>
+
+<p>Every fact the decoder will ever need about the input must pass through $C$. A fifty-word
+sentence and a five-word sentence are compressed into the same fixed-size vector. §2 said the
+state is a lossy summary and that lossy is fine, and here is the case where it is not, because
+translation is exactly the task that needs the input recoverable.</p>
+
+<figure>
+  <img src="figures/sq/09-bottleneck.svg" alt="Per-token accuracy against input length for four context widths, and against context width for five lengths">
+  <figcaption><b>Figure 9.</b> A sequence-reversal task: the output depends on <i>every</i>
+  input token, so nothing can be discarded. Single seed on this machine; a different torch
+  version, hardware or seed will move the exact numbers, though not the shape. Left: accuracy
+  against input length, for four context widths. At length 4 every model is near perfect; by
+  length 24 the best is at <b>0.444</b>. Right: the same numbers against context width. Going
+  from a context of 4 to a context of <b>64, sixteen times wider,</b> recovers only 0.328 to
+  0.444 at length 24. The bottleneck is real, and widening it is not the fix.</figcaption>
+</figure>
+
+<div class="box why">
+  <span class="label">Why widening $C$ does not work, and what that rules out</span>
+  <p>The right panel is the load-bearing measurement. If the problem were simply that $C$ was
+  too small, then making $C$ large would solve it, and the curves would rise steeply and
+  flatten near the top. They do not: they rise gently and stay low.</p>
+  <p>Two things are going on. Capacity is only half the difficulty: the encoder must
+  <b>compress</b> a variable-length input into a fixed representation, and the decoder must
+  <b>decompress</b> it in a different order, and both operations have to be learned through the
+  same recurrence with all of Part C's difficulties. Widening $C$ adds capacity and makes the
+  learning problem no easier.</p>
+  <p>More fundamentally, the architecture forces a commitment. At the moment the encoder
+  finishes, it must have decided what to keep: <b>before knowing which output token it will be
+  asked for first</b>. A translation whose first output word depends on the last input word
+  requires the encoder to have anticipated that. No fixed-size summary computed in ignorance of
+  the question can be right for every question.</p>
+</div>
+
+<h3><span class="num">§28</span> What this part could not do</h3>
+
+<p>Four limitations, stated as precisely as this part can state them, because the next part is
+organised around removing them.</p>
+
+<dl>
+  <dt>The path between distant positions is long</dt>
+  <dd>Information from step 1 reaches step 1,000 by passing through 999 applications of the same
+  transformation. §11 showed that product decays or explodes exponentially; §12 showed that the
+  decay is the <b>price of stable memory</b> rather than a fixable defect; §18 showed that gating
+  puts the decay under the model's control without removing it. The shortest path between two
+  positions is still $O(\tau)$.</dd>
+
+  <dt>Training cannot be parallelised over the sequence</dt>
+  <dd>$\mathbf{h}^{(t)}$ requires $\mathbf{h}^{(t-1)}$. This is not an implementation detail;
+  it is what recurrence means. §5 noted that giving up hidden-to-hidden recurrence buys complete
+  parallelism at the cost of expressiveness, and filed the trade for later. It is the single
+  largest reason recurrent models were displaced, because it caps how much data a model can be
+  trained on in a given time, and Part XVII is about what happens when that cap is lifted.</dd>
+
+  <dt>A fixed-size context cannot serve every question</dt>
+  <dd>§27, measured in Figure 9. Any architecture that summarises before it knows what will be
+  asked must guess, and widening the summary does not stop it being a guess.</dd>
+
+  <dt>Stationarity is assumed and never checked</dt>
+  <dd>§8. One transition function for all time. Where that is false the model cannot express
+  that it is false, and the symptom is a fit that is quietly worse rather than an error.</dd>
+</dl>
+
+<div class="box why">
+  <span class="label">Where this stands in 2026</span>
+  <p>Recurrent networks are no longer the default for sequences, and the reason is the second
+  limitation rather than the first. Gating handled long dependencies well enough for most
+  practical purposes; what could not be handled was that a model which must process step $t-1$
+  before step $t$ cannot use a machine built to do ten thousand things at once.</p>
+  <p>They are not gone. Where memory is bounded and the sequence arrives one item at a time
+  (streaming audio, on-device inference, control), a recurrent model has an advantage no
+  attention-based model has: <b>constant memory per step, regardless of how long the sequence
+  has been running</b>. An attention model's cost grows with everything it has seen; a recurrent
+  model's does not.</p>
+  <p>That advantage is why the line is alive rather than historical. <b>State space models</b>,
+  S4 and its descendants, are recurrences designed so that the sequential form is available at
+  inference and a parallel form is available for training, which is an attempt to keep the
+  memory property while removing the second limitation. Whether that succeeds is genuinely open
+  and is one of the more interesting live questions in the field.</p>
+</div>
+
+<div class="box intuition">
+  <span class="label">The one thing to carry forward</span>
+  <p><b>Recurrence shares parameters across time, and pays for it with a path length that grows
+  with the sequence.</b></p>
+  <p>Everything in this part follows. The parameter saving of §3 and the generalisation to
+  unseen lengths; the vanishing and exploding of §11; the trade of §12; gating as a way to
+  control the decay rather than remove it; the bottleneck of §27; and the impossibility of
+  parallel training.</p>
+  <p>So the question to take into Part XII is the one this part could not answer:
+  <b>can you share parameters across positions without making the path between them long?</b></p>
+  <p>The answer is yes, it costs something else entirely, and it reorganised the field.</p>
+</div>

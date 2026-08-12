@@ -1,0 +1,219 @@
+<h2><span class="part-kicker">Part A</span>What a dataset is</h2>
+
+<h3><span class="num">§1</span> The assumption everything so far has rested on</h3>
+
+<div class="sixty">
+  <span class="label">In 60 seconds</span>
+  <p>Every guarantee in Parts V and VI assumed training and test data are drawn independently
+  from the <b>same</b> distribution. That assumption is not a technicality; it is what makes a
+  test score mean anything. It is also, in nearly every real project, false in ways nobody
+  checked.</p>
+</div>
+
+<p>Part VI §5 stated it and moved on, because there was nothing useful to say until the rest of
+the machinery existed. Now there is.</p>
+
+<div class="box def">
+  <span class="label">What i.i.d. is doing for you</span>
+  <p>Part V's whole apparatus (confidence intervals, hypothesis tests, the bootstrap) assumes
+  your sample is drawn independently from the population you care about. Part VI's
+  generalisation argument assumes the test set is drawn from the same distribution as the
+  training set.</p>
+  <p>Together they license the one inference that matters: <b>a score measured on held-out data
+  predicts performance in deployment.</b> Break either assumption and the number is still a
+  number; it just stops being about anything you wanted to know.</p>
+</div>
+
+<div class="box why">
+  <span class="label">Why this part exists, and why it is thirteen parts late</span>
+  <p>The book could not have been written in this order. To say something useful about data you
+  need estimators (Part V), generalisation (Part VI), regularization (Part VIII) and enough
+  architecture to know what data does to a model.</p>
+  <p>But the ordering has a cost worth naming: twelve parts have quietly treated the dataset as
+  a given, and that is how the subject is usually taught. The result is a field in which the
+  <b>model</b> is scrutinised in enormous detail and the <b>input</b> is not, where a paper
+  will ablate five architectural choices and describe its corpus in one sentence.</p>
+  <p>That asymmetry is not defensible. On most real problems, changing the data changes the
+  outcome more than changing the model, and this part is the argument for treating it with the
+  same seriousness as everything else in the book.</p>
+</div>
+
+<h3><span class="num">§2</span> Population, sample, and the frame</h3>
+
+<p>Three distinct things are routinely called "the data", and separating them is most of the
+work.</p>
+
+<div class="box def">
+  <span class="label">The three</span>
+  <p><b>The population.</b> What you actually care about: every input the deployed system will
+  see. Usually not enumerable, often not even well defined until you try to write it down.</p>
+  <p><b>The sampling frame.</b> The part of the population you were <i>able</i> to reach.
+  Everything on the public web; every patient at these three hospitals; every user who agreed
+  to logging.</p>
+  <p><b>The sample.</b> What you actually drew from the frame, and labelled, and kept.</p>
+  <p>Statistics gives you tools for the gap between <b>frame and sample</b>: that is what Part
+  V is. It gives you nothing at all for the gap between <b>population and frame</b>. That gap
+  is a modelling assumption, and it is the one that ends projects.</p>
+</div>
+
+<div class="box pitfall">
+  <span class="label">Pitfall: a bigger sample does not close the frame gap</span>
+  <p>Part V §3's $1/\sqrt{n}$ describes sampling error: the gap between your sample and the
+  frame it came from. More data shrinks it.</p>
+  <p>Frame error does not shrink. If your frame excludes a population, collecting ten times as
+  much data from the same frame excludes them ten times as thoroughly, and it makes your
+  confidence intervals <b>narrower</b>, so you become more confident in a number that is
+  measuring the wrong thing.</p>
+  <p>This is the single most important idea in the part. <b>Scale improves precision and does
+  nothing for validity</b>, and precision without validity is worse than neither, because it is
+  persuasive.</p>
+</div>
+
+<figure>
+  <img src="figures/dt/01-frame-gap.svg" alt="Estimated rate with confidence intervals against sample size, for three sampling frames">
+  <figcaption><b>Figure 1.</b> A population made of two groups with different rates; the true
+  value is <b>0.480</b>. Three frames: one matching the population, one under-representing
+  group B, one omitting it. At $n = 100{,}000$ the correct frame gives
+  $0.4785 \pm 0.0031$ and contains the truth. The under-represented frame gives
+  $0.5702 \pm 0.0031$ and the absent frame $0.6004 \pm 0.0030$, <b>wrong by tens of times the
+  width of their own intervals</b> (about thirty for the under-represented frame, forty for the
+  absent one). Right: every interval narrows like $1/\sqrt{n}$ whatever
+  the frame, so the only thing more data changed was how confident the wrong answer
+  looks.</figcaption>
+</figure>
+
+<h3><span class="num">§3</span> Coverage, and how you would know</h3>
+
+<p>The natural question is how to detect a frame gap. The honest answer is that you generally
+cannot from the data itself: a dataset cannot tell you what is missing from it.</p>
+
+<p>What you can do is enumerate the axes you care about and check each deliberately.</p>
+
+<div class="box def">
+  <span class="label">A coverage checklist that is not a formality</span>
+  <ul class="tight">
+    <li><b>Who is represented?</b> Which people, dialects, devices, institutions (and which are
+    not).</li>
+    <li><b>Under what conditions?</b> Lighting, microphone, season, load. Data collected in one
+    condition rarely transfers.</li>
+    <li><b>Over what period?</b> A frame is a snapshot. Part XIV returns to what happens when the world moves.</li>
+    <li><b>What is rare?</b> The cases that matter most (failures, emergencies, fraud) are by
+    construction the ones you have fewest of.</li>
+    <li><b>What was excluded, and by whom?</b> Filters, quality thresholds and deletions are
+    sampling decisions, and they are usually undocumented.</li>
+  </ul>
+</div>
+
+<div class="box why">
+  <span class="label">Why the last item is the one people miss</span>
+  <p>Collection is scrutinised. <b>Filtering</b> is not, and it is a second sampling step applied
+  after the first.</p>
+  <p>Dropping records with missing fields selects against whoever is most likely to have missing
+  fields. Removing text a quality classifier scores low removes dialects the classifier was not
+  trained on. Discarding images below a resolution threshold selects for people with better
+  cameras.</p>
+  <p>Every one of these is defensible in isolation and none of them is recorded as a sampling
+  decision. §17 is about doing it deliberately; the point here is that <b>you have a frame you
+  did not choose unless you wrote the filters down</b>.</p>
+</div>
+
+<h3><span class="num">§4</span> Labels are measurements</h3>
+
+<p>The supervised setting of Part VI presumes a label $y$ for each input. Where does it come
+from?</p>
+
+<p>Occasionally from the world: a sensor reading, a recorded outcome, whether the loan was
+repaid. Usually from a <b>person making a judgement</b>, and a judgement is a measurement, with
+everything Part V says about measurements.</p>
+
+<div class="box def">
+  <span class="label">Label noise, in three kinds</span>
+  <p><b>Random.</b> Independent mistakes: attention lapses, misclicks. Symmetric, and §9 shows
+  models tolerate a remarkable amount of it.</p>
+  <p><b>Systematic.</b> An annotator, or a guideline, consistently wrong in one direction. This
+  is <b>bias</b>, it does not average out with more annotators drawn the same way, and it is
+  learned by the model as signal.</p>
+  <p><b>Irreducible.</b> The label is genuinely ambiguous. Two competent people disagree because
+  the question does not have one answer.</p>
+  <p>The first is tolerable, the second is dangerous, and the third means your task definition is
+  incomplete. Telling them apart requires measuring, which is §5.</p>
+</div>
+
+<h3><span class="num">§5</span> Agreement, and what it does not tell you</h3>
+
+<div class="readnow"><span class="label">Go and read</span><p><span class="src">Aroyo &amp; Welty (2015)</span>, <i>Truth is a lie: crowd truth and the seven myths of human annotation</i>. Seven assumptions about annotation, each stated and then dismantled, including the one this section is about, that disagreement is noise to be resolved. The argument is that disagreement is <b>signal about the task</b>, and that collapsing it to a majority vote throws away the most informative thing you collected.</p></div>
+
+<p>Have several people label the same items and measure how often they agree. This is the
+standard instrument and it is routinely over-read.</p>
+
+<div class="box def">
+  <span class="label">Chance-corrected agreement</span>
+  <p>Raw agreement is uninterpretable: with two classes at 90/10, two annotators who both always
+  say "majority" agree 81% of the time while conveying nothing.</p>
+  <p><b>Cohen's $\kappa$</b> corrects for that:</p>
+  <p>$$\kappa = \frac{p_o - p_e}{1 - p_e}$$</p>
+  <p>with $p_o$ the observed agreement and $p_e$ the agreement expected by chance given each
+  annotator's marginal rates. $\kappa = 1$ is perfect, $0$ is chance, and negative is worse than
+  chance.</p>
+</div>
+
+<div class="box pitfall">
+  <span class="label">Pitfall: high agreement is not correctness</span>
+  <p>Annotators agree when they share a guideline, a training session and a set of assumptions.
+  <b>Those are exactly the conditions under which they share the same systematic error.</b></p>
+  <p>So high $\kappa$ tells you the task is well specified and the guideline is being followed.
+  It does not tell you the guideline is right, and it is precisely uninformative about the
+  systematic component of §4, the one that matters most.</p>
+  <p>Two things do help. Have a <b>separate</b> group label a sample with a different guideline
+  and compare. And check agreement <b>per class</b>: an aggregate $\kappa$ of 0.8 routinely hides
+  a rare class at 0.2, and the rare class is usually the one you care about.</p>
+</div>
+
+<div class="box why">
+  <span class="label">Why disagreement is information rather than noise</span>
+  <p>The standard move is to take a majority vote and discard the rest. That throws away the
+  most useful signal in the annotation process.</p>
+  <p>Items with high disagreement are telling you something: the guideline is ambiguous there,
+  or the item is genuinely borderline, or the label set is wrong. Part V §16's point applies
+  (a spread is data, not an inconvenience), and the disagreement rate per item is worth keeping
+  as a column rather than collapsing.</p>
+  <p>It also gives you the one thing you otherwise lack: an estimate of the <b>irreducible
+  error</b> of Part V §20. If competent annotators agree only 85% of the time, a model scoring
+  95% against a single annotator's labels is not doing what that number suggests.</p>
+</div>
+
+<h3><span class="num">§6</span> The label defines the task</h3>
+
+<p>A last observation about labels, and the one with the largest consequences.</p>
+
+<p>You do not have a task and then choose labels for it. <b>The labels are the task.</b> A model
+learns to predict the thing you recorded, exactly, including everything about how you recorded
+it.</p>
+
+<div class="box worked">
+  <span class="label">Worked: three ways to label the same problem</span>
+  <p>You want to detect "harmful content". Consider three labelling schemes.</p>
+  <p><b>One.</b> Ask annotators "is this harmful?": you have built a model of your annotators'
+  aggregate intuition, including whatever they disagree with each other about.</p>
+  <p><b>Two.</b> Write a twenty-page guideline and ask "does this violate clause 4.2?": you have
+  built a model of the guideline. Now the guideline is the specification, it can be audited, and
+  it can be changed without relabelling everything from scratch.</p>
+  <p><b>Three.</b> Use whether the content was removed by moderators in production: you have
+  built a model of the <b>moderation process</b>, including its backlog, its priorities and
+  whatever it never saw. This is the cheapest option, it produces the most data, and it answers
+  a different question from the one you asked.</p>
+  <p>Three datasets, three tasks, one problem statement. The choice is not a detail of
+  implementation and it cannot be recovered from the resulting numbers.</p>
+</div>
+
+<div class="box why">
+  <span class="label">Why proxy labels are the most common silent failure</span>
+  <p>Option three is a <b>proxy</b>: you wanted $y$, you could not measure $y$, so you measured
+  $z$ and hoped it was close.</p>
+  <p>Proxies are often necessary. What makes them dangerous is that <b>the substitution is
+  invisible downstream</b>: every metric, every plot, every comparison is about $z$, and nothing
+  in the pipeline records that $z$ is not what you wanted.</p>
+  <p>The habit worth building is to write the substitution down, in the dataset's documentation
+  (§19), in the form: <i>we wanted X, we measured Y, they differ when Z</i>. That sentence is
+  cheap to write once and nearly impossible to reconstruct later.</p>
+</div>

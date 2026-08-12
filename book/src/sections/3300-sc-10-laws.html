@@ -1,0 +1,174 @@
+<h2><span class="part-kicker">Part A</span>The empirical laws</h2>
+
+<h3><span class="num">§1</span> The question scale asks</h3>
+
+<div class="sixty">
+  <span class="label">In 60 seconds</span>
+  <p>Make the model bigger, give it more data, spend more compute, and the loss falls, smoothly,
+  over many orders of magnitude, following a power law you can fit and extrapolate. That regularity
+  is the reason the last decade looked the way it did, and it is an <b>empirical</b> finding with no
+  accepted derivation.</p>
+</div>
+
+<div class="box def">
+  <span class="label">Three quantities, and one constraint</span>
+  <p><b>$N$</b>, parameters. <b>$D$</b>, training tokens. <b>$C$</b>, total compute, and for a dense
+  transformer $C \approx 6ND$: six FLOPs per parameter per token, two forward and four backward.</p>
+  <p>The constraint is that $C$ is what you have and $N$ and $D$ are what you choose. Movement B is
+  entirely about that choice, and it is worth noticing that it only became a <i>question</i> once
+  the laws made both sides predictable.</p>
+</div>
+
+<h3><span class="num">§2</span> Power laws, and how to read them</h3>
+
+<div class="box def">
+  <span class="label">The form</span>
+  <p>$$L(x) = \frac{A}{x^{\alpha}} + E$$</p>
+  <p>Two pieces. The <b>reducible</b> term falls as a power of $x$: a straight line on log–log
+  axes, with slope $-\alpha$. The <b>irreducible</b> term $E$ is a floor the model cannot go below
+  however large it gets.</p>
+  <p>A power law is the statement that <b>equal multiplicative increases buy equal decreases</b>:
+  each doubling of $N$ removes the same fraction of the reducible loss. That is a strong claim and
+  it is the reason extrapolation is possible at all.</p>
+</div>
+
+<div class="box pitfall">
+  <span class="label">Pitfall: a straight line on log–log axes, without subtracting $E$</span>
+  <p>Plot $L$ itself against $N$ on log–log axes and you get a curve that flattens, because of the
+  additive floor. Plot $L - E$ and you get a straight line, <b>if</b> $E$ is right.</p>
+  <p>Which means the exponent and the floor are fitted <b>together</b>, and they trade off: a
+  slightly larger $E$ can be compensated by a steeper $\alpha$ over the range you measured. Two
+  studies quoting different exponents may not disagree about anything except how they handled the
+  floor.</p>
+  <p>This is why §4's protocol matters, and why any comparison of exponents has to state how the
+  floor was handled. Figure 1 is the two pieces separated.</p>
+</div>
+
+<h3><span class="num">§3</span> What the irreducible term is</h3>
+
+<div class="box def">
+  <span class="label">The entropy of the data</span>
+  <p>For a model trained by maximum likelihood on a stochastic source, $E$ is the <b>entropy of the
+  source</b>, Part II §23's quantity. No model can predict better than the data's own randomness
+  allows, and cross-entropy is bounded below by entropy.</p>
+  <p>So $E$ is a property of the <b>data</b>, not of the model or the method. Two architectures
+  fitted on the same corpus should agree about $E$ and may disagree about $A$ and $\alpha$; if they
+  disagree about $E$, at least one fit is wrong.</p>
+</div>
+
+<div class="box why">
+  <span class="label">Why this is almost never checked</span>
+  <p>The entropy of a natural corpus is unknown and unknowable: estimating it is as hard as
+  modelling it, since the best estimate available <i>is</i> the best model. So $E$ is a free
+  parameter fitted from the same data as everything else, and there is no independent way to
+  confirm it.</p>
+  <p>That is worth stating plainly because it is a real limitation of the whole enterprise, and it
+  is invisible in the published curves. A synthetic source whose entropy is computable is the only
+  setting where the fit can be graded at all, and the project's Stage 3 builds one.</p>
+</div>
+
+<figure class="illus">
+  <img src="figures/sc/01-scaling-illus.svg" alt="Loss against parameters on log-log axes flattening onto an irreducible floor, and the same curve with the floor subtracted becoming a straight line">
+  <figcaption><span class="illus-tag">Illustrative</span><b>Figure 1.</b> The shape of a scaling
+  law. Left: the loss falls as a power of $N$ and flattens onto the irreducible floor. Right:
+  subtract the floor and a straight line appears, with slope $-\alpha$, which is the check that
+  the relationship is a power law at all. Drawn rather than measured: establishing it requires runs
+  spanning many orders of magnitude of compute. The axes carry no values, because none would be
+  measurements.</figcaption>
+</figure>
+
+
+
+<h3><span class="num">§4</span> Fitting a law honestly</h3>
+
+<div class="box def">
+  <span class="label">A protocol</span>
+  <ol class="tight">
+    <li><b>Tune the learning rate at every size.</b> One rate across sizes penalises the largest
+    models systematically, and §11 is the expensive version of that mistake.</li>
+    <li><b>Match the schedule to the budget</b> of each run. Also §11.</li>
+    <li><b>Span at least two orders of magnitude</b> in the variable being scaled. A power law
+    fitted over one decade is an extrapolation dressed as a fit.</li>
+    <li><b>Vary one thing.</b> If $N$ and $D$ move together, the exponent you recover belongs to
+    neither.</li>
+    <li><b>Report the fitted $E$</b>, and say whether it was free or pinned. Two exponents fitted
+    with different floors are not comparable.</li>
+    <li><b>Report the residuals.</b> A power law that fits to 1% and one that fits to 15% support
+    very different extrapolations, and only one of them is usually shown.</li>
+  </ol>
+</div>
+
+<h3><span class="num">§5</span> The three laws, and their joint form</h3>
+
+<div class="box def">
+  <span class="label">Separately and together</span>
+  <p>Holding everything else non-limiting, each of the three quantities has its own law:
+  $L(N)$, $L(D)$ and $L(C)$, each a power law with its own exponent.</p>
+  <p>The joint form used for allocation is</p>
+  <p>$$L(N, D) = \frac{A}{N^{\alpha}} + \frac{B}{D^{\beta}} + E$$</p>
+  <p>which says the two deficits are <b>additive and independent</b>: too few parameters and too
+  little data each cost you separately. That additivity is an assumption, it is not derived from
+  anything, and it is what makes §13's optimisation tractable, so it is worth knowing that the
+  whole compute-optimal apparatus rests on it.</p>
+</div>
+
+<h3><span class="num">§6</span> What the laws do not say</h3>
+
+<div class="box pitfall">
+  <span class="label">Five things routinely read into them</span>
+  <p><b>They are not about capability.</b> The laws describe <b>loss</b>: average next-token
+  cross-entropy. The relationship between loss and anything a user cares about is not a power law
+  and is not smooth.</p>
+  <p><b>They are not architecture-independent.</b> The exponents are similar across reasonable
+  architectures, which is a striking empirical fact, and "similar" is not "identical". The constant
+  $A$ varies a great deal, and it is the constant that decides the cost.</p>
+  <p><b>They are not data-independent.</b> Change the corpus and you change $E$ and $A$ both.
+  Curves fitted on one corpus do not transfer to another, and Part XIII §21 is why.</p>
+  <p><b>They do not extrapolate indefinitely.</b> Every empirical law in the history of the subject
+  eventually bent. These are fitted over a finite range and predict outside it by assumption.</p>
+  <p><b>They say nothing about what to do.</b> A law is a description of a frontier, not a reason to
+  move along it; §38 is about the cases where moving along it is the wrong project.</p>
+</div>
+
+<h3><span class="num">§7</span> Emergence, and the measurement artefact</h3>
+
+<div class="readnow"><span class="label">Go and read</span><p><span class="src">Schaeffer, Miranda &amp; Koyejo (2023)</span>, <i>Are emergent abilities of large language models a mirage?</i>. A clean piece of methodological work: the same runs produce a sharp curve or a smooth one depending only on whether the metric is discontinuous. Read it as an instance of Part XIV §33 rather than as a claim about language models, because that is the transferable part.</p></div>
+
+<div class="box def">
+  <span class="label">The claim, and the deflation</span>
+  <p>The observation: some capabilities appear absent at small scale and present at large, with a
+  sharp transition rather than a smooth improvement. Reported as <b>emergence</b>, and taken as
+  evidence that scaling produces qualitative discontinuities.</p>
+  <p>The deflation is largely convincing. Many reported emergent curves are measured with
+  <b>discontinuous metrics</b>: exact-match accuracy on a multi-step problem, which is zero until
+  every step is right. Under a continuous metric on the same runs (per-token loss, or partial
+  credit), the improvement is smooth and was happening all along.</p>
+  <p>The mechanism is arithmetic: if per-step accuracy $p$ improves smoothly and the metric is
+  $p^k$ for a $k$-step task, the metric looks flat and then rises sharply while nothing
+  discontinuous happened.</p>
+</div>
+
+<div class="box why">
+  <span class="label">Why this belongs in a book about method</span>
+  <p>It is Part XIV §33's loss-is-not-the-metric, at the largest scale anyone works at, producing a
+  research literature about a phenomenon that is substantially an artefact of the reporting
+  choice.</p>
+  <p>The honest residue: some transitions do look sharp under continuous metrics too, and the
+  question of whether anything genuinely discontinuous happens is open. The point is that the
+  <b>default</b> explanation for a sharp curve should be the metric, and checking costs nothing.</p>
+</div>
+
+<h3><span class="num">§8</span> Extrapolation, and its limits</h3>
+
+<div class="box def">
+  <span class="label">What the laws are actually used for</span>
+  <p>Their practical value is that a run costing millions can be <b>predicted</b> from runs costing
+  thousands. Fit the surface on small models, extrapolate, and decide whether the large run is worth
+  starting. This works well enough to have become standard practice.</p>
+  <p>The failure modes are the ones Part XIV §14 named: an extrapolation is a claim about a regime
+  you have not measured. Here the specific hazards are that the reducible term may hit a floor you
+  fitted wrongly, that the data may run out (§13), and that something in the training recipe that was
+  fine at small scale (a learning rate, a schedule, a precision format) may not be.</p>
+  <p>The discipline: extrapolate no more than one order of magnitude beyond the fit without checking,
+  and treat the first large run as a <b>measurement of the extrapolation</b> as much as a model.</p>
+</div>

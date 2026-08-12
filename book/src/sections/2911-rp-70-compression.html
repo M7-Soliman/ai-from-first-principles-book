@@ -1,0 +1,191 @@
+<h2><span class="part-kicker">Part G</span>Learning as compression</h2>
+
+<p class="mvt">Movement B treated compression as something an autoencoder does. This one treats it as
+the theory it came from. Part II gave entropy, KL and cross-entropy and stopped; what follows is the
+part that turns them into a criterion: how many bits a representation is allowed to cost, what it
+must give up to fit in them, and why the model that describes its training data in the fewest bits is
+usually the one that generalises.</p>
+
+<h3><span class="num">§43</span> Rate and distortion</h3>
+
+<div class="box def">
+  <span class="label">The two numbers, and the curve between them</span>
+  <p>Given a source and a measure of error, the <b>rate–distortion function</b>
+  <span class="m">$R(D)$</span> is the least number of bits per sample needed to reconstruct within
+  average distortion <span class="m">$D$</span>. It is a property of the source, not of any codec:
+  the boundary of what is possible.</p>
+  <p>For a Gaussian source of variance <span class="m">$\sigma^2$</span> under squared error it has a
+  closed form:</p>
+  <p class="m">$$R(D) = \tfrac{1}{2}\log_2\frac{\sigma^2}{D}, \qquad D \le \sigma^2$$</p>
+  <p>Half a bit per halving of distortion, forever. Every representation in this part sits somewhere
+  relative to a curve like this, and the useful question about a representation is not "is it good"
+  but "where is it on the trade, and how far from the boundary".</p>
+</div>
+
+<figure>
+  <img src="figures/rp/11-rate-distortion.svg" alt="Distortion against rate for three quantisers with the theoretical bound below them, beside the excess rate over the bound converging to a constant for the uniform quantiser">
+  <figcaption><b>Figure 11.</b> A Gaussian source, three quantisers, all entropy-coded. The uniform
+  scalar quantiser's excess over the bound converges to <b>0.2576 bits</b> against the theoretical
+  <span class="m">$\tfrac12\log_2(\pi e/6) = 0.2546$</span>. Quantising two dimensions at once on a
+  hexagonal lattice recovers <b>0.0217 bits</b> of that, against a theoretical 0.0278. Lloyd–Max,
+  optimal at a fixed number of levels, is <b>0.139 bits worse</b> than plain uniform once the output
+  is entropy-coded.</figcaption>
+</figure>
+
+<div class="box why">
+  <span class="label">Two things this measures that are easy to state wrongly</span>
+  <p><b>The gap is an overhead, not a drift.</b> A quantiser that works one sample at a time pays a
+  fixed quarter of a bit per sample, at every rate, forever. That is the price of not coding long
+  blocks together, and no amount of cleverness inside a scalar quantiser removes it. Going from one
+  dimension to two recovers about a twelfth of it: the rest needs dimensions you do not have.</p>
+  <p><b>Optimising the wrong constraint costs more than the whole space-filling gain.</b> Lloyd–Max
+  is the optimal quantiser when the rate is the *number of levels*. Entropy-code its output and it is
+  worse than a uniform quantiser by 0.139 bits, five times the two-dimensional gain. The general
+  lesson is not about quantisers: a method optimal under one accounting can be beaten by a simpler
+  one under a different accounting, and which accounting you are actually paying under is the
+  question to ask first.</p>
+</div>
+
+<h3><span class="num">§44</span> Description length</h3>
+
+<div class="box def">
+  <span class="label">A model is a code for its data</span>
+  <p>To transmit a dataset to someone who has neither, send a <b>model</b> and then send the
+  <b>residuals</b> under it. The total is a <b>two-part code</b>:</p>
+  <p class="m">$$L(\text{data}) = \underbrace{L(\text{model})}_{\text{complexity}} + \underbrace{L(\text{data}\mid\text{model})}_{\text{misfit}}$$</p>
+  <p>The <b>minimum description length</b> principle says: choose the model minimising that total.
+  A more complex model costs more to send and leaves smaller residuals, so the sum has an interior
+  minimum, and finding it requires no held-out data at all.</p>
+</div>
+
+<figure>
+  <img src="figures/rp/12-mdl.svg" alt="Model bits rising and residual bits falling with polynomial degree, their sum dipping at degree three, beside total bits and test error tracking each other across degrees">
+  <figcaption><b>Figure 12.</b> Data from a degree-3 polynomial, 60 points, 200 datasets. The two-part
+  code minimises at <b>degree 3</b>, the true complexity, and so does held-out test error. MDL
+  lands on the true degree on <b>80%</b> of datasets and agrees with held-out selection on
+  <b>63%</b>, having never seen held-out data.</figcaption>
+</figure>
+
+<div class="box why">
+  <span class="label">Why this is more than a coincidence</span>
+  <p>Cross-validation and MDL are answering the same question from opposite directions. Held-out
+  error asks what the model does on data it has not seen; description length asks how much of the
+  training data the model failed to explain, having charged for the explanation. Both punish a model
+  that fits noise, because noise is incompressible and paying parameters to encode it is a bad
+  trade.</p>
+  <p>The 63% per-dataset agreement is the honest number and worth stating plainly: MDL is a good
+  selector, not an oracle, and on a third of draws the two criteria pick differently. What makes it
+  worth knowing anyway is that it is available when held-out data is not: in an online setting, or
+  when every example is precious, or when the thing being selected is a model of the whole dataset
+  you have.</p>
+</div>
+
+<h3><span class="num">§45</span> The information bottleneck</h3>
+
+<div class="box def">
+  <span class="label">Compressing for a purpose</span>
+  <p>Rate–distortion asks for a representation that reconstructs. Prediction asks for one that
+  <i>predicts</i>, which is a different constraint. The <b>information bottleneck</b> writes it
+  down: find <span class="m">$Z$</span> minimising</p>
+  <p class="m">$$I(X;Z) - \beta\, I(Z;Y)$$</p>
+  <p>That is, keep as few bits about the input as possible while retaining as many as possible about the
+  label. Sweeping <span class="m">$\beta$</span> traces the frontier of what is achievable.</p>
+</div>
+
+<figure>
+  <img src="figures/rp/13-bottleneck.svg" alt="Bits about the label against bits kept about the input, rising steeply then saturating, with a lower curve for a rule that keeps the most probable symbols instead">
+  <figcaption><b>Figure 13.</b> A joint distribution whose most probable structure and whose
+  predictive structure are deliberately different. <b>95% of the available I(X;Y) is reached at 1.900
+  bits</b>, <b>44% of H(X)</b>, after which 0.09 further bits about the input buy 0.039 bits about
+  the label. At a comparable rate, keeping the most probable symbols instead retains <b>0.746
+  bits</b> against the bottleneck's <b>1.373</b>.</figcaption>
+</figure>
+
+<div class="box why">
+  <span class="label">Compressing for prediction is not compressing for reconstruction</span>
+  <p>The gap between the two curves is the movement's central point, and it is why an autoencoder and
+  a classifier's penultimate layer are not interchangeable representations. Reconstruction keeps what
+  is *large*; prediction keeps what is *relevant*; and a direction can carry most of the variance and
+  none of the signal. Part XV movement B's autoencoder is optimising the first, Part XV §31's probe
+  is reading the second, and the difference measured here is nearly a factor of two.</p>
+  <p><b>What the bottleneck does not settle.</b> It has been proposed as an explanation of why deep
+  networks generalise: that training has a compression phase in which irrelevant information is
+  discarded. That claim is contested and depends on how mutual information is estimated in a
+  deterministic network, where it is either infinite or an artefact of the binning. The framework is
+  a good way to state what a representation is <i>for</i>; treat it as a description rather than as
+  an explanation of training dynamics.</p>
+</div>
+
+<h3><span class="num">§46</span> Does compression imply generalisation</h3>
+
+<figure>
+  <img src="figures/rp/14-compression-generalisation.svg" alt="Test error against description length for two model families on log axes, both rising monotonically, with the polynomial family shorter and better throughout">
+  <figcaption><b>Figure 14.</b> Two model families on the same data. Within a family, description
+  length and test error correlate at <b>+0.998</b> (polynomials) and <b>+0.985</b> (Fourier
+  features). Across families they agree too: the polynomial family has both the shorter code (70.5
+  against 148.5 bits) and the better test error.</figcaption>
+</figure>
+
+<div class="box why">
+  <span class="label">The part that is usually left out</span>
+  <p>"Compression implies generalisation" is true when the compression is <b>fully accounted</b>:
+  when the code charges for the model as well as the residuals. Drop the model's own cost and select
+  on residual bits alone, and the criterion picks degree 7 where the full code picks degree 3, at a
+  worse test error. The parameters are where the charge for complexity lives, and removing it turns
+  a selection criterion into a fitting criterion.</p>
+  <p>This is the same accounting error as reporting a compression ratio without the decompressor. A
+  model that stores the training set verbatim compresses it perfectly, and its description length is
+  enormous once you charge for the model. Whenever you see a claim that some system compresses data
+  better than another, the question is what was billed and to whom.</p>
+</div>
+
+<div class="box why">
+  <span class="label">Where this frame pays off elsewhere in the book</span>
+  <p><b>A tokenizer is a code.</b> Part XX §1–§8 chooses one by vocabulary size and fertility;
+  under this frame it is choosing a point on a rate–distortion curve, where rate is bits per
+  character and distortion is zero (it is lossless) and the real trade is between the vocabulary's
+  own description cost and the sequence length it buys. That is why the good vocabulary size is an
+  interior optimum rather than "as large as you can afford".</p>
+  <p><b>A scaling law is a compression curve.</b> Cross-entropy in nats per token <i>is</i> a code
+  length. Part XVII's loss-against-compute curves are statements about how many bits of the corpus a
+  given amount of computation buys, and the irreducible term in those fits is the corpus's own
+  entropy: the part no model compresses because there is nothing there to compress.</p>
+  <p><b>And a representation is a lossy code with a purpose.</b> Which is §45, and is the sentence
+  this whole part has been circling.</p>
+</div>
+
+<h3><span class="num">§47</span> What the frame does not do</h3>
+
+<div class="box why">
+  <span class="label">Three honest limits</span>
+  <p><b>Code lengths depend on the code.</b> Every number in §44 rests on a choice of how to encode
+  parameters, and a cruder code biases selection toward simpler models. MDL is not parameter-free; it
+  moves the arbitrariness from a regularisation constant to a coding scheme, where it is at least
+  interpretable.</p>
+  <p><b>Mutual information in a deterministic network is not well defined</b> without noise or
+  binning, so §45's quantities are clean on a discrete joint distribution and much less so on a
+  trained network. Claims about "the compression phase of training" live exactly on that fault
+  line.</p>
+  <p><b>And the bound is not a method.</b> <span class="m">$R(D)$</span> says what is achievable, not
+  how, the same distinction Part XXIII draws about generalisation bounds and Part XXXIII draws about
+  branch-and-bound. Figure 11's quarter-bit gap is what a real method costs, and the gap between
+  what is possible and what is implementable is where all the engineering is.</p>
+</div>
+
+<h3><span class="num">§48</span> What to carry forward</h3>
+
+<div class="box intuition">
+  <span class="label">Four things</span>
+  <p><b>Rate and distortion trade along a curve that belongs to the source.</b> Figure 11 measures a
+  quarter-bit overhead for coding one sample at a time, 0.2576 against a theoretical 0.2546, fixed
+  at every rate, and mostly not recoverable by going to two dimensions.</p>
+  <p><b>The right accounting decides which method wins.</b> Lloyd–Max is optimal at a fixed level
+  count and 0.139 bits worse than uniform under entropy coding, more than the entire
+  two-dimensional gain. Ask what you are actually being billed for before optimising.</p>
+  <p><b>A model is a code for its data, and the shortest code is usually the right model.</b> Figure
+  12 measures MDL selecting the true complexity on 80% of datasets with no held-out data, and
+  agreeing with cross-validation only 63% of the time, which is the honest limit.</p>
+  <p><b>Compressing for prediction is not compressing for reconstruction.</b> Figure 13 measures 1.373
+  bits about the label against 0.746 for a reconstruction-first rule at the same rate. A direction can
+  hold most of the variance and none of the signal.</p>
+</div>

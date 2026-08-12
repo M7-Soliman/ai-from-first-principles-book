@@ -1,0 +1,239 @@
+<h2><span class="part-kicker">Part E</span>Causality and machine learning</h2>
+
+<p class="mvt">The previous movements are the statistics of causation. This one is what changes
+when the models are the ones this book has been building: what a policy is worth before you deploy
+it, how effects vary across units, why a predictor that uses a cause survives a change of
+environment when one that uses an effect does not, and what Part XXI's "causal" claims are and
+are not.</p>
+
+<h3><span class="num">§32</span> Evaluating a policy you have not run</h3>
+
+<div class="box def">
+  <span class="label">Off-policy evaluation</span>
+  <p>You have logs from a system that acted under policy <span class="m">$\pi_0$</span> and a
+  proposed <span class="m">$\pi_1$</span>. What would <span class="m">$\pi_1$</span> have earned?</p>
+  <p>If the logging policy's action probabilities were recorded, this is inverse-probability
+  weighting with the propensity <b>known rather than estimated</b>:</p>
+  <p class="m">$$\hat{V}(\pi_1) = \frac{1}{n} \sum_i \frac{\pi_1(a_i \mid x_i)}{\pi_0(a_i \mid x_i)} \, r_i$$</p>
+  <p>Knowing the propensity exactly is a large advantage over movement C's situation, and it is
+  free: it requires only that the system logs the probability it acted with. Systems that log the
+  chosen action but not its probability throw that away, and it cannot be reconstructed
+  afterwards.</p>
+</div>
+
+<div class="box why">
+  <span class="label">The two failures, and both are positivity</span>
+  <p><b>Support.</b> If <span class="m">$\pi_1$</span> would take actions
+  <span class="m">$\pi_0$</span> never took, no reweighting recovers their value. Figure 3's
+  overlap problem, in the place it does the most commercial damage.</p>
+  <p><b>Variance.</b> Where the ratio is large the estimate is dominated by a handful of logged
+  events. The standard remedies, clipping and self-normalising, are Figure 4's right panel:
+  they trade the variance for a bias.</p>
+  <p>This is also the honest frame for Part XVIII §40's offline reinforcement learning. The
+  conservatism those methods impose is not a heuristic; it is the recognition that value estimates
+  outside the logged support are unidentified.</p>
+</div>
+
+<h3><span class="num">§33</span> The average conceals the decision</h3>
+
+<div class="box intuition">
+  <span class="label">Why the average effect is often the wrong target</span>
+  <p>A treatment with an average effect of zero can help half the population and harm the other
+  half. If you can tell which is which, the policy of treating only the first group has a large
+  positive value, and the trial that reported zero would have led you to abandon it.</p>
+  <p>The quantity that supports a decision is the <b>conditional average treatment effect</b>,
+  <span class="m">$\tau(x) = \mathbb{E}[Y_1 - Y_0 \mid X = x]$</span>, and estimating it is a
+  machine-learning problem, with the twist that the target is never observed for any individual,
+  because no unit is both treated and untreated.</p>
+</div>
+
+<div class="box shapes">
+  <span class="label">Meta-learners: turning it into supervised problems</span>
+  <p><b>S-learner.</b> One model on <span class="m">$(X, T)$</span>; predict both ways and
+  difference. Simple, and it can shrink the treatment signal to nothing when the model has many
+  covariates and regularises <span class="m">$T$</span> away.</p>
+  <p><b>T-learner.</b> Separate models per arm, differenced. No shrinkage problem; wasteful when
+  the arms share structure, and noisy in the smaller arm.</p>
+  <p><b>X-learner.</b> Fit per arm, impute each unit's missing potential outcome, regress the
+  imputed effect on covariates, combine with propensity weights. Better when the arms are
+  unbalanced.</p>
+  <p><b>Causal forests.</b> Trees split to maximise heterogeneity <i>in the effect</i> rather than
+  in the outcome, with honest sample splitting so the same data does not choose the split and
+  estimate within it.</p>
+  <p>Every one of them still needs movement C's assumptions. A flexible model of
+  <span class="m">$\tau(x)$</span> fitted on confounded data estimates a confounded function of
+  <span class="m">$x$</span> very precisely.</p>
+</div>
+
+<div class="box pitfall">
+  <span class="label">Pitfall: you cannot validate it the usual way</span>
+  <p>Part VI's whole apparatus rests on holding out labels and comparing. Here the label,
+  <span class="m">$Y_1 - Y_0$</span> for one unit, does not exist in any dataset, ever. There is
+  no held-out set that scores a CATE model directly.</p>
+  <p>What can be done: score the <i>policy</i> the model implies, using §32's off-policy machinery,
+  or compare groups ranked by predicted effect and check that the realised effect ordering matches.
+  Both are weaker than a held-out loss, and treating a low error on some proxy target as validation
+  is the standard mistake in this area.</p>
+</div>
+
+<div class="readnow"><span class="label">Go and read</span><p><span class="src">Athey &amp;
+Imbens (2016)</span>, <i>Recursive partitioning for heterogeneous causal effects</i>. Trees that
+split on effect heterogeneity rather than outcome variation, with honest sample splitting. Read
+§3 for why the same data cannot both choose a split and estimate within it: the problem Part XIV
+§20 measures in another setting.</p></div>
+
+<h3><span class="num">§34</span> Invariance, and why it transfers</h3>
+
+<figure>
+  <img src="figures/ci/06-invariance.svg" alt="Test error of three predictors across four environments with differing spurious relationships">
+  <figcaption><b>Figure 6.</b> Three models, four environments. The features are a genuine cause of
+  the target and an effect of it, whose relationship changes across environments. On training-like
+  data the model using both is best (<b>0.060</b>) and the model using only the cause is worst
+  (<b>0.246</b>). As the spurious relationship weakens, vanishes and reverses, the causal model
+  holds at <b>0.242–0.258</b> throughout while the others degrade to <b>3.211</b> and
+  <b>5.484</b>. The best model on the data you have is the one that fails hardest on the data you
+  do not.</figcaption>
+</figure>
+
+<div class="box why">
+  <span class="label">Why the causal model is flat and the others are not</span>
+  <p>The mechanism producing <span class="m">$Y$</span> from its causes is the same in every
+  environment: that is what §8's modularity assumption says. A predictor built only on causes is
+  therefore estimating something stable, and its error does not move.</p>
+  <p>A predictor using an effect of <span class="m">$Y$</span> is exploiting the reverse
+  relationship, and nothing holds that fixed. When the environment changes it, the model does not
+  degrade gracefully; it degrades in proportion to how much it was relying on the shortcut, which
+  is exactly how much it was winning by before.</p>
+  <p>This is the causal account of what Part VI called spurious correlation and Part XIII §8 called
+  shortcuts. It also says why the problem is invisible in ordinary validation: a random split
+  leaves the spurious relationship intact in both halves.</p>
+</div>
+
+<div class="box shapes">
+  <span class="label">What to do about it</span>
+  <p><b>Split by environment, not at random.</b> If you have data from several sites, periods or
+  populations, hold out a whole one. It is the only split that can detect this.</p>
+  <p><b>Penalise instability.</b> Invariant risk minimisation and its relatives search for
+  predictors whose optimal coefficients are the same across environments. The idea is right; the
+  measured performance of the current methods against a well-tuned baseline is contested, and
+  should be checked rather than assumed.</p>
+  <p><b>Accept the cost.</b> Figure 6's causal model is four times worse on training-like data.
+  Invariance is bought with accuracy in the environment you have, and if that environment is the
+  only one you will ever face, it is not worth buying.</p>
+</div>
+
+<div class="readnow"><span class="label">Go and read</span><p><span class="src">Peters, Janzing
+&amp; Schölkopf (2017)</span>, <i>Elements of Causal Inference</i>. Where causality meets machine
+learning: invariance, transfer, and causal discovery, with the identifiability results stated
+properly. The chapter on invariant prediction is the theory behind Figure 6.</p></div>
+
+<h3><span class="num">§35</span> Causal discovery</h3>
+
+<div class="box def">
+  <span class="label">Learning the graph, and the limits</span>
+  <p>Given only observational data, how much of the causal structure is recoverable?</p>
+  <p><b>Constraint-based</b> methods (PC, FCI) test conditional independences and keep the graphs
+  consistent with them. <b>Score-based</b> methods search graph space against a penalised
+  likelihood. Both return a <b>Markov equivalence class</b>: a set of graphs no observational data
+  can distinguish, because they imply identical independences.</p>
+  <p>So the honest output is not a graph but a family of them, and the direction of many edges
+  remains undetermined. Extra assumptions (additive noise, non-Gaussianity, known temporal order)
+  can orient more edges, and each is an assumption rather than a finding.</p>
+</div>
+
+<div class="box pitfall">
+  <span class="label">Pitfall: discovery does not remove the need for knowledge</span>
+  <p>The appeal is obvious: skip the uncomfortable graph-drawing of §9 and learn it. The results do
+  not support that. Discovery is sensitive to sample size, to faithfulness violations, and above
+  all to unmeasured confounders, which by construction it cannot see.</p>
+  <p>Where it earns its place is as a check on a graph you drew: run it, and where the data
+  contradicts your assumed independences, find out why. That is the same use as a residual plot,
+  and it is a good one.</p>
+</div>
+
+<h3><span class="num">§36</span> What Part XXI's "causal" means, and what it does not</h3>
+
+<div class="box why">
+  <span class="label">Two uses of one word, and the relationship between them</span>
+  <p>Part XXI §9–§13 intervenes on a network's internals (patching an activation, ablating a
+  direction, adding a steering vector) and calls the resulting claims causal. They are. The
+  network <i>is</i> a structural causal model: every activation is a deterministic function of its
+  parents, the graph is the architecture, and it is written down exactly.</p>
+  <p>That makes it the easiest causal inference problem in this book. There is no unmeasured
+  confounding, because you have every variable. Positivity is whatever you choose to set. The
+  intervention is exact rather than approximated. Part XXI's figures do not need any of movement
+  C or D.</p>
+  <p>What those claims are <b>about</b> is the computation, not the world. Figure 3 of Part XXI
+  establishes that ablating a direction does not change the network's output. It establishes
+  nothing about whether the property that direction encodes affects anything outside the model. The
+  two questions share a formalism and answer to different evidence.</p>
+</div>
+
+<div class="box try">
+  <span class="label">The check worth running on any interpretability claim</span>
+  <p>Ask what the units are. If the intervention is on activations and the outcome is a model
+  output, the claim is about the mechanism, and the graph is known. If either side reaches into the
+  world (a user, an outcome, a decision), every assumption in movement C is back, and the fact
+  that a network's internals are transparent buys you nothing there.</p>
+</div>
+
+<h3><span class="num">§37</span> Fairness, with the causal versions available</h3>
+
+<p>Part XXI §29 gave three observational fairness criteria and the theorem that they cannot all
+hold. With this part's machinery, criteria that refer to mechanism rather than correlation can be
+stated, and the reason they are not simply better is worth having.</p>
+
+<div class="box shapes">
+  <span class="label">Three causal criteria</span>
+  <p><b>Total effect.</b> The effect of the protected attribute on the decision, along all paths.
+  Simple, and usually not what anyone means.</p>
+  <p><b>Path-specific effects.</b> Some paths are held legitimate (through qualifications, say)
+  and others are not. The criterion is that the effect along the illegitimate paths is zero. This
+  matches how the question is actually argued about.</p>
+  <p><b>Counterfactual fairness.</b> The decision would be unchanged had the individual's protected
+  attribute been different, holding their noise terms fixed. The strongest statement, and it lives
+  on rung three.</p>
+</div>
+
+<div class="box why">
+  <span class="label">Why they have not displaced the observational criteria</span>
+  <p>Each requires a causal graph over attributes including the protected one, and those graphs are
+  contested: what counts as a legitimate path is the disagreement itself, not something the data
+  settles. The observational criteria of Part XXI §29 require no graph, which is why they are used, and
+  they are cruder for exactly the same reason.</p>
+  <p>The useful contribution here is not a better metric but a clearer statement of the
+  disagreement: an argument about fairness is usually an argument about which paths are legitimate,
+  and saying so moves it forward more than another impossibility theorem does.</p>
+</div>
+
+<h3><span class="num">§38</span> What a randomised system gets for free</h3>
+
+<div class="box intuition">
+  <span class="label">The cheapest thing in this part</span>
+  <p>A system that already randomises (an A/B test, an epsilon-greedy recommender, a bandit) is
+  generating unconfounded data continuously, and Part XVIII's exploration machinery is a causal
+  design that nobody labelled as one.</p>
+  <p>Two requirements to keep the benefit, both of them logging decisions rather than modelling
+  ones. <b>Log the probability</b>, not just the action: §32 needs it and it cannot be
+  reconstructed. <b>Log the version</b> of the policy that acted, because a propensity from the
+  wrong policy is worse than none.</p>
+  <p>Systems that do this can answer counterfactual questions about their own past for the cost of
+  a query. Systems that do not have thrown away an asset that was free at the time and is
+  unrecoverable afterwards.</p>
+</div>
+
+<h3><span class="num">§39</span> What movement E establishes</h3>
+
+<div class="box intuition">
+  <span class="label">Three things</span>
+  <p><b>The stability of a predictor is a causal property.</b> Figure 6's causal model is four
+  times worse in the training environment and the only one still working when the environment
+  changes. Ordinary validation cannot see the difference, because a random split preserves the
+  shortcut.</p>
+  <p><b>Individual effects cannot be validated the way predictions can.</b> The label does not
+  exist for any unit. Everything available is a proxy, and treating a proxy loss as validation is
+  the standard failure in this area.</p>
+  <p><b>Interpretability's causal claims are the easy case and a different claim.</b> A network is
+  an SCM you wrote down, so intervening on it needs none of movements C or D, and establishes
+  something about the computation, not about the world.</p>
+</div>

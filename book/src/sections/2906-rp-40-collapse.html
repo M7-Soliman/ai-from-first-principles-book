@@ -1,0 +1,162 @@
+<h3><span class="num">§20</span> Collapse, measured</h3>
+
+<figure>
+  <img src="figures/rp/05-collapse.svg" alt="Effective rank and linear probe accuracy over training, for three self-supervised objectives">
+  <figcaption><b>Figure 5.</b> Three objectives, thirty-two dimensions available. With positives
+  only, the effective rank falls from <b>23.4</b> to <b>1.00</b> within two thousand steps, the
+  representation becomes a single direction, and probe accuracy falls with it, to <b>0.157</b>
+  against a chance rate of 0.125. InfoNCE holds rank <b>6.93</b> and the stop-gradient variant
+  <b>5.72</b>, both probing at <b>0.998</b>.</figcaption>
+</figure>
+
+<div class="box def">
+  <span class="label">Effective rank</span>
+  <p>Collapse needs a measurement, and accuracy is not one. Take the covariance of the
+  representation, normalise its eigenvalues to sum to one, and report</p>
+  <p>$$\exp\!\Big(-\sum_i p_i \log p_i\Big), \qquad p_i = \lambda_i \big/ \textstyle\sum_j
+  \lambda_j$$</p>
+  <p>the exponential of the entropy of the spectrum. Isotropic data in $d$ dimensions returns
+  approximately $d$. Data on a line returns 1, whatever the ambient dimension. It costs one SVD and
+  it is the instrument to log during any self-supervised run.</p>
+</div>
+
+<div class="box pitfall">
+  <span class="label">Pitfall: a probe is not a collapse monitor</span>
+  <p>In this figure the two instruments agree, and that agreement is a property of the task rather
+  than a general fact.</p>
+  <p>Built on an easier version of the same data, where the class is linearly readable straight off
+  the raw input, the same positives-only run reaches effective rank <b>1.04</b> while a linear
+  probe still reports <b>0.999</b>, and the probe does not approach chance for another order of
+  magnitude. The representation is one-dimensional and the probe calls it perfect, because the tiny
+  surviving directions are enough when the property was nearly free to begin with.</p>
+  <p>Whether the probe notices also depends on the probe's own regularization: a penalty large
+  enough to forbid the large weights needed to amplify a small direction will hide the signal that a
+  weaker penalty finds. That is a hyperparameter of the <i>instrument</i>, and it is not usually
+  reported.</p>
+  <p>So log the effective rank. It depends on neither the task's difficulty nor the probe's
+  settings, and it is cheaper than the probe.</p>
+</div>
+
+<h3><span class="num">§21</span> Without negatives</h3>
+
+<div class="readnow"><span class="label">Go and read</span><p><span class="src">Chen &amp; He (2021)</span>, <i>Exploring simple Siamese representation learning</i>. SimSiam, which strips BYOL to its essentials and finds the momentum encoder is not one of them. The ablations are the evidence that the predictor and the stop-gradient are each load-bearing, and the hypothesis section is unusually honest that the mechanism remains incompletely explained.</p></div>
+
+<p>§18 argued that something must push outward or the representation collapses. Two methods appear
+to violate this: they use positive pairs only, no negatives, no term separating anything, and they
+do not collapse.</p>
+
+<div class="box def">
+  <span class="label">BYOL and SimSiam</span>
+  <p>Two views, two encoders. One branch has an extra <b>predictor</b> head; the other branch is
+  the <b>target</b>, and the gradient does not flow through it, a <b>stop-gradient</b>. The loss
+  asks the predictor's output to match the target's, and nothing else.</p>
+  <p>BYOL additionally makes the target an exponential moving average of the online encoder. SimSiam
+  showed the moving average is not necessary: the same encoder on both sides works, provided the
+  predictor and the stop-gradient are present.</p>
+  <p>Both components are load-bearing. Remove the predictor and it collapses. Remove the
+  stop-gradient and it collapses. The figure's third curve is this arrangement holding effective
+  rank <b>5.72</b> and probe accuracy <b>0.998</b>, with no repulsive term anywhere in the
+  objective.</p>
+</div>
+
+<div class="box why">
+  <span class="label">Why the asymmetry substitutes for negatives</span>
+  <p>The collapsed solution is still a global optimum of the loss. What changes is whether gradient
+  descent goes there.</p>
+  <p>The clearest account: the predictor learns to approximate the <b>average</b> target over the
+  augmentations of an input, and the stop-gradient means the target is not simultaneously moving to
+  meet it. The online branch chases a fixed point that is one optimisation step behind, and the
+  dynamics of that chase do not pass through the constant solution. Collapse remains optimal and
+  becomes unreachable.</p>
+  <p>This is a genuinely different kind of argument from the rest of this part, and worth flagging
+  as such. Everywhere else, a property of the representation followed from a property of the
+  <b>objective</b>. Here it follows from a property of the <b>optimiser's trajectory</b>. Part IX
+  §4's observation that training halts somewhere that is not a critical point, turned into a
+  design technique.</p>
+  <p>It is also less robust for that reason. An objective-level guarantee holds regardless of
+  schedule; a dynamics-level one can be broken by a learning rate, and these methods have a
+  reputation for sensitivity that follows directly.</p>
+</div>
+
+<h3><span class="num">§22</span> Masked modelling</h3>
+
+<div class="readnow"><span class="label">Go and read</span><p><span class="src">He et al. (2022)</span>, <i>Masked autoencoders are scalable vision learners</i>. MAE. Read §4's ablation on the mask ratio, which is where the 75% comes from: it is a measurement of how redundant images are, not a tuning result, and it is why the same objective needs a different ratio for text.</p></div>
+
+<div class="box def">
+  <span class="label">Remove part of the input and predict it</span>
+  <p>Hide a fraction of the input and train the model to reconstruct what was hidden, from what
+  remains. There are no views, no negatives and no augmentation policy: the corruption <i>is</i>
+  the objective.</p>
+  <p>This is §11's denoising autoencoder with masking as the corruption process, at scale and with
+  a transformer. <b>BERT</b> masks about 15% of tokens and predicts them. <b>MAE</b> masks
+  <b>75%</b> of image patches, encodes only the visible ones, and reconstructs pixels with a light
+  decoder.</p>
+</div>
+
+<div class="box why">
+  <span class="label">Why the two mask ratios differ by a factor of five</span>
+  <p>The gap is not a tuning accident; it measures the redundancy of the two signals.</p>
+  <p>Language is dense. A token is largely unpredictable from its neighbours, so removing 15% already
+  leaves a hard problem, and removing 75% would leave too little context to recover anything.</p>
+  <p>Images are extremely redundant. A patch is well predicted by the patches around it, so masking
+  15% gives a task solvable by local interpolation: texture continuation, learning nothing about
+  objects. Only when most of the image is gone does the model have to represent what is <i>in</i>
+  the picture in order to fill it in.</p>
+  <p>The general principle, and it transfers: <b>the corruption must destroy information that
+  local structure cannot restore.</b> The right ratio is a property of the data's redundancy, and
+  it is measurable: sweep it, and watch where the reconstruction stops being solvable by
+  interpolation.</p>
+  <p>The efficiency consequence is large. MAE's encoder sees only the unmasked 25% of patches, so
+  each step costs a fraction of a full forward pass, a case where the objective that works is also
+  the cheap one.</p>
+</div>
+
+<div class="box def">
+  <span class="label">Masked against contrastive, as a choice</span>
+  <p><b>Masked</b> objectives need no augmentation policy, so nothing has to be specified about
+  invariances and the failure of §19 cannot happen. They tend to produce representations that
+  reward fine-tuning and probe less well linearly, because nothing required the features to be
+  linearly separable.</p>
+  <p><b>Contrastive</b> objectives produce strong linear probes, because the objective explicitly
+  arranges the space by similarity, and they inherit exactly the invariances of the augmentation
+  set, for better and worse.</p>
+  <p>A defensible default: masked when you will fine-tune and cannot state your invariances,
+  contrastive when you need a frozen encoder whose output a linear model will consume. The two are
+  routinely combined.</p>
+</div>
+
+<h3><span class="num">§23</span> What self-supervision buys</h3>
+
+<figure>
+  <img src="figures/rp/06-label-efficiency.svg" alt="Accuracy against label budget for a frozen pretrained encoder with a linear probe and for supervised training from scratch">
+  <figcaption><b>Figure 6.</b> The same architecture and the same data, differing only in whether
+  the encoder was pretrained without labels. With <b>8</b> labels the frozen encoder plus a linear
+  probe reaches <b>0.616</b> where supervised training from scratch reaches <b>0.190</b>. Supervised
+  training needs <b>512</b> labels to match what pretraining achieves with eight, a factor of
+  <b>64</b>, and is still at 0.763 where the pretrained encoder is at 0.999.</figcaption>
+</figure>
+
+<div class="box why">
+  <span class="label">Why the benefit lives at the left-hand end</span>
+  <p>The two curves converge. Given enough labels, supervised training learns the structure itself
+  and pretraining stops paying, which is exactly what happened to §15's greedy pretraining when
+  benchmarks with thousands of labels per class became the standard.</p>
+  <p>What pretraining supplies is <b>structure the labels would otherwise have to pay for</b>. The
+  unlabelled data reveals the shape of the input distribution; the labels then only have to name
+  the regions. When labels are scarce, that division of work is decisive; when they are abundant,
+  it is redundant.</p>
+  <p>So the quantity that predicts whether self-supervision helps is the <b>ratio</b> of unlabelled
+  to labelled data, and the difficulty of the structure. That is the correct generalisation of
+  §15's history: the method did not become right, the ratio moved.</p>
+</div>
+
+<div class="box pitfall">
+  <span class="label">Pitfall: pretraining is not free and the comparison is often unfair</span>
+  <p>The figure's left-hand end is a real effect and it omits the cost. The pretraining run saw far
+  more data than the supervised arm and took far longer. Compared at equal <i>total compute</i>
+  rather than at equal labels, the picture changes and the honest claim narrows.</p>
+  <p>The claim that survives: pretraining converts <b>compute and unlabelled data</b> into a
+  reduced need for labels. That is a good trade when labels are the expensive resource, which is
+  usually, and it is not a free improvement. Any comparison that reports label efficiency without
+  reporting the pretraining budget has priced only one side.</p>
+</div>

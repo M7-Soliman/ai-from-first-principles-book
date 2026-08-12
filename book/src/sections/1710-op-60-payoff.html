@@ -1,0 +1,177 @@
+<h2><span class="part-kicker">Part F</span>The payoff</h2>
+
+<h3><span class="num">§29</span> A run that will not train: the ladder</h3>
+
+<p class="lede">Everything in this part assembles into one procedure. The ordering is by
+information gained per unit of effort, and the first six rungs together cost less than a single
+training run.</p>
+
+<p>The rule that governs the whole thing: <b>measure before you change anything.</b> Almost
+every hour lost to a failing training run is lost to sweeping hyperparameters that were never
+the problem, and the reason people sweep is that sweeping feels like progress while measuring
+feels like delay. It is the other way round.</p>
+
+<div class="box def">
+  <span class="label">The diagnostic ladder</span>
+  <table class="compact">
+    <thead><tr><th>#</th><th>Measure</th><th>What it settles</th><th>Cost</th></tr></thead>
+    <tbody>
+      <tr><td><b>0</b></td><td>Can the model drive the loss to zero on <b>ten examples</b>?
+          Part VII §20.</td>
+          <td>If not, you have a <b>bug</b>, not an optimisation problem. Stop here.</td>
+          <td>seconds</td></tr>
+      <tr><td><b>1</b></td><td>Activation and gradient scale per layer, on <b>one batch at
+          initialisation</b>. §17's protocol.</td>
+          <td>Signal dying or exploding with depth. The single most common cause of a deep
+          network that trains to chance.</td>
+          <td>seconds</td></tr>
+      <tr><td><b>2</b></td><td>Fraction of units that are dead. Part VII §19.</td>
+          <td>Whether capacity is being lost outright rather than trained badly.</td>
+          <td>seconds</td></tr>
+      <tr><td><b>3</b></td><td>Is the output bias at the class base rates? §17.</td>
+          <td>Whether the first phase of training is being spent on something one pass over
+          the labels would give you.</td>
+          <td>seconds</td></tr>
+      <tr><td><b>4</b></td><td><b>Gradient norm over time.</b> §7.</td>
+          <td>Rules out local minima, saddles and every other critical point, and if it is not
+          small, none of them is the cause.</td>
+          <td>free</td></tr>
+      <tr><td><b>5</b></td><td>$\mathbf{g}^\top H\mathbf{g}$, and the ceiling
+          $2\mathbf{g}^\top\mathbf{g}/\mathbf{g}^\top H\mathbf{g}$. §6.</td>
+          <td>Whether your learning rate has been overtaken by curvature. Figure 3's failure,
+          which looks exactly like a stuck model.</td>
+          <td>one extra pass</td></tr>
+      <tr><td><b>6</b></td><td>Turn <b>every</b> regulariser off and confirm the model can
+          overfit. Part VIII §22.</td>
+          <td>Whether you are underfitting from accumulated regularisation, which presents as
+          "the model will not learn".</td>
+          <td>one short run</td></tr>
+      <tr><td><b>7</b></td><td>Learning rate: find the <b>instability threshold</b>, not the
+          early optimum. §13.</td>
+          <td>The rate. Note the direction: the early winner is too low.</td>
+          <td>a few short runs</td></tr>
+      <tr><td><b>8</b></td><td>Architecture: normalisation, skip connections, more linear
+          units. §§23, 27.</td>
+          <td>Whether the difficulty is the model rather than the search.</td>
+          <td>a run</td></tr>
+      <tr><td><b>9</b></td><td>Starting point: initialisation scale, pretraining, a stochastic
+          curriculum. §§16, 26, 28.</td>
+          <td>Whether you are starting somewhere disconnected from a solution, §12's
+          difficulty, and the only family of remedies for it.</td>
+          <td>runs</td></tr>
+      <tr><td><b>10</b></td><td>A different optimiser. §18.</td>
+          <td>Last, because it is the least likely to be the problem and the most likely to be
+          tried first.</td>
+          <td>runs</td></tr>
+    </tbody>
+  </table>
+</div>
+
+<div class="box why">
+  <span class="label">Why the ladder is in this order and not the usual one</span>
+  <p>The conventional order is roughly the reverse: try Adam, try a lower learning rate, try a
+  bigger model, then start reading. Three things make that expensive.</p>
+  <p><b>Rungs 0 to 5 are nearly free and each eliminates a whole family of causes.</b> Rung 4
+  alone rules out every critical-point explanation, which is where most of the folklore lives.
+  Nothing above rung 6 eliminates anything: a failed run with a different optimiser tells you
+  that optimiser did not work, and nothing else.</p>
+  <p><b>The cheap rungs catch the common faults.</b> Bad initialisation scale, dead units, an
+  untuned output bias and accumulated regularisation are between them a large share of real
+  failures, and none is an optimiser problem.</p>
+  <p><b>And the expensive rungs are ordered by §12.</b> If the run is failing because the local
+  direction does not lead anywhere good, then rungs 8 and 9 (changing the model, changing
+  where you start) are the only interventions that address it, and rung 10 provably does
+  not.</p>
+</div>
+
+<h3><span class="num">§30</span> The theoretical limits, and what they are worth</h3>
+
+<p>There are results showing that no optimisation algorithm can do well on neural networks in
+general. They are correct and they matter less than they sound, and it is worth knowing why,
+because dismissing them for the wrong reason is as bad as being intimidated by them.</p>
+
+<div class="box def">
+  <span class="label">Three reasons a hardness result may not apply to you</span>
+  <p><b>The model may not be the one analysed.</b> Several results apply only to networks whose
+  units output <b>discrete</b> values. Almost every unit in use outputs a smoothly increasing
+  value, which is what makes local search feasible at all, and, per §27, is a design choice
+  made partly for that reason.</p>
+  <p><b>You may not be in the hard class.</b> Some results establish that certain problem
+  classes are intractable. They do not give you a way to decide whether the problem in front of
+  you is in one, and typically it is very difficult to tell.</p>
+  <p><b>You are allowed to change the question.</b> Other results show that finding a solution
+  for a network <b>of a given size</b> is intractable. In practice you use a larger network,
+  for which many more parameter settings are acceptable, which is a different problem, and
+  empirically a much easier one.</p>
+</div>
+
+<p>Underneath all three is a mismatch that this part opened with. These results concern
+<b>finding the minimum of a function</b>. You do not want the minimum of a function. §1: you
+want a parameter setting whose generalisation error is low enough, which by §4 you will stop
+short of any minimum to obtain, and which by §3 you may reach by optimising something else
+entirely.</p>
+
+<p>Analysing whether an algorithm can accomplish <i>that</i> is extremely difficult, and
+realistic bounds on it remain an open goal. So the honest position is not that the hardness
+results are wrong or irrelevant; it is that they answer a question adjacent to the one you
+are asking, and the adjacent question is the tractable one.</p>
+
+<div class="box history">
+  <span class="label">History: a field that proceeded without permission</span>
+  <p>It is worth sitting with how often this pattern has now appeared.</p>
+  <p>Adam's convergence proof was wrong and Adam remained the default (Part III §16). Batch
+  normalisation's stated explanation was disputed and the method kept working (§23). The
+  classical bias–variance account fails to describe modern networks and the networks work
+  anyway (Part V §20). Local minima were believed for thirty years to be the central obstacle
+  and appear not to be (§7). Hardness results said this could not be done and it was done.</p>
+  <p>Two readings are available and both are correct. One is that this field's practice runs
+  ahead of its theory, and that empirical evidence has repeatedly been the stronger signal.
+  The other is that a great deal of confident explanation in this subject has turned out to be
+  wrong <b>while the underlying methods were fine</b>, so the thing to hold loosely is the
+  explanation, not the measurement.</p>
+  <p>Which is the argument for the parts of this book that are derived rather than reported.
+  §6's step-size ceiling, §20's conjugacy, §22's expansion of the product, §16's variance
+  bookkeeping: these are theorems. They will be true when the current explanations of batch
+  normalisation have been replaced twice more.</p>
+</div>
+
+<h3><span class="num">§31</span> What optimisation cannot do</h3>
+
+<p>Three limits, each a place where more or better optimisation is the wrong response.</p>
+
+<dl>
+  <dt>It cannot close the generalisation gap</dt>
+  <dd>Every method here reduces training loss. Part VI §4's gap between training and test error
+  is untouched by all of them, and §13's Cramér–Rao argument goes further: an optimiser that
+  converges faster than $O(1/k)$ is spending the extra speed on overfitting, because
+  generalisation is not permitted to improve that fast. When the gap is your problem, this part
+  has nothing for you and Part VIII has everything.</dd>
+
+  <dt>It cannot rescue a model that is in the wrong place</dt>
+  <dd>§12: local descent follows local information. If the region you started in is not
+  connected to a good solution by a path local descent can follow, no estimate of the local
+  direction (however exact, however well preconditioned) will get you there. The remedies are
+  a different starting point or a different model, and this is the difficulty the field has
+  made least progress on.</dd>
+
+  <dt>It cannot tell you when to stop</dt>
+  <dd>§4: training halts on a criterion the optimiser cannot evaluate. An optimiser knows when
+  its gradient is small and by §12 that moment may never arrive, may arrive at the wrong place,
+  or may not exist. The stopping signal comes from held-out data, which means the quality of
+  your validation set bounds the quality of every decision in this part.</dd>
+</dl>
+
+<div class="box intuition">
+  <span class="label">The one thing to carry forward</span>
+  <p><b>The optimiser is not solving your problem, and that is the arrangement rather than a
+  defect.</b></p>
+  <p>It minimises a surrogate, on a sample, from a starting point you chose, until a criterion
+  it cannot see tells it to stop. Every difficulty in this part is a consequence of that
+  arrangement, and so is every technique: initialisation, pretraining and curricula choose the
+  starting point; normalisation and architecture change the surrogate's shape; clipping and
+  schedules bound the step; early stopping supplies the halt.</p>
+  <p>Which is why "which optimiser should I use" is the wrong first question and stays wrong
+  for a long time. §18's honest answer (no consensus, pick one and learn it properly) is not
+  a gap in the literature. It is a signal that the choice matters less than the four things
+  around it.</p>
+</div>

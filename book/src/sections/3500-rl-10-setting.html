@@ -1,0 +1,144 @@
+<h2><span class="part-kicker">Part A</span>The setting</h2>
+
+<h3><span class="num">§1</span> What changes</h3>
+
+<div class="sixty">
+  <span class="label">In 60 seconds</span>
+  <p>Supervised learning has a fixed dataset and a loss you can evaluate on any example. Here the
+  learner <b>acts</b>, its actions determine what it observes next, and the reward for a decision
+  may arrive a hundred steps later mixed with the consequences of everything else it did. The
+  dataset is a consequence of the policy, and the policy is what you are trying to learn.</p>
+</div>
+
+<div class="box def">
+  <span class="label">Four difficulties, and every method is a response to one</span>
+  <p><b>Credit assignment.</b> A reward arrives; which of the preceding decisions earned it? Part
+  VII §14's backpropagation solves this <i>within</i> a computation, where the graph is known. Here
+  the graph runs through the environment and you do not have it.</p>
+  <p><b>Exploration.</b> You only observe the outcome of what you actually did. Data about the
+  alternative does not exist unless you go and get it, and getting it costs something.</p>
+  <p><b>Non-stationarity.</b> As the policy improves, the distribution of states it visits changes.
+  The training distribution moves because you moved it: Part XIV §26's distribution shift, caused
+  by the learner rather than the world.</p>
+  <p><b>Delayed and sparse signal.</b> One scalar per episode, sometimes, carrying information about
+  thousands of decisions.</p>
+</div>
+
+<h3><span class="num">§2</span> The Markov decision process</h3>
+
+<div class="box def">
+  <span class="label">The formalism</span>
+  <p>States $\mathcal{S}$, actions $\mathcal{A}$, a transition kernel
+  $p(s' \mid s, a)$, a reward function $r(s, a)$, and a discount $\gamma \in [0, 1)$.</p>
+  <p>The <b>Markov property</b> is the whole content of the name: the next state depends on the
+  current state and action alone, not on how you got there. It is not a claim about the world; it
+  is a claim about your <b>state representation</b>, and it is satisfied by definition if the state
+  contains everything relevant.</p>
+  <p>Which relocates the difficulty rather than removing it. When a problem is not Markov in your
+  chosen state (a game where you cannot see the whole board, a robot with one camera), the honest
+  description is a <b>partially observable</b> MDP, and the standard response is to make the state
+  a summary of the history, which is Part XI's recurrence doing a job.</p>
+</div>
+
+<h3><span class="num">§3</span> Return, and why it is discounted</h3>
+
+<div class="box def">
+  <span class="label">What is being maximised</span>
+  <p>$$G_t = \sum_{k=0}^{\infty} \gamma^{k} r_{t+k}$$</p>
+  <p>Three reasons for $\gamma < 1$, and only one of them is about preference. It makes the sum
+  <b>finite</b> for an unbounded horizon. It makes the Bellman operator a <b>contraction</b>, which
+  is what §12 measures and what every convergence result rests on. And it expresses a genuine
+  preference for sooner over later.</p>
+  <p>The effective horizon is about $1/(1-\gamma)$ steps: $\gamma = 0.99$ looks roughly a hundred
+  steps ahead. That is the number to reason with, not $\gamma$ itself.</p>
+</div>
+
+<div class="box pitfall">
+  <span class="label">Pitfall: $\gamma$ is a hyperparameter pretending to be part of the problem</span>
+  <p>It is usually presented as a property of the task. In practice it is tuned, and it changes
+  what the optimal policy <b>is</b>, not merely how fast you find it. A smaller $\gamma$ makes a
+  genuinely long-horizon problem into a short-horizon one that is easier to solve and answers a
+  different question.</p>
+  <p>So report it. A result at $\gamma = 0.9$ and one at $\gamma = 0.999$ are results about
+  different problems, and the second is far harder for the reason §12 makes exact.</p>
+</div>
+
+<h3><span class="num">§4</span> Policies and value functions</h3>
+
+<div class="box def">
+  <span class="label">Three objects</span>
+  <p>A <b>policy</b> $\pi(a \mid s)$: what to do. A <b>state value</b>
+  $V^\pi(s) = \mathbb{E}_\pi[G_t \mid s_t = s]$: how good it is to be here, following $\pi$. An
+  <b>action value</b> $Q^\pi(s,a) = \mathbb{E}_\pi[G_t \mid s_t = s, a_t = a]$: how good it is to
+  do this here, then follow $\pi$.</p>
+  <p>$Q$ is the more useful of the two for control, and the reason is worth stating: given $Q$ you
+  can act greedily by comparing actions, with no model. Given only $V$ you would need
+  $p(s' \mid s,a)$ to know where each action leads. That single difference is why value-based
+  control learns $Q$.</p>
+</div>
+
+<h3><span class="num">§5</span> The Bellman equations</h3>
+
+<div class="box def">
+  <span class="label">Consistency, and then optimality</span>
+  <p>For a fixed policy, value decomposes into one step plus the rest:</p>
+  <p>$$V^\pi(s) = \sum_a \pi(a\mid s)\Big[r(s,a) + \gamma \sum_{s'} p(s'\mid s,a) V^\pi(s')\Big]$$</p>
+  <p>This is a <b>linear</b> system in $V^\pi$, $|\mathcal{S}|$ equations in $|\mathcal{S}|$
+  unknowns, so it can be solved directly. That is worth noticing, because it means policy
+  evaluation is not an approximation at all when the model is known.</p>
+  <p>The optimality equation replaces the average over actions with a maximum:</p>
+  <p>$$V^*(s) = \max_a \Big[r(s,a) + \gamma \sum_{s'} p(s'\mid s,a) V^*(s')\Big]$$</p>
+  <p>and that max makes it <b>nonlinear</b>, which is why the optimal case needs iteration where
+  the evaluation case does not.</p>
+</div>
+
+<div class="box why">
+  <span class="label">Why one deterministic policy always suffices</span>
+  <p>A fact that saves a great deal of worry: for any finite MDP there exists an optimal policy
+  that is <b>deterministic</b> and <b>stationary</b>: no randomisation, no dependence on time.</p>
+  <p>The argument is short. $V^*$ satisfies the optimality equation, and acting greedily with
+  respect to it achieves $V^*$; a greedy policy is deterministic. So randomisation buys nothing at
+  the optimum.</p>
+  <p>Which raises the obvious question: why does the rest of this part use stochastic policies
+  constantly? Three reasons, all practical rather than theoretical: randomness is how you explore
+  (§33), a stochastic policy is <b>differentiable</b> in its parameters where a greedy one is not
+  (§24), and in partially observed or multi-agent settings the guarantee does not apply.</p>
+</div>
+
+<h3><span class="num">§6</span> The taxonomy</h3>
+
+<div class="box def">
+  <span class="label">Three axes that organise everything after this</span>
+  <p><b>Model-based or model-free.</b> Do you know, or learn, $p(s'\mid s,a)$? A model lets you plan
+  without acting, and learning one accurately is often harder than learning the policy.</p>
+  <p><b>Value-based or policy-based.</b> Learn $Q$ and act greedily, or parameterise $\pi$ and
+  improve it directly. Movement C is the first, movement D the second, and actor–critic is both.</p>
+  <p><b>On-policy or off-policy.</b> Does the data have to come from the policy being improved?
+  Off-policy methods can reuse old data and learn from other agents; they are also where the
+  divergence of §21 comes from.</p>
+</div>
+
+<h3><span class="num">§7</span> The unit of measurement</h3>
+
+<div class="box pitfall">
+  <span class="label">Pitfall: the reward is not the objective</span>
+  <p>Part XIV §33 said the loss is not the metric and the metric is not the goal. Reinforcement
+  learning has the same gap with sharper consequences, because the agent optimises the reward
+  <b>with full freedom over its own data</b> and will find whatever the reward literally
+  says.</p>
+  <p>§39 measures a case. The general form: a reward function is a <b>specification</b>, it is
+  written by a person, and any gap between it and what was wanted is a gap the optimiser is being
+  paid to find.</p>
+</div>
+
+<h3><span class="num">§8</span> What this part will and will not cover</h3>
+
+<div class="box def">
+  <span class="label">Scope</span>
+  <p><b>Covered:</b> the MDP and its exact solution; learning values from samples; the policy
+  gradient family; exploration; and the applications that made this part necessary: reward design,
+  offline learning, learning from human feedback, and training for reasoning.</p>
+  <p><b>Not covered:</b> multi-agent settings and game theory, control theory's continuous-time
+  treatment, and the large literature on model-based planning. Each is a subject rather than a
+  section, and pretending otherwise would produce a worse account than declining.</p>
+</div>

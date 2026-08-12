@@ -1,0 +1,110 @@
+<h2><span class="part-kicker">Part E</span>Exploration</h2>
+
+<h3><span class="num">§33</span> The problem</h3>
+
+<div class="box def">
+  <span class="label">Why this is not a detail</span>
+  <p>You observe the outcome of what you did and nothing about what you did not. To learn whether
+  an alternative is better you must take it, which costs whatever it costs. Every step is a choice
+  between <b>exploiting</b> what looks best and <b>exploring</b> to find out whether it is.</p>
+  <p>The reason this is hard rather than merely a trade-off: acting greedily on current estimates is
+  <b>self-confirming</b>. An action whose value was underestimated early is never taken again, so
+  the estimate is never corrected. The failure leaves no trace in the data.</p>
+</div>
+
+<h3><span class="num">§34</span> The bandit, and why it is the right first case</h3>
+
+<div class="box def">
+  <span class="label">Stripping away everything else</span>
+  <p>One state, $K$ actions, each with an unknown reward distribution. No transitions, no credit
+  assignment, no bootstrapping: just the exploration problem, isolated.</p>
+  <p>The measure is <b>regret</b>: cumulative reward lost against always having played the best arm.
+  What matters is not its size but its <b>growth</b>. Regret growing linearly means a fixed loss per
+  step forever; logarithmically means the loss per step goes to zero.</p>
+</div>
+
+<h3><span class="num">§35</span> Four strategies, measured</h3>
+
+<div class="readnow"><span class="label">Go and read</span><p><span class="src">Sutton &amp; Barto (2018)</span>, <i>Reinforcement Learning: An Introduction</i>. Chapter 2, on bandits, which isolates exploration from everything else and is the right place to build the intuition. Its treatment of optimism and of gradient bandits is short and complete.</p></div>
+
+<figure>
+  <img src="figures/rl/06-exploration.svg" alt="Cumulative regret over 20,000 steps for greedy, epsilon-greedy, UCB and Thompson sampling, and regret per step on log axes">
+  <figcaption><b>Figure 6.</b> Ten arms, 20,000 steps, averaged over 80 runs. In the last 5,000
+  steps $\epsilon$-greedy accumulates <b>198</b> regret, UCB <b>52</b>, and Thompson sampling
+  <b>2.4</b>. The right panel is the property that matters: $\epsilon$-greedy's regret per step
+  flattens rather than falling, because it explores at a fixed rate forever.</figcaption>
+</figure>
+
+<div class="box def">
+  <span class="label">What each one does</span>
+  <p><b>Greedy.</b> Always take the current best. Cheap, and it locks onto whatever looked good
+  early: the figure's grey curve is a run that settled on a decent-but-wrong arm and stayed.</p>
+  <p><b>$\epsilon$-greedy.</b> Explore at random with probability $\epsilon$. Simple, universal, and
+  it never stops paying: after the answer is known it still spends $\epsilon$ of its steps on
+  actions it knows are worse. Hence linear regret, visible as the flat line on the right.</p>
+  <p><b>UCB.</b> Take the action with the highest $\hat{\mu}_a + \sqrt{2\log t / n_a}$: the value
+  estimate plus a term that is large when the action is under-tried. <b>Optimism in the face of
+  uncertainty</b>: either the action is good, or you learn that it is not. Logarithmic regret, and
+  the deceleration is visible.</p>
+  <p><b>Thompson sampling.</b> Keep a posterior over each arm's value, sample once from each, and
+  play the argmax. Exploration falls out of the posterior's width with no bonus term to tune, and it
+  is the best of the four here by a wide margin.</p>
+</div>
+
+<div class="box why">
+  <span class="label">Why the distinction is between directed and undirected</span>
+  <p>$\epsilon$-greedy explores <b>uniformly at random</b>: it is as likely to retry an action it
+  has tried a thousand times as one it has never taken. UCB and Thompson explore in proportion to
+  <b>uncertainty</b>, so exploration is spent where information is.</p>
+  <p>That is the whole difference, and it is why one has linear regret and the others do not. It is
+  also why $\epsilon$-greedy remains ubiquitous: it needs no uncertainty estimate, and getting a
+  usable one from a neural network is the hard part of §37.</p>
+</div>
+
+<h3><span class="num">§36</span> Exploration in an MDP</h3>
+
+<div class="box pitfall">
+  <span class="label">Pitfall: random actions do not reach anywhere interesting</span>
+  <p>In a bandit, a random action is a full experiment. In an MDP, reaching a distant state requires
+  a <b>specific long sequence</b>, and a random walk essentially never produces one. The probability
+  of a particular hundred-step sequence under $\epsilon$-greedy is astronomically small.</p>
+  <p>So the whole bandit apparatus, applied per-step, does not solve exploration in sequential
+  problems. The classic demonstrations are sparse-reward tasks where the reward is behind a long
+  specific sequence, and where undirected exploration finds nothing at all in any feasible
+  time.</p>
+</div>
+
+<h3><span class="num">§37</span> What is actually done</h3>
+
+<div class="box def">
+  <span class="label">Four families, none of them a solution</span>
+  <p><b>Optimistic initialisation.</b> Start values high so everything is worth trying once. Cheap,
+  effective in small problems, and it washes out.</p>
+  <p><b>Count-based bonuses.</b> Add a reward proportional to $1/\sqrt{n(s)}$. Direct, and needs a
+  notion of "the same state" that does not exist in continuous spaces: pseudo-counts from a density
+  model are the usual substitute.</p>
+  <p><b>Curiosity and prediction error.</b> Reward the agent for reaching states where its own
+  model predicts badly. Elegant, and it has a famous failure: an agent facing a genuinely
+  unpredictable stimulus (the "noisy TV") finds infinite prediction error there and stops doing
+  anything else. It has learned that its bonus is maximised by staring at noise, which is exactly
+  what the bonus said.</p>
+  <p><b>Posterior sampling.</b> Thompson's idea with a network's uncertainty, usually from an
+  ensemble. Principled, and its quality depends entirely on the uncertainty estimate, which is
+  Part XIV §5's calibration problem in a place where it decides behaviour rather than a
+  report.</p>
+</div>
+
+<h3><span class="num">§38</span> Why this is unsolved</h3>
+
+<div class="box intuition">
+  <span class="label">The honest position</span>
+  <p>The theory is essentially complete for bandits and for small MDPs, where optimal exploration is
+  understood and the regret bounds are tight. None of it survives contact with a large state space,
+  because every method needs a measure of <b>novelty</b> or <b>uncertainty</b>, and getting a
+  trustworthy one from a neural network is unsolved on its own terms.</p>
+  <p>What large systems actually do is mostly to avoid the problem: start from demonstrations, shape
+  the reward, or work in domains where random behaviour reaches useful states. That is a legitimate
+  engineering response and it is worth recognising as an avoidance rather than a solution; the
+  cases where it fails are the cases where reinforcement learning is hardest, and they are the ones
+  that get published least.</p>
+</div>

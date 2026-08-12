@@ -1,0 +1,226 @@
+<h2><span class="part-kicker">Part E</span>Bayesian estimation</h2>
+
+<h3><span class="num">§17</span> MAP and MLE</h3>
+
+<div class="sixty">
+  <span class="label">In 60 seconds</span>
+  <p>Maximum likelihood asks which parameters make the data most probable. <b>Maximum a
+  posteriori</b> asks which parameters are most probable given the data, which by Bayes'
+  rule means multiplying the likelihood by a prior. The prior pulls the estimate toward
+  where you expected it to be, and the pull weakens as data accumulates.</p>
+</div>
+
+<p>From Part II §21, the posterior is proportional to likelihood times prior. Taking logs,
+as Part 0 §11 always recommends:</p>
+
+$$\hat{\theta}_{\text{MAP}} = \argmax_{\theta} \Big[\underbrace{\log p(\mathcal{D} \mid \theta)}_{\text{fit the data}} + \underbrace{\log p(\theta)}_{\text{stay plausible}}\Big]$$
+
+<p>Compare with maximum likelihood, which is the first term alone. <b>The prior is the only
+difference</b>, and it enters as an additive term in exactly the position a regularization
+penalty occupies.</p>
+
+<figure>
+  <img src="figures/st/10-map-vs-mle.svg" alt="Prior, likelihood and posterior at three sample sizes">
+  <figcaption><b>Figure 10.</b> Estimating a coin's bias when the data says 75% heads and
+  the prior believes in fairness. At $n=4$ the posterior sits much closer to the prior than
+  to the data. At $n=20$ it has moved most of the way. At $n=200$ prior and posterior are
+  nearly indistinguishable from the likelihood. <b>Data overwhelms the prior</b>, at a rate
+  that makes the choice of prior matter enormously when data is scarce and not at all when
+  it is plentiful.</figcaption>
+</figure>
+
+<h3><span class="num">§18</span> Priors are regularization</h3>
+
+<p>This is the section that ties Part I, Part II and this one together.</p>
+
+<div class="worked long">
+  <span class="label">Worked: weight decay is a Gaussian prior</span>
+  <p>Put a zero-mean Gaussian prior on the weights: $p(\mathbf{w}) = \mathcal{N}(\mathbf{0},
+  \tau^2 I)$, expressing a belief that weights are probably small.</p>
+  <p>Its log, dropping constants that do not depend on $\mathbf{w}$:</p>
+  <p>$\log p(\mathbf{w}) = -\dfrac{\|\mathbf{w}\|_2^2}{2\tau^2} + \text{const}$</p>
+  <p>Substituting into the MAP objective and flipping the sign to minimise:</p>
+  <p>$$-\log p(\mathcal{D}\mid\mathbf{w}) + \frac{1}{2\tau^2}\|\mathbf{w}\|_2^2$$</p>
+  <p>The first term is the cross-entropy or squared error of Part II §26. The second is
+  <b>exactly $L^2$ weight decay</b>, with $\lambda = 1/2\tau^2$.</p>
+  <p>So the regularization strength is the reciprocal of your prior variance. A strong
+  belief that weights are small (small $\tau$) is a large $\lambda$. This is not an
+  analogy; the two procedures are the same optimisation.</p>
+</div>
+
+<p>The same substitution with a Laplace prior yields $\|\mathbf{w}\|_1$ and its sparsity,
+completing the argument begun in Part I §15 and continued in Part II §17. Three parts, three
+angles (geometric, probabilistic, and now estimation-theoretic) on one phenomenon.</p>
+
+<p>The header's claim runs one way only, and it is worth being precise about which. $L^2$ and
+$L^1$ above are priors because the penalty is exactly $-\log p(\mathbf{w})$ for a distribution
+fixed before any data is seen. Not every regularizer has that form. Dropout and data
+augmentation regularize by acting on the data or the computation, not by adding a fixed
+$-\log p(\mathbf{w})$ term to the objective, so nothing here converts them into a stated prior.
+"Priors are regularization" is the correct direction; its converse, that all regularization is
+secretly a prior, is not claimed.</p>
+
+<div class="box why">
+  <span class="label">Why this matters: regularization is a bias you chose</span>
+  <p>Section 4 said a little bias can reduce total error. Section 18 says where that bias
+  comes from: <b>a prior is a deliberate, stated bias.</b></p>
+  <p>That reframing is useful in practice. Choosing $\lambda$ is choosing how strongly to
+  believe your prior against the data. Too large and the prior dominates and you underfit;
+  too small and you are back to maximum likelihood and its variance. Cross-validation, which
+  Part VI covers properly, is the empirical procedure for locating that balance when you
+  cannot reason it out.</p>
+</div>
+
+<h3><span class="num">§19</span> Keeping the whole posterior</h3>
+
+<p>MAP takes the single most probable parameter setting and discards everything else. The
+fully Bayesian alternative keeps the entire posterior distribution and averages predictions
+over it:</p>
+
+$$p(y \mid x, \mathcal{D}) = \int p(y \mid x, \theta)\, p(\theta \mid \mathcal{D})\, d\theta$$
+
+<p>Rather than committing to one model, you consult every model weighted by how plausible it
+is. The immediate benefit is honest uncertainty: where the posterior is broad, predictions
+disagree, and the spread of that disagreement is a genuine measure of what you do not
+know.</p>
+
+<div class="box pitfall">
+  <span class="label">Pitfall: the integral is the problem</span>
+  <p>That integral is intractable for anything with more than a handful of parameters, and
+  hopeless for a neural network with millions. This is why full Bayesian treatment remains
+  rare in deep learning despite being the more principled procedure.</p>
+  <p>The approximations you will meet later (variational inference, Monte Carlo sampling,
+  ensembling, dropout at prediction time) are all attempts to get some of the benefit
+  without the integral. Ensembling is the most honest of them: training several models and
+  averaging is a crude posterior average, and it works for exactly that reason.</p>
+</div>
+
+<h2><span class="part-kicker">Part F</span>The payoff</h2>
+
+<h3><span class="num">§20</span> The bias–variance decomposition</h3>
+
+<div class="readnow"><span class="label">Go and read</span><p><span class="src">Belkin, Hsu, Ma &amp; Mandal (2019)</span>, <i>Reconciling modern machine-learning practice and the classical bias–variance trade-off</i>. Double descent, named. Then <span class="src">Nakkiran et al. (2019)</span>, which demonstrates it across modern architectures and finds it in model size, data size and training time alike. These are the papers behind this section's caveat, and they are the honest current state of a question this part cannot close.</p></div>
+
+<p class="lede">Section 4 decomposed the error of estimating a number. This section does the
+same for a whole predictive model, and the result organises everything in the parts that
+follow.</p>
+
+<p>The setup: data comes from $y = f(x) + \epsilon$ with noise of variance $\sigma^2$. You
+fit a model $\hat{f}$ on a random training set. What is your expected squared error at a
+fixed test point $x$, averaged over training sets?</p>
+
+<div class="box def">
+  <span class="label">The decomposition</span>
+  <p>$$\mathbb{E}\big[(y - \hat{f}(x))^2\big] \;=\;
+  \underbrace{\big(\mathbb{E}[\hat{f}(x)] - f(x)\big)^2}_{\text{bias}^2} \;+\;
+  \underbrace{\mathbb{E}\big[(\hat{f}(x) - \mathbb{E}[\hat{f}(x)])^2\big]}_{\text{variance}} \;+\;
+  \underbrace{\sigma^2}_{\text{irreducible}}$$</p>
+</div>
+
+<p>The derivation is §4's, with $\hat{f}(x)$ in place of $\hat{\theta}$ and one extra term
+for the noise, which is independent of everything and simply adds. Three sources of error,
+and they mean quite different things:</p>
+
+<dl>
+  <dt>Bias: the error from being too simple</dt>
+  <dd>Your model class cannot represent $f$. Averaged over all training sets you still miss.
+  A straight line fitting a curve is biased no matter how much data it gets.</dd>
+
+  <dt>Variance: the error from being too sensitive</dt>
+  <dd>Your model changes a lot when the training data changes. It is fitting the noise
+  rather than the signal, and would have fit different noise differently.</dd>
+
+  <dt>Irreducible error: the noise itself</dt>
+  <dd>$\sigma^2$ is a property of the world, not of your model. <b>No amount of data, model
+  capacity or cleverness removes it.</b> A model achieving zero error on noisy data has
+  memorised, not learned.</dd>
+</dl>
+
+<figure>
+  <img src="figures/st/11-fits.svg" alt="Underfit, well-fit and overfit polynomial fits to the same data">
+  <figcaption><b>Figure 11.</b> Fourteen noisy points from a sine. Degree 1 cannot bend:
+  high bias. Degree 4 tracks the truth. Degree 13 passes through every point exactly and is
+  wrong nearly everywhere between them: high variance. All three saw the same
+  data.</figcaption>
+</figure>
+
+<figure>
+  <img src="figures/st/12-bias-variance-curve.svg" alt="Measured bias squared, variance and total error against polynomial degree">
+  <figcaption><b>Figure 12.</b> The decomposition measured directly: 300 fresh training sets
+  at each degree, with bias and variance computed from the resulting spread of predictions.
+  Bias falls with capacity, variance rises, and total error is a U with its minimum in
+  between. This is not a schematic: the three curves come from the simulation, and they
+  sum.</figcaption>
+</figure>
+
+<div class="box why">
+  <span class="label">Why this matters: it organises everything after this</span>
+  <p>Nearly every technique in the remaining parts is a move on one of these two terms.</p>
+  <ul class="tight">
+    <li><b>Regularization</b>: accept bias to cut variance (§18).</li>
+    <li><b>More training data</b>: cuts variance, leaves bias alone.</li>
+    <li><b>A richer model class</b>: cuts bias, raises variance.</li>
+    <li><b>Ensembling</b>: averages several models, cutting variance directly.</li>
+    <li><b>Early stopping</b>: halts before variance grows.</li>
+    <li><b>Feature engineering</b>: cuts bias if the features are good ones.</li>
+  </ul>
+  <p>When a model performs badly, the first diagnostic question is <i>which term</i>. High
+  training error and high test error means bias: the model cannot represent the problem.
+  Low training error and high test error means variance. The two call for opposite
+  remedies, and applying the wrong one makes things worse.</p>
+</div>
+
+<h4>Where the classical picture breaks</h4>
+
+<p>Figure 12 is the textbook story, it is correct as far as it goes, and <b>it does not
+describe modern deep learning.</b> This is worth stating plainly, because many treatments
+stop at the U-curve and leave the reader with a model of the world that contradicts what
+they will observe.</p>
+
+<p>The classical picture predicts that a model with far more parameters than data points
+should be a catastrophe of variance. Large neural networks have vastly more parameters than
+training examples and generalise well. That is not a small discrepancy.</p>
+
+<figure>
+  <img src="figures/st/13-double-descent.svg" alt="Test error rising to a peak at the interpolation threshold then falling again">
+  <figcaption><b>Figure 13.</b> A real sweep. Test error follows the classical U, then
+  <b>peaks sharply where capacity equals the number of training points</b> (here 40), then
+  descends again, ending <i>below</i> the classical optimum. This is <b>double
+  descent</b>. Reproducing it requires the true minimum-norm interpolating solution; the
+  default settings of most solvers quietly regularize the peak away, which is one reason it
+  went unnoticed for so long.</figcaption>
+</figure>
+
+<div class="box intuition">
+  <span class="label">Intuition: beyond the threshold, capacity buys choice</span>
+  <p>At exactly the interpolation threshold there is essentially <i>one</i> way to fit the
+  training data perfectly, and the model is forced into it however contorted it is. That is
+  the peak.</p>
+  <p>Past the threshold there are infinitely many perfect fits, and the optimiser gets to
+  pick among them. It picks a smooth one, minimum-norm, or whatever the training procedure
+  implicitly prefers. Extra capacity stops being extra freedom to fit noise and starts being
+  extra freedom to choose a well-behaved solution.</p>
+  <p>The bias–variance identity is still exactly true; it is an identity. What fails is the
+  <i>assumption</i> that variance rises monotonically with parameter count. It does not,
+  once the model can interpolate.</p>
+</div>
+
+<div class="box try">
+  <span class="label">Try it: the last one</span>
+  <p>Your model gets 2% training error and 25% test error. Which term dominates, and what do
+  you do? Now instead it gets 24% training and 25% test. Same questions.</p>
+</div>
+
+<p><b>Answer.</b> <b>First case:</b> the gap is the diagnosis; it fits the training data
+and not the test data, so <b>variance</b> dominates. Remedies: more data, stronger
+regularization, a smaller model, ensembling, early stopping. Adding capacity would make it
+worse.</p>
+<p><b>Second case:</b> it fails on both, and roughly equally. That is <b>bias</b>: the
+model cannot represent the problem, and it is not overfitting anything. Remedies: a richer
+model class, better features, training longer, weaker regularization. Here more data buys
+almost nothing, which is the counter-intuitive part and the reason the diagnosis is worth
+making before spending money on labels.</p>
+<p>One caveat worth carrying: if the irreducible noise is itself around 24%, the second
+model is already optimal and no remedy exists. Knowing $\sigma^2$ (or having a human
+baseline that estimates it) is what tells the difference between a model that is
+underfitting and one that has finished.</p>

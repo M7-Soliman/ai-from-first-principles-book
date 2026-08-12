@@ -1,0 +1,143 @@
+<h2><span class="part-kicker">Part D</span>A continuous world</h2>
+
+<p class="mvt">Everything so far assumed a finite set of states you could put in a hash table. A robot
+arm, a quadrotor and a car have none of that: the state is a vector of real numbers, the actions are
+a continuum, and the obstacles are described in the wrong coordinates. This movement is how search
+survives that, and it is the part of the classical tradition that never went out of use.</p>
+
+<h3><span class="num">§23</span> Configuration space</h3>
+
+<div class="box def">
+  <span class="label">One point per pose</span>
+  <p>The <b>configuration space</b> <span class="m">$\mathcal{C}$</span> has one dimension per degree
+  of freedom, so a whole robot in a whole pose is a single point. A six-joint arm lives in a
+  six-dimensional space; a car in the plane lives in
+  <span class="m">$\mathbb{R}^2\times S^1$</span>: two positions and an angle, on a space that wraps.</p>
+  <p>Obstacles transform too. A physical obstacle becomes
+  <span class="m">$\mathcal{C}_{\text{obs}}$</span>, the set of configurations in which the robot
+  touches it, and its shape depends on the robot's geometry as much as the obstacle's. Planning is
+  then finding a continuous curve in <span class="m">$\mathcal{C}_{\text{free}}$</span> from start to
+  goal, a clean, coordinate-free statement of a problem that is a mess in the original coordinates.</p>
+</div>
+
+<div class="box why">
+  <span class="label">What the transformation costs</span>
+  <p>The abstraction is exactly right and computing it is intractable. <span class="m">$\mathcal{C}_{\text{obs}}$</span>
+  is generally not convex, not connected, and has no closed form for a nontrivial robot, so nobody
+  builds it. What is available instead is a <b>collision check</b>: a routine that takes a
+  configuration and answers whether it is free. That single primitive is what every algorithm below
+  is built on, and it is the dominant cost: a planner's running time is usually measured in
+  collision checks rather than seconds, because that is the number that transfers between machines.</p>
+</div>
+
+<h3><span class="num">§24</span> Why you cannot just discretise</h3>
+
+<div class="box why">
+  <span class="label">The arithmetic that ends the discussion</span>
+  <p>The obvious move is to grid the space and run A*. At a resolution of 100 per axis: a
+  two-dimensional problem has <span class="m">$10^4$</span> cells, which is nothing; a six-joint arm
+  has <span class="m">$10^{12}$</span>; a two-arm manipulation problem in twelve dimensions has
+  <span class="m">$10^{24}$</span>, which is more cells than a modern machine has bytes by six orders
+  of magnitude.</p>
+  <p>And resolution is not a free parameter to lower. A passage narrower than one cell disappears, so
+  the planner reports failure on a solvable problem, and the coarser the grid the more often that
+  happens. You are trading completeness against memory with no setting that gives you both, the same
+  bind as Part VI §21's curse of dimensionality, in the one place where it cannot be argued away by
+  saying real data lies on a manifold. The free space really is high-dimensional.</p>
+</div>
+
+<h3><span class="num">§25</span> Sampling instead of enumerating</h3>
+
+<div class="box shapes">
+  <span class="label">The move that made motion planning practical</span>
+  <p>Do not represent the free space. <b>Sample</b> configurations, keep the ones that are collision
+  free, and connect nearby ones with straight-line segments that also test free. The graph you build
+  is a finite approximation of a continuous space that was never constructed, and its size is chosen
+  by you rather than dictated by the dimension.</p>
+  <p>What is given up is exact completeness. What replaces it is <b>probabilistic completeness</b>:
+  if a solution exists, the probability of finding it goes to one as the number of samples grows. If
+  no solution exists, the algorithm runs forever and never says so. That asymmetry is real and is why
+  deployed planners always carry a timeout and a fallback.</p>
+</div>
+
+<h3><span class="num">§26</span> Probabilistic roadmaps</h3>
+
+<div class="box def">
+  <span class="label">Build the graph once, query it many times</span>
+  <p><b>Learning phase.</b> Sample <span class="m">$N$</span> free configurations. Connect each to its
+  <span class="m">$k$</span> nearest neighbours when the straight segment between them is collision
+  free. The result is a roadmap of the free space.</p>
+  <p><b>Query phase.</b> Connect start and goal to the roadmap and run A* on it, a small finite
+  graph, back in the territory of Part B.</p>
+  <p>The split is the point. A factory arm works in a fixed cell for years, so the expensive phase is
+  paid once and every subsequent query is milliseconds. PRMs are the right answer for a static
+  environment with many queries, and the wrong answer for a changing one, where the roadmap is
+  invalidated by the first thing that moves.</p>
+</div>
+
+<p>Two refinements matter in practice. Uniform sampling wastes almost everything on wide-open regions
+and starves the narrow passages that are the actual difficulty, so real implementations bias sampling
+toward the obstacle boundary or toward regions where connection attempts fail. And connecting to
+<span class="m">$k$</span> nearest neighbours needs a nearest-neighbour structure in
+<span class="m">$\mathcal{C}$</span>, which means a metric on a space that mixes metres with radians,
+a weighting choice that is arbitrary, consequential, and almost never reported.</p>
+
+<h3><span class="num">§27</span> Rapidly-exploring random trees</h3>
+
+<div class="box def">
+  <span class="label">Grow toward the parts you have not been</span>
+  <p>Start a tree at the initial configuration. Repeat: sample a random configuration
+  <span class="m">$q$</span>; find the nearest node in the tree; take a step of fixed size from it
+  toward <span class="m">$q$</span>; add the new node if the step is collision free.</p>
+  <p>The bias is the elegant part and it is not imposed, it falls out. A node is extended in
+  proportion to the volume of its Voronoi region, so the tree pulls hardest toward large unexplored
+  areas. Nobody has to tell it where the frontier is.</p>
+</div>
+
+<div class="box why">
+  <span class="label">Single query, and why that is usually what you want</span>
+  <p>An RRT does not build a reusable structure; it grows one tree toward one goal and throws it away.
+  That is the right shape when the environment changes between queries, which is the case for anything
+  that moves through the world rather than sitting in a cell. Bidirectional RRT (a tree from each end,
+  growing toward each other) is the standard implementation and typically the fastest thing available.</p>
+  <p><b>The paths are ugly.</b> Random extension produces jagged, wandering routes that no vehicle
+  should follow and no arm should execute, so every real system post-processes: shortcut smoothing
+  repeatedly tries to replace two segments with one and keeps the replacement if it is collision free.
+  Cheap, effective, and universally present in the code and absent from the paper.</p>
+</div>
+
+<h3><span class="num">§28</span> Optimality, dynamics, and the real stack</h3>
+
+<div class="box shapes">
+  <span class="label">Three things the basic algorithm does not have</span>
+  <p><b>Optimality.</b> RRT converges to <i>a</i> path, not a good one, and more samples do not
+  improve the path it already has. <b>RRT*</b> fixes this with two additions: connect a new node to
+  the cheapest nearby parent rather than the nearest, and then rewire nearby nodes to go through it if
+  that is cheaper. The result is asymptotically optimal (the cost converges to the true optimum) at
+  the price of a rewiring step whose radius must shrink like
+  <span class="m">$(\log n / n)^{1/d}$</span> for the guarantee to hold.</p>
+  <p><b>Dynamics.</b> A car cannot move sideways, so a straight segment in
+  <span class="m">$\mathcal{C}$</span> is not a feasible motion. <b>Kinodynamic</b> planning replaces
+  the straight-line connector with a short trajectory generated by integrating the actual dynamics
+  under some control, which makes the steering problem (get exactly from state A to state B) hard,
+  and is why practical systems use a fixed library of motion primitives instead of solving it.</p>
+  <p><b>Time.</b> Moving obstacles make the free space a function of time, so the state must include
+  it, and the plan must be recomputed continuously rather than once.</p>
+</div>
+
+<div class="box why">
+  <span class="label">How this composes with Part XXXI</span>
+  <p>A deployed motion stack is three layers with different clocks, and confusing them is the standard
+  architectural mistake.</p>
+  <p><b>Route</b>: a graph search over the road network, seconds to minutes of horizon, replanned
+  rarely. <b>Behaviour and trajectory</b>: the search in this movement, a few seconds of horizon,
+  replanned at 10 Hz against the current world model, and always producing a trajectory rather than a
+  path, because the timing is part of the answer. <b>Control</b>: the feedback loop of Part XXXI,
+  100 Hz or faster, tracking the trajectory and rejecting the disturbances the planner never modelled.</p>
+  <p>The planner is allowed to be slow and approximate because the controller is fast and stabilising;
+  the controller is allowed to be simple because the planner has already respected the constraints. A
+  learned end-to-end policy collapses all three into one clock, which is exactly the trade being made
+  and is worth naming as a trade rather than an upgrade. It is also why the interfaces here are where
+  the safety argument lives: a trajectory with a feasibility guarantee and a fallback is checkable in
+  a way that a single network output is not.</p>
+</div>

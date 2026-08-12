@@ -1,0 +1,128 @@
+<h2><span class="part-kicker">Part F</span>Practice</h2>
+
+<p class="mvt">When the frequency domain is the right place to work, the four checks that catch the
+errors this part is about, and what a spectral claim owes its reader.</p>
+
+<h3><span class="num">§40</span> When to reach for the frequency domain</h3>
+
+<div class="box try">
+  <span class="label">Five situations where it pays, and one where it does not</span>
+  <p><b>You are resampling anything.</b> Changing resolution, striding, decimating, or changing a
+  sample rate. Filter first, always: §3's damage cannot be undone afterwards.</p>
+  <p><b>Your kernel is long.</b> Above Figure 3's crossover the transform is not an optimisation but
+  the difference between affordable and not.</p>
+  <p><b>The signal is periodic or nearly so.</b> Vibration, power systems, seasonal data, audio
+  pitch. The structure is a peak in one domain and a mess in the other.</p>
+  <p><b>You need to characterise noise.</b> White, pink and periodic interference are trivially
+  distinguishable by spectrum and hard to tell apart by eye.</p>
+  <p><b>Your domain has a Laplacian.</b> Graphs, meshes, manifolds: §25's construction gives you a
+  frequency decomposition with no signal in sight.</p>
+  <p><b>And where it does not:</b> when the signal is transient and non-stationary and you care
+  about individual events. A spectrum of a whole recording averages away what you were looking for,
+  and §23's short-time version is a compromise with a resolution limit Figure 5 measures.</p>
+</div>
+
+<h3><span class="num">§41</span> The checks that catch a signals bug</h3>
+
+<div class="box shapes">
+  <span class="label">Four, and the first two take a minute</span>
+  <p><b>Parseval.</b> Sum the squared samples, sum the squared coefficients, divide. If §11's
+  identity does not hold, your normalisation is wrong, and a wrong normalisation is the most common
+  defect in hand-written spectral code, because it does not throw and does not look wrong.</p>
+  <p><b>Round-trip.</b> Transform and invert. You should recover the input to machine precision, and
+  the imaginary part of the recovered real signal should be at rounding level. If it is not, your
+  spectrum is not conjugate-symmetric and something upstream is wrong.</p>
+  <p><b>The shift test.</b> Shift the input by one sample and check the output moves the way it
+  should. This is Part XXVI §1's permutation test in the translation group, it is three lines, and it
+  is what produced Figure 1.</p>
+  <p><b>A known input.</b> Feed a pure tone at a frequency that lands exactly on a bin. You should
+  get one non-zero bin. Anything else is a windowing or normalisation error, and you have just
+  measured it.</p>
+</div>
+
+<h3><span class="num">§42</span> What to report</h3>
+
+<div class="box shapes">
+  <span class="label">Six things</span>
+  <p><b>The sampling rate and the record length.</b> Together they fix both axes of every spectrum
+  you show, and without them the plot is unreadable.</p>
+  <p><b>The window.</b> Which function and how long. Figure 5 is why.</p>
+  <p><b>Whether you filtered before downsampling.</b> If you did not, say so, because Figure 6's
+  right panel is what your spectrum contains.</p>
+  <p><b>Whether the quantity is amplitude or power</b>, and whether the axis is logarithmic. An
+  exponent quoted without this is ambiguous by a factor of two.</p>
+  <p><b>What you did with phase.</b> Discarding it is a decision, and §18 measures what it costs.</p>
+  <p><b>The estimator, checked.</b> If you fit an exponent, fit it first to synthetic data whose
+  exponent you set. Figure 6 does this on every run, and it is the reason the failure recorded
+  against that figure is a failure of the prediction rather than of the measurement.</p>
+</div>
+
+<h3><span class="num">§43</span> Where this connects</h3>
+
+<div class="box shapes">
+  <span class="label">Six places, backwards and forwards</span>
+  <p><b>Part X §9 and §10.</b> Equivariance and the receptive-field argument are §14's theorem in
+  the other domain, and §5 measures the defect in the same architecture that the theorem does not
+  cover.</p>
+  <p><b>Part X §31.</b> The Gabor-like first layer is §37: the basis the input statistics call
+  for.</p>
+  <p><b>Part XII §9.</b> Positional encoding is §33's frequency bank, and every context-extension
+  method is an edit to it.</p>
+  <p><b>Part XXVI §3 and §13.</b> The graph spectrum is §26, and over-smoothing is a low-pass filter
+  seen in that basis.</p>
+  <p><b>Part XXIII.</b> Spectral bias is why gradient descent generalises more often than the
+  classical bounds suggest, and the new movement there supplies half of the argument (the
+  kernel-eigenvalue machinery that governs convergence rate) without stating the other half, that
+  the eigenvalues in question order themselves by frequency.</p>
+  <p><b>Part XXX.</b> The audio stack is this part applied: §23 is the input representation, §18 is
+  why vocoders exist, and §2 is why sample rates are what they are.</p>
+</div>
+
+<h3><span class="num">§44</span> What is unsolved</h3>
+
+<div class="box why">
+  <span class="label">Four, distinguished by kind</span>
+  <p><b>Not yet measured.</b> How much accuracy anti-aliased downsampling is worth across tasks.
+  Figure 1 measures the inconsistency; what it costs at the metric, at scale, on tasks people care
+  about, is a smaller literature than the phenomenon deserves.</p>
+  <p><b>Not currently measurable.</b> Whether spectral bias helps or hurts a large model on real
+  data. It is measurable on a sum of sinusoids, as Figure 7 does. On text there is no agreed way to
+  say what the frequency content of the target even is.</p>
+  <p><b>Genuinely open.</b> The right time–frequency representation for learning. Spectrograms are
+  inherited from human hearing, learned front ends sometimes beat them and often do not, and nobody
+  can say in advance which.</p>
+  <p><b>Not empirical.</b> Whether a mel scale is appropriate for a task is a question about what
+  the task is for, not about the data.</p>
+</div>
+
+<h3><span class="num">§45</span> What to carry forward</h3>
+
+<div class="box intuition">
+  <span class="label">Five things</span>
+  <p><b>Every stride is a resampling, and resampling without filtering destroys information
+  irrecoverably.</b> Figure 1 measures a network's shift-inconsistency five orders of magnitude
+  above the rounding error Part X was content with, growing with every stage.</p>
+  <p><b>Convolution is multiplication in frequency.</b> This is the theorem the whole of Part X sits
+  on, it explains why small kernels cannot be frequency-selective and why depth fixes that, and
+  Figure 3 says when to compute it that way.</p>
+  <p><b>Phase carries the structure.</b> Figure 4 measures +0.736 to the phase donor against
+  &minus;0.125 to the magnitude donor. Any pipeline that keeps magnitude and throws away phase has
+  thrown away the content and will need a model to invent it back.</p>
+  <p><b>Time and frequency resolution trade exactly.</b> Figure 5 measures the product constant
+  while each factor moves sixteen-fold. Every spectrogram is a point on that curve.</p>
+  <p><b>Gradient descent is a low-pass filter on the target.</b> Figure 7 measures 50 steps for the
+  slowest component against never for the fastest, ordered by frequency and not by amplitude,
+  which is most of what this book has been calling implicit regularisation.</p>
+</div>
+
+<div class="sixty">
+  <span class="label">Sixty seconds</span>
+  <p>Any signal is a sum of sinusoids, and writing it that way makes three things easy that are hard
+  otherwise. Convolution becomes multiplication, which is why a filter has a one-line description
+  and why the whole convolutional architecture works. Sampling becomes checkable: keep everything
+  below half your sample rate or it comes back disguised as something else, which is a defect
+  sitting inside every strided network in this book. And the order in which a network learns becomes
+  visible: low frequencies first, always, which is why early stopping keeps the smooth explanation
+  and why a coordinate network needs help to draw a fine detail. The one thing to hold on to if you
+  hold on to nothing else: filter before you subsample.</p>
+</div>

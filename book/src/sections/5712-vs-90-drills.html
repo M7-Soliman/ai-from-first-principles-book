@@ -1,0 +1,272 @@
+<h2><span class="part-kicker">Practice</span>Drills</h2>
+
+<p class="mvt">Forty-three drills. The harness in <code>parts/29-vision/drills/</code> covers
+twenty of them with thirty-two tests. Numpy only: every scene is synthetic with exact ground
+truth, which is the only way to learn this subject without a dataset you cannot fit in a
+repository.</p>
+
+<h3><span class="num">Tier 0</span> Estimate first</h3>
+
+<div class="drill">
+  <div class="head"><span class="tier est">Estimate</span>E1 &middot; What a stereo rig can see</div>
+  <p>A stereo pair with a 20&nbsp;cm baseline and a focal length of 800&nbsp;px, estimating disparity to a tenth of a pixel. Before computing anything, write down the depth error at 10&nbsp;m, at 50&nbsp;m and at 100&nbsp;m, and the range beyond which the error exceeds one car length.</p>
+  <div class="ans"><b>Answer.</b> From <span class="m">$\delta Z = Z^2 \delta d / (fb)$</span>: <b>0.06&nbsp;m</b>, <b>1.6&nbsp;m</b> and <b>6.3&nbsp;m</b>. The error passes 4&nbsp;m at about <b>80&nbsp;m</b>. Most people guess something linear and are wrong by a factor of ten at the far end: the square is the whole point, and it decides a sensor suite before anything is built. <i>Score yourself: within a factor of two is a pass, and an order of magnitude out is worth understanding before you go on.</i></div>
+</div>
+
+<h3><span class="num">Tier 1</span> Warm-up</h3>
+
+<div class="drill">
+  <div class="head"><span class="tier warm">Warm-up</span>W1 &middot; Three changes</div>
+  <p>Name three things that change when the output stops being a label.</p>
+  <div class="ans"><b>Answer.</b> Variable length, no natural order, and graded correctness. The first two force a matching rule before a loss; the third forces a threshold into the metric.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier warm">Warm-up</span>W2 &middot; Read Figure 1</div>
+  <p>What does AP do between IoU 0.5 and 0.9 for a detector with 2&nbsp;px of localisation noise?</p>
+  <div class="ans"><b>Answer.</b> Falls from <b>1.000</b> to <b>0.116</b>. The same detector, the same predictions, a different threshold.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier warm">Warm-up</span>W3 &middot; What AP cannot see</div>
+  <p>You rescale every confidence by a monotone function. What happens to AP?</p>
+  <div class="ans"><b>Answer.</b> Nothing. It is a ranking metric, so a detector with perfect AP can have confidences that mean nothing, and any downstream fusion that treats them as probabilities is broken in a way AP will never reveal.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier warm">Warm-up</span>W4 &middot; Why the imbalance is structural</div>
+  <p>Why is detection's class imbalance not a property of the dataset?</p>
+  <div class="ans"><b>Answer.</b> An image has millions of positions and a handful of objects. The ratio is set by geometry, and Figure 3 measures it growing from 168:1 to 10,752:1 with image size.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier warm">Warm-up</span>W5 &middot; Read Figure 2</div>
+  <p>What is the trade a suppression threshold makes?</p>
+  <div class="ans"><b>Answer.</b> At 0.3, precision 1.000 and crowded recall 0.328: real objects deleted as duplicates. At 0.7, recall 1.000 and precision 0.608. No setting is good at both, and the right one depends on how crowded your scenes are.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier warm">Warm-up</span>W6 &middot; Where small objects go</div>
+  <p>A 16&nbsp;px object, four stride-2 stages later. How many feature pixels?</p>
+  <div class="ans"><b>Answer.</b> One. And a quarter of one after five. The object is not hard to detect at that depth; it is not represented, which is what a feature pyramid exists to fix.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier warm">Warm-up</span>W7 &middot; The one over Z</div>
+  <p>What single feature of the projection equation drives all of movement D?</p>
+  <div class="ans"><b>Answer.</b> Depth is divided out. Hence no scale from one view, hence image motion depending on depth, hence a depth sensitivity falling as 1/Z², which is Figure 7's exponent before any noise is mentioned.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier warm">Warm-up</span>W8 &middot; Read Figure 6</div>
+  <p>Where is distortion error zero, and how large does it get?</p>
+  <div class="ans"><b>Answer.</b> Exactly zero at the principal point, 164&nbsp;px at the corner for a moderate wide-angle lens. Which is why a system debugged on centred objects looks calibrated and fails at the edge of frame.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier warm">Warm-up</span>W9 &middot; Read Figure 7</div>
+  <p>What is the measured exponent of stereo depth error against range, and what follows?</p>
+  <div class="ans"><b>Answer.</b> <b>2.000</b>, exactly as the algebra requires. A rig that is excellent at 10&nbsp;m is unusable at 100&nbsp;m, and the crossover range is computable before the rig exists.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier warm">Warm-up</span>W10 &middot; What the aperture problem forbids</div>
+  <p>Can a larger network recover motion along a featureless straight edge from a local window?</p>
+  <div class="ans"><b>Answer.</b> No. Figure 5 measures the residual as exactly zero along a whole line of candidate velocities: the information is absent. A network can supply a prior from context, which is a different thing and should be labelled as one.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier warm">Warm-up</span>W11 &middot; Monocular scale</div>
+  <p>Where does a monocular depth network's absolute scale come from?</p>
+  <div class="ans"><b>Answer.</b> The training data (typical object sizes and camera height), not the image. Change the camera mounting and the prior is wrong in a way no amount of data from the old rig reveals.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier warm">Warm-up</span>W12 &middot; Read Figure 8</div>
+  <p>What does a constant-velocity model buy, and where does it stop?</p>
+  <div class="ans"><b>Answer.</b> 100% misidentification down to 0.0% through most of the range. It stops when its own uncertainty outgrows the spacing between objects (7.5% at sixteen frames with eight objects), and past that only appearance helps.</div>
+</div>
+
+<h3><span class="num">Tier 2</span> Core</h3>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C1 &middot; Implement IoU</div>
+  <p>Write it for arrays of boxes and check the degenerate cases.</p>
+  <div class="ans"><b>Answer.</b> Zero for disjoint boxes, one for identical ones, and check a box against itself and against a zero-area box. The clip to zero on the intersection is what everyone forgets, and it produces negative overlaps that silently become negative denominators.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C2 &middot; Implement average precision</div>
+  <p>Greedy matching, then the area under the interpolated precision&ndash;recall curve.</p>
+  <div class="ans"><b>Answer.</b> Sort by score, match each detection to the best unused ground truth above threshold, accumulate. The detail that matters: a ground truth may be matched once, so a second detection on the same object is a false positive, which is what makes suppression necessary.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C3 &middot; Sweep the threshold</div>
+  <p>Reproduce Figure 1's left panel with your own localisation noise.</p>
+  <div class="ans"><b>Answer.</b> Monotone, and much steeper than expected. Then ask which threshold your application actually needs, which is almost never 0.5 and almost never what you inherited.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C4 &middot; Construct a reversal</div>
+  <p>Build two detectors whose ordering flips with the threshold.</p>
+  <div class="ans"><b>Answer.</b> A recall-capped, precisely-localising detector scores about its recall at every threshold; a complete but noisy one falls with the threshold. They cross wherever the cap lies between the noisy one's loose and strict scores. Constructing it from the arithmetic is the point; searching randomly mostly fails.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C5 &middot; Implement suppression</div>
+  <p>Write greedy NMS and reproduce Figure 2's trade.</p>
+  <div class="ans"><b>Answer.</b> Recall and precision move in opposite directions with the threshold, and crowded scenes make it worse. Then implement the soft variant, which decays scores instead of deleting, and see where it helps.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C6 &middot; Count the anchors</div>
+  <p>Compute the anchor count and the imbalance ratio for a configuration you would actually use.</p>
+  <div class="ans"><b>Answer.</b> Tens of thousands of anchors and a ratio in the hundreds or thousands. Arithmetic, not measurement, and it explains the entire history of detection losses.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C7 &middot; The focal loss, measured</div>
+  <p>Compute the total loss contributed by easy negatives with and without the focal term.</p>
+  <div class="ans"><b>Answer.</b> Without it the easy negatives dominate the sum despite each being tiny, because there are thousands of them. The focal term is not about hard examples; it is about the sum of easy ones.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C8 &middot; Box losses on disjoint boxes</div>
+  <p>Compute the gradient of an IoU loss for two boxes that do not overlap.</p>
+  <div class="ans"><b>Answer.</b> Zero, everywhere in the non-overlapping region: the loss cannot tell "close" from "far away". Same defect as a divergence that is infinite on disjoint supports, and the generalised variants add exactly the missing term.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C9 &middot; Scale arithmetic</div>
+  <p>Reproduce Figure 4 and decide which pyramid level should handle which object size.</p>
+  <div class="ans"><b>Answer.</b> Assign so every object has at least a few dozen feature pixels. Doing this badly is where small-object performance is usually lost, and it is a table you can write down rather than tune.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C10 &middot; Checkerboard artefacts</div>
+  <p>Upsample with a transposed convolution whose kernel is not a multiple of the stride, and look.</p>
+  <div class="ans"><b>Answer.</b> A visible grid, from uneven overlap of the kernel across output positions. Exact arithmetic cause, one-line fix, and it is still visible in published figures.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C11 &middot; Mean IoU over classes and over pixels</div>
+  <p>Compute both on an imbalanced segmentation and compare.</p>
+  <div class="ans"><b>Answer.</b> They differ enormously, and the pixel-weighted version is dominated by road and sky. Which one you report is a decision about whether the rare class matters.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C12 &middot; Boundary error</div>
+  <p>Measure segmentation accuracy restricted to pixels near a class boundary.</p>
+  <div class="ans"><b>Answer.</b> Much worse than the aggregate, because most pixels are interior. This is the number that predicts whether the mask is usable, and it is almost never reported.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C13 &middot; The structure tensor</div>
+  <p>Compute it for patches containing an edge, a corner and a flat region, and read the eigenvalues.</p>
+  <div class="ans"><b>Answer.</b> Flat: both near zero. Edge: one near zero. Corner: both large. That single test decides whether flow is solvable at a point and whether a corner detector fires, the same condition from two directions.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C14 &middot; Reproduce the aperture problem</div>
+  <p>Plot the brightness-constancy residual over candidate velocities for an edge.</p>
+  <div class="ans"><b>Answer.</b> A valley of exact zeros along a line, 121 grid cells in Figure 5. Not a shallow minimum, a flat one, and no optimiser finds a unique answer in it because there is not one.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C15 &middot; Project and unproject</div>
+  <p>Implement the pinhole model both ways and verify the round trip.</p>
+  <div class="ans"><b>Answer.</b> Exact to floating point in one direction; the other needs a depth, which is §25's point stated as a function signature you cannot write.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C16 &middot; Resize an image and forget the intrinsics</div>
+  <p>Halve an image without rescaling K, then project a known point.</p>
+  <div class="ans"><b>Answer.</b> It lands in the wrong place, plausibly. This is one of the most common bugs in multi-camera code and it produces geometry that looks nearly right.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C17 &middot; Distortion against radius</div>
+  <p>Reproduce Figure 6 for your own camera's coefficients.</p>
+  <div class="ans"><b>Answer.</b> Zero at the centre, growing outward, and larger than any detector's localisation accuracy well before the corner. Report the residual against radius rather than as an average, always.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C18 &middot; Triangulate, and propagate the error</div>
+  <p>Implement triangulation and measure depth error against range for several baselines.</p>
+  <div class="ans"><b>Answer.</b> The exponent is 2.000 and doubling the baseline halves the error. Then compute the range at which your rig's error exceeds your planner's tolerance, which is the number the sensor suite is designed around.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C19 &middot; The epipolar constraint</div>
+  <p>Build a fundamental matrix from known poses and verify that matches satisfy it.</p>
+  <div class="ans"><b>Answer.</b> To floating point, for exact correspondences. Then perturb the extrinsics slightly and watch the epipolar line move off the true match, which is how a calibration drift shows up as a matching failure.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C20 &middot; A flat-world homography</div>
+  <p>Warp an image to a top-down view assuming a ground plane, and put an object on it.</p>
+  <div class="ans"><b>Answer.</b> The road is correct and everything with height smears into a streak away from the camera. Which is the exact failure mode of the cheapest bird's-eye-view method, and the argument for the other two.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C21 &middot; Association by assignment</div>
+  <p>Build a cost matrix between tracks and detections and solve it exactly.</p>
+  <div class="ans"><b>Answer.</b> Bipartite matching, polynomial time. Greedy is easier and demonstrably worse when objects are close, which is exactly when it matters.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C22 &middot; Track through an occlusion</div>
+  <p>Reproduce Figure 8 with and without a motion model.</p>
+  <div class="ans"><b>Answer.</b> The motion model takes 100% misidentification to zero, then degrades once its uncertainty exceeds the object spacing. Use the filter's own covariance as the gate rather than a constant, and the degradation becomes graceful.</div>
+</div>
+
+<h3><span class="num">Tier 3</span> Stretch</h3>
+
+<div class="drill">
+  <div class="head"><span class="tier stretch">Stretch</span>S1 &middot; A detector, end to end</div>
+  <p>Build a small anchor-free detector on synthetic scenes, with assignment, focal loss and suppression.</p>
+  <div class="ans"><b>Answer.</b> Every component of this movement, in about two hundred lines. Synthetic scenes mean you know the exact answer, so each stage can be checked rather than trusted.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier stretch">Stretch</span>S2 &middot; Set prediction</div>
+  <p>Replace suppression with a matching loss and compare on crowded scenes.</p>
+  <div class="ans"><b>Answer.</b> The crowding failure of Figure 2 disappears, because there is no overlap-based deletion step. Training is slower and less stable, which is the trade.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier stretch">Stretch</span>S3 &middot; Calibrate a real camera</div>
+  <p>Photograph a checkerboard, solve for intrinsics and distortion, and report the residual against radius.</p>
+  <div class="ans"><b>Answer.</b> Sub-pixel at the centre and worse outward, and sensitive to whether your images cover the corners of the frame. A calibration from images of a centred target is a calibration of the centre only.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier stretch">Stretch</span>S4 &middot; Bundle adjustment</div>
+  <p>Implement it for a small synthetic scene and watch the sparsity pattern.</p>
+  <div class="ans"><b>Answer.</b> Block-arrowhead, because each point appears in few views. That structure is what makes the problem solvable at scale, and it is a graphical model's Jacobian.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier stretch">Stretch</span>S5 &middot; Robustness to outliers</div>
+  <p>Add a few wrong correspondences to S4 and re-solve.</p>
+  <div class="ans"><b>Answer.</b> Least squares is dragged anywhere by a handful of them. A robust loss or a consensus step is not a refinement here, it is a requirement.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier stretch">Stretch</span>S6 &middot; A per-frame split, and what it reports</div>
+  <p>Split a video dataset by frame and by sequence, and compare the results.</p>
+  <div class="ans"><b>Answer.</b> The frame split reports a system that does not exist, because consecutive frames are nearly identical. Part XXV §36's finding, in a different medium and with a larger gap.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier stretch">Stretch</span>S7 &middot; Slice an evaluation</div>
+  <p>Take a detector's results and break them down by range, size, occlusion and lighting.</p>
+  <div class="ans"><b>Answer.</b> The aggregate is a weighted average of slices that differ by tens of points, and the worst slice is usually the one your application depends on.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier stretch">Stretch</span>S8 &middot; Audit a perception system you run</div>
+  <p>Check the split, the thresholds, the calibration residual against radius, and the confidence calibration.</p>
+  <div class="ans"><b>Answer.</b> The most common finding is a single AP standing in for a slice breakdown. The second is a calibration nobody has re-run since the mounts were last touched.</div>
+</div>

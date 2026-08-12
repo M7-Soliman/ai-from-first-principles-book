@@ -1,0 +1,216 @@
+<h2><span class="part-kicker">Part C</span>Why it fails</h2>
+
+<h3><span class="num">§11</span> The same matrix, over and over</h3>
+
+<div class="readnow"><span class="label">Go and read</span><p><span class="src">Bengio, Simard &amp; Frasconi (1994)</span>, <i>Learning long-term dependencies with gradient descent is difficult</i>. The result this whole movement is about, and the title is a fair summary. Read §III for the argument of §12: that storing memories robustly <b>requires</b> the region where gradients vanish, so the two are one condition rather than a defect. Then <span class="src">Pascanu, Mikolov &amp; Bengio (2013)</span>, which adds the geometric picture of the cliffs and the norm-clipping fix, and is the more practical of the two.</p></div>
+
+<p>Part IX §10 derived this for a different reason and the derivation is unchanged; what is new
+is that here it is not a corner case but the central fact about the architecture.</p>
+
+<p>Strip the recurrence to its bones (no nonlinearity, no input):</p>
+
+$$\mathbf{h}^{(t)} = W^\top \mathbf{h}^{(t-1)} \quad\Longrightarrow\quad \mathbf{h}^{(t)} = (W^\top)^t \mathbf{h}^{(0)}$$
+
+<p>For the symmetric case $W = Q\Lambda Q^\top$ (Part I §17), this simplifies cleanly:</p>
+
+$$\mathbf{h}^{(t)} = Q\Lambda^t Q^\top \mathbf{h}^{(0)}$$
+
+<p>Every eigenvalue is raised to the power $t$. Anything below one in magnitude decays to
+nothing; anything above one explodes; only exactly one survives. For a general (non-symmetric)
+$W$ the story is the same (the Jordan decomposition $W = P J P^{-1}$ gives
+$W^\top = P^{-\top} J^\top P^\top$, so $(W^\top)^t = (P^{-\top})(J^\top)^t P^\top$, with the Jordan
+blocks raised to the $t$th power)
+and the dominant behaviour is still set by the eigenvalue of largest magnitude, the
+<b>spectral radius</b> $\rho(W)$. If $\rho(W) < 1$ the product eventually vanishes; if
+$\rho(W) > 1$ it eventually explodes. Gradients travelling backward through the same
+path are scaled by the same product.</p>
+
+<figure>
+  <img src="figures/sq/03-gradient-decay.svg" alt="Norm of the Jacobian product against time for three spectral radii, linear and tanh">
+  <figcaption><b>Figure 3.</b> Left: the linear case with a symmetric $W$ (constructed as
+  $Q\Lambda Q^\top$): spectral radius 0.9, 1.0 and 1.1, norm of $(W^\top)^t$ over sixty
+  steps, which is exactly $\rho(W)^t$. Right: a real $\tanh$ recurrence with a general
+  (non-symmetric) $W$, Jacobian product measured by autograd rather than predicted.
+  At gain 0.5 the gradient reaches $7\times10^{-15}$ after sixty steps;
+  at gain 1.0 it grows to $8\times10^{3}$; at gain 2.0 it
+  <b>overflows float32 outright</b>.</figcaption>
+</figure>
+
+<div class="box pitfall">
+  <span class="label">Pitfall: the saturating nonlinearity does not save you</span>
+  <p>A common and reasonable-sounding intuition: $\tanh$ is bounded, so nothing can explode.</p>
+  <p>What $\tanh$ bounds is the <b>forward state</b>. The quantity that vanishes or explodes is
+  the <b>product of Jacobians</b>, and nothing bounds that: the right panel of Figure 3 shows
+  it overflowing float32 at gain 2. A bounded function can have an unbounded derivative product,
+  and confusing the two is the most common misreading of this whole problem.</p>
+</div>
+
+<div class="box why">
+  <span class="label">Why this is worse than the feedforward version</span>
+  <p>Part IX §10 made the distinction and it is the reason this part exists as a separate part.</p>
+  <p>A deep <b>feedforward</b> network multiplies by a <i>different</i> matrix at each layer.
+  The scale still drifts, but it is a random walk in the log, spreading like $\sqrt{L}$, and
+  Part VII §11's initialisation is enough to control it in moderate depth. In very deep
+  feedforward networks this is usually combined with residual connections (Part X §23),
+  but the initialisation problem is far milder than the recurrent case even without them.</p>
+  <p>A <b>recurrent</b> network multiplies by the <i>same</i> matrix every step. There is no
+  averaging, no cancellation, no random walk: one set of eigenvalues raised to the power $t$.
+  That is exponential in $t$ rather than $\sqrt{t}$, and it is why recurrent networks needed
+  architectural surgery when feedforward networks needed a better initialisation.</p>
+  <p>Seen another way, §11's recurrence <i>is</i> the power method, the algorithm for finding
+  a matrix's dominant eigenvector. A long-running RNN converges in direction to that
+  eigenvector and forgets everything else, and it does so because the algorithm is working
+  correctly.</p>
+</div>
+
+<h3><span class="num">§12</span> The trade nobody mentions</h3>
+
+<p>The obvious hope, having read §11, is to keep the parameters in a region where the
+eigenvalues sit near one: gradients neither vanish nor explode, and the problem goes away.
+That hope is provably wrong, and the reason is the most important sentence in this part.</p>
+
+<div class="box def">
+  <span class="label">Stable memory requires vanishing gradients</span>
+  <p>To store a memory <b>robustly</b>, so that a small perturbation of the input does not
+  change what is remembered, the recurrent map must be contractive in the directions carrying
+  that memory. Contractive means eigenvalues below one. Eigenvalues below one means gradients
+  that vanish.</p>
+  <p>So it is not that vanishing gradients are an unlucky property of a badly chosen $W$.
+  <b>Whenever the network is capable of representing long-term dependencies, the gradient of a
+  long-term interaction is exponentially smaller than that of a short-term one.</b> The two are
+  the same condition.</p>
+</div>
+
+<p>This does not make learning impossible. It makes the signal about long-range structure
+exponentially quieter than the signal about local structure, so the local structure is learned
+first and the long-range structure is buried under the fluctuations of learning it. That is a
+statement about how long training takes, not about what is representable, and it is why §4's
+Turing-completeness result is no comfort.</p>
+
+<h3><span class="num">§13</span> Cliffs</h3>
+
+<p>Part IX §9 met cliffs in a network of six multiplied factors and measured a single step
+raising the loss three million fold. A recurrent network multiplies one factor per time step,
+so the same structure appears with the sequence length as its exponent.</p>
+
+<figure>
+  <img src="figures/sq/04-cliff.svg" alt="Loss against the recurrent weight for several sequence lengths, and the gradient at a fixed point against length">
+  <figcaption><b>Figure 4.</b> A scalar recurrence, loss $\tfrac12(w^T x - y)^2$. Left: the
+  surface for $T = 5, 10, 20, 40$ (the same function, steepening as the sequence lengthens).
+  Right: $|dL/dw|$ at $w = 1.2$ against $T$. It is $2.7\times10^{2}$ at $T=10$ and
+  $7.2\times10^{7}$ at $T=40$. A learning rate that is safe at $T=10$ overshoots by
+  <b>eight orders of magnitude</b> at $T=40$, and nothing about the model changed but the
+  length of its input.</figcaption>
+</figure>
+
+<p>That last clause is what makes this different from Part IX's version. There the cliff was a
+property of a deep model, fixed at design time. Here it is a property of the <b>data</b>: the
+same trained network, given longer sequences, sits on a steeper surface. A learning rate tuned
+on short examples is not safe on long ones.</p>
+
+<div class="box def">
+  <span class="label">Clipping, and the two forms of it</span>
+  <p>Part IX §9's argument applies unchanged: a gradient specifies a direction and says nothing
+  about how far that direction remains good. Clipping bounds the distance and leaves the
+  direction alone.</p>
+  <p><b>By norm.</b> If $\|\mathbf{g}\| > c$, rescale to $c\mathbf{g}/\|\mathbf{g}\|$. Preserves
+  the direction exactly. This is the standard choice and it is why.</p>
+  <p><b>Element-wise.</b> Clamp each coordinate independently. Cheaper, and it <b>rotates</b>
+  the update: you step somewhere the gradient never pointed. Used, and worse.</p>
+  <p>Clipping addresses explosion only. It does nothing whatever for vanishing, which is §12's
+  problem and the harder one.</p>
+</div>
+
+<p>A separate approach tries to encourage gradient flow directly, not by constraining the step
+size but by penalising configurations where backpropagated gradients shrink. The idea, due to
+Pascanu et al. (2013), is to add a regulariser that pulls the norm of the backpropagated signal
+at each step toward the norm of the gradient at the same step:</p>
+
+$$\Omega = \sum_t \left(\frac{\left\|\nabla_{\mathbf{h}^{(t)}} L\cdot
+\frac{\partial\mathbf{h}^{(t)}}{\partial\mathbf{h}^{(t-1)}}\right\|}
+{\left\|\nabla_{\mathbf{h}^{(t)}} L\right\|} - 1\right)^2$$
+
+<p>When this ratio is one the gradient vector maintains its magnitude through the Jacobian: the
+condition §12 established is impossible to hold everywhere for long sequences, so the regulariser
+does not remove the vanishing but applies a persistent pull against it. Combined with norm
+clipping, it measurably extends the span of dependencies an RNN can learn. It did not
+displace gating, which is more effective and requires no tuning of a regularisation
+coefficient, but it isolates the mechanism, and knowing that a penalty term can substitute
+partially for a structural solution tells you something about which solution is addressing
+which problem.</p>
+
+<h3><span class="num">§14</span> The failure, measured, and what it is actually a failure of</h3>
+
+<p>The standard claim is that a vanilla RNN cannot learn dependencies beyond about ten or
+twenty steps: the probability of a successful run falls to nearly zero. It is a real result and
+it is worth reproducing rather than repeating, because reproducing it shows that the claim is
+about something other than the architecture.</p>
+
+<figure>
+  <img src="figures/sq/05-long-dependency.svg" alt="Training accuracy against sequence length for vanilla RNN, LSTM and GRU under two optimisers">
+  <figcaption><b>Figure 5.</b> A task where the answer is determined by the first input and
+  everything after it is noise, so nothing between the signal and the readout carries
+  information. Mean of five seeds; a training figure like this one shifts with torch version and
+  hardware, so read the pattern rather than the third digit. With <b>plain SGD and no
+  clipping</b>, close to the 1994 setting, the vanilla RNN's accuracy at $T=40$ is well below
+  its $T=20$ value. With <b>Adam and gradient clipping</b> it holds far better across the same
+  range. The LSTM and GRU are also trained with Adam and gradient clipping (the same optimiser,
+  the same task, the same seeds), and at their <b>PyTorch default initialisation</b> (forget-gate
+  bias of zero) they show <i>no advantage, and sometimes a disadvantage,</i> at long lags against
+  the vanilla network. The initialisation is the variable, not the architecture.</figcaption>
+</figure>
+
+<div class="box why">
+  <span class="label">Why the textbook comparison does not reproduce, and what that means</span>
+  <p>Two things are going on, and both are more useful than the claim they complicate.</p>
+  <p><b>The 1994 result is partly a statement about the optimiser of 1994.</b> Plain SGD with
+  no clipping is where the failure lives. Adam adapts a per-parameter step size (Part III §16),
+  which is exactly the right medicine for gradients whose scale varies by orders of magnitude
+  across parameters; clipping handles the explosion. Add both and a vanilla RNN handles this
+  task at $T=80$. That does not make §12 false (the vanishing is still there); it means the
+  optimiser can work with a much quieter signal than was once possible.</p>
+  <p><b>The gated architectures are being handicapped by an initialisation.</b> §20 is about
+  this, and it is the more surprising half.</p>
+  <p>The honest summary: <b>the architecture, the optimiser and the initialisation are three
+  variables, and the famous comparison varies all three.</b> That is Part X §26's complaint
+  about ConvNeXt, arriving in a completely different literature, and it is the reason Part IX
+  §29's ladder insists on changing one thing at a time.</p>
+</div>
+
+<div class="box pitfall">
+  <span class="label">Pitfall: what this figure does not show</span>
+  <p>This is one task, at a small scale, with a signal that must merely <i>survive</i> rather
+  than be manipulated. It is not evidence that vanilla RNNs are fine.</p>
+  <p>On tasks requiring the state to be selectively updated (remember this, forget that,
+  now overwrite), the gated architectures win decisively, and at the scale of real language
+  modelling the gap was large enough that nobody used vanilla RNNs for a decade. What the
+  figure establishes is narrower and still worth having: <b>the standard demonstration does
+  not isolate the variable it claims to isolate.</b></p>
+</div>
+
+<h3><span class="num">§15</span> Why better optimisers were not the answer</h3>
+
+<p>Given §§11–14, an obvious research programme is to fix the optimiser. It was attempted
+seriously and it is instructive that it lost.</p>
+
+<p>The idea was principled: if first derivatives vanish, second derivatives may vanish at a
+similar rate, so their <b>ratio</b>, which is what a second-order method uses, could stay
+well-scaled. Hessian-free optimisation was built on exactly this and produced genuinely
+promising results.</p>
+
+<p>Then simpler methods with careful initialisation matched it. Then both were replaced by
+plain SGD applied to LSTMs.</p>
+
+<div class="box why">
+  <span class="label">Why this keeps happening</span>
+  <p>Part IX §27 stated the principle and this is its clearest instance: <b>it is usually
+  easier to design a model that is easy to optimise than to design a more powerful
+  optimiser.</b></p>
+  <p>Three separate research efforts (second-order methods, better initialisation, careful
+  momentum) were all made unnecessary by changing the architecture so that the gradient has a
+  path it can travel along. That is the subject of Part D, and the same pattern produced ReLU
+  over sigmoid, batch normalisation over higher-order optimisers, and residual connections over
+  everything that came before them.</p>
+  <p>It is worth carrying as a prior. When something will not train, the ladder in Part IX §29
+  puts "a different optimiser" last, and this is the historical evidence for that ordering.</p>
+</div>

@@ -1,0 +1,404 @@
+<h2><span class="part-kicker">Part B</span>Everything that goes wrong</h2>
+
+<p class="lede">Seven ways a training run can fail, in rough order of how often they are the real
+cause, which is close to the reverse of how often they are blamed.</p>
+
+<h3><span class="num">§6</span> Ill-conditioning, and a diagnostic you can actually run</h3>
+
+<div class="sixty">
+  <span class="label">In 60 seconds</span>
+  <p>Part III §5 defined the condition number and showed what it does to a solve. Here it
+  does something more specific: it sets a <b>ceiling on your learning rate</b>, and that
+  ceiling can be computed from two numbers you can measure during training. When curvature
+  grows faster than the gradient, learning slows to a crawl despite a perfectly healthy
+  gradient, and the run looks, from the loss curve alone, like a model that has stopped
+  learning for no reason.</p>
+</div>
+
+<p>Start from the second-order expansion of Part III §10. A step of $-\epsilon\mathbf{g}$
+changes the cost by</p>
+
+$$J(\boldsymbol{\theta} - \epsilon\mathbf{g}) - J(\boldsymbol{\theta})
+\;\approx\; -\epsilon\,\mathbf{g}^\top\mathbf{g}
+\;+\; \tfrac12\epsilon^2\,\mathbf{g}^\top H \mathbf{g}$$
+
+<p>Two terms, and they pull opposite ways. The first is the progress you expect from
+following the slope; it is linear in the step size. The second is the correction for the
+surface curving away underneath you; it is quadratic, so it wins eventually.</p>
+
+<p>The step helps only while the first term dominates, which gives a bound worth writing
+down.</p>
+
+<div class="box def">
+  <span class="label">The largest step that still makes progress</span>
+  <p>$$\tfrac12\epsilon^2\,\mathbf{g}^\top H\mathbf{g} \;<\; \epsilon\,\mathbf{g}^\top\mathbf{g}
+  \qquad\Longleftrightarrow\qquad
+  \epsilon \;<\; \frac{2\,\mathbf{g}^\top\mathbf{g}}{\mathbf{g}^\top H\mathbf{g}}$$</p>
+  <p>Both quantities are scalars you can measure. Neither requires forming $H$.</p>
+</div>
+
+<p>This bound is the whole of ill-conditioning as it affects training, and it says something
+the eigenvalue picture does not: what matters is not $\kappa$ in the abstract but the
+curvature <b>along the direction you are currently moving</b>. A badly conditioned Hessian
+does no harm if your gradient happens to lie in a flat direction. The quantity to watch is
+the ratio, not the matrix.</p>
+
+<div class="box shapes">
+  <span class="label">Computing $\mathbf{g}^\top H \mathbf{g}$ without ever forming $H$</span>
+  <p>$H$ is $n \times n$ with $n$ in the millions, so writing it down is out of the question,
+  Part III §12's objection. You do not need to.</p>
+  <p>$H\mathbf{g}$ is the directional derivative of the gradient field along $\mathbf{g}$, so
+  a finite difference of the gradient gives it directly:</p>
+  <p>$$\mathbf{g}^\top H\mathbf{g} \;\approx\;
+  \frac{\big(\nabla J(\boldsymbol{\theta} + h\mathbf{g}) - \nabla J(\boldsymbol{\theta})\big)^\top \mathbf{g}}{h}$$</p>
+  <p>with $h$ small relative to $1/\|\mathbf{g}\|$. That is <b>one extra forward and backward
+  pass</b> (the same cost as one more training step) and it is how Figure 3's middle panel
+  was produced. Frameworks also expose an exact version through double backpropagation
+  (Part VII §16's higher-order derivatives), which avoids the differencing error at similar
+  cost.</p>
+  <p>Either way this is a cheap instrument that almost nobody reaches for, and it answers a
+  question that the loss curve cannot.</p>
+</div>
+
+<figure>
+  <img src="figures/op/02-gradient-norm.svg" alt="Minibatch gradient norm rising, g-transpose-H-g rising, and classification error falling">
+  <figcaption><b>Figure 3.</b> A real run: a three-layer network on overlapping spiral
+  classes, 6,000 points, constant learning rate 0.05, 300 epochs. Left: individual minibatch
+  gradient norms (grey) with their running average, the gradient norm <b>rises 4.3×</b> over
+  training. Middle: $\mathbf{g}^\top H\mathbf{g}$ on a log axis, up <b>491×</b>. Right:
+  validation error falls from 57% to 5.2%, so this is a thoroughly successful run. The
+  measured ceiling $2\mathbf{g}^\top\mathbf{g}/\mathbf{g}^\top H\mathbf{g}$ fell from
+  <b>0.63 to 0.116</b>, the fixed rate of 0.05 began with 12× headroom and ended with
+  2×.</figcaption>
+</figure>
+
+<p>The pattern in Figure 3 is the one to recognise. The gradient does not shrink; it grows.
+The curvature along it grows much faster. The consequence is that the same learning rate buys
+progressively less real progress, and if you had set the rate near the ceiling at the start (which is what tuning on the first hundred iterations encourages) the run would have become
+unstable partway through.</p>
+
+<p>This is also the honest correction to a habit Part VII §20 warned about. A plateau in the
+loss curve is usually read as "the optimiser is stuck near a critical point". Figure 3 shows
+a run that plateaus repeatedly with a gradient norm that is <i>increasing</i>. Nothing about
+it is near a critical point. The step size has simply become too large for the local
+curvature, and the fix is a schedule, not a different optimiser.</p>
+
+<h3><span class="num">§7</span> Local minima, and why most of them do not matter</h3>
+
+<p>For thirty years the standard explanation of why neural network training fails was local
+minima. It is now thought to be largely wrong, and the reasons are worth having in full,
+because the correct picture changes what you should do about it.</p>
+
+<p>Start with the fact that makes the naive worry inevitable: a neural network has an
+<b>enormous</b> number of local minima, and this can be proved without any analysis at all.</p>
+
+<div class="box def">
+  <span class="label">Identifiability, and two symmetries</span>
+  <p>A model is <b>identifiable</b> if a large enough training set can rule out all but one
+  parameter setting. Neural networks are not, for two independent reasons.</p>
+  <p><b>Weight-space symmetry.</b> Swap the incoming weight vectors of units $i$ and $j$ in a
+  layer, and swap their outgoing weights too. The network computes exactly the same function.
+  With $m$ layers of $n$ units there are $n!^{\,m}$ such rearrangements, for three layers of
+  64 units, about $10^{267}$.</p>
+  <p><b>Scaling symmetry.</b> In any rectified-linear or maxout network, multiply all of a
+  unit's incoming weights and its bias by $\alpha$ and all of its outgoing weights by
+  $1/\alpha$. Because $\text{ReLU}(\alpha z) = \alpha\,\text{ReLU}(z)$ for $\alpha > 0$, the
+  output is unchanged, for <b>every</b> positive $\alpha$. So each minimum is not a point but
+  a continuum.</p>
+</div>
+
+<figure>
+  <img src="figures/op/04-symmetry.svg" alt="Loss contours for a one-unit network showing a hyperbola of equivalent minima, and the same with weight decay">
+  <figcaption><b>Figure 4.</b> The smallest network that has the scaling symmetry:
+  $\hat{y} = w_2\,\text{ReLU}(w_1 x)$, fitted to sixty points. Left: the minima form a
+  <b>hyperbola</b> $w_1 w_2 = \text{const}$, not a point. Walking along it, the loss varies by
+  a relative <b>$3.8 \times 10^{-15}$</b>, machine noise; these are exactly equivalent
+  models. Right: adding $\alpha\|\mathbf{w}\|^2$ with $\alpha = 0.06$ breaks the symmetry, and
+  the minimum becomes the unique point on the hyperbola nearest the origin, at
+  $w_1 = 1.358$, $w_2 = 1.346$.</figcaption>
+</figure>
+
+<p>So there are astronomically many local minima, possibly uncountably many, and none of it
+matters, because <b>they all have the same cost</b>. A minimum reached by permuting units is
+the same model with the units relabelled. A minimum reached by rescaling is the same function
+written differently. Landing in one rather than another costs you nothing.</p>
+
+<p>The right panel makes a point Part VIII will recognise. Weight decay does not merely shrink
+weights: it <b>selects among equivalent parameterisations</b>, because $\|\mathbf{w}\|^2$
+depends on the parameters rather than the function. It converts a continuum of equally good
+solutions into a single one. That is a different service from the eigen-shrinkage of Part VIII
+§4, and it is why weight decay can help optimisation as well as generalisation.</p>
+
+<div class="box why">
+  <span class="label">Why the field changed its mind</span>
+  <p>The minima that would <i>matter</i> are ones with high cost relative to the global
+  minimum. Small networks with such minima can be constructed, and were, in the late 1980s.
+  The open question was always whether networks of practical size have many of them and
+  whether optimisers actually encounter them.</p>
+  <p>Current evidence says no. For sufficiently large networks, most local minima appear to
+  have low cost, and finding a true global minimum appears not to matter; finding a point of
+  low but not minimal cost is enough. §8 gives the mechanism.</p>
+  <p>The practical consequence is a change of habit. If your model will not train, local
+  minima are near the bottom of the list of suspects, and restarting from a different seed (the standard folk remedy) is treating a disease you probably do not have.</p>
+</div>
+
+<div class="box pitfall">
+  <span class="label">Pitfall: the test that rules local minima out, and the one that cannot rule them in</span>
+  <p>There is a cheap <b>negative</b> test: <b>plot the norm of the gradient over time.</b>
+  If it does not shrink to insignificance, the problem is not a local minimum, and not any
+  other kind of critical point either. Nothing more is needed to eliminate the whole family
+  of explanations.</p>
+  <p>Figure 3 is that test applied, and it eliminates critical points outright: the gradient
+  norm rose.</p>
+  <p>The corresponding <b>positive</b> test does not exist. A small gradient norm is
+  consistent with a local minimum, a saddle, a plateau, a cliff bottom, or simply a badly
+  scaled parameterisation, and in high dimensions distinguishing them is genuinely hard. So
+  this instrument can clear a suspect and cannot convict one, which is still worth having,
+  since it is the suspect most often wrongly convicted.</p>
+</div>
+
+<h3><span class="num">§8</span> Saddles, plateaus, and flat regions</h3>
+
+<div class="readnow"><span class="label">Go and read</span><p><span class="src">Dauphin et al. (2014)</span>, <i>Identifying and attacking the saddle point problem in high-dimensional non-convex optimization</i>. The paper that moved the field off local minima. It carries both halves of this section: the experimental evidence that real networks are covered in high-cost saddles, and the saddle-free Newton method. Read the eigenvalue-versus-cost result slowly, it is the part that explains why the astronomically many local minima of §7 are harmless. Then <span class="src">Saxe, McClelland &amp; Ganguli (2013)</span>, which solves deep <i>linear</i> networks exactly and is the source of the no-bad-local-minima result.</p></div>
+
+<p>Part III §18 gave the counting argument: a critical point is a minimum only if all $n$
+curvatures share a sign, which for large $n$ essentially never happens by chance, so
+saddles outnumber minima exponentially. That argument stands. Two things need adding.</p>
+
+<div class="box def">
+  <span class="label">The property that rescues the picture</span>
+  <p>For many classes of random function, the eigenvalues of the Hessian become <b>more
+  likely to be positive at lower cost</b>.</p>
+  <p>In the coin-flipping picture of Part III §18, the coin is biased, and the bias depends on
+  where you are: low on the surface, heads becomes likely; high up, tails does.</p>
+  <p>The consequence is the resolution of §7. <b>Local minima tend to have low cost. High-cost
+  critical points tend to be saddles</b>, and the very highest tend to be maxima. So the
+  many minima that exist are mostly good ones, and the bad critical points are mostly the
+  kind that gradient descent passes through rather than stops at.</p>
+</div>
+
+<p>Whether this holds for real networks is partly settled. It is proved for deep <i>linear</i>
+networks (networks with no nonlinearity, whose output is a linear function of the input but
+whose loss is still non-convex in the parameters). Those have global minima and saddles and
+<b>no local minima worse than the global one</b>. Experimentally, real networks are found to
+have very many high-cost saddle points, as the theory predicts.</p>
+
+<p>The second addition concerns what saddles do to the algorithms. For gradient descent, the
+situation is better than feared: the gradient is small near a saddle, so progress slows, but
+gradient descent is not <i>attracted</i> to critical points; it is only trying to go downhill.
+Continuous-time analysis suggests it is actively repelled from a nearby saddle, and
+visualisations of real training trajectories show them escaping the prominent saddle near the
+origin quickly.</p>
+
+<p>For Newton's method the situation is much worse, and §19 will return to it. Newton solves
+for a point where the gradient is zero. It does not care which kind. Given a saddle it will
+converge to it happily and report success.</p>
+
+<div class="box why">
+  <span class="label">Why second-order methods never took over</span>
+  <p>This is the cleanest single explanation of a puzzling fact: second-order optimisation is
+  mathematically superior, has been understood for centuries, and has not displaced gradient
+  descent in deep learning.</p>
+  <p>The proliferation of saddle points inverts the comparison. The property that makes
+  Newton's method fast (it goes straight to critical points) is exactly the property that
+  makes it wrong here, because in high dimensions almost every critical point is one you
+  wanted to leave.</p>
+  <p>There are repairs. A <b>saddle-free Newton method</b> takes the absolute value of the
+  Hessian's eigenvalues, so that negative-curvature directions are ascended rather than
+  descended, and it improves significantly on the standard version. It remains hard to scale.
+  The unfixed version is not merely slow at this task; it is pointed at the wrong target.</p>
+</div>
+
+<p>One further category deserves naming. Beyond minima, maxima and saddles there can be
+<b>wide flat regions</b> where the gradient and the Hessian are both zero. These defeat every
+numerical method; there is no local information at all. In a convex problem such a region
+must consist of global minima and is therefore harmless. In a general problem it can sit at
+any height, and nothing in your toolkit will get you off it.</p>
+
+<h3><span class="num">§9</span> Cliffs, and what clipping is really for</h3>
+
+<p>Part I §15 introduced gradient clipping as an operation on norms. Here is the structure it
+exists to survive.</p>
+
+<p>Deep networks multiply parameters together, one factor per layer, or one per time step in
+a recurrent network. A product of many terms greater than one is enormous; a product of many
+terms less than one is nothing. The transition between those regimes is not gradual.</p>
+
+<figure>
+  <img src="figures/op/05-cliff.svg" alt="A loss surface with a cliff, and one gradient step from the cliff face with and without clipping">
+  <figcaption><b>Figure 5.</b> $J(w) = \tfrac12(w^6-1)^2$, six factors multiplied, as in six
+  layers. Left, on linear axes: the cliff. The derivative at $w = 1.9$ is <b>917×</b> the
+  derivative at $w = 1.1$ (6,841 against 7.46). Right: from $w = 1.45$, where $J = 34.4$ and the gradient is 319,
+  a single step at $\epsilon = 0.02$ lands at $w = -4.93$, where $J = 1.03 \times 10^8$, the
+  cost is <b>three million times worse</b> and the run is destroyed. Clipping the gradient
+  norm at 1.0 lands at $w = 1.43$, where $J = 28.5$: a small, correct step downhill.</figcaption>
+</figure>
+
+<p>The right panel is the failure in one move. Nothing was wrong with the direction; the
+gradient pointed downhill, and a small enough step would have reduced the cost. The magnitude
+was the problem. The step was so large that it left the region where the linear model of the
+surface holds at all, and it landed somewhere unrelated.</p>
+
+<div class="box intuition">
+  <span class="label">Intuition: the gradient never claimed to know the step size</span>
+  <p>This is worth saying plainly because it corrects a persistent misreading.</p>
+  <p>A gradient is a statement about an <b>infinitesimal</b> neighbourhood: it gives the
+  direction of steepest ascent right here, and says nothing whatever about how far that
+  direction remains a good one. Multiplying it by $\epsilon$ and taking a finite step is an
+  extrapolation you chose to make, and on a cliff face the extrapolation is worthless
+  immediately.</p>
+  <p>Clipping is not a hack that damages the gradient. It is an <b>admission that the step
+  size, not the direction, was the quantity in question</b>: keep the direction the gradient
+  gives you, and refuse to travel further than the distance over which you believe it. The
+  direction after clipping is identical. Only the length changed.</p>
+  <p>Which is also why clipping by <b>norm</b> is the right choice and clipping by value is
+  usually not. Rescaling the whole vector preserves the direction exactly; clamping each
+  coordinate separately rotates it.</p>
+</div>
+
+<p>Cliffs are most common in recurrent networks, because a sequence of length $t$ multiplies
+$t$ factors and long sequences multiply a great many. But Figure 5 needed only six, and the
+mechanism is present in any deep network without normalisation.</p>
+
+<h3><span class="num">§10</span> Repeated matrices: the sharper vanishing-gradient problem</h3>
+
+<div class="readnow"><span class="label">Go and read</span><p><span class="src">Sussillo &amp; Abbott (2014)</span>, <i>Random walks: training very deep nonlinear feed-forward networks with smart initialization</i>. A thousand-layer feedforward network trained with nothing but a correctly chosen gain: no orthogonal initialisation, no normalisation, no skip connections. It is the cleanest evidence for this section's claim that depth with independent weights and depth with a shared matrix are different problems, and that only one of them needed architecture to solve.</p></div>
+
+<p>Part VII §18 derived vanishing and exploding gradients for deep feedforward networks. There
+is a stronger version, and the difference between them is the single most important structural
+fact about recurrent models.</p>
+
+<p>Suppose a computational path multiplies by the <b>same</b> matrix $W$ at every step. After
+$t$ steps that is $W^t$, and Part I §17's eigendecomposition $W = V\,\text{diag}(\lambda)\,V^{-1}$
+gives</p>
+
+$$W^t = \big(V \,\text{diag}(\boldsymbol{\lambda})\, V^{-1}\big)^t
+= V\,\text{diag}(\boldsymbol{\lambda})^t\,V^{-1}$$
+
+<p>Every eigenvalue is raised to the power $t$. Any $|\lambda_i| > 1$ explodes; any
+$|\lambda_i| < 1$ vanishes; and only $|\lambda_i|$ exactly one survives. Gradients through
+such a path are scaled by the same $\text{diag}(\boldsymbol{\lambda})^t$, which is the
+vanishing and exploding gradient problem in its purest form.</p>
+
+<div class="box intuition">
+  <span class="label">Intuition: this is the power method, running against you</span>
+  <p>Repeatedly multiplying a vector by a fixed matrix is a named algorithm: the power method,
+  used to <i>find</i> a matrix's dominant eigenvector. It works because every application
+  amplifies the dominant component relative to the rest, so the result converges in direction
+  to that eigenvector regardless of where you started.</p>
+  <p>Seen that way, $\mathbf{x}^\top W^t$ discarding everything orthogonal to the principal
+  eigenvector is not a pathology. It is the algorithm working exactly as designed. A recurrent
+  network run for many steps is a power iteration, and it forgets its input for the same
+  reason the power method converges.</p>
+  <p>That reframing also says what a fix must do. You cannot repair this by scaling $W$, since
+  scaling moves all the eigenvalues together and the problem is that they are raised to a
+  power. You need a path through the computation that does <b>not</b> multiply by $W$ at all,
+  which is precisely what an LSTM's cell state and a residual connection both are.</p>
+</div>
+
+<div class="box why">
+  <span class="label">Why feedforward networks mostly escape this</span>
+  <p>A feedforward network uses a <b>different</b> weight matrix at each layer. So the product
+  is $W_L \cdots W_2 W_1$, not $W^L$, and there is no single set of eigenvalues being raised
+  to a power.</p>
+  <p>The scale still drifts; it is a random walk in the log of the norm, and Part VII §11's
+  initialisation exists to keep that walk from drifting. But a random walk over $L$ steps
+  spreads like $\sqrt{L}$, whereas $\lambda^t$ grows like $t$ in the exponent. With the gain
+  tuned correctly, feedforward networks of a <b>thousand</b> layers have been trained without
+  orthogonal initialisation or normalisation.</p>
+  <p>So "deep networks have vanishing gradients" is too coarse. Depth with independent weights
+  is a manageable drift; depth with a shared weight matrix is exponential, and the second is
+  why recurrent networks needed architectural surgery while feedforward networks needed only
+  a better initialisation.</p>
+</div>
+
+<h3><span class="num">§11</span> Inexact gradients</h3>
+
+<p>Every algorithm in Part III was derived assuming exact access to $\nabla J$, and sometimes
+to $H$. You never have it.</p>
+
+<p>The familiar source is sampling: a minibatch gives an unbiased but noisy estimate, which
+§5 quantified. That case is benign; the estimate is centred on the truth, and averaging over
+steps recovers it.</p>
+
+<p>The harder case is when the objective itself is intractable, so its gradient is too. Then
+the estimate may be <b>biased</b>, not merely noisy, and no amount of averaging fixes it. This
+is the situation in energy-based and latent-variable models, where the gradient of the
+log-likelihood contains a term requiring a sum over exponentially many configurations, and
+methods such as contrastive divergence approximate it with a systematic error.</p>
+
+<p>Two responses exist. One is to design the optimiser to tolerate the imperfection. The
+other, usually better, is to <b>change the objective</b> to one whose gradient you can compute
+honestly, which is §3's surrogate argument in a new setting, and one reason the models that
+scaled were the ones with tractable likelihoods.</p>
+
+<h3><span class="num">§12</span> Local versus global: the problem nobody has solved</h3>
+
+<div class="readnow"><span class="label">Go and read</span><p><span class="src">Goodfellow, Vinyals &amp; Saxe (2015)</span>, <i>Qualitatively characterizing neural network optimization problems</i>. Where this section's picture comes from. Its most valuable contribution is negative: the projected cost surfaces of real networks show <b>far fewer obstacles than anyone expected</b>, and most of training turns out to be a long traverse rather than an escape from anything. A result of the form "the thing we all assumed was the difficulty is not the difficulty" is rarer than it should be, and worth reading for that alone.</p></div>
+
+<p>Everything so far has been about the difficulty of taking a single step: the curvature here
+is bad, this point is a saddle, this point is on a cliff. You could fix all of it and still be
+in serious trouble, because the direction that improves things <b>locally</b> need not point
+toward the distant region where the cost is actually low.</p>
+
+<p>This is the least tractable difficulty in the part and the one with the least to say about
+it, so it gets stated plainly rather than dressed up.</p>
+
+<div class="box def">
+  <span class="label">Networks do not arrive at a critical point of any kind</span>
+  <p>Research on optimisation difficulty has largely asked whether training reaches a global
+  minimum, a local minimum, or a saddle. In practice it reaches <b>none of them</b>.</p>
+  <p>Figure 3 shows a successful run whose gradient norm is larger at the end than the
+  beginning. And the critical point may not exist at all: $-\log p(y \mid \mathbf{x})$ under a
+  softmax can be driven arbitrarily close to zero without ever reaching it, Figure 1(c)'s
+  weight norm growing without bound is exactly this. A Gaussian output model is worse: if the
+  mean fits the targets, the learned precision $\beta$ increases without limit and the
+  negative log-likelihood asymptotes to $-\infty$.</p>
+  <p>So the question "which kind of critical point did training find?" often has no answer,
+  because it found none.</p>
+</div>
+
+<p>What the trajectory does instead is <b>travel</b>. Visualisations of real training runs
+show most of the time spent tracing a long arc around a tall structure in the cost surface,
+not descending into a basin. Much of the wall-clock cost of training is the length of that
+path, and the factors controlling it are not understood.</p>
+
+<div class="box pitfall">
+  <span class="label">Pitfall: the reason "just use a better optimiser" so often fails</span>
+  <p>Every algorithm in this book takes small local steps. If the local direction leads
+  somewhere unhelpful, a better estimate of the local direction does not help. You would need
+  a non-local move, and no method that scales makes one.</p>
+  <p>This is why the dominant research response to global structure is not better algorithms
+  but <b>better starting points</b>: initialisation (§16), pretraining (§26), curricula
+  (§28). All three are attempts to begin inside a region already connected to a good solution
+  by a short path, on the grounds that fixing the terrain is out of reach and choosing where
+  to stand is not.</p>
+  <p>It is also the honest answer to a common frustration. If a run is failing because of
+  global structure, switching from SGD to Adam will not rescue it, and the hours spent
+  sweeping optimisers would be better spent on the initialisation, the architecture, or the
+  data.</p>
+</div>
+
+<div class="box try">
+  <span class="label">Try it</span>
+  <p>A training run has plateaued: the loss has barely moved in fifty epochs. You have three
+  hypotheses: a local minimum, a saddle point, and ill-conditioning. Which measurements
+  distinguish them, in what order, and what does each outcome imply?</p>
+</div>
+
+<p><b>Answer.</b> <b>First, the gradient norm</b> (§7). It is one line of code and it either
+eliminates two of the three hypotheses or leaves them all standing. If $\|\mathbf{g}\|$ is not
+small, you are at no critical point, so both the local minimum and the saddle are out, and
+the plateau is ill-conditioning or global structure.</p>
+<p><b>Second, if the gradient is not small, measure $\mathbf{g}^\top H\mathbf{g}$</b> and form
+$2\mathbf{g}^\top\mathbf{g}/\mathbf{g}^\top H\mathbf{g}$ (§6). If your learning rate is near
+or above that ceiling, the steps are being cancelled by curvature. Reduce the rate, or let a
+schedule do it, and the plateau should break.</p>
+<p><b>If the gradient <i>is</i> small</b>, you cannot distinguish minimum from saddle
+directly, as §7's positive test does not exist. But you rarely need to. Add gradient noise, or
+increase the learning rate briefly, and see whether the loss resumes falling; a saddle will
+release, a genuine minimum will not. And by §8, if it is a minimum at high cost you are in the
+rare case, so the more likely explanations are a flat region or a dead layer, and Part VII §19's dead-unit check is the cheaper next measurement.</p>
+<p>The ordering matters. Each of these costs one extra backward pass at most, and they run in
+increasing order of how much they tell you per unit of effort. Sweeping optimisers, the usual
+first response, costs hours and answers none of the three questions.</p>

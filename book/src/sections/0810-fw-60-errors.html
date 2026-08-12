@@ -1,0 +1,182 @@
+<h2><span class="part-kicker">Part F</span>When it breaks</h2>
+
+<h3><span class="num">§16</span> Error messages, decoded</h3>
+
+<div class="sixty">
+  <span class="label">In 60 seconds</span>
+  <p>Almost every runtime error in PyTorch is one of five things: a shape that does not
+  chain, a dtype that does not match, a device that does not match, a graph that was already
+  freed, or a gradient that was never requested. Each has a characteristic message, and each
+  maps back to something derived earlier in this book.</p>
+</div>
+
+<p>Every message below is real output, reproduced verbatim. They are worth reading once now
+so that the first time you meet one it is recognition rather than search.</p>
+
+<h4>Shape errors</h4>
+
+<pre><code><span class="o">RuntimeError: mat1 and mat2 shapes cannot be multiplied (8x7 and 10x5)</span>
+</code></pre>
+
+<p><b>What happened.</b> Part I §5's chaining rule was violated: the inner dimensions did not
+agree. You fed an input of width 7 into a layer built for width 10.</p>
+
+<p><b>Why the numbers look wrong.</b> This message causes real confusion, because
+<code>nn.Linear(10, 5)</code> stores its weight with shape $(5, 10)$ (output first, per the
+box in Part I §8), and the message reports it as <code>10x5</code>, already transposed for
+the multiplication. So neither number is the shape you typed. Read it as: <i>your data is
+$8\times7$, the layer wants something $\ast\times10$, and $7 \neq 10$.</i></p>
+
+<p><b>The fix</b> is almost never at the line that raised. The mismatch was introduced
+earlier: a flatten that produced the wrong width, a layer size that did not get updated
+when the input changed. Print shapes backwards from the failure until you find the first one
+that surprises you.</p>
+
+<h4>dtype errors</h4>
+
+<pre><code><span class="o">RuntimeError: mat1 and mat2 must have the same dtype, but got Double and Float</span>
+<span class="o">RuntimeError: expected scalar type Long but found Double</span>
+</code></pre>
+
+<p>The first is §2's NumPy-versus-PyTorch default: <code>float64</code> data meeting
+<code>float32</code> weights. Fix with <code>X = X.float()</code>.</p>
+
+<p>The second is the opposite direction and comes from a loss function.
+<code>cross_entropy</code> wants class <b>indices</b>, which are integers (Part II §25
+explained why): it looks up one element rather than forming a one-hot vector. Fix with
+<code>y = y.long()</code>.</p>
+
+<p>Note the asymmetry, because it is the thing to remember: <b>features want floats, labels
+want integers.</b> Loading both the same way guarantees one of them is wrong.</p>
+
+<h4>Device errors</h4>
+
+<pre><code><span class="o">RuntimeError: Expected all tensors to be on the same device,</span>
+<span class="o">but found at least two devices, cuda:0 and cpu!</span>
+</code></pre>
+
+<p>The clearest message the library produces, and by §12 the usual cause is
+<code>xb.to(device)</code> written without assigning the result: the call returns a new
+tensor and the original is untouched.</p>
+
+<h4>Graph errors</h4>
+
+<pre><code><span class="o">RuntimeError: Trying to backward through the graph a second time</span>
+<span class="o">(or directly access saved tensors after they have already been freed).</span>
+</code></pre>
+
+<p>Section 6: the first <code>backward()</code> freed the saved activations. Either you
+genuinely need two backward passes (pass <code>retain_graph=True</code>), or, far more
+often, a tensor from a previous iteration is still attached to the graph and being reused.
+The second case is the accidental-accumulation bug of §3, and <code>retain_graph=True</code>
+will "fix" it by leaking memory instead. Check which you have before reaching for the
+flag.</p>
+
+<pre><code><span class="o">RuntimeError: one of the variables needed for gradient computation</span>
+<span class="o">has been modified by an inplace operation ... is at version 1;</span>
+<span class="o">expected version 0 instead.</span>
+</code></pre>
+
+<p>Section 7's version counter. Some operation saved a value for its backward pass and
+something overwrote it. Find the underscore-suffixed method (<code>relu_</code>,
+<code>add_</code>, <code>clamp_</code>, or a <code>x[mask] = 0</code> assignment) and make
+it out-of-place.</p>
+
+<h4>Gradient errors</h4>
+
+<pre><code><span class="o">RuntimeError: element 0 of tensors does not require grad</span>
+<span class="o">and does not have a grad_fn</span>
+</code></pre>
+
+<p>You called <code>backward()</code> on something with no history. Either the computation
+happened inside <code>torch.no_grad()</code>, or a <code>detach()</code> severed the chain,
+or the parameters were never marked; §8's plain-Python-list bug produces exactly this.</p>
+
+<pre><code><span class="o">RuntimeError: grad can be implicitly created only for scalar outputs</span>
+</code></pre>
+
+<p>You called <code>backward()</code> on a tensor with more than one element. A loss must be
+a single number, because the gradient is with respect to <i>one</i> scalar (Part 0 §23's
+gradient is defined for a scalar-valued function). The usual cause is a missing reduction:
+<code>F.cross_entropy(..., reduction="none")</code> returns one loss per example, and
+someone forgot the <code>.mean()</code>.</p>
+
+<p>The error is really asking you to supply what a scalar loss would have supplied
+implicitly: a starting gradient, one number per output. Passing one explicitly
+(<code>y.backward(gradient=v)</code>) is not a workaround, it is the general case, a
+vector-Jacobian product rather than a scalar one. You will meet it reading library code
+that backpropagates through something non-scalar on purpose (per-example gradients, a
+custom loss surface); no error, because the shape was supplied.</p>
+
+<h3><span class="num">§17</span> The debugging order</h3>
+
+<p>Part VII §20 gives the diagnostic order for a training run that is not working. This is
+its counterpart for a program that is not running, and for the harder case: one that runs
+and is wrong.</p>
+
+<div class="box def">
+  <span class="label">When it does not run</span>
+  <ol class="tight">
+    <li><b>Read the last line of the traceback, not the first.</b> The first is your code;
+    the last is the operation that actually failed.</li>
+    <li><b>Print shapes.</b> Working backwards from the failure until one surprises you
+    finds the cause in most cases, and it costs a minute.</li>
+    <li><b>Print dtypes and devices</b> for the two operands named in the message.</li>
+    <li><b>Check parameter count</b> (<code>sum(p.numel() for p in model.parameters())</code>)
+    against what the architecture implies.</li>
+  </ol>
+</div>
+
+<div class="box def">
+  <span class="label">When it runs and is wrong</span>
+  <ol class="tight">
+    <li><b>Overfit ten examples.</b> Part VII §20's test, and still the most informative
+    thing available. If a model cannot drive the loss to near zero on ten examples it has a
+    bug, not a generalisation problem.</li>
+    <li><b>Is the gradient non-zero?</b> Print <code>p.grad.norm()</code> for a parameter
+    after <code>backward()</code>. <code>None</code> means it is not in the graph; zero means
+    the path is broken; <code>nan</code> means an overflow upstream.</li>
+    <li><b>Is every parameter in the optimiser?</b> Compare the counts. This catches §8's
+    unregistered-layer bug.</li>
+    <li><b>Are <code>train()</code> and <code>eval()</code> in the right places?</b> §14.</li>
+    <li><b>Is the data what you think?</b> Print one batch. Look at the labels. Check the
+    range of the features. A surprising number of "model" bugs are label misalignment.</li>
+  </ol>
+</div>
+
+<div class="box why">
+  <span class="label">Why the ordering is the same as Part VII's</span>
+  <p>Both lists are sorted by how cheaply a cause can be ruled out, and for the same reason:
+  <b>a bug that masquerades as a modelling problem will absorb days.</b></p>
+  <p>The distinctive hazard of a framework is that it makes wrong programs run. A shape bug
+  raises immediately; a broadcasting bug produces a plausible tensor, a mode bug produces
+  plausible numbers, an unregistered layer produces a model that trains a bit. All three look
+  like "the approach is not working", and none of them is.</p>
+  <p>So the discipline is to verify the mechanical things first (shapes, gradients,
+  parameter counts, modes) before forming any opinion about the model. Ten minutes of
+  checks against a week of tuning something that was never connected.</p>
+</div>
+
+<div class="box try">
+  <span class="label">Try it: the last one</span>
+  <p>Training loss decreases smoothly for three epochs and then becomes <code>nan</code> and
+  stays there. Give the order in which you would check things, and say what each check rules
+  out.</p>
+</div>
+
+<p><b>Answer.</b> <b>First, lower the learning rate</b> and see whether it survives. Part III
+§9 gave the stability bound $\alpha < 2/\lambda_{\max}$; exceeding it diverges, values
+leave float range, and by Part III §2 <code>inf</code> arithmetic produces
+<code>nan</code>, which then contaminates everything. This is the most common cause by a
+wide margin and the cheapest to test.</p>
+<p><b>Second, check for a log of zero.</b> If you computed a softmax and then took its log
+rather than using <code>cross_entropy</code> on logits, an underflowed probability gives
+$\log 0 = -\infty$ (Part II §25's fused-loss pitfall exactly). The tell is that it appears
+suddenly rather than growing, because underflow is a cliff and divergence is a ramp.</p>
+<p><b>Third, check the data</b> for a <code>nan</code> or an infinity in the inputs. One bad
+row poisons the batch it lands in, which explains why it took three epochs to appear: that
+row had not been sampled yet.</p>
+<p><b>Fourth, add gradient clipping</b> (Part I §15). If the run survives with clipping and
+dies without, the problem is occasional large gradients rather than a systematically wrong
+rate, and clipping is the correct fix rather than a workaround.</p>
+<p>The ordering is by cost, and the first two account for the large majority.</p>

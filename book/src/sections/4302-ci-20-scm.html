@@ -1,0 +1,219 @@
+<h2><span class="part-kicker">Part B</span>Structural causal models</h2>
+
+<p class="mvt">Movement A ended on a problem: whether to adjust for a variable depends on its
+causal role, and the data cannot tell you what that is. This movement builds the language for
+saying it, a model of the mechanism rather than the distribution, and derives from it exactly
+when an interventional quantity can be computed from observational data, and when it cannot.</p>
+
+<h3><span class="num">§8</span> A model of the mechanism</h3>
+
+<div class="box def">
+  <span class="label">The structural causal model</span>
+  <p>An <b>SCM</b> is a set of variables, and for each one an equation giving its value as a
+  function of its direct causes and an independent noise term:</p>
+  <p class="m">$$V_i := f_i(\mathrm{pa}_i, \varepsilon_i), \qquad \varepsilon_1, \dots, \varepsilon_n \text{ independent}$$</p>
+  <p>The assignment symbol is doing real work. <span class="m">$V_i := f_i(\cdot)$</span> says
+  <i>this is how</i> <span class="m">$V_i$</span> <i>is produced</i>, which is directional in a way
+  that <span class="m">$=$</span> is not. Figure 1's system was three such equations, and knowing
+  them is what made the true effect a thing the script could set rather than estimate.</p>
+</div>
+
+<div class="box why">
+  <span class="label">What the model buys that a distribution does not</span>
+  <p>A joint distribution answers questions about the world as it is. An SCM additionally answers
+  questions about worlds you can construct from it, because the equations are modular: you can
+  replace one and leave the rest alone.</p>
+  <p>That modularity is the entire content of the causal assumption. It says the mechanism
+  producing <span class="m">$Y$</span> from its parents keeps working the same way when you reach
+  in and change how <span class="m">$X$</span> is produced. It is an assumption, it is often
+  approximately true, and it is what everything downstream rests on.</p>
+</div>
+
+<h3><span class="num">§9</span> Graphs, and what an arrow means</h3>
+
+<p>Draw one node per variable and an arrow from each direct cause to its effect. The result is a
+directed acyclic graph, and it is a lossy but sufficient summary of the SCM for most of what
+follows: the identification results in §12 and §13 depend on the graph alone, not on the
+functional forms.</p>
+
+<div class="box shapes">
+  <span class="label">What the graph asserts, and what it does not</span>
+  <p><b>An arrow</b> <span class="m">$X \rightarrow Y$</span> asserts that
+  <span class="m">$X$</span> may directly affect <span class="m">$Y$</span>. It says nothing about
+  sign, size or shape.</p>
+  <p><b>A missing arrow</b> is the strong claim. It asserts there is <i>no</i> direct effect. The
+  graph's content is almost entirely in its absences, which is why drawing one is uncomfortable
+  and why doing it is useful.</p>
+  <p><b>The acyclicity</b> asserts no feedback loops at the timescale modelled. Systems with
+  genuine feedback need a different treatment.</p>
+</div>
+
+<div class="box try">
+  <span class="label">Draw it before you fit anything</span>
+  <p>Take a model you have built and draw the graph you believe generated the data. It will take
+  ten minutes and it will be uncomfortable, because it forces you to commit to claims you have
+  been leaving implicit. Then ask, for each variable in your feature set, whether it is a
+  confounder, a mediator, a collider, or a descendant of the outcome. Part XIII §11's leakage is
+  the last of these, and the graph makes it visible rather than something you discover in
+  production.</p>
+</div>
+
+<h3><span class="num">§10</span> Reading dependence off the graph</h3>
+
+<div class="box def">
+  <span class="label">The three-node vocabulary, and d-separation</span>
+  <p>Every path between two nodes is built from three pieces, and each behaves differently under
+  conditioning.</p>
+  <p><b>Chain</b> <span class="m">$X \rightarrow M \rightarrow Y$</span>: open. Conditioning on
+  <span class="m">$M$</span> closes it.</p>
+  <p><b>Fork</b> <span class="m">$X \leftarrow U \rightarrow Y$</span>: open. Conditioning on
+  <span class="m">$U$</span> closes it.</p>
+  <p><b>Collider</b> <span class="m">$X \rightarrow C \leftarrow Y$</span>: <b>closed</b>.
+  Conditioning on <span class="m">$C$</span>, or on any descendant of it, <b>opens</b> it.</p>
+  <p>Two nodes are <b>d-separated</b> by a set <span class="m">$Z$</span> when every path between
+  them is closed given <span class="m">$Z$</span>. D-separation implies conditional independence
+  in the distribution, which is what makes the graph testable.</p>
+</div>
+
+<p>The collider's reversal is the rule that catches people, and Figure 2 is it: the path
+<span class="m">$X \rightarrow C \leftarrow Y$</span> is closed, so <span class="m">$X$</span> and
+<span class="m">$Y$</span> are independent, until you condition on <span class="m">$C$</span> and
+open it. The measured correlation goes from −0.003 to −0.519 for that reason and no other.</p>
+
+<h3><span class="num">§11</span> The do-operator</h3>
+
+<div class="box def">
+  <span class="label">Intervention, defined by surgery on the model</span>
+  <p><span class="m">$\mathrm{do}(X = x)$</span> means: delete the equation that produced
+  <span class="m">$X$</span>, replace it with the constant <span class="m">$x$</span>, and leave
+  every other equation untouched. The resulting distribution is
+  <span class="m">$p(y \mid \mathrm{do}(x))$</span>.</p>
+  <p>Deleting the equation is what cuts the confounding path. <span class="m">$U$</span> still
+  causes <span class="m">$Y$</span>, but it no longer causes <span class="m">$X$</span>, because
+  nothing does: you set it. That is precisely what a randomised experiment achieves physically,
+  and §16 is the same statement from the practical end.</p>
+</div>
+
+<div class="box why">
+  <span class="label">Why <span class="m">$p(y \mid \mathrm{do}(x)) \ne p(y \mid x)$</span> in general</span>
+  <p>Conditioning selects a subpopulation: the units that happened to have
+  <span class="m">$X = x$</span>. Those units differ systematically from the rest, because
+  something made <span class="m">$X$</span> take that value, and that something may also affect
+  <span class="m">$Y$</span>.</p>
+  <p>Intervening creates a different population: everyone, with <span class="m">$X$</span> set. The
+  two coincide exactly when nothing but <span class="m">$X$</span>'s own noise determined
+  <span class="m">$X$</span>, which is what randomisation arranges and what observational data
+  almost never has.</p>
+</div>
+
+<h3><span class="num">§12</span> The backdoor criterion</h3>
+
+<div class="box def">
+  <span class="label">When adjustment works, exactly</span>
+  <p>A set <span class="m">$Z$</span> satisfies the <b>backdoor criterion</b> for
+  <span class="m">$(X, Y)$</span> when</p>
+  <p>1. no node in <span class="m">$Z$</span> is a descendant of <span class="m">$X$</span>, and<br>
+     2. <span class="m">$Z$</span> blocks every path between <span class="m">$X$</span> and
+     <span class="m">$Y$</span> that starts with an arrow <i>into</i> <span class="m">$X$</span>.</p>
+  <p>Then the interventional distribution is computable from observational data:</p>
+  <p class="m">$$p(y \mid \mathrm{do}(x)) = \sum_z p(y \mid x, z)\, p(z)$$</p>
+  <p>This is the adjustment formula, and it is what Figure 1's green line computes. Note what it
+  is not: it is not <span class="m">$p(y \mid x, z)$</span> averaged over
+  <span class="m">$p(z \mid x)$</span>, which would give you back the conditional. The weights are
+  the <i>marginal</i> distribution of <span class="m">$Z$</span>: the population as a whole, not
+  the population that received <span class="m">$x$</span>.</p>
+</div>
+
+<div class="box shapes">
+  <span class="label">What each condition rules out</span>
+  <p><b>Condition 1</b> excludes mediators and colliders downstream of the treatment. It is why
+  "adjust for everything" fails: descendants of <span class="m">$X$</span> are exactly the
+  variables that must not be adjusted for.</p>
+  <p><b>Condition 2</b> requires the confounding to be measured. Paths into
+  <span class="m">$X$</span> are the backdoors, the routes by which association flows without
+  causation, and every one must be blocked by something you observed.</p>
+  <p>The second condition is the one that fails in practice, and it fails silently. There is no
+  test for an unmeasured confounder, which is why §22's sensitivity analysis exists and why §26's
+  instruments are worth their cost.</p>
+</div>
+
+<div class="readnow"><span class="label">Go and read</span><p><span class="src">Hernán &amp;
+Robins</span>, <i>Causal Inference: What If</i>. The applied companion to the backdoor formula
+above: free, and written by people who have had to defend exactly these assumptions to
+regulators. Read the g-formula chapter for the estimation machinery this section states only in
+its identification form.</p></div>
+
+<h3><span class="num">§13</span> The front-door criterion</h3>
+
+<p>The backdoor criterion needs the confounder measured. Remarkably, that is not always necessary:
+if the effect travels entirely through a mediator you <i>can</i> measure, and nothing confounds
+that mediator, the effect is identified even with the confounder completely unobserved.</p>
+
+<div class="box def">
+  <span class="label">Front-door adjustment</span>
+  <p>For <span class="m">$X \rightarrow M \rightarrow Y$</span> with an unobserved
+  <span class="m">$U$</span> confounding <span class="m">$X$</span> and <span class="m">$Y$</span>
+  but not <span class="m">$M$</span>:</p>
+  <p class="m">$$p(y \mid \mathrm{do}(x)) = \sum_m p(m \mid x) \sum_{x'} p(y \mid m, x')\, p(x')$$</p>
+  <p>The logic is two backdoor arguments chained. The effect of <span class="m">$X$</span> on
+  <span class="m">$M$</span> is unconfounded because <span class="m">$U$</span> does not touch
+  <span class="m">$M$</span>. The effect of <span class="m">$M$</span> on <span class="m">$Y$</span>
+  is confounded by <span class="m">$U$</span>, but <span class="m">$X$</span> blocks that backdoor.
+  Multiply the two.</p>
+</div>
+
+<div class="box pitfall">
+  <span class="label">Pitfall: the assumption it needs is very strong</span>
+  <p>Front-door requires that <b>all</b> of the effect passes through the measured mediator, and
+  that nothing confounds the mediator with the outcome. Both are untestable, and the first is
+  usually false: most treatments have more than one pathway.</p>
+  <p>It is included here because it makes a conceptual point worth more than its practical use:
+  identification is a property of the <i>graph</i>, not of which variables happen to be observed.
+  A quantity can be recoverable without the confounder ever being measured, and unrecoverable with
+  a great many things measured.</p>
+</div>
+
+<h3><span class="num">§14</span> Identifiability, and when the answer is no</h3>
+
+<div class="box def">
+  <span class="label">Identifiable</span>
+  <p>A causal quantity is <b>identifiable</b> from a graph and an observational distribution when
+  it can be written as a function of that distribution: when any two SCMs consistent with the
+  graph that agree on the observables also agree on the quantity.</p>
+  <p>Backdoor and front-door are two sufficient conditions. The general question is settled: there
+  is a complete algorithm (<b>do-calculus</b>, three rules) that returns an expression when one
+  exists and proves none exists otherwise.</p>
+</div>
+
+<div class="box why">
+  <span class="label">The result that matters most, and it is a negative one</span>
+  <p>For some graphs the answer is <b>no</b>, and this is a theorem, not a limitation of current
+  methods. No estimator, no sample size and no amount of computation recovers the effect. The
+  bivariate case with an unmeasured common cause, <span class="m">$X \leftarrow U \rightarrow Y$</span>
+  with <span class="m">$X \rightarrow Y$</span>, is the canonical example: nothing in the joint
+  distribution of <span class="m">$X$</span> and <span class="m">$Y$</span> separates the effect
+  from the confounding.</p>
+  <p>This is the most useful thing in the movement. It converts "we need better data" or "we need a
+  bigger model", both of which are wrong, into a precise statement: you need a different
+  <i>design</i>. That is what movement D is about.</p>
+</div>
+
+<div class="readnow"><span class="label">Go and read</span><p><span class="src">Pearl (2009)</span>,
+<i>Causality</i>, chapter 3. The do-calculus and the completeness results. Dense, and the
+three rules repay the effort because they turn "can this be estimated" from a judgement call into
+a decision procedure.</p></div>
+
+<h3><span class="num">§15</span> What movement B establishes</h3>
+
+<div class="box intuition">
+  <span class="label">Three things</span>
+  <p><b>Causal assumptions are made in a language, not extracted from data.</b> The graph states
+  what causes what; its content is in the arrows it omits; and everything downstream is a
+  consequence of it.</p>
+  <p><b>Whether adjustment works is decidable from the graph.</b> The backdoor criterion says
+  exactly which sets suffice, and it explicitly forbids adjusting for descendants of the
+  treatment: the formal version of §4's warning.</p>
+  <p><b>Sometimes the answer is no, provably.</b> Identifiability is a property of the graph, and
+  for some graphs no estimator exists. That is a design problem, and recognising it early is worth
+  more than any modelling effort spent on an unidentifiable quantity.</p>
+</div>

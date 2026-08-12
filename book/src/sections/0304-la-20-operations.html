@@ -1,0 +1,652 @@
+<h2><span class="part-kicker">Part B</span>The operations</h2>
+
+<h3><span class="num">§4</span> Matrix times vector: three views of one idea</h3>
+
+<div class="sixty">
+  <span class="label">In 60 seconds</span>
+  <p>$A\mathbf{x}$ has three readings, identical in arithmetic and very different in what
+  they make obvious. <b>Row view:</b> a stack of dot products, best for computing.
+  <b>Column view:</b> a mixture of $A$'s columns, with $\mathbf{x}$ as the recipe, best
+  for reasoning about what is reachable. <b>Function view:</b> a transformation of space,
+  best for geometry and composition. Fluent people switch between all three without
+  noticing; this section is about doing it deliberately.</p>
+</div>
+
+<p>If you take one thing from this entire document, take this section. The expression
+$A\mathbf{x}$ has three interpretations. They are mathematically identical: same
+arithmetic, same answer, every time, but they are not <i>cognitively</i> identical,
+and different problems become easy under different readings. People who find linear
+algebra hard usually know exactly one of these. People who find it easy know all
+three and switch without thinking.</p>
+
+<p>We will use one running example throughout, so you can watch the same computation
+three ways:</p>
+
+$$A = \begin{bmatrix} 2 & -1 \\ 1 & 1.5 \end{bmatrix}, \qquad \mathbf{x} = \begin{bmatrix} 1.5 \\ 2 \end{bmatrix}$$
+
+<h4>View 1: the row view, a stack of dot products</h4>
+
+<p>This is the mechanical definition, and the one you would use to write the operation
+as a loop. Each entry of the output is one row of $A$ paired off against $\mathbf{x}$,
+multiplied entry by entry, and summed:</p>
+
+$$(A\mathbf{x})_i = \sum_{j} A_{i,j}\, x_j$$
+
+<p>Concretely, for our example:</p>
+
+<div class="worked">
+  <span class="label">Row view, worked</span>
+  <p>Row 1 of $A$ is $(2, -1)$. Pair it with $\mathbf{x} = (1.5, 2)$:
+  $\;2 \times 1.5 + (-1) \times 2 = 3 - 2 = 1$.</p>
+  <p>Row 2 of $A$ is $(1, 1.5)$. Pair it with $\mathbf{x}$:
+  $\;1 \times 1.5 + 1.5 \times 2 = 1.5 + 3 = 4.5$.</p>
+  <p>So $A\mathbf{x} = \begin{bmatrix} 1 \\ 4.5 \end{bmatrix}$.</p>
+</div>
+
+<p>The row view answers "how do I compute this?" efficiently. It also explains the
+shape rule immediately: to pair a row of $A$ against $\mathbf{x}$, the row must have
+as many entries as $\mathbf{x}$ does. Hence the rule everyone memorises (the columns
+of $A$ must match the length of $\mathbf{x}$) is not an arbitrary convention but a
+direct consequence of what the operation does.</p>
+
+<div class="box shapes">
+  <span class="label">Watch the shapes</span>
+  <p>$A \in \mathbb{R}^{m \times n}$ times $\mathbf{x} \in \mathbb{R}^{n}$ gives
+  $A\mathbf{x} \in \mathbb{R}^{m}$. Write the shapes adjacent and cancel the inner
+  pair: $(m \times \underline{n}) \cdot (\underline{n}) \to (m)$. The inner
+  dimensions must agree and then vanish; the outer one survives. This one trick
+  handles every shape question in the chapter.</p>
+</div>
+
+<h4>View 2: the column view, a recipe for mixing</h4>
+<aside class="mnote"><b>The sentence to keep:</b> the columns of $A$ are the ingredients; $\mathbf{x}$ is the recipe. Most of Part I is this idea in different costumes.</aside>
+
+<p>This is the view that makes linear algebra make sense, and it is chronically
+underemphasised. Rewrite the same computation grouped by columns instead of rows:</p>
+
+$$A\mathbf{x} = x_1 \begin{bmatrix} 2 \\ 1 \end{bmatrix} + x_2 \begin{bmatrix} -1 \\ 1.5 \end{bmatrix} = 1.5 \begin{bmatrix} 2 \\ 1 \end{bmatrix} + 2 \begin{bmatrix} -1 \\ 1.5 \end{bmatrix} = \begin{bmatrix} 3 \\ 1.5 \end{bmatrix} + \begin{bmatrix} -2 \\ 3 \end{bmatrix} = \begin{bmatrix} 1 \\ 4.5 \end{bmatrix}$$
+
+<p>Same answer: check it against the row view above. But look at what the expression
+is <i>saying</i>: <b>$A\mathbf{x}$ is a linear combination of the columns of $A$, and
+the entries of $\mathbf{x}$ are the mixing amounts.</b></p>
+
+<figure>
+  <img src="figures/la/02-column-view.svg" alt="Ax as a scaled sum of the columns of A">
+  <figcaption><b>Figure 2.</b> The column view of our running example. The faint
+  arrows are the raw columns $\mathbf{a}_1 = (2,1)$ and $\mathbf{a}_2 = (-1, 1.5)$.
+  We take $1.5$ of the first and $2$ of the second, lay them nose to tail, and land at
+  $\mathbf{b} = (1, 4.5)$. The vector $\mathbf{x}$ never appears in the picture; it
+  is the <i>recipe</i>, not one of the ingredients.</figcaption>
+</figure>
+
+<p>Think of the columns as ingredients and $\mathbf{x}$ as amounts. $A$ owns a fixed
+pantry of ingredient vectors; $\mathbf{x}$ is the recipe card saying how much of each
+to use; $A\mathbf{x}$ is the dish.</p>
+
+<p>This reframing pays off immediately and repeatedly:</p>
+
+<ul>
+  <li><b>Which vectors $\mathbf{b}$ can $A\mathbf{x}$ produce?</b> Exactly the ones you
+  can mix from the columns. That set has a name (the column space), and it is the
+  entire content of Section 12.</li>
+  <li><b>Why does $A\mathbf{x} = \mathbf{b}$ sometimes have no solution?</b> Because
+  $\mathbf{b}$ is not mixable from the available ingredients. No recipe can produce a
+  dish requiring something not in the pantry.</li>
+  <li><b>What is rank?</b> How many genuinely different ingredients you have, once you
+  discard the duplicates. Section 11.</li>
+</ul>
+
+<div class="box intuition">
+  <span class="label">Intuition: the sentence to memorise</span>
+  <p><b>The columns of $A$ are the ingredients; $\mathbf{x}$ is the recipe.</b> When a
+  later section confuses you (span, rank, solvability, the pseudoinverse, even PCA),
+  come back to this sentence first. A remarkable amount of the chapter is this one
+  idea in different costumes.</p>
+</div>
+
+<h4>View 3: the function view, a matrix is a verb</h4>
+
+<p>The third view steps back. Fix $A$ and let $\mathbf{x}$ vary. Then $A$ is a
+<b>function</b> that eats a vector and returns a vector:</p>
+
+$$f_A : \mathbb{R}^n \to \mathbb{R}^m, \qquad f_A(\mathbf{x}) = A\mathbf{x}$$
+
+<p>Under this reading a matrix is not data at all; it is a transformation, a verb.
+It takes the whole input space and moves it somewhere.</p>
+
+<p>These are not arbitrary functions. They are exactly the functions that are
+<b>linear</b>, meaning they respect addition and scaling:</p>
+
+$$f(\mathbf{u} + \mathbf{v}) = f(\mathbf{u}) + f(\mathbf{v}), \qquad f(c\,\mathbf{u}) = c\, f(\mathbf{u})$$
+
+<p>Those two lines look like arbitrary bookkeeping, so it is worth saying what they
+actually demand. Both say the same thing in different clothes: <b>the transformation does
+not care whether you combine before or after applying it.</b> You may add two vectors and
+then transform the sum, or transform each and then add: same answer. You may double a
+vector and then transform it, or transform it and then double: same answer. The operation
+commutes with mixing.</p>
+
+<p>An everyday example makes the restriction concrete. Converting currency is linear:
+exchange £50 and £30 separately, or exchange £80 at once, and you end up with the same
+money. Computing income tax is <i>not</i> linear, because the rate changes with the amount:
+two people each earning £30,000 pay less between them than one person earning £60,000.
+Tax cares about how the total was assembled; currency conversion does not. Only the second
+kind of operation is a matrix.</p>
+
+<p>That is also why the constraint bites so hard. A linear map cannot have a threshold, a
+saturation point, a special case, or a bonus for being large, as any of those would mean the
+result depends on how the input was put together. What survives is a very small
+repertoire: stretch, squash, rotate, reflect, shear, flatten. Nothing bends, and the
+origin never moves (put $c = 0$ in the second equation and you get $f(\mathbf{0}) =
+\mathbf{0}$, with no choice in the matter).</p>
+
+<p>That is a strong restriction with a beautiful consequence: a linear function is
+<b>completely determined by what it does to a handful of basis vectors</b>. Know where
+$\mathbf{e}_1 = (1,0)$ and $\mathbf{e}_2 = (0,1)$ land, and you know where everything
+lands, because every other vector is a combination of those two and linearity carries
+the combination through. And where do they land? Look:</p>
+
+$$A\mathbf{e}_1 = A\begin{bmatrix}1\\0\end{bmatrix} = \text{column 1 of } A, \qquad A\mathbf{e}_2 = A\begin{bmatrix}0\\1\end{bmatrix} = \text{column 2 of } A$$
+
+<p>So the columns of $A$ <i>are</i> the images of the basis vectors. The column view
+and the function view are the same fact seen from two angles, which is exactly why
+the ingredient metaphor keeps working.</p>
+
+<figure>
+  <img src="figures/la/04-transformation.svg" alt="A matrix transforming the plane: circle to ellipse">
+  <figcaption><b>Figure 3.</b> A matrix as a verb. On the left, the unit circle and
+  the standard grid. On the right, everything after applying
+  $A = \left[\begin{smallmatrix} 2 & 1 \\ 0.5 & 1.5 \end{smallmatrix}\right]$. Grid
+  lines stay straight and evenly spaced, and the origin stays put; that is what
+  linearity looks like. The circle becomes an ellipse. <b>It is always an ellipse</b>,
+  for every matrix, which is a fact we will cash in during Section 19 on the
+  SVD.</figcaption>
+</figure>
+
+<div class="box intuition">
+  <span class="label">Intuition: what linear really rules out</span>
+  <p>Linear maps can rotate, stretch, squash, shear, reflect, and flatten. They cannot
+  bend, curve, or move the origin. A useful test: if grid lines stay straight, evenly
+  spaced, and parallel, and the origin does not move, it is linear. This is precisely
+  why neural networks need those nonlinear functions between layers: a stack of
+  linear maps is still just a linear map, so without $g$ and $f$ the network in
+  Section 1 could only ever draw straight boundaries no matter how many layers it
+  had.</p>
+</div>
+
+<h4>Three views, one table</h4>
+
+<table>
+  <thead><tr><th>View</th><th>Reads $A\mathbf{x}$ as</th><th>Best for</th></tr></thead>
+  <tbody>
+    <tr><td><b>Row</b></td><td>a stack of dot products</td><td>computing by hand; implementing; per-entry reasoning</td></tr>
+    <tr><td><b>Column</b></td><td>a mix of $A$'s columns</td><td>span, rank, solvability, anything about <i>what is reachable</i></td></tr>
+    <tr><td><b>Function</b></td><td>a transformation of space</td><td>composition, eigenvectors, SVD, geometry</td></tr>
+  </tbody>
+</table>
+
+<div class="box try">
+  <span class="label">Try it</span>
+  <p>Let $B = \left[\begin{smallmatrix} 1 & 0 & 2 \\ 0 & 3 & -1 \end{smallmatrix}\right]$
+  and $\mathbf{v} = (2, 1, 0)$. First: what shape is $B\mathbf{v}$? Then compute it
+  using the row view, and again using the column view.</p>
+</div>
+
+<p><b>Answer.</b> $B$ is $2 \times 3$ and $\mathbf{v} \in \mathbb{R}^3$, so
+$(2 \times \underline{3}) \cdot (\underline{3}) \to \mathbb{R}^2$: the output is a
+vector of length 2.</p>
+<p><i>Row view:</i> row 1 is $(1, 0, 2)$, giving $1(2) + 0(1) + 2(0) = 2$. Row 2 is
+$(0, 3, -1)$, giving $0(2) + 3(1) + (-1)(0) = 3$. So $B\mathbf{v} = (2, 3)$.</p>
+<p><i>Column view:</i> $2\begin{bmatrix}1\\0\end{bmatrix} + 1\begin{bmatrix}0\\3\end{bmatrix} + 0\begin{bmatrix}2\\-1\end{bmatrix} = \begin{bmatrix}2\\0\end{bmatrix} + \begin{bmatrix}0\\3\end{bmatrix} + \begin{bmatrix}0\\0\end{bmatrix} = \begin{bmatrix}2\\3\end{bmatrix}$.
+Notice the third column contributed nothing, because the recipe asked for zero of
+it, a small preview of why some directions can be invisible to a transformation.</p>
+
+<h3><span class="num">§5</span> Matrix times matrix</h3>
+
+<div class="box history">
+  <span class="label">History: why multiplication is defined so strangely</span>
+  <p>Matrix multiplication is the one operation students reliably find arbitrary. Why
+  rows-against-columns? Why not multiply entrywise, which is simpler and more obvious?</p>
+  <p>Because Cayley did not define it to combine numbers. He defined it to
+  <b>compose transformations</b>. If you substitute one linear change of variables into
+  another and grind out the algebra, the coefficients of the result are exactly
+  rows-times-columns. The definition is not a choice; it is what falls out.</p>
+  <p>The entrywise product is perfectly well defined and gets a name of its own, the
+  Hadamard product in §6. It is simpler and far less useful, because it corresponds to no
+  natural operation on transformations.</p>
+  <p>This is why §4's function view is worth the effort. Composition explains the
+  definition, explains why order matters, and explains why $AB$ means "do $B$ first",
+  none of which the arithmetic alone can motivate.</p>
+</div>
+
+<p>Once matrix-vector multiplication is solid, matrix-matrix is a short step. The
+definition:</p>
+
+$$C = AB, \qquad C_{i,j} = \sum_{k} A_{i,k} B_{k,j}$$
+
+<p>In words: entry $(i,j)$ of the product is row $i$ of $A$ paired against column $j$
+of $B$. But there is a better way to hold it in your head.</p>
+
+<div class="box intuition">
+  <span class="label">Intuition: matrix-matrix is matrix-vector, in parallel</span>
+  <p>Read $B$ as a collection of columns sitting side by side. Then
+  $$AB = A\begin{bmatrix} | & | & & | \\ \mathbf{b}_1 & \mathbf{b}_2 & \cdots & \mathbf{b}_p \\ | & | & & | \end{bmatrix} = \begin{bmatrix} | & | & & | \\ A\mathbf{b}_1 & A\mathbf{b}_2 & \cdots & A\mathbf{b}_p \\ | & | & & | \end{bmatrix}$$
+  Each column of the output is $A$ applied to the corresponding column of the input.
+  Matrix-matrix multiplication is just matrix-vector multiplication done to several
+  vectors at once, which, not coincidentally, is exactly why neural networks process
+  data in batches.</p>
+</div>
+
+<p>Under the function view there is an even cleaner reading: $AB$ is the
+<b>composition</b> of two transformations. Apply $B$ first, then $A$. The product
+matrix is the single matrix that does both in one step, which is a genuinely useful
+fact: it means a deep stack of linear layers can always be collapsed into one
+layer.</p>
+
+<p>That reading also removes the arbitrariness from the definition, which is worth doing
+because "rows against columns" is the step students most often accept without believing.
+Here is where it comes from, using nothing but §4.</p>
+
+<p>We want a single matrix $C$ that behaves like "do $B$, then $A$". Recall from §4 that a
+matrix is completely determined by where it sends the basis vectors, and that <b>column
+$j$ of a matrix is exactly where it sends $\mathbf{e}_j$</b>. So to build $C$, all we have
+to do is work out where the composite sends each basis vector, and that is a two-step
+question with an obvious answer. Send $\mathbf{e}_j$ through $B$: you land on column $j$
+of $B$. Now send <i>that</i> through $A$. Whatever comes out is column $j$ of $C$.</p>
+
+<p>In symbols, column $j$ of $C$ is $A\mathbf{b}_j$, which is precisely the picture in the
+box above. And expanding $A\mathbf{b}_j$ by the row view, row $i$ of $A$ paired against
+$\mathbf{b}_j$, gives entry $(i,j)$ as $\sum_k A_{i,k}B_{k,j}$. Rows against columns was
+never a convention. It is the arithmetic you are forced into once you decide that
+multiplying matrices should mean composing the transformations they represent.</p>
+
+<p>The order convention falls out of the same argument, which is some comfort if it
+annoys you. $AB$ means "$A$ applied to the result of $B$" because that is what
+$A(B\mathbf{x})$ says, and the matrix nearest the vector necessarily touches it first.</p>
+
+<div class="box pitfall">
+  <span class="label">Pitfall: the order reads right to left</span>
+  <p>In $AB\mathbf{x}$, the matrix nearest the vector acts first. So $AB$ means "do
+  $B$, then $A$", which is the opposite of English reading order and catches everyone
+  at least once. It matches function notation ($f(g(x))$ also does $g$ first), so if
+  you find the convention annoying, blame $f \circ g$.</p>
+</div>
+
+<div class="box shapes">
+  <span class="label">Watch the shapes</span>
+  <p>$(m \times \underline{n})(\underline{n} \times p) \to (m \times p)$. Inner
+  dimensions must match and then disappear; outer dimensions survive. So a
+  $3\times4$ times a $4\times2$ gives a $3\times2$, and a $3\times4$ times a
+  $2\times4$ is simply undefined; no amount of wishing makes it work.</p>
+</div>
+
+<div class="box try">
+  <span class="label">Try it</span>
+  <p>$A$ is $5 \times 3$, $B$ is $3 \times 7$, $C$ is $7 \times 2$. Which of $ABC$,
+  $CBA$, $A^\top B$ are defined, and what shape is each?</p>
+</div>
+
+<p><b>Answer.</b> $ABC$: $(5\times3)(3\times7)(7\times2) \to 5 \times 2$. Defined:
+the inner dimensions chain correctly. $CBA$: $(7\times2)(3\times7)$ needs $2 = 3$,
+so it fails immediately. $A^\top B$: transposing $A$ gives $3 \times 5$, and
+$(3\times5)(3\times7)$ needs $5 = 3$, so this fails too.</p>
+
+<h3><span class="num">§6</span> Transpose, elementwise products, broadcasting</h3>
+
+<h4>Transpose</h4>
+
+<p>Flip the matrix across its main diagonal: rows become columns:</p>
+
+$$(A^\top)_{i,j} = A_{j,i}, \qquad \begin{bmatrix} 1 & 2 \\ 3 & 4 \\ 5 & 6 \end{bmatrix}^{\!\top} = \begin{bmatrix} 1 & 3 & 5 \\ 2 & 4 & 6 \end{bmatrix}$$
+
+<p>Shape $m \times n$ becomes $n \times m$. That is the mechanics, and the mechanics are
+all most treatments give you, which leaves the transpose feeling like a piece of
+notational housekeeping that exists to make shapes line up. It is worth knowing what it
+actually <i>means</i>, because $A^\top$ appears in nearly every gradient formula in this
+book and reading it as "the flipped one" gets you nothing.</p>
+
+<h4>What a transpose means</h4>
+
+<p>Start from the row and column views. In $A\mathbf{x}$, the <b>columns</b> of $A$ are
+the ingredients and the <b>rows</b> are the measurements: each row, dotted against the
+input, produces one output number. The transpose swaps those two roles. What were the
+measuring instruments become the ingredients, and vice versa.</p>
+
+<p>The consequence is that $A^\top$ sends information the other way. If $A$ maps
+$\mathbb{R}^n \to \mathbb{R}^m$, then $A^\top$ maps $\mathbb{R}^m \to \mathbb{R}^n$, back
+across the same connection, in the reverse direction. Picture $A$ as a bundle of wires
+between two banks of units, with $A_{i,j}$ the strength of the wire from input $j$ to
+output $i$. Then $A^\top$ is the very same wiring, read from the far end: the strength of
+the connection <i>into</i> $j$ <i>from</i> $i$. Nothing was recomputed. You changed which
+end you are standing at.</p>
+
+<div class="box why">
+  <span class="label">Why deep learning cares: the transpose is the backward pass</span>
+  <p>This is why every backpropagation formula is full of transposes, and it is worth
+  seeing now rather than being surprised by it in Part VII.</p>
+  <p>A network layer sends activations forward through $W$. Training needs to send error
+  signals <i>backward</i> along exactly the same connections: a unit that contributed
+  strongly to an output should receive a correspondingly strong share of the blame for
+  that output's error. The strengths are already recorded in $W$; the only thing that
+  changes is which end you read them from.</p>
+  <p>So the backward pass through a linear layer is multiplication by $W^\top$. Not an
+  approximation, not a convenient coincidence; the same wires, traversed the other way.
+  When you meet $\boldsymbol{\delta}^{(k)} = W^{(k+1)\top}\boldsymbol{\delta}^{(k+1)}$ in
+  Part VII, that transpose is this paragraph.</p>
+</div>
+
+<p>Two properties you will use without thinking within a week:</p>
+
+$$(A^\top)^\top = A, \qquad (AB)^\top = B^\top A^\top$$
+
+<p>The second one (the order reverses) is worth a moment. It looks like a quirk but
+it is forced: for $(AB)^\top$ to even have valid shapes, the factors must swap. Under
+the function view it is the same reason that undoing "socks then shoes" requires
+"shoes off, then socks off".</p>
+
+<p>The transpose is also what lets us write the dot product compactly. For
+$\mathbf{u}, \mathbf{v} \in \mathbb{R}^n$:</p>
+
+$$\mathbf{u}^\top \mathbf{v} = \sum_i u_i v_i$$
+
+<p>By convention vectors are columns, so $\mathbf{u}^\top$ is a row, a $1 \times n$
+matrix, and $(1 \times n)(n \times 1) \to 1 \times 1$, a scalar. The shape rule
+delivers the right answer without any special-casing.</p>
+
+<div class="box pitfall">
+  <span class="label">Pitfall: $\mathbf{u}^\top\mathbf{v}$ versus $\mathbf{u}\mathbf{v}^\top$</span>
+  <p>These look nearly identical and produce wildly different objects. With
+  $\mathbf{u}, \mathbf{v} \in \mathbb{R}^3$:</p>
+  <p>$\mathbf{u}^\top \mathbf{v}$ is $(1\times3)(3\times1) \to 1 \times 1$: a
+  <b>scalar</b>, the dot product.</p>
+  <p>$\mathbf{u}\mathbf{v}^\top$ is $(3\times1)(1\times3) \to 3 \times 3$: a whole
+  <b>matrix</b>, called the outer product. Every entry is $u_i v_j$.</p>
+  <p>One number versus nine. Read the transposes carefully: this is one of the most
+  common misreadings in the entire book.</p>
+</div>
+
+<h4>Elementwise (Hadamard) product</h4>
+
+<p>Multiply matching entries. Written $A \odot B$:</p>
+
+$$\begin{bmatrix} 1 & 2 \\ 3 & 4 \end{bmatrix} \odot \begin{bmatrix} 5 & 6 \\ 7 & 8 \end{bmatrix} = \begin{bmatrix} 5 & 12 \\ 21 & 32 \end{bmatrix}$$
+
+<p>Both operands must be the same shape, and the output keeps that shape. This is a
+completely different operation from matrix multiplication and shares nothing with it
+but the word "product".</p>
+
+<div class="box pitfall">
+  <span class="label">Pitfall: <code>*</code> is not matrix multiplication in NumPy</span>
+  <p>In NumPy, <code>A * B</code> is the <i>elementwise</i> product and
+  <code>A @ B</code> is the matrix product. Getting these confused is a rite of
+  passage, and it is especially nasty because when $A$ and $B$ are square and the same
+  size, both operations run without error and quietly give different answers. Your
+  code does not crash; it is just wrong. Use <code>@</code> when you mean matrix
+  multiplication, always.</p>
+</div>
+
+<h4>Broadcasting</h4>
+
+<p>Strictly, you cannot add a vector to a matrix, as the shapes differ. In practice every
+numerical library lets you, by silently copying the vector across the rows:</p>
+
+$$C = A + \mathbf{b} \quad \text{means} \quad C_{i,j} = A_{i,j} + b_j$$
+
+<p>This is called <b>broadcasting</b>, and the book uses it without much ceremony
+because it is so convenient. Its main use is exactly the bias term in a neural network
+layer: you have a batch of 32 examples in a $32 \times 10$ matrix and one bias vector
+of length 10, and you want to add that same bias to every row.</p>
+
+<pre><code><span class="k">import</span> numpy <span class="k">as</span> np
+
+A = np.arange(<span class="n">6</span>).reshape(<span class="n">3</span>, <span class="n">2</span>)     <span class="c"># shape (3, 2)</span>
+b = np.array([<span class="n">10</span>, <span class="n">20</span>])              <span class="c"># shape (2,)</span>
+
+print(A + b)      <span class="c"># b is copied down all 3 rows</span>
+<span class="o">### [[10 21]</span>
+<span class="o">###  [12 23]</span>
+<span class="o">###  [14 25]]</span>
+
+<span class="c"># the two "products" are genuinely different operations</span>
+M = np.array([[<span class="n">1.</span>, <span class="n">2.</span>], [<span class="n">3.</span>, <span class="n">4.</span>]])
+print(M * M)      <span class="c">### [[ 1.  4.]   elementwise</span>
+                  <span class="o">###  [ 9. 16.]]</span>
+print(M @ M)      <span class="c">### [[ 7. 10.]   matrix product</span>
+                  <span class="o">###  [15. 22.]]</span>
+</code></pre>
+
+<div class="box pitfall">
+  <span class="label">Pitfall: broadcasting hides bugs</span>
+  <p>Broadcasting is convenient precisely because it is silent, and silent is exactly
+  what you do not want when a shape is wrong. Adding a $(3,)$ vector to a $(3,1)$
+  column does not fail; it broadcasts to a $(3,3)$ matrix, which is almost never what
+  anyone meant. If a result has a shape you did not expect, suspect broadcasting
+  first.</p>
+</div>
+
+<div class="box fw">
+  <span class="label">In the framework: the operations of this part, and the batch axis</span>
+  <p>Everything in §§4–6 exists in PyTorch under the same names, and the notation is close
+  enough to the mathematics that translating a formula is usually mechanical:</p>
+<pre><code><span class="k">import</span> torch
+
+M = torch.tensor([[<span class="n">1.</span>,<span class="n">2.</span>],[<span class="n">3.</span>,<span class="n">4.</span>]])
+M * M          <span class="c"># [[1, 4], [9, 16]]    elementwise -- the Hadamard product</span>
+M @ M          <span class="c"># [[7, 10], [15, 22]]  matrix product</span>
+
+u, v = torch.tensor([<span class="n">1.</span>,<span class="n">2.</span>,<span class="n">3.</span>]), torch.tensor([<span class="n">4.</span>,<span class="n">5.</span>,<span class="n">6.</span>])
+u @ v                    <span class="c"># 32.0        the dot product,   u'v</span>
+torch.outer(u, v).shape  <span class="c"># (3, 3)      the outer product, uv'</span>
+
+A.T            <span class="c"># transpose, for a 2-D tensor</span>
+A.mT           <span class="c"># transpose of the LAST TWO axes -- the one to use on batches</span>
+</code></pre>
+  <p><b>The <code>*</code> versus <code>@</code> trap is identical here</b>, and identically
+  dangerous: on square operands both run and return different answers. The pitfall above is
+  not a NumPy quirk, it is a consequence of one symbol having been claimed by elementwise
+  multiplication long before matrix libraries existed.</p>
+
+  <h4>The batch axis, and why <code>@</code> is stranger than it looks</h4>
+  <p>Section 5 said matrix-matrix multiplication is matrix-vector multiplication done to
+  several vectors at once, and noted this is why networks process data in batches. Frameworks
+  build that observation into the operator itself.</p>
+<pre><code>X = torch.randn(<span class="n">32</span>, <span class="n">4</span>, <span class="n">3</span>)      <span class="c"># 32 separate 4x3 matrices</span>
+Y = torch.randn(<span class="n">32</span>, <span class="n">3</span>, <span class="n">5</span>)      <span class="c"># 32 separate 3x5 matrices</span>
+(X @ Y).shape             <span class="c"># (32, 4, 5) -- 32 independent products, in one call</span>
+</code></pre>
+  <p>Given tensors of more than two axes, <code>@</code> treats the <b>last two</b> as the
+  matrix and every axis before them as a stack of independent problems. The leading axes are
+  <i>batch</i> axes: not part of the linear algebra, just a count of how many copies you are
+  doing at once.</p>
+  <p>This is the single most important convention to internalise before reading real model
+  code, and it explains two things that otherwise look arbitrary. It is why <code>.mT</code>
+  exists; a plain <code>.T</code> would reverse <i>all</i> the axes and scramble the batch
+  dimension along with the matrix. And it is why almost every shape in a modern codebase
+  begins with something like <code>(batch, sequence, features)</code>: the mathematics only
+  ever concerns the last one or two entries, and everything to the left is bookkeeping about
+  how many instances are travelling together.</p>
+  <p>The pitfall about silent broadcasting compounds here rather than disappearing. A batch
+  axis of 1 will broadcast against a batch axis of 32 without complaint, which is sometimes
+  precisely what you want and sometimes a bug that produces plausible numbers for hours.
+  <b>Write the shape down at every step</b>: §0.4's habit is worth more in a framework than
+  it was on paper, because the framework will not stop you.</p>
+</div>
+
+<h3><span class="num">§7</span> The rules of the algebra (and the one that fails)</h3>
+
+<p>Matrix algebra behaves like ordinary algebra in most respects. The exceptions matter
+enormously.</p>
+
+<h4>What holds</h4>
+
+<table class="compact">
+  <thead><tr><th>Property</th><th>Statement</th></tr></thead>
+  <tbody>
+    <tr><td>Distributive</td><td>$A(B + C) = AB + AC$</td></tr>
+    <tr><td>Associative</td><td>$(AB)C = A(BC)$</td></tr>
+    <tr><td>Scalars slide</td><td>$c(AB) = (cA)B = A(cB)$</td></tr>
+    <tr><td>Transpose reverses</td><td>$(AB)^\top = B^\top A^\top$</td></tr>
+    <tr><td>Identity does nothing</td><td>$I A = A I = A$</td></tr>
+  </tbody>
+</table>
+
+<p>Associativity deserves a note, because it is not merely aesthetic; it has real
+performance consequences. Suppose $A$ is $1000 \times 1000$, $B$ is $1000 \times 1000$,
+and $\mathbf{x}$ is a vector. Computing $(AB)\mathbf{x}$ forms a full $1000 \times 1000$
+product first, at a cost of about $10^9$ multiplications. Computing $A(B\mathbf{x})$
+does two matrix-vector products, about $2 \times 10^6$. Same answer, five hundred
+times less work. Associativity is what makes that rearrangement legal.</p>
+
+<h4>What fails</h4>
+
+<p>Matrix multiplication is <b>not commutative</b>. In general:</p>
+
+$$AB \neq BA$$
+
+<p>This is not an edge case; it is the normal situation. A concrete pair:</p>
+
+<div class="worked">
+  <span class="label">Order matters, worked</span>
+  <p>$A = \begin{bmatrix} 1 & 1 \\ 0 & 1 \end{bmatrix}$ (a shear),
+  $\;B = \begin{bmatrix} 0 & -1 \\ 1 & 0 \end{bmatrix}$ (a quarter-turn rotation).</p>
+  <p>$AB = \begin{bmatrix} 1 & 1 \\ 0 & 1 \end{bmatrix}\begin{bmatrix} 0 & -1 \\ 1 & 0 \end{bmatrix} = \begin{bmatrix} 1 & -1 \\ 1 & 0 \end{bmatrix}$</p>
+  <p>$BA = \begin{bmatrix} 0 & -1 \\ 1 & 0 \end{bmatrix}\begin{bmatrix} 1 & 1 \\ 0 & 1 \end{bmatrix} = \begin{bmatrix} 0 & -1 \\ 1 & 1 \end{bmatrix}$</p>
+  <p>Different matrices. Under the function view this is obvious rather than
+  surprising: shearing a shape and then rotating it does not land in the same place as
+  rotating it first and then shearing. Order of operations changes outcomes in the
+  physical world too.</p>
+</div>
+
+<p>One consequence to internalise now: you cannot "cancel" matrices the way you cancel
+numbers. From $AB = AC$ you may <b>not</b> conclude $B = C$; that step requires $A$ to
+be invertible, a condition Section 10 makes precise and Section 12 shows often fails.</p>
+
+<div class="box pitfall">
+  <span class="label">Pitfall: the dot product is the exception</span>
+  <p>Vector dot products <i>are</i> commutative: $\mathbf{u}^\top\mathbf{v} = \mathbf{v}^\top\mathbf{u}$,
+  because both are the same sum of products of numbers. So you will see commutativity
+  work for dot products and fail for matrices in the same paragraph. That is correct,
+  not a typo.</p>
+</div>
+
+<h3><span class="num">§8</span> Worked example: a neural network layer, by hand</h3>
+
+<p>Time to collect the winnings. We now have enough to compute a real neural network
+layer with actual numbers, with no libraries, no hand-waving. This is the same operation a
+GPU performs billions of times per second during training.</p>
+
+<p>The setup: three input features, two output units.</p>
+
+$$W = \begin{bmatrix} 0.5 & -1 & 2 \\ 1 & 0 & -0.5 \end{bmatrix} \in \mathbb{R}^{2 \times 3}, \quad \mathbf{b} = \begin{bmatrix} 1 \\ -2 \end{bmatrix} \in \mathbb{R}^{2}, \quad \mathbf{x} = \begin{bmatrix} 2 \\ 1 \\ 3 \end{bmatrix} \in \mathbb{R}^{3}$$
+
+<p>The layer computes $\mathbf{h} = g(W\mathbf{x} + \mathbf{b})$, where $g$ is the
+ReLU function, the simplest nonlinearity in wide use, defined as
+$g(z) = \max(0, z)$ applied to each entry independently. It keeps positive numbers and
+zeroes out negative ones. That is all it does.</p>
+
+<div class="worked long">
+  <span class="label">Step 1: check the shapes before computing anything</span>
+  <p>$W\mathbf{x}$ is $(2 \times \underline{3})(\underline{3}) \to \mathbb{R}^2$. Then
+  $\mathbf{b} \in \mathbb{R}^2$ matches, so the addition is legal. Then $g$ is applied
+  entrywise and preserves shape. Final output: $\mathbf{h} \in \mathbb{R}^2$.</p>
+  <p>Notice we established the output shape without doing a single multiplication.
+  This is the habit from §0.4, and it is how you catch errors before they cost you an
+  hour.</p>
+</div>
+
+<div class="worked long">
+  <span class="label">Step 2: compute $W\mathbf{x}$, both ways</span>
+  <p><i>Row view.</i> Row 1 of $W$ is $(0.5, -1, 2)$, so
+  $0.5(2) + (-1)(1) + 2(3) = 1 - 1 + 6 = 6$. Row 2 is $(1, 0, -0.5)$, so
+  $1(2) + 0(1) + (-0.5)(3) = 2 + 0 - 1.5 = 0.5$. Thus $W\mathbf{x} = (6,\, 0.5)$.</p>
+  <p><i>Column view, as a check.</i> The columns of $W$ are $(0.5, 1)$, $(-1, 0)$ and
+  $(2, -0.5)$, and the recipe is $\mathbf{x} = (2, 1, 3)$:</p>
+  <p>$2\begin{bmatrix}0.5\\1\end{bmatrix} + 1\begin{bmatrix}-1\\0\end{bmatrix} + 3\begin{bmatrix}2\\-0.5\end{bmatrix} = \begin{bmatrix}1\\2\end{bmatrix} + \begin{bmatrix}-1\\0\end{bmatrix} + \begin{bmatrix}6\\-1.5\end{bmatrix} = \begin{bmatrix}6\\0.5\end{bmatrix}$, as expected.</p>
+</div>
+
+<div class="worked long">
+  <span class="label">Step 3: add the bias, then apply the nonlinearity</span>
+  <p>$W\mathbf{x} + \mathbf{b} = \begin{bmatrix}6\\0.5\end{bmatrix} + \begin{bmatrix}1\\-2\end{bmatrix} = \begin{bmatrix}7\\-1.5\end{bmatrix}$</p>
+  <p>$g\!\left(\begin{bmatrix}7\\-1.5\end{bmatrix}\right) = \begin{bmatrix}\max(0,7)\\\max(0,-1.5)\end{bmatrix} = \begin{bmatrix}7\\0\end{bmatrix}$</p>
+  <p>So $\mathbf{h} = (7, 0)$. The second unit was switched off by the ReLU. That is
+  not a malfunction; it is the entire point of a nonlinearity. Different inputs
+  activate different subsets of units, and that selectivity is what lets a network
+  carve up its input space into regions rather than applying one uniform linear
+  rule.</p>
+</div>
+
+<p>Verify the whole thing in five lines:</p>
+
+<pre><code><span class="k">import</span> numpy <span class="k">as</span> np
+
+W = np.array([[<span class="n">0.5</span>, <span class="n">-1.</span>, <span class="n">2.</span>], [<span class="n">1.</span>, <span class="n">0.</span>, <span class="n">-0.5</span>]])   <span class="c"># (2, 3)</span>
+b = np.array([<span class="n">1.</span>, <span class="n">-2.</span>])                            <span class="c"># (2,)</span>
+x = np.array([<span class="n">2.</span>, <span class="n">1.</span>, <span class="n">3.</span>])                        <span class="c"># (3,)</span>
+
+h = np.maximum(<span class="n">0</span>, W @ x + b)
+print(h)     <span class="o">### [7. 0.]</span>
+</code></pre>
+
+<div class="box fw">
+  <span class="label">In the framework: this layer is <code>nn.Linear</code>, and nothing more</span>
+  <p>The computation you just did by hand has a name in every deep learning library. Here it
+  is, forced to use your $W$ and $\mathbf{b}$ so the output is comparable:</p>
+<pre><code><span class="k">import</span> torch, torch.nn <span class="k">as</span> nn
+
+layer = nn.Linear(<span class="n">3</span>, <span class="n">2</span>)                    <span class="c"># 3 inputs -> 2 outputs</span>
+<span class="k">with</span> torch.no_grad():                     <span class="c"># overwrite the random initialisation</span>
+    layer.weight.copy_(torch.tensor([[<span class="n">0.5</span>,<span class="n">-1.</span>,<span class="n">2.</span>],[<span class="n">1.</span>,<span class="n">0.</span>,<span class="n">-0.5</span>]]))
+    layer.bias.copy_(torch.tensor([<span class="n">1.</span>, <span class="n">-2.</span>]))
+
+x = torch.tensor([<span class="n">2.</span>, <span class="n">1.</span>, <span class="n">3.</span>])
+torch.relu(layer(x))                      <span class="o">### tensor([7., 0.])</span>
+</code></pre>
+  <p>Same $(7, 0)$, same second unit switched off. <code>nn.Linear</code> is
+  $W\mathbf{x} + \mathbf{b}$ and contains no other idea.</p>
+
+  <h4>Three things the wrapper is actually giving you</h4>
+  <p><b>1. The weights are stored transposed relative to your instinct.</b> Note
+  <code>layer.weight</code> has shape $(2, 3)$, output size first. The layer computes
+  $\mathbf{x}W^\top + \mathbf{b}$ rather than $W\mathbf{x} + \mathbf{b}$, because in practice
+  the input arrives as a <i>batch</i>: a matrix $X$ of shape $(n, 3)$ with one example per
+  row, and $XW^\top$ is $(n,2)$, one output per row. The convention exists so the batch axis
+  stays leftmost, per the box in §6. It is the same arithmetic wearing a transpose.</p>
+  <p><b>2. It registers its parameters.</b> The weight and bias are not ordinary tensors but
+  <code>nn.Parameter</code>s, which means the layer can hand them to an optimiser on request
+  and autograd knows to differentiate with respect to them. That bookkeeping (knowing which
+  of the thousands of tensors in a program are the ones being learned) is most of what a
+  layer object is for.</p>
+  <p><b>3. It initialises them.</b> The random values you just overwrote were not arbitrary;
+  they were drawn from a distribution scaled to the layer's width. Do that wrong and a deep
+  network will not train at all, which is a fact this book does not ask you to take on
+  faith; Part VII §11 derives the correct scale and Figure 7 there shows what happens
+  without it.</p>
+  <p>In Keras the same object is <code>tf.keras.layers.Dense(2)</code>, which infers the
+  input size on first call rather than taking it as an argument. The stored weight is
+  $(3, 2)$ rather than $(2, 3)$ (the opposite convention), which is a genuine source of
+  confusion when porting weights between the two, and a good reason to check shapes rather
+  than assume them.</p>
+</div>
+
+<div class="box why">
+  <span class="label">Why deep learning cares</span>
+  <p>You have now hand-computed a forward pass. A real network stacks perhaps fifty of
+  these layers, with $W$ matrices of size $4096 \times 4096$ rather than $2 \times 3$,
+  but the arithmetic is identical, and every one of those layers is doing exactly
+  what you just did. Training is the process of nudging the entries of every $W$ and
+  $\mathbf{b}$ until the outputs are useful, which is Parts III, V and VII. Nothing
+  about the linear algebra changes; only the numbers get bigger.</p>
+</div>
+
+<div class="box try">
+  <span class="label">Try it</span>
+  <p>Same $W$ and $\mathbf{b}$, new input $\mathbf{x} = (0, 4, 1)$. Compute
+  $\mathbf{h}$ by hand. How many units survive the ReLU this time?</p>
+</div>
+
+<p><b>Answer.</b> Row 1: $0.5(0) + (-1)(4) + 2(1) = -2$. Row 2:
+$1(0) + 0(4) + (-0.5)(1) = -0.5$. Adding the bias gives $(-2 + 1,\; -0.5 - 2) = (-1, -2.5)$.
+Both entries are negative, so the ReLU zeroes both and $\mathbf{h} = (0, 0)$. Zero
+units survive; this input activates nothing in this layer. In a real network that
+happens routinely, and a layer where it happens for <i>every</i> input is a well-known
+failure mode called a dead unit.</p>

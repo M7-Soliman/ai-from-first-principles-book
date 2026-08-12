@@ -1,0 +1,235 @@
+<h2><span class="part-kicker">Build</span>The project</h2>
+
+<p class="lede">Six to eight hours. By the end you will have written, from nothing, the
+machinery that every deep learning framework provides, and you will trust it, because
+you tested it.</p>
+
+<h3><span class="num">P.1</span> What you are building</h3>
+
+<p><b><code>tinygrad-zero</code></b>: a numerical differentiation and optimisation
+toolkit, then used to train an actual model.</p>
+
+<p>The rule: <b>no autograd, no <code>scipy.optimize</code>, no frameworks.</b> NumPy for
+arrays and arithmetic only. If a library already does it, that is the thing you are
+writing.</p>
+
+<h3><span class="num">P.2</span> Stage 1: derivatives you can trust</h3>
+
+<table class="compact">
+  <thead><tr><th>Function</th><th>Notes</th></tr></thead>
+  <tbody>
+    <tr><td><code>deriv_forward(f, x, h)</code></td><td>$\frac{f(x+h)-f(x)}{h}$: the naive version.</td></tr>
+    <tr><td><code>deriv_central(f, x, h)</code></td><td>$\frac{f(x+h)-f(x-h)}{2h}$: noticeably better.</td></tr>
+    <tr><td><code>gradient(f, x, h)</code></td><td>Central difference on each coordinate in turn. Returns a vector.</td></tr>
+    <tr><td><code>gradient_check(f, grad_f, x)</code></td><td>Compare an analytic gradient against the numerical one. Return the worst relative error.</td></tr>
+  </tbody>
+</table>
+
+<p><b>Deliverable:</b> a log-log plot of error against $h$ for both derivative methods on
+a function whose derivative you know. You should see error <i>fall</i> as $h$ shrinks,
+bottom out around $h \approx 10^{-5}$ (central) or $10^{-8}$ (forward), then <b>get worse
+again</b>. Explain that upturn: it is §26, not a bug.</p>
+
+<h3><span class="num">P.3</span> Stage 2: optimisers</h3>
+
+<ul>
+  <li><code>gradient_descent(grad_f, x0, lr, steps)</code>: return the whole path, not
+  just the endpoint.</li>
+  <li><code>gradient_descent_momentum(...)</code>: keep a running velocity,
+  $v \leftarrow \beta v + \nabla f$, then step along $v$.</li>
+  <li><code>line_search(f, x, direction)</code>: pick a step size by trying several and
+  keeping the best.</li>
+</ul>
+
+<p><b>Deliverable:</b> reproduce Figure 11 with your own code, then add a fourth panel
+showing momentum on the elongated bowl $f(x,y) = x^2 + 20y^2$. Momentum should visibly
+reduce the zigzag. You have just motivated all of Part IX.</p>
+
+<h3><span class="num">P.4</span> Stage 3: train something real</h3>
+
+<p>Fit $\hat y = \sigma(wx + b)$ to a small binary classification dataset you generate
+yourself.</p>
+
+<ol>
+  <li>Write the forward pass and the squared-error loss.</li>
+  <li>Derive $\partial L/\partial w$ and $\partial L/\partial b$ <b>by hand</b>, on
+  paper, using §24's worked example as the template.</li>
+  <li>Implement those analytic gradients.</li>
+  <li><b>Verify them with your own <code>gradient_check</code>.</b> Do not skip this:
+  it is the point of Stage 1.</li>
+  <li>Train with gradient descent. Plot loss against iteration.</li>
+  <li>Sweep the learning rate over several orders of magnitude and plot the final loss
+  for each.</li>
+</ol>
+
+<p><b>Deliverable:</b> a loss curve that goes down, a gradient check that passes below
+$10^{-6}$, and a learning-rate sweep showing the too-small / just-right / too-large
+regimes.</p>
+
+<h3><span class="num">P.5</span> Stretch</h3>
+
+<ul>
+  <li><b>Two layers.</b> Extend to $\hat y = \sigma(w_2\sigma(w_1x + b_1) + b_2)$. Derive
+  the gradients by hand: this is genuine backpropagation, done manually.</li>
+  <li><b>Cross-entropy loss</b> instead of squared error. Compare the training curves;
+  cross-entropy should train faster, and Part II §25 explains why.</li>
+  <li><b>Symbolic differentiation.</b> Represent expressions as trees and differentiate
+  them structurally. This is one honest step from writing an autograd engine, which is
+  the Part VII project.</li>
+  <li><b>Second derivatives.</b> Approximate $f''$ numerically and implement Newton's
+  method. Compare its convergence to gradient descent.</li>
+</ul>
+
+<h3><span class="num">P.6</span> Done when</h3>
+
+<ul class="checklist">
+  <li>Central difference is demonstrably more accurate than forward difference.</li>
+  <li>You can explain why very small $h$ makes accuracy <i>worse</i>.</li>
+  <li>Your gradient check passes on hand-derived gradients, and you tried breaking a
+  gradient on purpose to confirm the check catches it.</li>
+  <li>The loss curve decreases and the learning-rate sweep shows all three regimes.</li>
+  <li>Momentum visibly beats plain descent on the elongated bowl.</li>
+</ul>
+
+<div class="box why">
+  <span class="label">Why this project</span>
+  <p>Gradient checking is the single most useful debugging technique in hand-written
+  deep learning code, and almost nobody learns it before they need it. Building it here,
+  before you have a network complicated enough to hide bugs in, means you will already
+  own it when Part VII asks you to write backprop for real.</p>
+  <p>The learning-rate sweep matters for a different reason: it converts "the learning
+  rate is important" from a thing you were told into a thing you have seen.</p>
+</div>
+
+<h2 class="nobreak"><span class="part-kicker">Assess</span>Checkpoint</h2>
+
+<p class="lede">You are ready for Part I when you can do these without notes. Be
+honest: a gap patched now costs an hour; the same gap found in Part VII costs a
+week.</p>
+
+<ul class="checklist">
+  <li>Read a formula aloud in English using §1's five-step procedure.</li>
+  <li>Say what $\theta$, $\nabla$, $\partial$, $\sum$, and $\arg\min$ mean.</li>
+  <li>Explain the difference between $\min$ and $\arg\min$.</li>
+  <li>Expand $(a+b)^2$ correctly and say why $a^2 + b^2$ is wrong.</li>
+  <li>Solve $y = \frac{1}{1+e^{-x}}$ for $x$.</li>
+  <li>State the three log rules, and say what $\log(a+b)$ simplifies to.</li>
+  <li>Explain why machine learning takes logs of likelihoods (both reasons).</li>
+  <li>Say what $e$ is special for.</li>
+  <li>Define the derivative as a limit, and say what it means geometrically.</li>
+  <li>Differentiate $x^n$, $e^x$, $\ln x$ from memory.</li>
+  <li><b>State the chain rule and apply it to $e^{-x^2}$.</b></li>
+  <li>Derive $\sigma'(x) = \sigma(x)(1-\sigma(x))$.</li>
+  <li>Explain why sigmoid activations cause vanishing gradients, with the number 0.25 in your answer.</li>
+  <li>Find and classify the critical points of a cubic.</li>
+  <li>Compute a partial derivative, and say what is being held fixed.</li>
+  <li>Write down the gradient of $f(x,y) = x^2 + xy$ and say which direction it points.</li>
+  <li>State the gradient descent update rule and explain the minus sign.</li>
+  <li>Do one backprop step by hand on $\hat y = \sigma(wx+b)$.</li>
+  <li>Explain why subtracting the max makes softmax safe.</li>
+</ul>
+
+<table class="compact">
+  <thead><tr><th>Score</th><th>Verdict</th></tr></thead>
+  <tbody>
+    <tr><td><b>17–19</b></td><td>Go to Part I. You are genuinely ready.</td></tr>
+    <tr><td><b>13–16</b></td><td>Reread the sections you missed, then go. Do not restart.</td></tr>
+    <tr><td><b>9–12</b></td><td>Work Tier 2 drills C1–C14 before moving on. Those are the core.</td></tr>
+    <tr><td><b>Under 9</b></td><td>Reread Parts D and F, do every Tier 1 and Tier 2 drill. That is the load-bearing material and it is worth the week.</td></tr>
+  </tbody>
+</table>
+
+<div class="box intuition">
+  <span class="label">If the chain rule question was the one you missed</span>
+  <p>Go back to §17 and do nothing else until it is automatic. Every other gap on this
+  list is survivable; that one is not. Backpropagation is the chain rule, and Parts VII and IX
+  assume it the way this document assumes arithmetic.</p>
+</div>
+
+<h2><span class="part-kicker">Reference</span>Formula card</h2>
+
+<p>Tear this out. Everything you need, on one page.</p>
+
+<h3>Algebra</h3>
+
+<table class="compact">
+  <tbody>
+    <tr><td>$(a+b)^2 = a^2 + 2ab + b^2$</td><td>$x^a x^b = x^{a+b}$</td></tr>
+    <tr><td>$(a-b)(a+b) = a^2 - b^2$</td><td>$(x^a)^b = x^{ab}$</td></tr>
+    <tr><td>$x^{-a} = 1/x^a$</td><td>$x^{1/2} = \sqrt{x}$, &nbsp; $x^0 = 1$</td></tr>
+  </tbody>
+</table>
+
+<h3>Logs and exponentials</h3>
+
+<table class="compact">
+  <tbody>
+    <tr><td>$\log(ab) = \log a + \log b$</td><td>$e^a e^b = e^{a+b}$</td></tr>
+    <tr><td>$\log(a/b) = \log a - \log b$</td><td>$\ln(e^x) = x$, &nbsp; $e^{\ln x} = x$</td></tr>
+    <tr><td>$\log(a^n) = n\log a$</td><td>$\ln 1 = 0$, &nbsp; $\ln e = 1$</td></tr>
+    <tr><td colspan="2"><b>No rule exists for $\log(a+b)$.</b></td></tr>
+  </tbody>
+</table>
+
+<h3>Derivatives</h3>
+
+<table class="compact">
+  <thead><tr><th>$f(x)$</th><th>$f'(x)$</th><th>$f(x)$</th><th>$f'(x)$</th></tr></thead>
+  <tbody>
+    <tr><td>$c$</td><td>$0$</td><td>$\sigma(x)$</td><td>$\sigma(1-\sigma)$</td></tr>
+    <tr><td>$x^n$</td><td>$nx^{n-1}$</td><td>$\tanh x$</td><td>$1 - \tanh^2 x$</td></tr>
+    <tr><td>$e^x$</td><td>$e^x$</td><td>$\max(0,x)$</td><td>$1$ if $x>0$ else $0$</td></tr>
+    <tr><td>$\ln x$</td><td>$1/x$</td><td>$\ln(1+e^x)$</td><td>$\sigma(x)$</td></tr>
+  </tbody>
+</table>
+
+<h3>Rules</h3>
+
+<table class="compact">
+  <tbody>
+    <tr><td>Sum</td><td>$(f+g)' = f' + g'$</td></tr>
+    <tr><td>Product</td><td>$(fg)' = f'g + fg'$</td></tr>
+    <tr><td>Quotient</td><td>$(f/g)' = \dfrac{f'g - fg'}{g^2}$</td></tr>
+    <tr><td><b>Chain</b></td><td>$\dfrac{dy}{dx} = \dfrac{dy}{du}\cdot\dfrac{du}{dx}$</td></tr>
+  </tbody>
+</table>
+
+<h3>Optimisation</h3>
+
+<table class="compact">
+  <tbody>
+    <tr><td>Critical point</td><td>$f'(x) = 0$</td></tr>
+    <tr><td>Minimum</td><td>$f'(x)=0$ and $f''(x) > 0$</td></tr>
+    <tr><td>Maximum</td><td>$f'(x)=0$ and $f''(x) < 0$</td></tr>
+    <tr><td>Gradient</td><td>$\nabla f = (\partial f/\partial x_1, \dots, \partial f/\partial x_n)$</td></tr>
+    <tr><td><b>Gradient descent</b></td><td>$\theta \leftarrow \theta - \alpha\nabla f(\theta)$</td></tr>
+  </tbody>
+</table>
+
+<h3>Numerical safety</h3>
+
+<table class="compact">
+  <tbody>
+    <tr><td>Softmax</td><td>subtract $\max(z)$ before exponentiating</td></tr>
+    <tr><td>Likelihoods</td><td>work with $\log$, turning $\prod$ into $\sum$</td></tr>
+    <tr><td>Float equality</td><td>use <code>np.isclose</code>, never <code>==</code></td></tr>
+    <tr><td>$e^x$ overflows</td><td>at about $x = 709$ for float64</td></tr>
+  </tbody>
+</table>
+
+<hr>
+
+<h3>Onward</h3>
+
+<p>You are done with the ground floor. Part I (linear algebra) is the next rung, and
+it now has everything it needs from you: function notation, composition, exponentials,
+and (for its final section on PCA) the idea of maximising a function subject to a
+constraint.</p>
+
+<p>One thing worth saying plainly. If this took you three weeks, that is not slow; that
+is what relearning a subject takes. The mathematics in this document represents roughly
+two semesters of coursework, compressed to what deep learning actually uses. Getting
+through it at all puts you ahead of most people who start this book, because most people
+skip this step and hit the wall in Part VII instead.</p>
+
+

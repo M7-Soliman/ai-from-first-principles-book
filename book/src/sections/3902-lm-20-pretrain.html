@@ -1,0 +1,146 @@
+<h2><span class="part-kicker">Part B</span>Pretraining</h2>
+
+<h3><span class="num">§9</span> The objective, and why it was enough</h3>
+
+<div class="box def">
+  <span class="label">One loss</span>
+  <p>Predict the next token. Part XVI §8's chain-rule factorisation, Part XII's architecture, and
+  cross-entropy. There is nothing else in the objective: no task, no labels, no auxiliary
+  losses.</p>
+  <p>The reason this is more than it sounds: to predict the next token well over a large enough
+  corpus you must model whatever <b>generates</b> the text. Predicting the last word of a proof
+  requires the proof to be right. Predicting the closing brace requires tracking scope. The
+  objective is trivial and the competence required to minimise it is not bounded in any obvious
+  way.</p>
+</div>
+
+<div class="box why">
+  <span class="label">Why this was not the expected outcome</span>
+  <p>Worth stating plainly, because the current view is retrospective. Language modelling was for
+  decades an auxiliary task: a component of speech recognition or translation, evaluated by
+  perplexity, not expected to produce anything usable on its own.</p>
+  <p>The change was not conceptual. It was that at sufficient scale (Part XVII), the same objective
+  on the same architecture began producing behaviours nobody had trained for, and the sequence of
+  results establishing that took the field by surprise more than once. The honest summary is that
+  the objective's sufficiency was <b>discovered empirically</b> and is still not well explained.</p>
+</div>
+
+<h3><span class="num">§10</span> The recipe</h3>
+
+<div class="box def">
+  <span class="label">What a pretraining run consists of</span>
+  <ol class="tight">
+    <li><b>A corpus</b>, filtered, deduplicated and mixed (Part XIII, and the part where most of
+    the differentiation actually lives).</li>
+    <li><b>A tokenizer</b>, fitted and frozen (§7).</li>
+    <li><b>An architecture</b>: a decoder-only transformer, pre-norm, rotary positions, grouped-query
+    attention, a gated feed-forward. Part XII §§14–20's convergent stack.</li>
+    <li><b>A budget</b>, allocated between parameters and tokens by Part XVII §12, adjusted well
+    past compute-optimal because the model will be served (Part XVII §14).</li>
+    <li><b>A schedule</b>: warmup, cosine or trapezoidal decay, AdamW, gradient clipping, bf16.</li>
+    <li><b>The infrastructure</b> of Part XVII's movements C and D.</li>
+  </ol>
+  <p>Almost none of this is specific to language, which is the point. Six of these seven items were
+  established in earlier parts, and the seventh is the corpus.</p>
+</div>
+
+<h3><span class="num">§11</span> The data mixture</h3>
+
+<div class="box def">
+  <span class="label">Where the remaining differentiation is</span>
+  <p>Web text supplies scale, and most of it is low quality. Books and papers supply long-range
+  structure. Code supplies something disproportionate: strict syntax, verifiable correctness, and
+  long-range dependencies that must be exactly right, and models trained with more code are
+  measurably better at reasoning tasks that are not code.</p>
+  <p>The mixture <b>weights</b> matter and are among the least-published details in the field.
+  Upsampling high-quality sources, downsampling the web, and holding a small very-high-quality set
+  for the end of training are all standard and rarely quantified.</p>
+</div>
+
+<div class="box pitfall">
+  <span class="label">Pitfall: the late-training mixture is doing work that looks like alignment</span>
+  <p>Changing the mixture in the final fraction of training (toward cleaner, more instructional,
+  more carefully written text) improves the model in ways usually attributed to the post-training
+  stages of movement D.</p>
+  <p>This matters for attribution. A comparison between two alignment methods is only about those
+  methods if the pretraining ended the same way, and it often did not. Part XIV §21's ablation
+  problem, in the place where it is hardest to control.</p>
+</div>
+
+<h3><span class="num">§12</span> Context length</h3>
+
+<div class="readnow"><span class="label">Go and read</span><p><span class="src">Liu et al. (2024)</span>, <i>Lost in the middle: how language models use long contexts</i>. The position effect measured across depths and models. The reason to report a depth profile rather than a window size, and the reason §38's context assembly puts the important material at the edges.</p></div>
+
+<div class="box def">
+  <span class="label">Trained short, extended long</span>
+  <p>Training at long context is expensive: quadratic attention, and Part XVII §16's activation
+  memory. So the standard approach trains most of the run at a short context and <b>extends</b> at
+  the end: continue training on longer sequences, with the position encoding adjusted so that
+  positions beyond the original range are representable.</p>
+  <p>Rotary embeddings make this tractable, because they encode <b>relative</b> position and can be
+  interpolated: compress the rotation frequencies so that a longer range maps into the range the
+  model was trained on. A small amount of continued training then adapts it.</p>
+</div>
+
+<div class="box pitfall">
+  <span class="label">Pitfall: a long context window is not long-context ability</span>
+  <p>A model advertising a million tokens has been <b>extended</b> to a million and trained almost
+  entirely on far less. What it can attend to and what it uses well are different quantities.</p>
+  <p>The measurement that separates them is a retrieval probe: place a fact at a controlled depth
+  and ask for it. The reliable finding is a <b>position effect</b>: information at the beginning
+  and end is used well and information in the middle is used worse, sometimes far worse. Report the
+  depth profile, not the window size, and Part XIV §22's benchmark decay applies here too, since
+  the standard probes are now trained against.</p>
+</div>
+
+<h3><span class="num">§13</span> What is actually learned, and in what order</h3>
+
+<div class="box def">
+  <span class="label">A rough progression</span>
+  <p>Training is not uniform. Roughly, and measurable with the right probes: token frequencies
+  first, then local syntax, then longer-range agreement, then the ability to use the context itself
+  as a source of rules (§17). Factual content accumulates throughout and slowly.</p>
+  <p>The transitions can be sharp. Part XII §37's induction heads form over a narrow band of
+  training and coincide with a visible bump in the loss curve, one of the few cases where a
+  specific mechanism has been tied to a specific moment in training.</p>
+</div>
+
+<h3><span class="num">§14</span> Memorisation</h3>
+
+<div class="box why">
+  <span class="label">What determines whether a sequence is stored verbatim</span>
+  <p>Part XIII §33 established that models memorise and that duplication is the main driver.
+  Restated for this setting: verbatim recall rises sharply with the number of times a sequence
+  appears in the corpus, and deduplication is therefore the most effective intervention; it is a
+  data change rather than a modelling one.</p>
+  <p>The uncomfortable part is that memorisation and generalisation are not separable. The same
+  capacity that stores a rare fact you want stores a training document you do not, and no known
+  method removes one without the other. What is available is control of the <b>inputs</b>:
+  deduplicate, filter, and know what is in the corpus.</p>
+</div>
+
+<h3><span class="num">§15</span> The loss curve, and what it hides</h3>
+
+<div class="box pitfall">
+  <span class="label">Pitfall: a smooth loss is compatible with a great deal of structure</span>
+  <p>The pretraining loss falls smoothly and predictably, which is Part XVII's whole subject. It is
+  tempting to read that smoothness as meaning nothing discrete is happening.</p>
+  <p>It does not. Individual capabilities can appear over narrow bands while the aggregate loss
+  (an average over billions of tokens, most of them easy) moves imperceptibly. §13's induction
+  heads are the clearest case.</p>
+  <p>So the loss is the right thing to <b>extrapolate</b> and the wrong thing to <b>watch</b> if you
+  want to know what the model can do. Evaluate capabilities separately and on a schedule, because
+  the loss will not tell you.</p>
+</div>
+
+<h3><span class="num">§16</span> What pretraining does not give you</h3>
+
+<div class="box def">
+  <span class="label">Three gaps, and movement D is about the first</span>
+  <p><b>It does not answer questions.</b> A pretrained model continues text. Asked a question, its
+  most likely continuation may be another question, because that is what the corpus contains. The
+  capability is present and the <b>interface</b> is not.</p>
+  <p><b>It has no notion of what should be said.</b> The objective rewards likelihood, and plenty of
+  likely text is false, harmful or unhelpful. Nothing in pretraining distinguishes these.</p>
+  <p><b>It is fixed in time and cannot look anything up.</b> Movement E.</p>
+</div>

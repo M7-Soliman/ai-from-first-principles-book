@@ -1,0 +1,235 @@
+<h2><span class="part-kicker">Part B</span>Causal interpretability</h2>
+
+<p class="mvt">Movement A ended on the gap between what a representation contains and what the
+network uses. Closing it needs an intervention rather than an observation. This movement builds
+the intervention, uses it to localise a computation exactly, and is then honest about how far the
+technique currently reaches.</p>
+
+<h3><span class="num">§9</span> The intervention that makes a claim causal</h3>
+
+<div class="box intuition">
+  <span class="label">The move, in one sentence</span>
+  <p>To show that a component matters, change it and see whether the output changes. Everything in
+  this movement is a variation on that, and the variations differ only in <i>what you change it
+  to</i>, which turns out to be the entire difficulty.</p>
+</div>
+
+<p>A network is unusually good territory for causal claims. In any observational science the
+counterfactual is unavailable; here you have the system in a file, you can run it twice, and you
+can set any internal quantity to any value you like. The obstacle is not access. It is that
+"change it" underdetermines the experiment. The formal apparatus for that word, intervention as a
+thing distinct from conditioning and what it licenses, is Part XXII; here the aim stays narrower and
+empirical.</p>
+
+<div class="box shapes">
+  <span class="label">What to replace an activation with, and what each choice asks</span>
+  <p><b>Zero.</b> Asks: what happens when this component is silent? Cheap and the most common. Also
+  the most misleading, because zero is usually far outside the distribution of values that
+  component takes: you are measuring the response to an impossible input.</p>
+  <p><b>The mean over the dataset.</b> Asks: what happens when this component carries no
+  input-specific information? Better behaved, since the value is at least typical.</p>
+  <p><b>The value from a different input.</b> Asks: does this component carry the information that
+  distinguishes these two inputs? On-distribution by construction, and the most informative of the
+  three. This is patching, and it is §10.</p>
+  <p>The three answer different questions. Reporting one and describing it as "the importance of
+  the component" is where most confusion in this literature originates.</p>
+</div>
+
+<h3><span class="num">§10</span> Activation patching</h3>
+
+<div class="box def">
+  <span class="label">The procedure</span>
+  <p>Take a <b>clean</b> input and a <b>corrupted</b> one differing in exactly the thing you care
+  about. Run both, saving the clean activations. Now run the corrupted input again, and at one
+  chosen site splice in the clean activation. Measure how much of the clean answer returns.</p>
+  <p>Report it as a fraction: 0 means the splice changed nothing, 1 means it fully restored the
+  clean behaviour. Sweeping the site over layers and positions gives a map of where the information
+  that distinguishes the two inputs is doing its work.</p>
+</div>
+
+<figure>
+  <img src="figures/al/03-patching.svg" alt="Grid of restoration fractions by layer and position, and the same data as curves across layers">
+  <figcaption><b>Figure 3.</b> A four-layer model computing <span class="m">$(a+b) \bmod 10$</span>
+  at 1.000 accuracy, with a third input <span class="m">$c$</span> present and irrelevant. The
+  clean and corrupted runs differ only in <span class="m">$a$</span>. Patching at
+  <span class="m">$a$</span>'s position in layer 0 restores <b>0.98</b> of the clean answer; by
+  layer 2 that has fallen to 0.01 while the answer position has risen to <b>0.93</b>, and by layer
+  3 to <b>1.00</b>. The information moves from where it entered to where it is needed, between
+  layers 1 and 2, and the map says so without any interpretation being required.</figcaption>
+</figure>
+
+<div class="box why">
+  <span class="label">Reading the two columns that are zero</span>
+  <p><span class="m">$c$</span> is zero everywhere, which is the control working: it is genuinely
+  irrelevant and the method says so.</p>
+  <p><span class="m">$b$</span> is <i>also</i> zero everywhere, and this one is worth pausing on.
+  <span class="m">$b$</span> is essential to the computation (the answer depends on it) but it is
+  <b>identical</b> in the clean and corrupted runs, so splicing it in changes nothing. Patching
+  measures where the <i>difference</i> between two inputs is carried, not where the computation
+  happens.</p>
+  <p>That is the technique's main limitation and its most common misreading. A component can be
+  necessary and show zero patching effect. If you want <span class="m">$b$</span>'s path, you need
+  a corruption that changes <span class="m">$b$</span>, which means your choice of corrupted input
+  determines what the experiment can possibly find.</p>
+</div>
+
+<div class="box try">
+  <span class="label">Try it</span>
+  <p>Take Figure 3's setup and corrupt <span class="m">$b$</span> instead. You should see a
+  mirror-image map. Then corrupt both and watch the story become uninterpretable, because with two
+  differences the restoration fractions no longer decompose. Minimal pairs are not a stylistic
+  preference; they are what makes the arithmetic mean anything.</p>
+</div>
+
+<h3><span class="num">§11</span> Circuits</h3>
+
+<div class="box def">
+  <span class="label">Circuit</span>
+  <p>A <b>circuit</b> is a subgraph of the network (specific heads, specific layers, specific
+  directions) together with a claim about what each part contributes and how they compose, such
+  that the subgraph accounts for a specific behaviour.</p>
+  <p>The claim is falsifiable in a way that a feature description is not: if the circuit is the
+  mechanism, then ablating everything outside it should leave the behaviour intact, and ablating
+  parts inside it should break it in the predicted way.</p>
+</div>
+
+<p>Part XII §37's induction heads are the canonical example, and they are worth revisiting with
+this movement's tools. The claim there was that two heads compose: one attends to the previous
+occurrence of the current token, the second copies what followed it. That is a circuit, and what
+makes it more than a story is that each half was verified by intervention rather than by
+inspection of attention patterns.</p>
+
+<div class="box shapes">
+  <span class="label">What a circuit claim owes you</span>
+  <p><b>Sufficiency.</b> Keep only the circuit, ablate the rest, and the behaviour survives.</p>
+  <p><b>Necessity.</b> Ablate the circuit, and the behaviour fails.</p>
+  <p><b>Faithfulness of the parts.</b> Each component does what the story says: checked by
+  intervening on that component specifically, not by its name.</p>
+  <p><b>Generality.</b> It holds across inputs of the same kind, not just the ones the circuit was
+  found on. This is the one most often skipped, and it is Part XIV §20's bias again: a circuit
+  found by searching over many candidates on a small input set will look better on that set than
+  it is.</p>
+</div>
+
+<h3><span class="num">§12</span> Ablation and its traps</h3>
+
+<div class="box pitfall">
+  <span class="label">Pitfall: ablation measures what the rest of the network does without a part, not what the part did</span>
+  <p>Networks are redundant. Remove a component and other components frequently compensate, so a
+  small drop is consistent with either "unimportant" or "important but backed up". The two are
+  distinguishable (ablate the backup as well and see whether the drop becomes large) but only if
+  you thought to look.</p>
+  <p>The converse also happens: removing a component can push the network so far off-distribution
+  that everything degrades, which reads as importance and is an artefact of the ablation value.
+  §9's list of what to substitute exists for this reason, and Figure 2's random-direction control
+  (0.003) is the calibration that makes its other numbers meaningful.</p>
+</div>
+
+<div class="box try">
+  <span class="label">The control that should be automatic</span>
+  <p>Every ablation result needs a random-direction or random-component baseline run under
+  identical conditions. Without it you cannot distinguish a real effect from the network's
+  generic sensitivity to being perturbed. It costs one extra experiment and it is the difference
+  between a measurement and an anecdote.</p>
+</div>
+
+<h3><span class="num">§13</span> Steering</h3>
+
+<p>If a direction in activation space encodes a property, adding a multiple of it during the
+forward pass should push the output towards that property. This is the most direct causal test
+available, and unlike patching it produces something usable.</p>
+
+<div class="box def">
+  <span class="label">The construction</span>
+  <p>Take paired inputs differing in the property (with and without, positive and negative) and
+  let <span class="m">$\mathbf{v} = \bar{\mathbf{h}}_{+} - \bar{\mathbf{h}}_{-}$</span> be the
+  difference in mean activation at some layer. At inference, run
+  <span class="m">$\mathbf{h} \leftarrow \mathbf{h} + \alpha\mathbf{v}$</span>.</p>
+  <p>The measurement that makes it a causal claim rather than a curiosity is the sweep over
+  <span class="m">$\alpha$</span>: a real direction produces a graded, monotone change in the
+  property and leaves fluency intact until <span class="m">$\alpha$</span> is large. A spurious one
+  produces degradation with no property change.</p>
+</div>
+
+<div class="box pitfall">
+  <span class="label">Pitfall: steering works better than it explains</span>
+  <p>A steering vector can reliably change behaviour without the direction meaning what you called
+  it. It might be entangled with several properties that co-occur in your pairs, or it might work
+  by degrading a competing behaviour rather than by promoting the target one.</p>
+  <p>The check is the one Part XIV would insist on: measure the properties you did <i>not</i>
+  intend to change. A direction that moves only its target is a much stronger claim than one that
+  moves the target most.</p>
+</div>
+
+<h3><span class="num">§14</span> Attribution, and why it disappointed</h3>
+
+<p>The oldest interpretability question (which parts of this input caused this output) has the
+longest list of proposed answers and the least to show for it. The history is worth knowing
+because the failure is instructive rather than merely embarrassing.</p>
+
+<div class="box history">
+  <span class="label">A method family that did not survive its own tests</span>
+  <p>Gradient saliency, deconvolution, guided backpropagation, layerwise relevance propagation,
+  integrated gradients, and a dozen more, mostly 2013–2018. Each produced heatmaps over the input
+  that looked plausible.</p>
+  <p><span class="src">Adebayo et al. (2018)</span> then ran the control nobody had: randomise the
+  network's weights and re-run the method. Several methods produced <i>essentially the same
+  heatmap</i> for a trained network and a random one, which means they were reporting properties
+  of the input and the architecture, not of the learned function. A method that cannot tell a
+  trained model from an untrained one is not explaining the model.</p>
+  <p>The lesson generalises past saliency. The sanity check that a method distinguishes systems it
+  should distinguish is cheap, is rarely run, and has repeatedly been decisive.</p>
+</div>
+
+<div class="box why">
+  <span class="label">Why plausibility was the trap</span>
+  <p>A saliency map over an image is evaluated by looking at it, and a human looking at a heatmap
+  over a picture of a dog will find the parts on the dog convincing. That judgement measures
+  agreement with the viewer's own prior, not correctness.</p>
+  <p>This is why the field moved towards interventions with numerical outcomes. Figure 3's map can
+  be wrong in a way that a heatmap cannot: it makes a prediction about what happens when you
+  splice, and the splice either restores the answer or does not.</p>
+</div>
+
+<div class="readnow"><span class="label">Go and read</span><p><span class="src">Adebayo et al.
+(2018)</span>, <i>Sanity checks for saliency maps</i>. Read it for the control, not the survey:
+randomising the weights and re-running the method is the whole paper, and it is the template for
+"does this method distinguish systems it should distinguish" that this section generalises past
+saliency.</p></div>
+
+<h3><span class="num">§15</span> Evaluating interpretability itself</h3>
+
+<div class="box why">
+  <span class="label">The circularity, and the three ways out</span>
+  <p>To check an explanation of a model you need to know what the model actually computes, which
+  is the thing you lacked. Three escapes are in use, and each has a cost.</p>
+  <p><b>Build a system whose ground truth you know.</b> Every figure in this movement and the last.
+  The measurement is then exact, and the cost is that toy systems may not resemble the real ones:
+  §41 states this as the movement's main open question, not a footnote.</p>
+  <p><b>Make a prediction and test it.</b> The explanation says the model will fail on a specific
+  novel input; construct it and check. Strong evidence, and the only method here that works at
+  scale on systems you did not build.</p>
+  <p><b>Intervene as the explanation prescribes.</b> If the direction means what you say, steering
+  along it should do the specific thing you predicted. Weaker than the above but cheap enough to
+  run routinely.</p>
+  <p>What is <i>not</i> a check: that the explanation is satisfying, that the visualisation looks
+  clean, or that a language model asked to label a feature produces a fluent description. Those
+  measure legibility.</p>
+</div>
+
+<h3><span class="num">§16</span> What movement B establishes</h3>
+
+<div class="box intuition">
+  <span class="label">Three things</span>
+  <p><b>Interventions answer questions observations cannot.</b> Figure 3 localises a computation
+  to a layer and a position with numbers between 0.00 and 1.00, and nothing correlational could
+  have produced that map.</p>
+  <p><b>The experiment's design bounds what it can find.</b> Patching finds where a
+  <i>difference</i> travels, so <span class="m">$b$</span>, necessary to the computation,
+  registers exactly 0.00. The corrupted input you chose decides what the method is capable of
+  seeing.</p>
+  <p><b>Every technique here needs a control.</b> The random-direction baseline in Figure 2, the
+  irrelevant input in Figure 3, the randomised-weights check that ended saliency. In each case the
+  control is what separates a measurement from a picture, and in each case it was available all
+  along.</p>
+</div>

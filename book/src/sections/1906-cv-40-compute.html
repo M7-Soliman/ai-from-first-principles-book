@@ -1,0 +1,273 @@
+<h2><span class="part-kicker">Part D</span>Backward, and fast</h2>
+
+<h3><span class="num">§16</span> The backward pass of a convolution is a convolution</h3>
+
+<div class="sixty">
+  <span class="label">In 60 seconds</span>
+  <p>§4 said convolution is multiplication by a matrix $M$. Part VII §14 said backpropagation
+  through a linear map is multiplication by its transpose. Put those together and the backward
+  pass needs $M^\top$, which turns out to be <b>another convolution</b>, with the kernel
+  flipped and the padding changed. Verified here to exactly zero.</p>
+</div>
+
+<p>A convolutional layer needs three operations, not one, and it is worth naming them
+separately because they have different shapes and frameworks expose all three.</p>
+
+<div class="box def">
+  <span class="label">The three operations</span>
+  <p>Write $Z = c(K, V, s)$ for the strided convolution of §5, and suppose backpropagation has
+  delivered $G_{i,j,k} = \partial J / \partial Z_{i,j,k}$.</p>
+  <p><b>1. Forward.</b> $c(K, V, s)$ itself.</p>
+  <p><b>2. Gradient with respect to the kernel</b>, needed to learn:</p>
+  <p>$$g(G, V, s)_{i,j,k,l} = \frac{\partial J}{\partial K_{i,j,k,l}}
+  = \sum_{m,n} G_{i,m,n}\,V_{j,\,(m-1)s+k,\,(n-1)s+l}$$</p>
+  <p class="mnote">Note: $k$ and $l$ here are kernel spatial offsets, not the output indices
+  they name in $G_{i,j,k}$ above. This reuse follows Goodfellow et al. eqs 9.11–9.13;
+  the matrix view below is cleaner.</p>
+  <p><b>3. Gradient with respect to the input</b>, needed to go deeper:</p>
+  <p>$$h(K, G, s)_{i,j,k} = \frac{\partial J}{\partial V_{i,j,k}}
+  = \sum_{\substack{l,m \\ (l-1)s+m=j}}\;\sum_{\substack{n,p \\ (n-1)s+p=k}}\;\sum_q
+  K_{q,i,m,p}\,G_{q,l,n}$$</p>
+  <p>These three suffice to train a convolutional network of any depth.</p>
+</div>
+
+<p>The formulas are unenlightening. The matrix view is not.</p>
+
+<div class="box worked">
+  <span class="label">Worked: the input gradient, derived and then recognised</span>
+  <p>Flatten everything. Forward is $\mathbf{z} = M\mathbf{x}$, and Part VII §14's rule gives
+  the input gradient as</p>
+  <p>$$\frac{\partial J}{\partial \mathbf{x}} = M^\top \frac{\partial J}{\partial \mathbf{z}}$$</p>
+  <p>Now look at what $M^\top$ is. In $M$, row $p$ holds the kernel positioned at output
+  location $p$. Transposing turns those rows into columns, so column $p$ of $M^\top$ holds the
+  kernel at location $p$; row $q$ of $M^\top$ collects, for input pixel $q$, every kernel
+  weight that ever touched it.</p>
+  <p>An input pixel is touched by the kernel at every output position that reaches it, and it
+  is touched by a <b>different kernel element</b> at each. Reading those off in order gives the
+  kernel <b>reversed</b>. And the pixels at the border are reached by fewer output positions,
+  which is the signature of <b>full</b> padding rather than valid.</p>
+  <p>So $M^\top$ is a convolution with the flipped kernel and full padding. Measured on a
+  $3\times3$ kernel over an $8\times8$ image, the difference between $M^\top\mathbf{g}$ and
+  that convolution is <b>exactly $0.00$</b>, not approximately, in float64.</p>
+</div>
+
+<div class="box why">
+  <span class="label">Why this is worth more than a derivation</span>
+  <p>Three things follow, and only the first is about backpropagation.</p>
+  <p><b>You need no new machinery.</b> A library that can convolve can differentiate through
+  convolution, using the operation it already has. This is why convolutional networks were
+  trainable in 1989 with the software of 1989.</p>
+  <p><b>The transpose is a useful operation in its own right.</b> Anything that must go from a
+  low-resolution representation back to a high-resolution one (segmentation decoders,
+  autoencoders, generative models) needs $M^\top$, and §27 meets it again under the name
+  <b>transposed convolution</b>. It is the same operation, used forwards.</p>
+  <p><b>Care is needed about output size.</b> Several input sizes can produce the same output
+  size once striding and padding are involved, so the transpose cannot infer what to produce
+  and <b>must be told</b>. That is the origin of <code>output_padding</code>, which otherwise
+  looks like an arbitrary parameter.</p>
+</div>
+
+<h3><span class="num">§17</span> How it is actually computed</h3>
+
+<p>Nobody builds $M$. It is $O(HW \cdot HW)$ entries to express $O(k^2)$ numbers, which is the
+opposite of a good idea. But the observation that convolution is a matrix multiplication is
+still how it gets computed fast: you just build a different matrix.</p>
+
+<div class="box def">
+  <span class="label">im2col</span>
+  <p>Rather than expanding the kernel into a huge sparse matrix, expand the <b>input</b> into a
+  dense one. For every output position, gather the patch the kernel will see and write it as a
+  column. That gives a matrix of shape $(C_{\text{in}}k^2) \times (H'W')$.</p>
+  <p>Reshape the kernel stack to $C_{\text{out}} \times (C_{\text{in}}k^2)$ and the entire
+  convolution is <b>one matrix multiplication</b>.</p>
+  <p>The point is not that multiplication is cheaper in operation count: it is the same
+  arithmetic. It is that a large dense matrix multiplication is the single most optimised
+  routine in computing, and reshaping your problem into one inherits fifty years of that
+  work.</p>
+</div>
+
+<figure>
+  <img src="figures/cv/06-im2col.svg" alt="Timings for naive loops, im2col and torch conv2d, and the memory cost of im2col">
+  <figcaption><b>Figure 6.</b> The same convolutions timed three ways on this machine; all
+  agree to float32 rounding. The baseline is a genuine per-element Python loop: one
+  multiply-accumulate at a time, no NumPy vectorisation. im2col plus one BLAS call is
+  <b>4,000 to 6,000 times faster</b> on the machine that generated this figure, and
+  PyTorch's kernels faster again there. Expect your own numbers to differ: rerunning this
+  script shows the speedup over the scalar loop moving between three and four orders of
+  magnitude run to run, and on some hardware and BLAS configurations im2col matches or beats
+  the framework kernel rather than losing to it. The multiple-order-of-magnitude gap against
+  the scalar loop is the part worth trusting; the split between the two optimised paths is
+  not. Right: what the speed costs. The gathered
+  patch matrix holds every input pixel $k^2$ times, so it is <b>8 to 17 times</b> the
+  size of the input, measured, and the reason convolutional activations dominate memory
+  in the way Part VII §17 described.</figcaption>
+</figure>
+
+<div class="box pitfall">
+  <span class="label">Pitfall: this is where your memory went</span>
+  <p>Part VII §17 established that training memory is dominated by stored activations rather
+  than parameters. im2col sharpens that: the transient patch matrix is <b>$k^2$ times the
+  input</b>, so a $3\times3$ layer briefly needs nine times its input in scratch space, and a
+  $5\times5$ layer twenty-five.</p>
+  <p>This is why an out-of-memory error can arrive on the forward pass of a layer whose
+  parameters are tiny, and why reducing batch size fixes it while reducing model size does not.
+  Modern kernels avoid the full materialisation (they tile the computation so only a block of
+  the patch matrix exists at once) but the naive version is still what most educational
+  implementations do, including the one you will write in this part's project.</p>
+</div>
+
+<h3><span class="num">§18</span> Separable kernels, and the other algorithms</h3>
+
+<p>Three further routes to a faster convolution, each exploiting a different structure.</p>
+
+<p><b>Separable kernels.</b> If a $d$-dimensional kernel is the outer product of $d$ vectors,
+convolving with it is the same as applying $d$ one-dimensional convolutions in turn. That
+takes the cost from $O(w^d)$ to $O(w \times d)$ in both time and storage. A Gaussian blur is
+separable; so is a box filter. Most learned kernels are not, which limits this to fixed
+filters, but it is the origin of the idea §19 generalises.</p>
+
+<p><b>The Fourier transform.</b> Convolution in space is multiplication in frequency, so you
+can transform both operands, multiply pointwise and transform back. For large kernels this
+wins; for the $3\times3$ kernels that dominate modern networks the transform overhead
+dominates, and it is rarely used.</p>
+
+<p><b>Winograd.</b> A minimal-filtering algorithm that computes small convolutions with fewer
+multiplications than the direct method, at the cost of more additions and some numerical
+precision. It is what actually runs when you convolve $3\times3$ kernels on modern hardware,
+and it is a good example of an old algorithm (1980, for a different purpose) becoming
+load-bearing infrastructure.</p>
+
+<div class="box why">
+  <span class="label">Why inference-only speedups are worth as much as training ones</span>
+  <p>It is tempting to dismiss an optimisation that helps only the forward pass. In practice
+  the forward pass is where nearly all of the lifetime compute goes.</p>
+  <p>A model is trained once and served indefinitely. A network trained for a week and
+  deployed for two years spends the overwhelming majority of its total compute on inference,
+  so a 20% forward-pass improvement is worth far more than a 20% training improvement; that
+  is why quantisation, distillation and pruning are all inference-side techniques that
+  nonetheless get research attention.</p>
+</div>
+
+<h3><span class="num">§19</span> Depthwise separable convolution</h3>
+
+<div class="sixty">
+  <span class="label">In 60 seconds</span>
+  <p>§6 noted that a convolutional layer is local in space and <b>fully connected across
+  channels</b>. That second half is a dense layer hiding inside your convolution, and it holds
+  most of the parameters. Split the operation in two (mix space, then mix channels) and the
+  cost falls by a factor of about nine, with a formula that is exact.</p>
+</div>
+
+<p>ch09 mentions, almost in passing, that you can restrict each output channel to depend on
+only a subset of the input channels: connect the first group of outputs to the first group of
+inputs, and so on. That is <b>grouped convolution</b>. It appeared in AlexNet for a mundane
+reason (the model did not fit on one GPU) and was later recognised as a design axis in its
+own right.</p>
+
+<p>Push it to the limit. Let every group be a single channel. The architecture that
+made this the default construction for efficient inference is <b>MobileNet</b> (Howard et al.,
+2017), which built entire networks from depthwise separable blocks and demonstrated that the
+ninefold parameter saving translates to deployable models on phones and embedded devices,
+though, as the pitfall below explains, parameter saving and wall-clock saving are different
+things.</p>
+
+<div class="box def">
+  <span class="label">Depthwise separable convolution</span>
+  <p>Replace one $k \times k$ convolution from $C_{\text{in}}$ to $C_{\text{out}}$ channels
+  with two operations:</p>
+  <ol class="tight">
+    <li><b>Depthwise:</b> a $k \times k$ convolution applied to each input channel
+    independently. Mixes space, not channels. $C_{\text{in}}k^2$ parameters.</li>
+    <li><b>Pointwise:</b> a $1 \times 1$ convolution. Mixes channels, not space.
+    $C_{\text{in}}C_{\text{out}}$ parameters.</li>
+  </ol>
+  <p>The ratio to a standard convolution is</p>
+  <p>$$\frac{C_{\text{in}}k^2 + C_{\text{in}}C_{\text{out}}}{C_{\text{out}}C_{\text{in}}k^2}
+  = \frac{1}{C_{\text{out}}} + \frac{1}{k^2}$$</p>
+</div>
+
+<figure>
+  <img src="figures/cv/07-separable.svg" alt="Parameter counts for standard and depthwise separable convolution, and the ratio against the predicted formula">
+  <figcaption><b>Figure 7.</b> Six layer shapes. Right: the measured ratio against
+  $1/C_{\text{out}} + 1/k^2$, agreeing to <b>0.00e+00</b>: the formula is exact, not a
+  fit. Once $C_{\text{out}}$ is large the $1/k^2$ term dominates and the saving approaches
+  <b>ninefold</b> for a $3\times3$ kernel. At $512 \to 512$: 2,359,296 parameters against
+  266,752.</figcaption>
+</figure>
+
+<div class="box intuition">
+  <span class="label">Intuition: the $1\times1$ convolution is not a convolution</span>
+  <p>A $1\times1$ kernel has a receptive field of one pixel. It cannot detect an edge, a
+  corner, or anything spatial whatever. So what is it doing?</p>
+  <p>It is a <b>dense layer applied independently at every position</b>, mapping the vector of
+  $C_{\text{in}}$ channel values at each pixel to a vector of $C_{\text{out}}$ values, with the
+  same matrix everywhere. Read that way, the name is misleading and the operation is obvious:
+  it is a learned recombination of features, position by position.</p>
+  <p>Which is why it appears everywhere once you look. It is how Inception reduces channel
+  count before an expensive layer; how ResNet's bottleneck blocks squeeze and expand; how a
+  segmentation head turns features into per-pixel class scores; and how the pointwise half of a
+  separable convolution does its job. <b>A $1\times1$ convolution is the channel-mixing
+  operation</b>, and separating it from spatial mixing is what §19 is really about.</p>
+</div>
+
+<div class="box pitfall">
+  <span class="label">Pitfall: nine times fewer parameters is not nine times faster</span>
+  <p>The parameter saving is exact. The wall-clock saving is usually much smaller, and
+  sometimes negative.</p>
+  <p>Depthwise convolution does very little arithmetic per byte of memory it touches; it is
+  <b>memory-bound</b>, where a standard convolution is compute-bound. Modern accelerators are
+  built for arithmetic intensity, so an operation that reduces arithmetic without reducing
+  memory traffic can leave the hardware idle. Reported speedups of $9\times$ in FLOPs
+  routinely deliver $2$–$3\times$ in latency.</p>
+  <p>This is the general lesson from Part IV, in a new setting: <b>FLOPs are not time</b>, and
+  a paper reporting only FLOPs is reporting the number that flattered it. Measure latency on
+  the hardware you will deploy on.</p>
+</div>
+
+<div class="box fw">
+  <span class="label">In the framework: one function, and its arguments are this whole part</span>
+  <p>Having derived the operation, the mapping is direct. Every structural choice in §§5, 6,
+  8 and 19 is an argument to the same call.</p>
+<pre><code><span class="k">import</span> torch.nn <span class="k">as</span> nn
+
+<span class="c"># the standard layer of section 6</span>
+nn.Conv2d(<span class="n">64</span>, <span class="n">128</span>, kernel_size=<span class="n">3</span>, stride=<span class="n">1</span>, padding=<span class="n">1</span>)
+
+<span class="c"># section 5: 'same' padding, computed for you (odd kernels only)</span>
+nn.Conv2d(<span class="n">64</span>, <span class="n">128</span>, <span class="n">3</span>, padding=<span class="s">"same"</span>)
+
+<span class="c"># section 19: depthwise, then pointwise</span>
+nn.Sequential(
+    nn.Conv2d(<span class="n">64</span>, <span class="n">64</span>, <span class="n">3</span>, padding=<span class="n">1</span>, groups=<span class="n">64</span>),   <span class="c"># groups == in_channels</span>
+    nn.Conv2d(<span class="n">64</span>, <span class="n">128</span>, <span class="n">1</span>),                        <span class="c"># the 1x1 channel mixer</span>
+)
+
+<span class="c"># section 16, used forwards</span>
+nn.ConvTranspose2d(<span class="n">128</span>, <span class="n">64</span>, <span class="n">4</span>, stride=<span class="n">2</span>, padding=<span class="n">1</span>)
+</code></pre>
+  <p><b>What each piece corresponds to.</b> <code>groups=g</code> is §19's restricted channel
+  connectivity: the input and output channels are split into $g$ groups and each output group
+  sees only its own input group. <code>groups=1</code> is the ordinary layer;
+  <code>groups=in_channels</code> is depthwise. The parameter count divides by $g$ exactly,
+  which you can check against Figure 7.</p>
+  <p><b>Why it is designed that way.</b> There is no separate depthwise operation because
+  there does not need to be; grouping is the general mechanism and depthwise is its extreme.
+  That is a good API: one axis, with the special cases at its ends.</p>
+  <p><b>What breaks.</b> Three things.</p>
+  <p><b><code>padding="same"</code> raises on a strided convolution</b>:
+  <code>padding='same' is not supported for strided convolutions</code>. §5's arithmetic says
+  why: with $s>1$ there is generally no padding that preserves the size, so rather than pick
+  something silently PyTorch refuses. With an <i>even</i> kernel it does not refuse; it pads
+  asymmetrically, preserves the size, and emits a warning that it may need to copy the input.
+  That asymmetry is invisible and it accumulates, which is the argument for odd kernels made
+  in §5.</p>
+  <p><b><code>groups</code> must divide both channel counts</b>, and the error names only the
+  first: <code>in_channels must be divisible by groups</code>. If your output count is the
+  offending one you will be looking in the wrong place.</p>
+  <p><b><code>ConvTranspose2d</code> cannot infer its output size</b>: §16's warning, and it
+  is easy to see why. With $k=3$, $s=2$, $p=1$ a forward convolution maps both an input of 7
+  and an input of 8 to an output of 4. Going backwards from 4, both answers are correct, so
+  the transpose returns the smaller and <code>output_padding=1</code> asks for the larger.
+  Note also that <code>kernel_size</code> has no default here: §27's divisibility condition
+  makes the choice consequential enough that the library declines to guess.</p>
+</div>

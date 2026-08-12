@@ -1,0 +1,335 @@
+<h2><span class="part-kicker">Part F</span>Beyond classification, and the limits</h2>
+
+<h3><span class="num">§27</span> Structured outputs, and the artefact you will recognise</h3>
+
+<div class="readnow"><span class="label">Go and read</span><p><span class="src">Odena, Dumoulin &amp; Olah (2016)</span>, <i>Deconvolution and checkerboard artifacts</i>. A short interactive article that diagnoses an artefact everyone had seen and nobody had explained, and gives the arithmetic condition Figure 9 verifies. Then <span class="src">Ronneberger et al. (2015)</span> on U-Net, for why a segmentation decoder needs skip connections from the encoder rather than merely benefiting from them.</p></div>
+
+<p>Nothing about convolution requires the output to be a class label. A network can emit a
+tensor $S$ where $S_{i,j,k}$ is the probability that pixel $(j,k)$ belongs to class $i$,
+labelling every pixel, and tracing the outline of an object rather than naming it.</p>
+
+<p>The difficulty is resolution. §15's Try it made the point: a classifier backbone downsamples
+aggressively, and a $16\times16$ output cannot localise anything to a few pixels. Three
+responses exist. Avoid pooling entirely, which is expensive. Emit a coarse label grid and
+accept it. Or downsample and then come back up, which needs an operation that increases
+resolution, and §16 already identified it.</p>
+
+<div class="box def">
+  <span class="label">Transposed convolution</span>
+  <p>§16 showed the backward pass of a convolution is multiplication by $M^\top$, which is
+  itself a convolution. Used in the <b>forward</b> direction, that operation takes a small
+  feature map to a large one, and it is called <b>transposed convolution</b>, or, misleadingly,
+  deconvolution, which it is not: it does not invert anything.</p>
+  <p>An encoder–decoder for segmentation downsamples with strided convolutions and upsamples
+  with transposed ones, usually with <b>skip connections carrying high-resolution detail
+  across</b> from the encoder, because the fine spatial information was destroyed on the way
+  down and cannot be recovered from the coarse representation alone.</p>
+</div>
+
+<figure>
+  <img src="figures/cv/09-checkerboard.svg" alt="Transposed convolution output for six kernel and stride combinations, with an interior slice under each">
+  <figcaption><b>Figure 9.</b> Transposed convolution of a constant input by a constant kernel,
+  so a well-behaved operator must return something uniform. Top: the output. Bottom: a slice
+  through the interior. Whenever the kernel size is <b>divisible by the stride</b> the interior
+  is flat; whenever it is not, positions receive <b>1, 2 or 4</b> overlapping contributions in a
+  repeating lattice. The condition is exactly <b>$k \bmod s = 0$</b>, and it is arithmetic, not
+  a tendency.</figcaption>
+</figure>
+
+<div class="box why">
+  <span class="label">Why this matters more than a tidy output</span>
+  <p>The checkerboard is not an aesthetic problem. It is a <b>structured error the network
+  must spend capacity correcting</b>, and it appears in the gradient as well as the forward
+  pass, so it biases learning in every layer below.</p>
+  <p>Three fixes, in ascending order of preference. <b>Choose $k$ divisible by $s$</b>, which
+  is why $k=4$, $s=2$ is the conventional pairing and why PyTorch's transposed convolution
+  requires you to state the kernel size rather than defaulting it. <b>Upsample then convolve</b>:
+  nearest-neighbour or bilinear resize followed by an ordinary stride-1 convolution, which
+  cannot produce the artefact at all because nothing overlaps unevenly. Or <b>pixel shuffle</b>,
+  which produces the extra pixels in the channel dimension and then rearranges them, so no
+  overlap occurs.</p>
+  <p>The second is now the common choice, and it is a small instance of a recurring pattern:
+  the operation that is mathematically natural, being the transpose, turned out to have a
+  defect that a less elegant construction avoids.</p>
+</div>
+
+<div class="box history">
+  <span class="label">History: recurrent refinement and graphical-model post-processing</span>
+  <p>ch09 §9.6 covers two approaches to structured output that the encoder–decoder framing
+  above superseded. They are worth naming because they appear in papers from the period.</p>
+  <p><b>Recurrent refinement.</b> Pinheiro and Collobert (2014) applied a convolutional network
+  to segmentation by running it iteratively: the output of one pass is fed back as an input
+  to the next, allowing each pass to correct the previous one. This gets around the
+  low-resolution bottleneck without a decoder; the network refines a coarse prediction in
+  place. U-Net skip connections achieve a cleaner version of the same goal without the
+  recurrence, which is why the recurrent approach is rarely used today.</p>
+  <p><b>Conditional random field post-processing.</b> Early fully convolutional networks
+  (Long et al., 2015; Chen et al., 2015, DeepLab) followed their predictions with a dense CRF,
+  a graphical model that enforces spatial consistency by encouraging neighbouring pixels with
+  similar appearance to share a label. It sharpened boundaries the convolutional decoder left
+  blurry. As decoders became more powerful (larger kernels, dilated convolutions, better
+  training) the CRF improvement shrank, and current architectures drop it. Part XXVIII covers the
+  graphical-model machinery; the CRF itself was an application of that machinery to fix a
+  limitation of early convolutional segmentation heads.</p>
+</div>
+
+<h3><span class="num">§28</span> Detection, in one section</h3>
+
+<p>Detection asks for a variable number of boxes with labels, which is a harder output type
+than either classification or segmentation because the <i>number</i> of answers is unknown.</p>
+
+<p>The two families are worth knowing by their trade rather than their names. <b>Two-stage</b>
+detectors propose candidate regions and then classify each: accurate, slower. <b>Single-stage</b>
+detectors predict boxes and classes directly on a grid of positions: faster, and for a long
+while less accurate, until the gap was traced largely to the extreme imbalance between the few
+positions containing objects and the very many that do not, and closed by a loss that
+down-weights the easy negatives.</p>
+
+<div class="box why">
+  <span class="label">Why this book spends one section on it</span>
+  <p>Detection is a large literature and almost all of it is about the <b>head</b>: how boxes
+  are parameterised, how predictions are matched to ground truth, how duplicates are
+  suppressed, how the imbalance is handled. The convolutional <b>backbone</b> is shared with
+  classification and is exactly what §§1–26 built.</p>
+  <p>That separation is the transferable lesson. Most applied computer vision is a backbone you
+  did not design, pretrained on a task you do not care about (Part IX §26), with a head that
+  encodes your actual output structure. The interesting engineering is nearly all in the head
+  and the loss, and a part on convolution has little to say about it.</p>
+</div>
+
+<h3><span class="num">§29</span> Dilated convolution</h3>
+
+<p>§10 established the problem: the effective receptive field grows like $\sqrt{L}$, and
+downsampling to fix it destroys the resolution that §27's tasks need. Dilated convolution
+resolves the tension directly.</p>
+
+<div class="box def">
+  <span class="label">Dilation</span>
+  <p>Insert $d-1$ gaps between the kernel's taps. A $3\times3$ kernel with $d=2$ still has nine
+  weights but spans $5\times5$; with $d=4$ it spans $9\times9$.</p>
+  <p>The receptive field becomes $1 + 2d$ per layer rather than $3$, at <b>identical parameter
+  count and identical compute</b>. Stack layers with dilations $1, 2, 4, 8$ and the field grows
+  exponentially with depth rather than linearly.</p>
+</div>
+
+<p>This is as close to free as anything in this part gets, and it is why dilated convolutions
+appear throughout segmentation architectures and in the audio models of §30, where the reach
+required is enormous and the resolution cannot be given up.</p>
+
+<div class="box pitfall">
+  <span class="label">Pitfall: gridding</span>
+  <p>A stack of layers all using the same dilation $d$ has a defect. Each output depends only
+  on inputs whose coordinates are congruent modulo $d$; the layers never mix the residue
+  classes, so the network is effectively $d^2$ independent networks on interleaved sublattices,
+  and the outputs show a grid pattern.</p>
+  <p>The fix is to vary the dilation between layers so that the strides are coprime, which is
+  why published schedules look like $1, 2, 5, 9$ rather than $2, 2, 2, 2$. A schedule of powers
+  of two is the natural first guess and it is the one that grids.</p>
+</div>
+
+<h3><span class="num">§30</span> Data types, and one dimension</h3>
+
+<p>Nothing in §§2–6 mentioned images. Convolution applies wherever the input has a
+<b>grid topology</b> and the same pattern is meaningful at every position on that grid.</p>
+
+<table class="compact">
+  <thead><tr><th></th><th>One channel</th><th>Many channels</th></tr></thead>
+  <tbody>
+    <tr><td><b>1-D</b></td><td>Audio waveform: convolve over time</td>
+        <td>Skeleton animation: one channel per joint angle</td></tr>
+    <tr><td><b>2-D</b></td><td>A spectrogram: convolving over frequency makes the model
+        equivariant to <i>pitch</i>, so a melody transposed appears at a different height</td>
+        <td>Colour images</td></tr>
+    <tr><td><b>3-D</b></td><td>Volumetric scans</td><td>Colour video</td></tr>
+  </tbody>
+</table>
+
+<p>The spectrogram entry repays a moment. Convolving over the frequency axis is a decision with
+a musical consequence: it asserts that the same pattern of harmonics means the same thing an
+octave up. Whether that is true depends on the task, and it is a good example of an
+architectural choice that is really a claim about the domain. Both the spectrogram and the transform
+that builds it are taken up properly later: the signal-processing foundation, sampling and the
+Fourier transform and aliasing, is Part XXVII, and the audio models that consume these
+representations are Part XXX.</p>
+
+<div class="box why">
+  <span class="label">Why variable-size inputs come free, and when they do not</span>
+  <p>A dense layer has a fixed weight matrix and therefore a fixed input size. A convolution
+  has a kernel that is simply applied a different number of times, so it accepts any size and
+  produces a correspondingly sized output. Where the output must be fixed (one label per image),
+  a pooling layer whose regions scale with the input restores it, which is what global average
+  pooling does.</p>
+  <p>The condition is worth stating precisely, because it is easy to over-apply. Convolution
+  handles inputs that vary in size because they contain <b>varying amounts of the same kind of
+  observation</b>: longer recordings, wider images. It does not handle inputs that vary because
+  they contain <b>different kinds</b> of observation. Convolving the same weights over an
+  applicant's exam grades and their test scores is not a variable-length problem; it is a
+  category error, and the grid topology that licenses the whole construction is absent.</p>
+</div>
+
+<h3><span class="num">§31</span> The neuroscience, and what the analogy buys</h3>
+
+<div class="readnow"><span class="label">Go and read</span><p><span class="src">Hubel &amp; Wiesel (1962)</span>, <i>Receptive fields, binocular interaction and functional architecture in the cat's visual cortex</i>. The experiments this section is downstream of, and they read like nothing else on this list: two people, an electrode, and an animal being shown bars of light. Simple cells, complex cells and the detector-then-pool hierarchy are all here in 1962. Then <span class="src">Olshausen &amp; Field (1996)</span>, which showed that a sparse coding objective on natural images recovers Gabor-like filters unsupervised; read §31's pitfall before drawing the obvious conclusion from it.</p></div>
+
+<p>Convolutional networks are the field's clearest case of a design borrowed from biology, and
+the borrowing is specific enough to check.</p>
+
+<div class="box history">
+  <span class="label">History: recordings from a cat, and a Nobel prize</span>
+  <p>Through the <span class="year">1950s</span> and <span class="year">60s</span> Hubel and
+  Wiesel recorded from individual neurons in cat visual cortex while projecting patterns onto a
+  screen. Their finding, which won a Nobel prize, was that neurons in early visual cortex
+  respond strongly to <b>precisely oriented bars</b> at particular locations, and hardly at all
+  to anything else.</p>
+  <p>Three properties of area V1 were carried across into the architecture:</p>
+  <ul class="tight">
+    <li>V1 is arranged as a <b>two-dimensional map</b> mirroring the retina, hence feature
+    maps.</li>
+    <li>V1 contains <b>simple cells</b>, roughly linear in a small localised receptive field,
+    hence the detector stage.</li>
+    <li>V1 contains <b>complex cells</b>, responding to the same features but invariant to
+    small shifts, hence pooling.</li>
+  </ul>
+  <p>Detection followed by pooling, repeated. The correspondence goes further than the cartoon:
+  a convolutional network's late features resemble the inferotemporal cortex closely enough to
+  <b>predict its firing rates</b>, and to match time-limited human performance on object
+  recognition, where "time-limited" means the first 100ms, before top-down feedback arrives.</p>
+</div>
+
+<p>Two caveats from ch09 §9.10 belong alongside that history. The simple/complex split above is a convenient
+extreme rather than a clean boundary: Rust et al. (2005) found that real V1 neurons span a
+<b>continuum</b> of phase invariance between the two, not two separate populations. And further
+downstream, some neurons in inferotemporal and medial-temporal cortex are strikingly selective
+rather than distributed, the "Halle Berry neuron" that fired for photographs, drawings and even
+the printed name of the actor, and almost nothing else (Quiroga et al., 2005), a finding
+sometimes read as evidence for dedicated <b>grandmother cells</b>, in tension with the
+distributed population code the rest of this section assumes.</p>
+
+<p>What are simple cells actually computing? You cannot read a biological neuron's weights, so
+you show it white noise and fit a linear model to its responses: <b>reverse correlation</b>.
+The answer is that most V1 cells are well described by a <b>Gabor function</b>: a sinusoid
+multiplied by a Gaussian envelope.</p>
+
+$$w(x,y) = \alpha \exp\!\big(-\beta_x x'^2 - \beta_y y'^2\big)\cos(f x' + \phi)$$
+
+<p>with $x', y'$ the coordinates rotated by $\tau$ and shifted to $(x_0, y_0)$. The Gaussian
+gates the response to a neighbourhood; the cosine makes it respond to a particular spatial
+frequency at a particular phase. So a simple cell reports <b>a specific frequency of brightness
+change, in a specific direction, at a specific place</b>.</p>
+
+<div class="box worked">
+  <span class="label">Worked: the complex cell, and where invariance comes from</span>
+  <p>Take two simple cells identical except that one is a quarter cycle out of phase (a
+  <b>quadrature pair</b>) and let the complex cell compute
+  $c = \sqrt{s_0^2 + s_1^2}$.</p>
+  <p>Figure 10 measures what happens as a stimulus translates along the preferred direction.
+  Each simple cell's response sweeps through its entire range, from maximum to minimum and back:
+  measured at <b>199.8%</b> of peak. The complex cell's response varies by <b>0.00%</b>.</p>
+  <p>Negating the image (swapping black and white) flips each simple cell by 200% and leaves
+  the complex cell unchanged to $10^{-14}$.</p>
+  <p>This is the detector-and-pool architecture, derived rather than asserted. Invariance is
+  what you get when you take a quantity that oscillates with position and discard the phase,
+  and the $L^2$ norm of a quadrature pair is the cleanest way to do it.</p>
+</div>
+
+<figure>
+  <img src="figures/cv/10-gabor.svg" alt="Gabor functions at varied parameters, and the responses of a quadrature pair and the complex cell built from it">
+  <figcaption><b>Figure 10.</b> Left: Gabor functions from the formula above, varying the
+  frequency and phase (top) and the orientation (bottom). Right: as a grating translates along
+  the preferred direction, the two simple cells of a quadrature pair sweep out of phase through
+  their full range while the complex cell built from them is <b>exactly constant</b>. The
+  quadrature pair's correlation is $4.5\times10^{-17}$, orthogonal by construction.</figcaption>
+</figure>
+
+<div class="box pitfall">
+  <span class="label">Pitfall: what the Gabor correspondence does and does not establish</span>
+  <p>An enormous variety of learning algorithms produce Gabor-like filters in their first layer
+  when trained on natural images: sparse coding, ICA, and most deep networks. It is a striking
+  correspondence and it is weaker evidence than it looks.</p>
+  <p>Because <b>so many different methods</b> find these filters, finding them tells you almost
+  nothing about which method models the brain. They are a property of the <b>statistics of
+  natural images</b>, not of any particular learner. It remains a bad sign if an algorithm
+  fails to learn some kind of edge detector on natural images; it is not a good sign when one
+  does.</p>
+  <p>This was checked while building this part. A network trained on the synthetic shapes used
+  for Figure 8 learns clean oriented bar detectors; fitting Gabor functions to them gives a
+  median $R^2$ of <b>0.18</b>. The filters match the structure of <i>that</i> data, which is
+  bars rather than natural edges. The correspondence is with the data, exactly as claimed.</p>
+</div>
+
+<p>The differences from biology are as instructive as the similarities, and one of them
+matters here more than the rest. <b>The human eye is mostly low resolution.</b> Only the fovea
+(an area about the size of a thumbnail at arm's length) sees sharply. The impression of a
+detailed scene is assembled by moving the eye several times a second to whatever is most
+relevant, and stitching. A convolutional network, by contrast, processes the entire image at
+full resolution, uniformly, with no notion of relevance.</p>
+
+<p>ch09 noted in 2016 that incorporating such attention mechanisms was an active research
+direction, and that they had so far been most successful in natural language processing. Part
+XII is about what happened next.</p>
+
+<h3><span class="num">§32</span> What convolution cannot do</h3>
+
+<div class="readnow"><span class="label">Go and read</span><p><span class="src">Dosovitskiy et al. (2021)</span>, <i>An image is worth 16x16 words: transformers for image recognition at scale</i>. The paper that reopened the question, and it is honest about the condition: with limited data the transformer <b>loses</b>, and it wins only once the dataset is very large. That is §11's prior being priced, stated by the authors themselves, and it is the setup for Part XII.</p></div>
+
+<p>Four limits, each a place where the prior of §11 is the wrong prior.</p>
+
+<dl>
+  <dt>It cannot relate distant things directly</dt>
+  <dd>Sparse interaction is the assumption that dependencies are local. Where they are not
+  (the two ends of a shadow, a caption and the object it names, agreement between distant words),
+  convolution must reach them by stacking, and §10 measured how slowly that reach actually
+  grows. This is the limitation attention removes, at a cost that is quadratic rather than
+  linear in the input size, and the trade is the subject of Part XII.</dd>
+
+  <dt>It knows only translation</dt>
+  <dd>§9 measured rotation and scale equivariance failing at 0.95 and 0.89 of the activation
+  range. Every other symmetry your task has must be paid for out of data, augmentation, or a
+  different architecture. Convolution is not a general theory of structured input; it is one
+  symmetry, encoded exactly.</dd>
+
+  <dt>It assumes a grid</dt>
+  <dd>The whole construction rests on there being a fixed notion of adjacency, the same
+  everywhere. Molecules, social networks, meshes and knowledge bases have neighbours without a
+  grid, and generalising convolution to them is a real research area rather than a
+  reparameterisation.</dd>
+
+  <dt>Its advantage narrows as data grows</dt>
+  <dd>§11's prior is worth most when data is scarce, because it substitutes an assumption for
+  observations. Given enough observations, a model with a weaker prior can learn the same
+  structure and is not bound by whatever the prior got wrong. That is the honest statement of
+  what happened between convolutional networks and vision transformers, and it is Part VI §7's
+  no-free-lunch theorem showing up as an empirical trend.</dd>
+</dl>
+
+<div class="box why">
+  <span class="label">Where this actually stands in 2026</span>
+  <p>Neither of the two triumphalist accounts is right.</p>
+  <p>Attention did not make convolution obsolete. On limited data, convolutional networks
+  remain better, for exactly the reason §11 gives, and vision transformers need either very
+  large datasets or heavy augmentation and regularisation to close the gap, which is
+  substituting a different prior for the one they discarded. Convolutions remain standard where
+  latency or memory is binding, and in almost everything running on a device rather than in a
+  data centre.</p>
+  <p>Nor did convolution survive unchanged. Modern architectures on both sides have converged:
+  transformers acquired hierarchy, locality and downsampling from convolutional design, and
+  convolutional networks acquired layer norm, GELU, inverted bottlenecks and the entire
+  transformer training recipe, which §26 showed was most of the reported difference to begin
+  with.</p>
+  <p>What survived intact is the part of this chapter that was derived rather than reported.
+  The equivalence of convolution and a constrained matrix multiplication, the exactness of
+  translation equivariance, the $\sqrt{L}$ receptive field, the $1/C_{\text{out}} + 1/k^2$
+  separable ratio, and the divisibility condition for checkerboards are all theorems. They will
+  be true whatever wins the next round.</p>
+</div>
+
+<div class="box intuition">
+  <span class="label">The one thing to carry forward</span>
+  <p><b>An architecture is a symmetry you have decided the data has, encoded so firmly that the
+  model cannot consider anything else.</b></p>
+  <p>Convolution encodes exactly one (translation) and everything in this part is a
+  consequence: the parameter saving, the data efficiency, the equivariance, the invariance
+  bought by pooling, and every one of the four limits above. The question to carry into every
+  later architecture is not "what does this layer compute?" but <b>"what has it been told, and
+  is that true here?"</b></p>
+</div>

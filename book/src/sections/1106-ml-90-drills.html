@@ -1,0 +1,303 @@
+<h2><span class="part-kicker">Practice</span>Drills</h2>
+
+<p class="lede">Thirty-four problems. The Tier 2 set asks you to implement every algorithm in
+this part from its definition, which is the fastest way to discover that most of them are
+about fifteen lines.</p>
+
+<h3><span class="num">Tier 0</span> Estimate first</h3>
+
+<div class="drill">
+  <div class="head"><span class="tier est">Estimate</span>E1 &middot; The interval on an accuracy</div>
+  <p>A model scores 90% on 1,000 test examples. Write down the half-width of its 95% confidence interval before computing it.</p>
+  <div class="ans"><b>Answer.</b> <b>&plusmn;1.86 percentage points</b>. So 90% on 1,000 examples and 91.5% on 1,000 examples are the same result. Quote this interval every time you quote an accuracy, and half the arguments about model choice end before they start. <i>Score yourself: within a factor of two is a pass, and an order of magnitude out is worth understanding before you go on.</i></div>
+</div>
+
+<h3><span class="num">Tier 1</span> Warm-up</h3>
+
+<div class="drill">
+  <div class="head"><span class="tier warm">Warm</span>W1 · Name the three</div>
+  <p>For "predict tomorrow's temperature from today's weather", identify the task, the
+  experience and the performance measure.</p>
+  <div class="ans"><b>Answer.</b> Task: regression. Experience: historical weather records
+  with next-day temperatures. Performance: squared or absolute error on held-out days,
+  noting that absolute error is the better choice if being 10° wrong is exactly twice as
+  bad as being 5° wrong.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier warm">Warm</span>W2 · Supervised or not</div>
+  <p>Classify: (a) grouping customers by behaviour (b) predicting churn from history
+  (c) predicting the next word in a sentence.</p>
+  <div class="ans"><b>Answer.</b> (a) unsupervised. (b) supervised. (c) technically
+  unsupervised data (raw text, no labels) turned into a supervised task by hiding the next
+  word. That is self-supervision, and it is how language models are trained.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier warm">Warm</span>W3 · Which error is optimistic</div>
+  <p>Training error or test error, and why?</p>
+  <div class="ans"><b>Answer.</b> Training error, by construction: the parameters were
+  chosen to make it small. It is a biased estimate of risk for exactly the reason a
+  search-selected maximum is biased (Part V §14).</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier warm">Warm</span>W4 · Diagnose</div>
+  <p>Training 2%, test 3%. Training 20%, test 21%. Training 1%, test 18%. Which is which?</p>
+  <div class="ans"><b>Answer.</b> First: good fit. Second: underfitting, small gap but both
+  high. Third: overfitting, small training error, large gap.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier warm">Warm</span>W5 · Broken i.i.d.</div>
+  <p>You shuffle a time series before splitting into train and test. What goes wrong?</p>
+  <div class="ans"><b>Answer.</b> The model trains on the future and is tested on the past.
+  Accuracy is excellent and the model is worthless in deployment, where the future is not
+  available. Split on time, always.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier warm">Warm</span>W6 · The k in kNN</div>
+  <p>Does larger $k$ increase or decrease capacity?</p>
+  <div class="ans"><b>Answer.</b> Decrease. $k=1$ follows every point exactly: maximum
+  capacity. Large $k$ averages over many neighbours and smooths. The dial runs
+  backwards.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier warm">Warm</span>W7 · No free lunch</div>
+  <p>Does the theorem mean all algorithms are equally good in practice?</p>
+  <div class="ans"><b>Answer.</b> No. It says they are equal <i>averaged over all possible
+  target functions</i>, nearly all of which are structureless noise. Real problems are a
+  tiny structured subset, and matching an algorithm's assumptions to that structure is the
+  whole game.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier warm">Warm</span>W8 · Counting cells</div>
+  <p>Ten bins per axis. How many cells in 20 dimensions? How does that compare to any real
+  dataset?</p>
+  <div class="ans"><b>Answer.</b> $10^{20}$. Larger than any dataset that has ever existed
+  by many orders of magnitude, and 20 dimensions is small. This is §21.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier warm">Warm</span>W9 · Validation versus test</div>
+  <p>You pick a learning rate using the test set. What have you lost?</p>
+  <div class="ans"><b>Answer.</b> The test set. It now participated in a decision, so its
+  score is optimistic and no longer estimates generalisation. Use validation for every
+  choice.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier warm">Warm</span>W10 · Intrinsic dimension</div>
+  <p>Images are 784-dimensional. Does that mean learning needs $10^{784}$ examples?</p>
+  <div class="ans"><b>Answer.</b> No: that is the ambient dimension. Real images lie near a
+  far lower-dimensional manifold, so the effective difficulty is set by the intrinsic
+  dimension, not the pixel count. §23.</div>
+</div>
+
+<h3><span class="num">Tier 2</span> Core: implement everything</h3>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C1 · Linear regression, three ways</div>
+  <p>Fit by normal equations, by your Part III QR solver, and by gradient descent. Compare
+  answers and timings as $\kappa$ grows.</p>
+  <div class="ans"><b>Answer.</b> All agree when well conditioned. As $\kappa$ rises the
+  normal equations degrade first (Part III §20, now on a learning problem). Gradient descent
+  is slowest per digit but the only one that scales to large $n$.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C2 · Ridge path</div>
+  <p>Sweep $\lambda$ over seven orders of magnitude. Plot coefficients and test error.</p>
+  <div class="ans"><b>Answer.</b> You reproduce Figure 4. Note the test-error minimum is at
+  a strictly positive $\lambda$: the biased estimator wins, as Part V §4 promised.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C3 · Logistic regression from scratch</div>
+  <p>Implement the sigmoid, the cross-entropy loss, its gradient, and gradient descent.
+  Verify the gradient with your Part 0 gradient checker.</p>
+  <div class="ans"><b>Answer.</b> The gradient is $X^\top(\sigma(Xw) - y)/n$, strikingly
+  the same form as linear regression's, which is not a coincidence but a property of
+  exponential-family models. Use the stable sigmoid from Part III.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C4 · Capacity curve</div>
+  <p>Reproduce Figure 1: polynomial degree against training and test error.</p>
+  <div class="ans"><b>Answer.</b> Training error falls monotonically; test error is a U. Try
+  it with 200 training points instead of 18 and watch the U flatten, as more data makes
+  capacity safer.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C5 · Learning curves</div>
+  <p>Plot error against training set size for a high-bias and a high-variance model.</p>
+  <div class="ans"><b>Answer.</b> Figure 2. The diagnostic value: if both curves have
+  plateaued together at a high value, more data is wasted money. If there is a persistent
+  gap that is still closing, more data is the cheapest available fix.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C6 · k-fold cross-validation</div>
+  <p>Implement it. Use it to select polynomial degree. Compare against a single holdout.</p>
+  <div class="ans"><b>Answer.</b> CV selects more consistently across repeats, because the
+  estimate averages $k$ folds. A single small holdout picks a different degree depending on
+  which points landed in it; that instability is the variance CV removes.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C7 · Nested CV</div>
+  <p>Select with an inner loop, evaluate with an outer one. Compare the outer estimate
+  against the best inner score.</p>
+  <div class="ans"><b>Answer.</b> The best inner score is optimistic: it is a maximum over
+  noisy estimates. The outer estimate is honest. The gap is exactly what naive CV reporting
+  hides.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C8 · kNN from scratch</div>
+  <p>Implement it and plot decision boundaries at $k \in \{1, 5, 35\}$.</p>
+  <div class="ans"><b>Answer.</b> Figure 10. Watch the boundary go from jagged to nearly
+  linear. Then time it: prediction cost grows with the training set, because there is no
+  model, only the data.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C9 · Decision tree</div>
+  <p>Grow one greedily, choosing splits to minimise impurity. Stop at a depth limit. Plot
+  the partition.</p>
+  <div class="ans"><b>Answer.</b> Figure 11. Every boundary is axis-aligned; try it on data
+  separated by a diagonal and watch the staircase appear. That is the model's assumption
+  becoming visible.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C10 · k-means</div>
+  <p>Implement Lloyd's algorithm with random restarts. Show that the objective decreases
+  every iteration, and that different initialisations give different answers.</p>
+  <div class="ans"><b>Answer.</b> Figure 12. The monotone decrease is why it terminates; the
+  dependence on initialisation is why you restart. Run it on uniform noise and note that it
+  still returns tidy clusters.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C11 · SVM by subgradient descent</div>
+  <p>Minimise hinge loss plus $L^2$. Identify the support vectors and confirm that removing a
+  non-support point leaves the boundary unchanged.</p>
+  <div class="ans"><b>Answer.</b> Support vectors are the points with margin near 1. Delete
+  any other point, refit, and the boundary is identical: the model depends on a small
+  subset of the data.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C12 · The kernel trick</div>
+  <p>Build data that is not linearly separable. Separate it with an explicit quadratic
+  feature map, then again using only a kernel function. Confirm identical predictions.</p>
+  <div class="ans"><b>Answer.</b> They match. The point is what you avoided: for a
+  polynomial kernel of degree $d$ over $n$ features, the explicit map has $O(n^d)$
+  coordinates you never had to construct.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C13 · PCA as an autoencoder</div>
+  <p>Fit PCA. Separately, fit a linear encoder–decoder pair by gradient descent on
+  reconstruction error. Compare the subspaces.</p>
+  <div class="ans"><b>Answer.</b> The same subspace, though possibly a different basis within
+  it. This is the bridge to autoencoders: the nonlinearity is the only thing that lets one
+  beat PCA.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C14 · Measure the curse</div>
+  <p>Sample points in $d$ dimensions and measure the ratio of farthest to nearest distance
+  from a query, for $d$ from 1 to 500.</p>
+  <div class="ans"><b>Answer.</b> Figure 13, left. The ratio collapses toward 1. Once
+  everything is equidistant, "nearest neighbour" has stopped selecting anything
+  meaningful.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C15 · Estimate intrinsic dimension</div>
+  <p>Generate data on a 2-D manifold embedded in 50 dimensions. Recover the intrinsic
+  dimension from the PCA spectrum.</p>
+  <div class="ans"><b>Answer.</b> Two eigenvalues dominate if the manifold is flat. If it
+  curves, PCA overestimates: a curved sheet needs more than two <i>linear</i> directions.
+  That gap is precisely why nonlinear methods exist.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C16 · Find the bug</div>
+  <p>This standardises features before cross-validation. What is wrong?</p>
+  <pre><code>X = (X - X.mean(<span class="n">0</span>)) / X.std(<span class="n">0</span>)
+scores = cross_validate(model, X, y, k=<span class="n">5</span>)</code></pre>
+  <div class="ans"><b>Answer.</b> The mean and standard deviation were computed on the
+  <i>whole</i> dataset, including each fold's validation portion. Information leaks from
+  validation into training and the scores are optimistic. Standardise <b>inside</b> each
+  fold, using the training portion only.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier core">Core</span>C17 · No free lunch, measured</div>
+  <p>Generate random target functions over a small input space. Evaluate three learners
+  averaged over thousands of them.</p>
+  <div class="ans"><b>Answer.</b> All land at chance. Over 40,000 random targets: 0.497,
+  0.499, 0.501. Figure 3. Then restrict to <i>smooth</i> targets and watch nearest neighbour
+  pull ahead, as the assumption became true and it started paying.</div>
+</div>
+
+<h3><span class="num">Tier 3</span> Stretch</h3>
+
+<div class="drill">
+  <div class="head"><span class="tier stretch">Stretch</span>S1 · Ensembling</div>
+  <p>Train many trees on bootstrap resamples and average them. Measure how error falls with
+  the number of trees.</p>
+  <div class="ans"><b>Answer.</b> That is a random forest. Error falls and plateaus.
+  Averaging reduces <b>variance</b> and leaves bias alone (Part V §20), which is why
+  ensembling helps high-variance models like deep trees and does nothing for a linear
+  fit.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier stretch">Stretch</span>S2 · Beat a network on tabular data</div>
+  <p>Take a tabular dataset. Fit gradient-boosted trees and a small neural network with equal
+  tuning effort. Compare.</p>
+  <div class="ans"><b>Answer.</b> Trees frequently win, and §7 predicts it: axis-aligned
+  splits match tabular structure, while a network's priors do not. Worth doing once, because
+  it durably cures the assumption that deeper is always better.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier stretch">Stretch</span>S3 · Distribution shift</div>
+  <p>Train on one region of input space and test on another. Compare against an i.i.d. split.</p>
+  <div class="ans"><b>Answer.</b> Performance collapses, sometimes to below chance. The i.i.d.
+  assumption of §5 was doing more work than it appeared to, and no amount of validation
+  detects a shift your validation set does not contain.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier stretch">Stretch</span>S4 · A hard case for k-means</div>
+  <p>Construct data where it fails badly. Explain in terms of its assumptions.</p>
+  <div class="ans"><b>Answer.</b> Two concentric rings, or two elongated parallel bands.
+  Assignment by Euclidean distance to a centre can only carve out round regions, so nested or
+  stretched structure is hopeless. Section 7, made concrete.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier stretch">Stretch</span>S5 · Double descent again</div>
+  <p>Sweep polynomial degree past the number of training points, using minimum-norm fits.</p>
+  <div class="ans"><b>Answer.</b> The classical U, then a peak at degree $=$ $n$, then a
+  second descent (Part V §20). Use the true minimum-norm solution; a default
+  <code>rcond</code> regularizes the peak away.</div>
+</div>
+
+<div class="drill">
+  <div class="head"><span class="tier stretch">Stretch</span>S6 · The whole recipe</div>
+  <p>Pick a real dataset. Choose model family, loss and optimiser deliberately; state your
+  assumptions in advance; then evaluate honestly using Part V's checklist.</p>
+  <div class="ans"><b>Answer.</b> The point is the discipline, not the score. Write down what
+  you expect <i>before</i> running anything, and note where you were wrong. That habit is
+  worth more than any individual technique in this part.</div>
+</div>
