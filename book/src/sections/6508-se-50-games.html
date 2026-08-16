@@ -20,6 +20,8 @@ produced alpha–beta, and modern systems use both at once.</p>
 
 <h3><span class="num">§30</span> Optimism</h3>
 
+<div class="readnow"><span class="label">Go and read</span><p><span class="src">Auer, Cesa-Bianchi &amp; Fischer (2002)</span>, <i>Finite-time analysis of the multiarmed bandit problem</i>. UCB1 and its logarithmic regret bound. The source of the exploration term that reappears in UCT below, in Part XVIII's exploration bonuses, and in most places anyone writes a square root over a visit count.</p></div>
+
 <div class="box def">
   <span class="label">Upper confidence bounds</span>
   <p class="m">$$\text{UCB}_i = \hat{\mu}_i + c\sqrt{\frac{\ln t}{n_i}}$$</p>
@@ -34,6 +36,8 @@ produced alpha–beta, and modern systems use both at once.</p>
 </div>
 
 <h3><span class="num">§31</span> Monte Carlo tree search</h3>
+
+<div class="readnow"><span class="label">Go and read</span><p><span class="src">Kocsis &amp; Szepesv&aacute;ri (2006)</span>, <i>Bandit based Monte-Carlo planning</i>. UCT: the bandit rule applied at every node of a tree. That this makes the estimate converge to the value under optimal play rather than under random play is the whole paper, and it is the difference between a search and an average. Then <span class="src">Browne et al. (2012)</span>, <i>A survey of Monte Carlo tree search methods</i>. The map of the variants, from before learned priors changed the subject. The survey is worth it for seeing how many tricks in modern systems were already named, and under what conditions each helps.</p></div>
 
 <div class="box shapes">
   <span class="label">Four steps, repeated until the budget runs out</span>
@@ -81,6 +85,8 @@ of a random player, which is a different and useless quantity.</p>
 
 <h3><span class="num">§33</span> What replacing the rollout changed</h3>
 
+<div class="readnow"><span class="label">Go and read</span><p><span class="src">Silver et al. (2018)</span>, <i>A general reinforcement learning algorithm that masters chess, shogi and Go through self-play</i>. Search and learning as one loop: the network supplies a prior and a value, the search improves on the prior, and training on the search closes it. Read it as a policy-improvement operator in Part XVIII &sect;10's sense rather than as a result about board games.</p></div>
+
 <div class="box hist">
   <span class="label">From random playouts to learned priors</span>
   <p>Classical MCTS estimated a node's value by playing randomly to the end. That works when random
@@ -126,6 +132,8 @@ of a random player, which is a different and useless quantity.</p>
 </div>
 
 <h3><span class="num">§36</span> Ordering is the whole game</h3>
+
+<div class="readnow"><span class="label">Go and read</span><p><span class="src">Knuth &amp; Moore (1975)</span>, <i>An analysis of alpha-beta pruning</i>. The closed form that Figure 7 lands on exactly. Read it for the demonstration that &ldquo;optimal move ordering&rdquo; has a precise cost rather than an asymptotic one, which is rarer than it sounds.</p></div>
 
 <figure>
   <img src="figures/se/07-alphabeta.svg" alt="Leaves evaluated on a log axis against search depth, with curves for full minimax, worst-first ordering, random ordering, best-first ordering, and the square root of the full tree">

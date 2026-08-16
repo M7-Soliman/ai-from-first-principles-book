@@ -48,6 +48,8 @@ six joints. None of these is a learning problem, and all of them are load-bearin
 
 <h3><span class="num">§28</span> Where the state comes from</h3>
 
+<div class="readnow"><span class="label">Go and read</span><p><span class="src">Kalman (1960)</span>, <i>A new approach to linear filtering and prediction problems</i>. Worth reading in the original for how little it assumes. The covariance recursion is the part that matters here: it is what lets a system say that it does not know.</p></div>
+
 <div class="box why">
   <span class="label">Nobody measures the state</span>
   <p>Wheel encoders drift, an inertial unit integrates its bias into a growing position error, GPS
@@ -60,6 +62,8 @@ six joints. None of these is a learning problem, and all of them are load-bearin
 </div>
 
 <h3><span class="num">§29</span> Planning, and dimension</h3>
+
+<div class="readnow"><span class="label">Go and read</span><p><span class="src">LaValle</span>, <i>Planning Algorithms</i>. Free online, and the reference for the planning in this movement. Chapter 5 on sampling-based methods explains what they give up as carefully as what they buy, which is rare.</p></div>
 
 <figure>
   <img src="figures/ct/07-planning.svg" alt="Work required against degrees of freedom, for grid search and sampling-based planning, log scale">

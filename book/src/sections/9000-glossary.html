@@ -88,6 +88,7 @@ A cheap diagonal stand-in for curvature rescaling.</dd>
 
 <dt>Aliasing <span class="where">XXVII §3</span></dt>
 <dd>The appearance of a frequency above half the sampling rate as a different, lower frequency in the samples. Not attenuation and not blur: the content is <i>relabelled</i> and added to whatever was legitimately there, so nothing downstream can separate them. Every stride and every pooling layer in a network is a resampling, and Figure 1 of Part XXVII measures the resulting shift-inconsistency at 3.34&times;10<sup>&minus;2</sup> after four stages against float32 rounding at 1.19&times;10<sup>&minus;7</sup>.</dd>
+
 <dt>Alignment tax <span class="where">XX §32</span></dt>
 <dd>Capability lost on tasks unrelated to the preferences that post-training optimised. The mechanism is fine-tuning on a narrow distribution distorting the model away from it (Part XIX §31), and the mitigations are the same: mix in pretraining data, keep the KL penalty, use small learning rates.</dd>
 
@@ -99,6 +100,7 @@ A cheap diagonal stand-in for curvature rescaling.</dd>
 
 <dt>Amortised inference <span class="where">XXVIII §22</span></dt>
 <dd>Training a network to map an observation to its approximate posterior's parameters, so inference on a new point is a forward pass rather than an optimisation. This is the VAE's encoder. Its cost is the <b>amortisation gap</b> (the difference between the network's output and the best member of the family for that point), which adds to the family's own error rather than replacing it.</dd>
+
 <dt>Ancestral sampling <span class="where">XVI §6</span></dt>
 <dd>Sampling a directed model by drawing each variable from its conditional once its parents are known. One pass, exact, no iteration. Every generative model that is pleasant to sample from is pleasant for this reason; undirected models have no generative order and must run a Markov chain instead.</dd>
 
@@ -107,11 +109,13 @@ A cheap diagonal stand-in for curvature rescaling.</dd>
 
 <dt>Anti-aliasing <span class="where">XXVII §6</span></dt>
 <dd>Attenuating content above the new Nyquist frequency before subsampling: in a network, a small blur inserted before each stride. It cannot be done afterwards, because the information needed to separate real from aliased content was destroyed by the sampling. A real filter has a transition band, so it reduces rather than removes the effect: Figure 1 of Part XXVII measures 11.7&times;.</dd>
+
 <dt>Anytime algorithm <span class="where">XXXIII §11</span></dt>
 <dd>One that has a usable answer at every instant and improves it given more time. Anytime weighted A* starts at a large weight and decreases it, so an interruption returns not just a path but a path with a known worst case. What makes search usable inside a fixed control cycle.</dd>
 
 <dt>Aperture problem <span class="where">XXIX §22</span></dt>
 <dd>A local window on a straight moving edge determines only the motion component normal to the edge; the tangential component is not present in the data. Figure 5 of Part XXIX measures the brightness-constancy residual as <b>exactly zero</b> along a whole line of candidate velocities for an edge, and at a single point for a corner. One of two exact, provable capability limits in this book; the other is Part XXVI's Weisfeiler&ndash;Leman bound. A network can supply a prior from context, which is inference rather than measurement.</dd>
+
 <dt>Argmin / argmax <span class="where">0 §2</span></dt>
 <dd>The <i>input</i> that minimises or maximises a function, as opposed to the resulting
 value. Training a model is always an argmin: you want the parameters, not the loss
@@ -151,8 +155,10 @@ differentiation.</dd>
 
 <dt>Average precision <span class="where">XXIX §4</span></dt>
 <dd>Ranking detections by confidence and integrating precision over recall, with a match declared above an IoU threshold. Every detection number in the literature is this at some threshold, and the threshold moves the answer: Figure 1 of Part XXIX measures AP falling from 1.000 to 0.116 between IoU 0.5 and 0.9 on one detector, and two detectors changing places. Being a ranking metric, it is unchanged by any monotone rescaling of the confidences, so it cannot see calibration at all.</dd>
+
 <dt>Backdoor <span class="where">XXXII §35</span></dt>
 <dd>Training data corrupted so a model behaves normally except on inputs carrying a trigger the attacker chose. Worse than ordinary poisoning because <b>accuracy is exactly what it preserves</b>, so every ordinary evaluation passes. Inherited by anything downstream of a poisoned dataset or a downloaded checkpoint, and no general detection method exists.</dd>
+
 <dt>Backdoor criterion <span class="where">XXII §12</span></dt>
 <dd>A set <span class="m"><span class="m">$Z$</span></span> satisfies it for <span class="m"><span class="m">$(X,Y)$</span></span> when no member is a descendant of <span class="m"><span class="m">$X$</span></span> and it blocks every path from <span class="m"><span class="m">$X$</span></span> to <span class="m"><span class="m">$Y$</span></span> beginning with an arrow into <span class="m"><span class="m">$X$</span></span>. Then the interventional distribution equals <span class="m"><span class="m">$\sum_z p(y \mid x,z)p(z)$</span></span>: note the marginal weights. The first condition is the formal reason adjusting for everything available is wrong.</dd>
 
@@ -187,6 +193,7 @@ Read as: posterior <span class="m">$\propto$</span> likelihood <span class="m">$
 
 <dt>Behavioural cloning <span class="where">XXXI §18</span></dt>
 <dd>Fitting a policy to an expert's demonstrations by supervised learning. The easiest way to train a policy and the way most deployed driving policies are trained, with one structural defect: the learner's own errors take it to states the expert never visited, where it is worse, which takes it further off. More expert data does not repair it; data from the states the <i>learner</i> reaches does, which is why an intervention log is worth disproportionately more than ordinary driving data.</dd>
+
 <dt>Bellman equation <span class="where">XVIII §5</span></dt>
 <dd>The consistency condition that value decomposes into one step plus the discounted rest. The expectation form is <b>linear</b> in <span class="m">$V^\pi$</span> and can be solved directly; the optimality form has a max and is not, which is why the optimal case needs iteration.</dd>
 
@@ -220,6 +227,7 @@ the organising principle of everything after it.</dd>
 
 <dt>Bird's-eye view <span class="where">XXIX §31</span></dt>
 <dd>A top-down metric representation of a scene, which is what a planner reasons in. Reachable from cameras by a ground-plane homography (exact only if the world is flat), by predicting depth and projecting features into 3-D, or by giving each top-down cell a query that attends to the images projecting into it, which is where multi-camera systems have converged.</dd>
+
 <dt>Boosting <span class="where">XXV §16</span></dt>
 <dd>Building a model additively, each term fitted to what the previous ones left behind. Attacks bias rather than variance, so it wants shallow base learners, and it can overfit: Figure 4 of Part XXV shows test error turning after 46 trees at a learning rate of 1.</dd>
 
@@ -239,6 +247,7 @@ operation. Convenient, and a common source of silent shape bugs.</dd>
 
 <dt>Bundle adjustment <span class="where">XXIX §30</span></dt>
 <dd>Recovering camera poses and 3-D points together by minimising total reprojection error. A large sparse nonlinear least-squares problem whose sparsity (each point seen in few views) is what makes it tractable. It is maximum likelihood under a Gaussian noise model, and what it needs from the front end is correct correspondences rather than precise ones.</dd>
+
 <dt>Byte-pair encoding <span class="where">XX §2</span></dt>
 <dd>Start from bytes, repeatedly merge the most frequent adjacent pair. Frequent words become single tokens, rare words split, and nothing is ever unrepresentable, which is why no unknown token is needed. Merges may not cross a pre-tokenization boundary, and training is done on unique word types weighted by frequency.</dd>
 
@@ -304,6 +313,7 @@ their individual shapes. One of three reasons the Gaussian is ubiquitous.</dd>
 
 <dt>Colour refinement <span class="where">XXVI §16</span></dt>
 <dd>Repeatedly replacing each node's colour with a hash of its own colour and the multiset of its neighbours'. Also called one-dimensional Weisfeiler&ndash;Leman. A message-passing network is exactly as powerful as this at distinguishing graphs, which is why the limit is a theorem rather than a tendency: Figure 3 of Part XXVI shows two graphs it cannot separate receiving representations that differ by exactly zero.</dd>
+
 <dt>Column space <span class="where">I §12</span></dt>
 <dd>The span of a matrix's columns: everything <span class="m">$A\mathbf{x}$</span> can possibly equal.
 <span class="m">$A\mathbf{x} = \mathbf{b}$</span> has a solution if and only if <span class="m">$\mathbf{b}$</span> lies in it.</dd>
@@ -347,11 +357,13 @@ time. The guarantee attaches to the <i>procedure</i>, not to any interval you ho
 
 <dt>Confused deputy <span class="where">XXXII §37</span></dt>
 <dd>A privileged component persuaded to act on behalf of someone who lacks the privilege. A model that reads untrusted content and takes actions is one by construction: it has a single channel, so text in a document can be read as a command and executed with the user's authority. SQL solved this structurally with parameterised queries and that fix is unavailable here, which leaves least privilege, isolation and confirmation.</dd>
+
 <dt>Conjugate directions <span class="where">IX §20</span></dt>
 <dd><span class="m">$\mathbf{d}_t^\top H \mathbf{d}_{t-1} = 0$</span>: orthogonality in the geometry the Hessian defines. Descending along one does not undo the minimisation along the other, which is what steepest descent with a line search cannot avoid doing.</dd>
 
 <dt>Connectionist temporal classification <span class="where">XXX §11</span></dt>
 <dd>Training a sequence model without an alignment by summing over every frame labelling that collapses to the target, using an HMM's forward recursion. Its cost is a conditional independence assumption: given the input there is no term coupling one output symbol to another. Figure 4 of Part XXX measures the consequence: asked for an equal mixture of two readings, the best CTC model puts <b>0.25</b> on each and leaks half the mass onto sequences the target never contains, at every input length. An external language model is restoring that term rather than refining the estimate.</dd>
+
 <dt>Consistency <span class="where">V §5</span></dt>
 <dd>Converging to the truth as the sample grows without bound. Weaker than unbiasedness at
 any finite <span class="m">$n$</span>, and more important.</dd>
@@ -382,6 +394,7 @@ any finite <span class="m">$n$</span>, and more important.</dd>
 
 <dt>Contrastive temperature <span class="where">XXX §27</span></dt>
 <dd>The scale dividing similarities inside a contrastive loss. Described as a scale on the logits and better understood as a choice of how many negatives you are training against: Figure 6 of Part XXX measures <b>508</b> effective negatives of 512 at <span class="m">$\tau = 1$</span> and <b>1.1</b> at <span class="m">$\tau = 0.01$</span>, where the single hardest negative takes 98.5% of the gradient. So a low temperature is implicit hard-negative mining, and below some value a larger batch buys nothing.</dd>
+
 <dt>Control task <span class="where">XV §32</span></dt>
 <dd>A probing diagnostic: give every example identity a fixed random label, consistent between train and test. The mapping is perfectly learnable and completely meaningless, so a probe that scores well on it was memorising identities. Introduced by Hewitt and Liang, and the reason probe accuracy alone establishes nothing.</dd>
 
@@ -393,6 +406,7 @@ any finite <span class="m">$n$</span>, and more important.</dd>
 
 <dt>Convolution theorem <span class="where">XXVII §14</span></dt>
 <dd>Convolution in one domain is pointwise multiplication in the other. Equivalently, the complex sinusoids are the eigenvectors of every convolution and the frequency response is the list of eigenvalues. This is the result the whole of Part X rests on: it is why a filter has a one-line description, why a 3&times;3 kernel cannot be frequency-selective, and why stacking kernels can be.</dd>
+
 <dt>Coordinate check <span class="where">XXIII §51</span></dt>
 <dd>The diagnostic for a parameterisation: take one optimiser step at several widths and plot the change in each layer's activations, and in the output, on log axes. Flat lines mean the update size does not depend on width. Measure the change in the <i>function</i> rather than in an activation: the latter falls with width under every scheme including the unstable one, so it shows no instability anywhere.</dd>
 
@@ -532,6 +546,7 @@ diagonal.</dd>
 
 <dt>Discrete Fourier transform <span class="where">XXVII §10</span></dt>
 <dd>The change of basis from samples to frequencies, as an <span class="m">$n \times n$</span> matrix product costing <span class="m">$O(n^2)$</span>. It treats the record as one period of a periodic signal, which is where spectral leakage comes from and why windows exist.</dd>
+
 <dt>Disentanglement <span class="where">XV §39</span></dt>
 <dd>A representation whose separate coordinates correspond to separate underlying factors of variation. <b>Unidentifiable without supervision</b>: any invertible map to a different set of independent factors induces the identical distribution over observations, so no data-derived objective can prefer one to the other. Weak supervision, temporal structure or interventions restore it.</dd>
 
@@ -544,11 +559,11 @@ diagonal.</dd>
 <dt>Distribution shift <span class="where">VI §5</span></dt>
 <dd>Test or deployment data drawn from a different distribution than training data. Because generalisation bounds assume the two distributions are identical, a validated model can fail badly in production without contradicting any theoretical guarantee. The most common reason a published result does not reproduce in deployment.</dd>
 
-<dt>Do-operator <span class="where">XXII §11</span></dt>
-<dd><span class="m"><span class="m">$\mathrm{do}(X=x)$</span></span>: delete the equation that produced <span class="m"><span class="m">$X$</span></span>, substitute the constant, leave every other equation alone. Deleting the equation is what severs the confounding paths, which is what randomisation achieves physically.</dd>
-
 <dt>Dominance (heuristics) <span class="where">XXXIII §14</span></dt>
 <dd>$h_2$ dominates $h_1$ if it is everywhere at least as large and both are admissible; the dominant one never expands more nodes. Hence the elementwise maximum of admissible heuristics is free to use, while their sum generally is not.</dd>
+
+<dt>Do-operator <span class="where">XXII §11</span></dt>
+<dd><span class="m"><span class="m">$\mathrm{do}(X=x)$</span></span>: delete the equation that produced <span class="m"><span class="m">$X$</span></span>, substitute the constant, leave every other equation alone. Deleting the equation is what severs the confounding paths, which is what randomisation achieves physically.</dd>
 
 <dt>Double descent <span class="where">V §20 · XXIII §25</span></dt>
 <dd>Test error peaks where capacity equals the number of training points, then <i>falls
@@ -588,6 +603,7 @@ whose rate of change equals its own value.</dd>
 
 <dt>Effective sample size <span class="where">XXVIII §30</span></dt>
 <dd>How many independent draws a correlated or weighted sample is worth. For a chain, <span class="m">$n/(1 + 2\sum_k \rho_k)$</span>; for importance weights, <span class="m">$(\sum w)^2/\sum w^2$</span>. The Monte Carlo standard error must be computed from this and not from the number of draws, which can be larger by orders of magnitude.</dd>
+
 <dt>Eigenvector / eigenvalue <span class="where">I §17</span></dt>
 <dd>A direction the matrix only stretches rather than turns, and the factor by which. The
 matrix's natural axes. A zero eigenvalue means a direction was annihilated.</dd>
@@ -622,11 +638,13 @@ between it and the true distribution <i>is</i> the generalisation problem.</dd>
 
 <dt>Epipolar constraint <span class="where">XXIX §28</span></dt>
 <dd>A point in one image constrains its match in another to a line, because the point, its two projections and the two camera centres are coplanar. Reduces matching from a two-dimensional search to a one-dimensional one, which is why stereo is tractable. Note that the algebraic residual is scale-dependent and only the point-to-line distance in pixels is interpretable.</dd>
+
 <dt>Epistemic uncertainty <span class="where">XXIV §2</span></dt>
 <dd>Uncertainty from not having seen enough to know which function is right. Reducible: it falls toward zero with more data, and where it is large is where collecting more is worth most. Active learning is the strategy of sampling where it is largest.</dd>
 
 <dt>Equivariance <span class="where">X §9 · XXVI §2</span></dt>
 <dd>A transformation of the input produces the corresponding transformation of the output. Distinct from invariance, where the output does not move at all: a node classifier needs equivariance, a molecule's energy needs invariance. Part XXVI §35 builds an equivariant vector update as a scalar-weighted sum of relative positions, which is what lets a network output a force rather than only a number.</dd>
+
 <dt>Estimand <span class="where">XXII §40</span></dt>
 <dd>The quantity you intend to estimate: whose effect, of what, on what, averaged over which population. Naming it precedes choosing an estimator, and most flawed causal work is technically correct about a quantity nobody wanted.</dd>
 
@@ -642,6 +660,7 @@ with a distribution, and every question about its quality concerns that distribu
 
 <dt>Evidence lower bound <span class="where">XXVIII §18</span></dt>
 <dd><span class="m">$\mathbb{E}_q[\log p(x,z)] + \mathbb{H}[q]$</span>, a lower bound on the log evidence whose gap is exactly the KL from the approximation to the true posterior. Maximising it is minimising that KL. One inequality underlies EM, the VAE and every variational method in the literature.</dd>
+
 <dt>Exchangeability <span class="where">XXIV §29</span></dt>
 <dd>That the calibration and test points are interchangeable in distribution: weaker than i.i.d. and the single assumption conformal prediction needs. It fails silently: Figure 5 of Part XXIV measures coverage falling to 0.496 against a promised 0.90 with no signal from the method.</dd>
 
@@ -651,6 +670,7 @@ always, which makes it the most useful identity in probability.</dd>
 
 <dt>Expectation–maximisation <span class="where">XXVIII §15</span></dt>
 <dd>Alternating between inferring the latent variables and re-fitting the parameters as though they were observed. Guarantees the observed-data likelihood never decreases, and guarantees nothing about the optimum reached: Figure 3 of Part XXVIII measures the failure-to-recover rate <i>rising</i> with component separation, because separated components form basins a badly-initialised restart cannot leave.</dd>
+
 <dt>Expected calibration error <span class="where">XIV §5</span></dt>
 <dd>Bin predictions by confidence and average <span class="m">$|\text{accuracy} - \text{confidence}|$</span> over bins, weighted by bin population. A single number for how far a model's stated confidence is from its observed accuracy. Sensitive to the number of bins, so report it.</dd>
 
@@ -675,13 +695,16 @@ Remedied bluntly by clipping.</dd>
 
 <dt>Fast Fourier transform <span class="where">XXVII §12</span></dt>
 <dd>Cooley and Tukey's <span class="m">$O(n \log n)$</span> algorithm: split the sum into even and odd terms, each a transform of half the length, and combine in linear time. Figure 2 of Part XXVII measures a from-scratch implementation agreeing with the definition to 4.35&times;10<sup>&minus;13</sup> and pulling away from it without bound, and measures the gap between an asymptotic operation count and a wall clock.</dd>
+
 <dt>Feature map <span class="where">X §2</span></dt>
 <dd>The two-dimensional output produced by convolving one kernel across an entire input: a spatial map of where that feature was detected. A layer with <span class="m">$k$</span> kernels produces <span class="m">$k$</span> feature maps stacked into a three-dimensional output.</dd>
 
 <dt>Feature pyramid <span class="where">XXIX §15</span></dt>
 <dd>Detecting from several backbone depths at once, with a top-down path carrying deep semantics back to shallow high-resolution features. It exists because object area in a feature map falls as the square of the stride: Figure 4 of Part XXIX measures a 16 px object covering one feature pixel after four stride-2 stages, so small objects are not hard to detect at that depth; they are absent.</dd>
+
 <dt>Feedback <span class="where">XXXI §3</span></dt>
 <dd>Measuring the error and driving the input in proportion to it. The closed-loop response depends on the plant's gain only through <span class="m">$k_p g/(1+k_p g)$</span>, which approaches one whatever the gain is, so feedback substitutes for knowledge, which is why a thermostat needs no thermodynamics. It buys robustness rather than accuracy: Figure 1 of Part XXXI measures a cautious gain giving 0.455 against open loop's 0.167, because the residual offset exceeds the model error it was meant to suppress.</dd>
+
 <dt>Feedback loop <span class="where">XIV §28</span></dt>
 <dd>A deployed system influences the data it will later be trained on: a recommender shapes what is clicked, so tomorrow's training set records its own choices. The result is a model that appears to improve while progressively narrowing what it can see. The only reliable defence is a randomised holdout: a small fraction of traffic served without the model's influence.</dd>
 
@@ -708,11 +731,13 @@ exists.</dd>
 
 <dt>Focal loss <span class="where">XXIX §14</span></dt>
 <dd>Down-weighting each example's loss by a factor that shrinks as the prediction becomes confident and correct. The change that closed the accuracy gap between one-stage and two-stage detectors, and it works because the problem was never that negatives were hard but that there were so many easy ones that their sum dominated. Figure 3 of Part XXIX measures the ratio at 672 : 1 at 512 px and 10,752 : 1 at 2,048 px.</dd>
+
 <dt>Forget gate <span class="where">XI §18</span></dt>
 <dd>The LSTM's conditional self-loop weight: a leaky unit's <span class="m">$\alpha$</span>, computed by the network at every step. Systematic comparison found it the <b>crucial</b> component, and initialising its bias to 1 rather than 0 is worth more than most architecture variants.</dd>
 
 <dt>Fourier features <span class="where">XXVII §36</span></dt>
 <dd>Lifting a coordinate into a bank of sines and cosines before feeding it to a network, so that high-frequency functions are linear combinations of the inputs rather than something the network must synthesise. The standard remedy for spectral bias and the reason coordinate networks work for images and radiance fields. It does not remove the bias; it moves the cutoff into a hyperparameter you are now responsible for.</dd>
+
 <dt>Frame <span class="where">XIII §2</span></dt>
 <dd>The part of the population you were able to reach. Statistics addresses the gap between frame and sample; the gap between <b>population and frame</b> is a modelling assumption that no amount of data closes.</dd>
 
@@ -720,14 +745,15 @@ exists.</dd>
 <dd>The <span class="m">$L^2$</span> norm of a matrix, flattened. The standard way to measure a matrix's size or
 the distance between two matrices.</dd>
 
-<dt>F-score <span class="where">XIV §3</span></dt>
-<dd>The harmonic mean of precision and recall, <span class="m">$F_1 = 2pr/(p+r)$</span>. Harmonic rather than arithmetic so that a degenerate classifier cannot score well: precision 1.0 with recall 0.02 gives <span class="m">$F_1$</span> near 0.04, where the arithmetic mean would report 0.51.</dd>
-
 <dt>Frontier <span class="where">XXXIII §6</span></dt>
 <dd>The generated-but-not-expanded nodes, ordered by whatever the algorithm sorts by. Usually the memory bottleneck, since it holds a whole level while the closed list holds only states: a distinction that vanishes in asymptotic notation and dominates in practice.</dd>
 
+<dt>F-score <span class="where">XIV §3</span></dt>
+<dd>The harmonic mean of precision and recall, <span class="m">$F_1 = 2pr/(p+r)$</span>. Harmonic rather than arithmetic so that a degenerate classifier cannot score well: precision 1.0 with recall 0.02 gives <span class="m">$F_1$</span> near 0.04, where the arithmetic mean would report 0.51.</dd>
+
 <dt>Fusion <span class="where">XXXII §9</span></dt>
 <dd>Combining a chain of elementwise operations into one pass over the data, so it is read and written once rather than once per operation. Identical arithmetic, traffic reduced by roughly the chain length. Figure 2 of Part XXXII measures <b>7.52&times;</b> on a chain of eight: bounded by the chain length, because you cannot make fewer than one pass.</dd>
+
 <dt>Gated recurrent unit <span class="where">XI §21</span></dt>
 <dd>An LSTM with one gate fewer: a single update gate controls forgetting and admitting together, and there is no output gate. Fewer parameters, usually the same accuracy, and no variant of either has been shown to beat both across a range of tasks.</dd>
 
@@ -740,6 +766,7 @@ reasons: the central limit theorem, maximum entropy, and mathematical convenienc
 
 <dt>Gelman–Rubin statistic <span class="where">XXVIII §31</span></dt>
 <dd>Compares between-chain variance with within-chain variance to test whether chains agree. Necessary for convergence and not sufficient: Figure 6 of Part XXVIII measures R&#770; = 1.0000 on chains that all sat in one of two equal modes and found 100% of their mass there, and 10.47 on the run that recovered the target correctly.</dd>
+
 <dt>Generalisation gap <span class="where">VI §4</span></dt>
 <dd>True risk minus training error: how much worse a model does on new data than on the data it trained on. Controlling it, rather than minimising training error, is the actual objective. A model with zero training error and a large generalisation gap has memorised rather than learnt.</dd>
 
@@ -790,11 +817,13 @@ neural network is trained.</dd>
 
 <dt>Graph neural network <span class="where">XXVI §8</span></dt>
 <dd>A network whose layer aggregates each node's neighbours and updates the node from the result. Almost every architecture in the family is that one loop with different choices of message, aggregator and update. Permutation-equivariant by construction, bounded above by colour refinement, and subject to over-smoothing with depth.</dd>
+
 <dt>Greedy supervised pretraining <span class="where">IX §26</span></dt>
 <dd>Training each layer as part of a shallow supervised model on the previous layer's output, then fine-tuning jointly. Not competing with joint optimisation; choosing where it starts.</dd>
 
 <dt>Griffin–Lim <span class="where">XXX §7</span></dt>
 <dd>Estimating a waveform from a magnitude spectrogram by alternately projecting onto the set of consistent spectrograms and the set of realisable signals. Figure 2 of Part XXX measures it converging monotonically in spectrogram error (0.666 to 0.048), while the waveform correlation dips before rising to only <b>0.53</b>. It converges in spectrogram space and only incidentally in waveform space, which is what the characteristic metallic reconstruction is.</dd>
+
 <dt>Group normalisation <span class="where">X §24</span></dt>
 <dd>Normalising over spatial positions and a group of channels, so the statistics do not involve the batch. Exists because batch norm's estimates degrade like <span class="m">$1/\sqrt{N}$</span>, and detection and segmentation run at <span class="m">$N=2$</span>.</dd>
 
@@ -816,6 +845,7 @@ multiplication, sharing only the word "product".</dd>
 
 <dt>Hamiltonian Monte Carlo <span class="where">XXVIII §29</span></dt>
 <dd>A sampler that adds a momentum variable and simulates the resulting dynamics, so proposals travel far while staying in high density. Figure 5 of Part XXVIII measures its advantage over random-walk Metropolis growing from 1.6&times; to 7.0&times; as the target's condition number rises.</dd>
+
 <dt>Hessian <span class="where">0 §19, I §18</span></dt>
 <dd>The matrix of second derivatives. Its definiteness classifies critical points, which
 is the multivariable second derivative test.</dd>
@@ -825,6 +855,7 @@ is the multivariable second derivative test.</dd>
 
 <dt>Heterophily <span class="where">XXVI §39</span></dt>
 <dd>The property of a graph whose edges tend to join nodes with different labels. Message passing assumes the opposite, so on a heterophilous graph the aggregation averages away the signal and a features-only model wins. One number, computed in a line, and it predicts whether the architecture suits the graph.</dd>
+
 <dt>Hidden layer <span class="where">VII §2</span></dt>
 <dd>A layer whose output is neither the input nor the prediction. It learns a representation
 in which the remaining problem is easier.</dd>
@@ -843,6 +874,7 @@ in which the remaining problem is easier.</dd>
 
 <dt>Homophily <span class="where">XXVI §27</span></dt>
 <dd>The fraction of edges joining nodes with the same label. High homophily is what makes a random node split leak (a test node's neighbours are labelled training nodes), and it is why label propagation with no learning at all is a hard baseline to beat.</dd>
+
 <dt>Hubness <span class="where">XV §26</span></dt>
 <dd>In high dimensions, a few points appear in a great many nearest-neighbour lists while many appear in none, although the mean count is fixed by construction. The mechanism is that points nearer the centre of the cloud are nearer to everything. A property of the geometry, not of any model, and a cause of degenerate retrieval that is often misread as popularity bias.</dd>
 
@@ -889,6 +921,7 @@ possible, and routinely false.</dd>
 
 <dt>Importance sampling <span class="where">XXVIII §26</span></dt>
 <dd>Estimating an expectation under one distribution using samples from another, reweighted by the density ratio. Unbiased for any covering proposal, and frequently useless: in high dimensions mismatch compounds per dimension and the effective sample size collapses, so unbiasedness is not the property to check.</dd>
+
 <dt>Importance-weighted bound <span class="where">XVI §17</span></dt>
 <dd><span class="m">$\log \frac{1}{k}\sum_i p(\mathbf{x}, \mathbf{z}^{(i)})/q(\mathbf{z}^{(i)}\mid\mathbf{x})$</span> with <span class="m">$\mathbf{z}^{(i)} \sim q$</span>. Also a lower bound, and it tightens as <span class="m">$k$</span> grows. If a likelihood is to be reported for a latent variable model, this is the one to report, with <span class="m">$k$</span> stated.</dd>
 
@@ -903,6 +936,7 @@ possible, and routinely false.</dd>
 
 <dt>Inductive and transductive <span class="where">XXVI §26</span></dt>
 <dd>Whether the test nodes were absent from the training graph or merely unlabelled in it. Different problems; the transductive one is easier; and reporting a transductive number for a system that will face new nodes is the most common overstatement in graph learning. Any method needing the full graph at training time is transductive by construction.</dd>
+
 <dt>Infinitely strong prior <span class="where">X §11</span></dt>
 <dd>A prior placing zero probability on some parameters, forbidding them whatever the data says. A convolutional layer is a dense layer under one: weights must be shared across positions and zero outside a small receptive field. It is why architecture and regularisation are the same kind of thing.</dd>
 
@@ -923,10 +957,13 @@ possible, and routinely false.</dd>
 
 <dt>Intersection over union <span class="where">XXIX §4</span></dt>
 <dd>The overlap of two regions divided by their union. Scale-invariant, bounded, and zero for any disjoint pair, which makes it acceptable as a metric and poor as a loss, since it has no gradient exactly where a detector starts. The generalised variants add a term that keeps pulling in that case, which is the same defect and the same repair as Part XXVIII §41's transport distance replacing a divergence that is infinite on disjoint supports.</dd>
+
 <dt>Invariance <span class="where">X §9 · XXVI §2</span></dt>
 <dd>The output does not change when the input is transformed. An architecture is a declaration of which group it is invariant to: convolution declares translation, message passing declares permutation, a molecular network declares both permutation and rigid motion. Figure 1 of Part XXVI measures the built-in version at 1.000 on relabelled data against 0.951 for augmentation.</dd>
+
 <dt>Inverse kinematics <span class="where">XXXI §26</span></dt>
 <dd>Solving for the joint angles that place an end effector at a desired pose. Unlike forward kinematics it may have no solution, one, several or infinitely many. Near a singularity the Jacobian loses rank and a small commanded motion demands an enormous joint velocity, which is why production code uses a damped pseudo-inverse rather than a true one.</dd>
+
 <dt>Inverse-probability weighting <span class="where">XXII §19</span></dt>
 <dd>Weighting each unit by the reciprocal of its probability of the treatment it received, reconstructing the population that would have existed under random assignment. Efficient and fragile: variance rises sharply as overlap degrades.</dd>
 
@@ -952,6 +989,7 @@ generalisation when the output has several components.</dd>
 
 <dt>Kalman filter <span class="where">XXVIII §13</span></dt>
 <dd>Exact inference in a linear-Gaussian state space model, as a recursion on a mean and a covariance. Not an approximation: Figure 2 of Part XXVIII measures it against the analytic posterior at 10<sup>&minus;11</sup>. The Kalman gain is what conditioning produces, not a tuning parameter.</dd>
+
 <dt>Kernel trick <span class="where">VI §15</span></dt>
 <dd>Computing inner products in a high-dimensional feature space without constructing the
 coordinates. Makes linear methods nonlinear, at a cost quadratic in dataset size.</dd>
@@ -1011,6 +1049,7 @@ cause behind a mixture, and the core idea behind autoencoders and generative mod
 
 <dt>Leakage (spectral) <span class="where">XXVII §21</span></dt>
 <dd>Energy spread across every frequency bin by the discontinuity between the ends of a record, which the transform's periodicity assumption turns into a real feature of the signal. A tone that does not complete a whole number of cycles shows as a peak with skirts, and the skirts can bury a genuine weak component. Repaired by windowing.</dd>
+
 <dt>Leaky unit <span class="where">XI §17</span></dt>
 <dd>A hidden unit with a linear self-connection, <span class="m">$\mu \leftarrow \alpha\mu + (1-\alpha)v$</span>. Remembers about <span class="m">$1/(1-\alpha)$</span> steps. The same geometric series as momentum, RMSProp, batch norm's running statistics and Polyak averaging.</dd>
 
@@ -1049,6 +1088,7 @@ cannot supply.</dd>
 
 <dt>Linear-quadratic regulator <span class="where">XXXI §10</span></dt>
 <dd>The optimal controller for linear dynamics under quadratic cost, obtained by iterating a Riccati recursion. Optimal by construction, so nothing tuned can beat it: Figure 3 of Part XXXI measures a hand-tuned PD within <b>0.1%</b> on a double integrator, <b>78&times;</b> worse on a triple, and unable to stabilise five at all. It is the dual of the Kalman filter, which is the same recursion for estimation.</dd>
+
 <dt>Local average treatment effect <span class="where">XXII §26</span></dt>
 <dd>The estimand two-stage least squares returns with heterogeneous effects: the effect among units whose treatment the instrument actually changed. Not identifiable individually, and often different from the population average.</dd>
 
@@ -1125,13 +1165,16 @@ minimising cross-entropy and to minimising KL divergence.</dd>
 
 <dt>Mean-field approximation <span class="where">XXVIII §19</span></dt>
 <dd>A variational family in which the latent variables are independent. Cheap, standard, and wrong in a specific direction: for a Gaussian posterior with correlation <span class="m">$\rho$</span> the fitted marginal standard deviation is exactly <span class="m">$\sqrt{1-\rho^2}$</span>, so the reported uncertainty at <span class="m">$\rho = 0.9$</span> is 44% of the truth. A property of the objective, not of the optimiser.</dd>
+
 <dt>Mediator <span class="where">XXII §5</span></dt>
 <dd>A variable on the causal path from treatment to outcome. Adjusting for it removes the part of the effect travelling through it, leaving the direct rather than the total effect: right for some questions and a silent error for most.</dd>
 
 <dt>Mel scale <span class="where">XXX §4</span></dt>
 <dd>A frequency warping spacing bands uniformly in perceived pitch, roughly logarithmic above 500 Hz. Pooling a spectrum into mel bands asserts that frequency resolution should degrade with frequency the way human hearing's does: right for speech intended for people, wrong for machine, animal or radio signals. Figure 1 of Part XXX measures the highest band pooling <b>14&times;</b> as many FFT bins as the lowest, with a 200 Hz separation falling inside a single band above about 4,560 Hz.</dd>
+
 <dt>Message passing <span class="where">XXVI §8</span></dt>
 <dd>The loop at the centre of graph learning: form a message on each edge, aggregate a node's incoming messages with a permutation-invariant operator, update the node from its own state and the aggregate. Sum is injective on multisets and mean and max are not, which makes that choice an expressivity question.</dd>
+
 <dt>MinHash <span class="where">XIII §15</span></dt>
 <dd>A signature of <span class="m">$k$</span> minima under <span class="m">$k$</span> random permutations, whose match rate estimates the Jaccard index, because the minimum over <span class="m">$A \cup B$</span> lands in the intersection exactly <span class="m">$J$</span> of the time. Error falls like <span class="m">$1/\sqrt{k}$</span> and does <b>not</b> depend on corpus size.</dd>
 
@@ -1166,6 +1209,7 @@ component index is a latent variable.</dd>
 
 <dt>Model extraction <span class="where">XXXII §36</span></dt>
 <dd>Cloning a model through its query interface. Figure 8 of Part XXXII measures <b>95% agreement in 40 queries</b> against a victim with 30 parameters that had been fitted on thousands of examples: the cost scales with what is being recovered, not with the victim's training set. Restricting the output to a label raises it <b>16&times;</b> and reaches 97% anyway, so query access is disclosure at a price rather than a door that can be closed.</dd>
+
 <dt>Model soup <span class="where">XX §49</span></dt>
 <dd>Averaging the weights of several fine-tunes of the <i>same</i> pretrained model. Sound because they share an ancestor and are therefore linearly connected; averaging across pretraining runs is not the same operation and destroys both models.</dd>
 
@@ -1174,6 +1218,7 @@ component index is a latent variable.</dd>
 
 <dt>Model-predictive control <span class="where">XXXI §14</span></dt>
 <dd>Optimising over a horizon subject to constraints, applying only the first input, and re-solving at the next instant. The re-solving is where the feedback is: fix the plan and it becomes open-loop planning. It exists because a constraint cannot be added to an optimal controller by clipping its output: the controller keeps planning as though the limit were absent, so it never chooses the differently shaped trajectory that stays inside.</dd>
+
 <dt>Module <span class="where">IV §8</span></dt>
 <dd>An object that owns tensors and knows which are learned. Attribute assignment is intercepted and registers submodules, which is what makes <code>parameters()</code> (and therefore the optimiser) possible.</dd>
 
@@ -1213,6 +1258,7 @@ by unequal curvature.</dd>
 
 <dt>Neural codec <span class="where">XXX §22</span></dt>
 <dd>An autoencoder with a residual vector quantiser in the middle, trained with reconstruction, adversarial and commitment terms, producing a sequence of codebook indices at perhaps 75 per second. Those indices are tokens, so a language model can be trained on audio with no audio-specific architecture. The stages are coarse-to-fine, so capacity is best spent on the first.</dd>
+
 <dt>Neural tangent kernel <span class="where">XXIII §47</span></dt>
 <dd>The Gram matrix of the network's Jacobian with respect to its parameters at initialisation. In the infinite-width limit under NTK parameterisation it is deterministic and constant during training, so gradient descent on the network becomes kernel regression. At any width anyone trains it is neither: it moves by several per cent and it moves toward the data.</dd>
 
@@ -1234,6 +1280,7 @@ minimum of the local quadratic. Conditioning-independent, and unusable at scale.
 
 <dt>Non-maximum suppression <span class="where">XXIX §12</span></dt>
 <dd>Deleting lower-scoring detections that overlap a kept one, to remove duplicates. Greedy, non-differentiable, not part of the model, usually untuned, and it decides the output: Figure 2 of Part XXIX measures crowded recall at <b>0.328</b> at a threshold of 0.3 and <b>1.000</b> at 0.7, with precision moving the other way. It cannot distinguish a duplicate from two genuinely overlapping objects, because overlap is the only evidence it uses.</dd>
+
 <dt>No-regret <span class="where">XXIII §31</span></dt>
 <dd>An online algorithm whose regret grows sublinearly in the horizon, so its average loss approaches that of the best fixed decision. The guarantee needs no distributional assumption at all, and the comparator being a fixed decision is what makes that possible.</dd>
 
@@ -1253,8 +1300,10 @@ numerically worst way to compute it: forming <span class="m">$A^\top A$</span> s
 
 <dt>Nyquist frequency <span class="where">XXVII §2</span></dt>
 <dd>Half the sampling rate: the highest frequency a given rate can represent. Below it, sampling loses nothing and the continuous signal is exactly recoverable; above it, content aliases. Named alongside Shannon in the sampling theorem.</dd>
+
 <dt>Occupancy <span class="where">XXXII §6</span></dt>
 <dd>How many threads an accelerator has in flight to hide memory latency. A means rather than an end: a kernel at low occupancy that already saturates memory is finished, and raising occupancy usually costs registers, which can push values back to memory. Optimise the time and read occupancy only to explain it.</dd>
+
 <dt>Off-policy <span class="where">XVIII §18</span></dt>
 <dd>Learning about one policy from data generated by another. Enables replay, learning from demonstrations, and reuse of old data, and is one leg of the [[deadly-triad]]. Q-learning is off-policy; SARSA is not, and the two targets differ by one symbol.</dd>
 
@@ -1263,8 +1312,10 @@ numerically worst way to compute it: forming <span class="m">$A^\top A$</span> s
 
 <dt>Operational design domain <span class="where">XXXI §41</span></dt>
 <dd>The conditions under which a safety claim applies: where, when, in what weather, at what speeds. A claim without one is not falsifiable, and it is the first of the three things (domain, failure mode, rate with confidence) that turn "safer than a human" into a statement.</dd>
+
 <dt>Optimal transport <span class="where">XXVIII §41</span></dt>
 <dd>The cost of the cheapest plan for moving one distribution onto another; the Wasserstein distances are its values. Unlike a density-ratio divergence it uses the geometry of the space, so it stays finite and informative on disjoint supports where KL is infinite: Figure 8 of Part XXVIII measures <span class="m">$W_1$</span> growing linearly with slope 1.0000 exactly where KL supplies no gradient at all.</dd>
+
 <dt>Orthogonal matrix <span class="where">I §16</span></dt>
 <dd>Orthonormal columns, so <span class="m">$Q^{-1} = Q^\top$</span>. A rotation or reflection: preserves all
 lengths and angles. The inverse is free.</dd>
@@ -1279,85 +1330,13 @@ operation.</dd>
 
 <dt>Over-smoothing <span class="where">XXVI §13</span></dt>
 <dd>The convergence of node representations toward each other under repeated aggregation. Mean aggregation is row-stochastic, so its repeated application is a random walk converging to a distribution independent of where it started; Figure 2 of Part XXVI measures mean pairwise distance falling from 1.351 to 0.000 with accuracy following it down. Under the symmetric normalisation the rows converge to a common direction scaled by the square root of degree instead: the same loss of information, stated exactly.</dd>
+
 <dt>Over-squashing <span class="where">XXVI §20</span></dt>
 <dd>The dilution of distant information as an exponentially growing receptive field is compressed into a fixed-width vector. Figure 4 of Part XXVI measures a source's share of a target's representation falling by a factor of 6,561 along a path. The opposite constraint from over-smoothing, and together they are why long-range dependence on graphs is hard.</dd>
-<dt>Pass@k <span class="where">XXXIII §39</span></dt>
-<dd>The fraction of problems where at least one of $k$ samples is correct. Not a method (there is no selection rule, it needs an oracle) but the ceiling any selector could reach, and the correct upper bound to plot beside a measured rate. Reporting it as a capability number is the standard measurement error here.</dd>
-
-<dt>Pattern database <span class="where">XXXIII §13</span></dt>
-<dd>Project a state onto a subset of its features, enumerate that smaller space exhaustively backwards from the goal, and store exact distances. Lookup is constant time and the values are admissible. Two such databases may be added only if no single action contributes to both.</dd>
-
-<dt>Probabilistic completeness <span class="where">XXXIII §25</span></dt>
-<dd>The guarantee sampling-based planners offer: if a solution exists, the probability of finding it tends to one with more samples. If none exists the algorithm runs forever and never says so: an asymmetry that is why deployed planners carry a timeout and a fallback.</dd>
-
-<dt>Probabilistic roadmap <span class="where">XXXIII §26</span></dt>
-<dd>Sample free configurations, connect nearby pairs whose straight segment is collision free, then answer queries by graph search on the result. The expensive phase is paid once, which makes it right for a static environment with many queries and wrong for a changing one.</dd>
-
-<dt>Rapidly-exploring random tree <span class="where">XXXIII §27</span></dt>
-<dd>Grow a tree by sampling a configuration, finding the nearest node, and stepping toward it. Extension probability is proportional to a node's Voronoi volume, so the tree pulls toward unexplored space without being told to. Single-query, and the paths need smoothing before anything executes them.</dd>
-
-<dt>Rate–distortion function <span class="where">XV §43</span></dt>
-<dd>$R(D)$: the least rate that reconstructs a source within average distortion $D$. A property of the source and the distortion measure rather than of any codec, so every real quantiser sits above it. For a Gaussian under squared error, $R(D)=\tfrac12\log_2(\sigma^2/D)$: half a bit per halving of distortion.</dd>
-
-<dt>Rehearsal <span class="where">XX §48</span></dt>
-<dd>Mixing a fraction of earlier training data into a new training run. The cheapest remedy for [[catastrophic-forgetting]] by a wide margin: a few per cent recovers most of what would be lost at no measurable cost to the new task. Its binding constraint is organisational rather than algorithmic: it presumes you still have the earlier data in a form you can sample.</dd>
-
-<dt>Relaxation (heuristics) <span class="where">XXXIII §13</span></dt>
-<dd>Delete a constraint, solve the easier problem exactly, and use its cost as a heuristic. Admissible automatically, because every solution to the original is still a solution to the relaxed one. Manhattan distance is the 8-puzzle without the rule that tiles block each other.</dd>
-
-<dt>Rich regime <span class="where">XXIII §49</span></dt>
-<dd>Training in which the features themselves change, so the network is not described by its linearisation. The regime in which representation learning happens, and (measurably) the one that generalises better at equal training loss and reaches it in fewer steps. See [[lazy-regime]].</dd>
-
-<dt>RRT* <span class="where">XXXIII §28</span></dt>
-<dd>RRT with two additions (connect a new node to the cheapest nearby parent, then rewire neighbours through it when cheaper), which makes the cost converge to the optimum. Requires a rewiring radius shrinking like $(\log n/n)^{1/d}$, where the dimension reappears.</dd>
-
-<dt>Selective copying <span class="where">XI §36</span></dt>
-<dd>Recovering the value of the last marked token from a stream of noise. The task selectivity exists to solve: no fixed decay does better than chance-adjacent because it must average in everything it sees, while an input-dependent gate is exact, with the same one number of state in both.</dd>
-
-<dt>Selective state space model <span class="where">XI §36</span></dt>
-<dd>Making a state space model's decay and input matrices functions of the token, so it can hold through irrelevant spans and overwrite on relevant ones. What separates a modern state space model from a classical linear time-invariant one. It costs time invariance, so the FFT route is gone and the associative scan is what remains.</dd>
-
-<dt>Self-consistency <span class="where">XXXIII §39</span></dt>
-<dd>Sampling several answers and returning the most common one. Needs no verifier, and works because independent errors scatter while a correct derivation concentrates. Fails on a systematic misconception, which voting amplifies: removing variance and never bias.</dd>
-
-<dt>Signal propagation <span class="where">XXIII §53</span></dt>
-<dd>How the correlation between two inputs' representations evolves with depth in a randomly initialised network. What initialisation actually chooses is not a variance but a depth scale: the number of layers over which information about the input survives.</dd>
-
-<dt>Simulated annealing <span class="where">XXXIII §16</span></dt>
-<dd>Local search that accepts a worsening move of size $\Delta$ with probability $e^{-\Delta/T}$, cooling $T$ over time. The acceptance rule is Metropolis–Hastings, so at fixed temperature the visit distribution is Boltzmann; the schedule that guarantees convergence is too slow to use.</dd>
-
-<dt>Sliding-window attention <span class="where">XI §37</span></dt>
-<dd>Exact attention within a fixed window and nothing beyond it. A fixed cache like a recurrence, trading lossy recall everywhere for exact recall inside the window. The same trade as a linear-state layer at a different point.</dd>
-
-<dt>Space-filling loss <span class="where">XV §43</span></dt>
-<dd>The fixed overhead a quantiser pays for coding one sample at a time rather than long blocks: $\tfrac12\log_2(\pi e/6) \approx 0.2546$ bits per sample for an entropy-coded uniform scalar quantiser. It does not shrink with rate, and going from one dimension to two recovers only about a twelfth of it.</dd>
-
-<dt>State space (search) <span class="where">XXXIII §2</span></dt>
-<dd>States, an initial state, actions, a transition function and a goal test, plus step costs. Almost never written down: it is generated as you go, which is the only reason search is feasible. Choosing it is the modelling; choosing the algorithm afterwards is a short menu.</dd>
-
-<dt>Task vector <span class="where">XX §50</span></dt>
-<dd>The displacement a fine-tune produced, $\tau = \theta_{\text{ft}} - \theta_0$, treated as an object that can be added and subtracted. Addition composes capabilities and loses about a quarter of each; negation removes a behaviour and damages unrelated ones. How well it works is predicted by the angle between the vectors: near-orthogonal composes, aligned interferes.</dd>
-
-<dt>Two-part code <span class="where">XV §44</span></dt>
-<dd>The decomposition description length rests on: transmit a model, then transmit the data given the model. Dropping the first term turns a selection criterion into a fitting criterion, which is where "it compresses the data better" usually goes wrong. See [[minimum-description-length]].</dd>
-
-<dt>UCT <span class="where">XXXIII §31</span></dt>
-<dd>Applying an upper confidence bound at every internal node of a Monte Carlo tree search. What makes the value estimate converge to the value under optimal play rather than to the value of a random player: the exploration constant has an interior optimum that moves with the budget, so one tuned at a small budget is wrong at a large one.</dd>
-
-<dt>Uniform-cost search <span class="where">XXXIII §4</span></dt>
-<dd>Expand the node of least path cost. Optimal for any non-negative costs, and identical to Dijkstra's algorithm arrived at from the search side rather than the graph side. A* with $h=0$.</dd>
-
-<dt>Upper confidence bound <span class="where">XXXIII §30</span></dt>
-<dd>$\hat\mu_i + c\sqrt{\ln t/n_i}$: act as though each option is as good as its evidence permits. The bonus shrinks with that arm's pulls and grows with total time, so nothing is abandoned permanently. Gives logarithmic rather than linear regret.</dd>
-
-<dt>Verifier <span class="where">XXXIII §40</span></dt>
-<dd>Anything that scores a candidate solution. Sound means it never accepts a wrong answer, complete that it never rejects a right one; soundness is what makes search over its outputs safe. An outcome verifier scores finished answers, a process verifier scores each step, and only the second can guide a search over partial solutions.</dd>
-
-<dt>Weighted A* <span class="where">XXXIII §11</span></dt>
-<dd>A* with $f=g+w\,h$ for $w\ge1$. Inadmissible by construction, so optimality is replaced by a guarantee of at most $w$ times optimal: a bound that in practice sits far above what happens, so the weight should be chosen by measuring rather than by deciding what suboptimality you can tolerate.</dd>
 
 <dt>μP <span class="where">XVII §34</span></dt>
 <dd>A parameterisation whose initialisation, learning-rate and multiplier scalings make the optimal learning rate independent of width, so it can be tuned on a small model and transferred to a much larger one. Follows from requiring activations and updates to stay the same order of magnitude as width grows.</dd>
+
 <dt>PAC learning <span class="where">XXIII §8</span></dt>
 <dd>Probably approximately correct: an algorithm that, from enough samples, returns a hypothesis within <span class="m">$\varepsilon$</span> of the best in its class with probability <span class="m">$1-\delta$</span>, for <b>every</b> distribution. The universal quantifier over distributions is what makes the resulting bounds pessimistic.</dd>
 
@@ -1369,12 +1348,19 @@ operation.</dd>
 
 <dt>Panoptic segmentation <span class="where">XXIX §19</span></dt>
 <dd>Assigning every pixel exactly once, with countable things receiving identities and uncountable stuff receiving classes. The distinction from semantic segmentation is operational: a planner needs to know there are two cars rather than one car-shaped region, and a semantic model cannot tell it.</dd>
+
 <dt>Parameter sharing <span class="where">VIII §15</span></dt>
 <dd>Forcing weights to be identical rather than merely similar. Removes parameters outright, and encodes a real invariance: it is what convolution and recurrence are.</dd>
 
 <dt>Partial derivative <span class="where">0 §22</span></dt>
 <dd>The derivative with respect to one variable, holding the others fixed. The slope of a
 slice.</dd>
+
+<dt>Pass@k <span class="where">XXXIII §39</span></dt>
+<dd>The fraction of problems where at least one of $k$ samples is correct. Not a method (there is no selection rule, it needs an oracle) but the ceiling any selector could reach, and the correct upper bound to plot beside a measured rate. Reporting it as a capability number is the standard measurement error here.</dd>
+
+<dt>Pattern database <span class="where">XXXIII §13</span></dt>
+<dd>Project a state onto a subset of its features, enumerate that smaller space exhaustively backwards from the goal, and store exact distances. Lookup is constant time and the values are admissible. Two such databases may be added only if no single action contributes to both.</dd>
 
 <dt>PCA <span class="where">I §23</span></dt>
 <dd>Principal components analysis: project data onto the directions of greatest variance,
@@ -1388,8 +1374,10 @@ which are the top eigenvectors of the covariance matrix.</dd>
 
 <dt>Permutation invariance <span class="where">XXVI §2</span></dt>
 <dd>The requirement that relabelling a set's or a graph's elements leaves the answer unchanged. Not learnable by augmentation at any realistic scale (a 30-node graph has 2.7&nbsp;&times;&nbsp;10<sup>32</sup> orderings), which is the argument for building it into the architecture instead.</dd>
+
 <dt>Phase <span class="where">XXVII §18</span></dt>
 <dd>The argument of a Fourier coefficient: where a frequency's crests fall, as against how much of it is present. An edge is many frequencies whose crests align, so phase carries the structure: Figure 4 of Part XXVII measures a reconstruction correlating +0.736 with its phase donor and &minus;0.125 with its magnitude donor. Any method keeping magnitude and discarding phase, including a mel spectrogram, has discarded the content.</dd>
+
 <dt>Pinball loss <span class="where">XXV §41</span></dt>
 <dd>The loss minimised by a given quantile, and therefore the proper scoring rule for a quantile forecast. Reporting only an error on the median discards the part of a forecast a decision actually uses.</dd>
 
@@ -1436,6 +1424,7 @@ minimum.</dd>
 
 <dt>Power spectrum <span class="where">XXVII §27</span></dt>
 <dd>The distribution of a signal's energy across frequency, licensed as a decomposition by Parseval's identity. Natural images follow a steep power law (Figure 6 of Part XXVII measures <span class="m">$f^{-2.91}$</span> on 26 tiles from three sources, against <span class="m">$f^{0.00}$</span> for white noise), which is the measurement every smoothness prior in this book is betting on.</dd>
+
 <dt>PPO <span class="where">XVIII §31</span></dt>
 <dd>A clipped surrogate objective that removes the reward for stepping outside a trust region, so the gradient vanishes there rather than being penalised. Won on simplicity rather than theory, and replication work found much of its measured advantage comes from implementation details absent from its equations.</dd>
 
@@ -1457,8 +1446,15 @@ minimum.</dd>
 <dt>Pretext task <span class="where">XV §16</span></dt>
 <dd>A supervised problem whose labels are manufactured from the data: predicting a rotation, a tile permutation, a removed colour. Plateaued because it specifies what must be <b>predicted</b> where what you want to specify is what may be <b>ignored</b>, leaving each task carrying an accidental bias determined by whichever shortcut was available.</dd>
 
+<dt>Probabilistic completeness <span class="where">XXXIII §25</span></dt>
+<dd>The guarantee sampling-based planners offer: if a solution exists, the probability of finding it tends to one with more samples. If none exists the algorithm runs forever and never says so: an asymmetry that is why deployed planners carry a timeout and a fallback.</dd>
+
+<dt>Probabilistic roadmap <span class="where">XXXIII §26</span></dt>
+<dd>Sample free configurations, connect nearby pairs whose straight segment is collision free, then answer queries by graph search on the result. The expensive phase is paid once, which makes it right for a static environment with many queries and wrong for a changing one.</dd>
+
 <dt>Probability-flow ODE <span class="where">XXVIII §37</span></dt>
 <dd>A deterministic equation whose marginal distribution at every time matches a given diffusion's. Sampling becomes deterministic given the starting noise, the map is invertible, and an exact likelihood becomes available. Figure 7 of Part XXVIII measures the honest cost: with a first-order solver it is <i>less</i> accurate than the stochastic sampler at every step count, and its advantage comes from admitting higher-order solvers.</dd>
+
 <dt>Prompt injection <span class="where">XX §38</span></dt>
 <dd>Instructions placed in data that the model treats as instructions. The model has no channel separating the two, so a retrieved document containing a directive is indistinguishable from a directive. Cannot be fixed inside the model; the separation must be enforced by the system around it.</dd>
 
@@ -1501,6 +1497,7 @@ member; it assumes exact gradients, so it is rare in deep learning.</dd>
 
 <dt>Radial distortion <span class="where">XXIX §27</span></dt>
 <dd>A lens's departure from the pinhole model, growing with distance from the principal point. Figure 6 of Part XXIX measures <b>exactly zero</b> error at the centre and <b>164 px</b> at the corner of a 1,024 px wide-angle image, two orders of magnitude beyond any detector's localisation accuracy. Because it vanishes at the centre, a system developed on centred objects looks calibrated and fails at the edge of frame, which is why the residual must be reported against radius rather than averaged.</dd>
+
 <dt>Random forest <span class="where">XXV §11</span></dt>
 <dd>Bagging plus a random subset of features offered at each split. The subsetting lowers the correlation between trees monotonically; whether that buys lower ensemble error depends on how many columns carry signal, since a tree denied its best feature is also a worse tree.</dd>
 
@@ -1517,8 +1514,15 @@ column count. Rank deficiency is information destroyed.</dd>
 <dt>Rank collapse <span class="where">XII §26</span></dt>
 <dd>Stacked self-attention converging to a representation in which every position holds the same vector, measured at effective rank 1.00 by depth 32. Attention outputs are convex combinations and repeated averaging converges; and the residual connection is what prevents it, which is a second job it does beyond shortening the gradient path.</dd>
 
+<dt>Rapidly-exploring random tree <span class="where">XXXIII §27</span></dt>
+<dd>Grow a tree by sampling a configuration, finding the nearest node, and stepping toward it. Extension probability is proportional to a node's Voronoi volume, so the tree pulls toward unexplored space without being told to. Single-query, and the paths need smoothing before anything executes them.</dd>
+
+<dt>Rate–distortion function <span class="where">XV §43</span></dt>
+<dd>$R(D)$: the least rate that reconstructs a source within average distortion $D$. A property of the source and the distortion measure rather than of any codec, so every real quantiser sits above it. For a Gaussian under squared error, $R(D)=\tfrac12\log_2(\sigma^2/D)$: half a bit per halving of distortion.</dd>
+
 <dt>Readout <span class="where">XXVI §29</span></dt>
 <dd>The operation collapsing a graph's node representations into one vector for a graph-level prediction. Where the invariance is finally imposed, and the sum-against-mean choice is a claim about whether the number of nodes is a fact about the object or an artefact of how the graph was built.</dd>
+
 <dt>Recall <span class="where">XIV §3</span></dt>
 <dd>Of the cases that are positive, the fraction flagged. The counterpart to precision: flagging everybody gives recall 1.0 and precision equal to the base rate.</dd>
 
@@ -1543,6 +1547,12 @@ column count. Rank deficiency is information destroyed.</dd>
 <dt>Regularization <span class="where">VIII §1</span></dt>
 <dd>Any modification intended to reduce generalisation error without reducing training error, or equivalently, a preference among the functions that fit the training data equally well. Stated before you know which functions will fit. Includes penalties, architecture constraints, data augmentation, noise injection and early stopping: five very different mechanisms that express the same underlying intent.</dd>
 
+<dt>Rehearsal <span class="where">XX §48</span></dt>
+<dd>Mixing a fraction of earlier training data into a new training run. The cheapest remedy for [[catastrophic-forgetting]] by a wide margin: a few per cent recovers most of what would be lost at no measurable cost to the new task. Its binding constraint is organisational rather than algorithmic: it presumes you still have the earlier data in a form you can sample.</dd>
+
+<dt>Relaxation (heuristics) <span class="where">XXXIII §13</span></dt>
+<dd>Delete a constraint, solve the easier problem exactly, and use its cost as a heuristic. Admissible automatically, because every solution to the original is still a solution to the relaxed one. Manhattan distance is the 8-puzzle without the rule that tiles block each other.</dd>
+
 <dt>Reliability <span class="where">XX §44</span></dt>
 <dd>Whether a model is correct under <b>every</b> paraphrase of a request, as against average accuracy. Always at most the mean and usually far below it. Benchmarks report accuracy; deployments need this, because at 95% per step a twenty-step chain succeeds about a third of the time.</dd>
 
@@ -1561,6 +1571,7 @@ suffer the vanishing gradient of the sigmoid.</dd>
 
 <dt>Reprojection error <span class="where">XXIX §27</span></dt>
 <dd>The distance in pixels between where a 3-D point projects under an estimated camera model and where it was observed. The objective of calibration and of bundle adjustment, and the quantity to check against radius when diagnosing a geometry problem.</dd>
+
 <dt>Reservoir computing <span class="where">XI §25</span></dt>
 <dd>The family containing echo state networks and liquid state machines: a fixed random recurrence providing temporal features, with only the readout trained.</dd>
 
@@ -1569,6 +1580,7 @@ suffer the vanishing gradient of the sigmoid.</dd>
 
 <dt>Residual quantisation <span class="where">XXX §20</span></dt>
 <dd>Applying several small codebooks in sequence, each encoding what the previous stages left. Avoids a codebook exponential in the bitrate: Figure 5 of Part XXX measures it landing within <b>1.4 to 1.5&times;</b> of full vector quantisation with a codebook of 16 rather than 256.</dd>
+
 <dt>Residual stream <span class="where">XII §16</span></dt>
 <dd>The reading of a transformer in which the representation at depth <span class="m">$L$</span> is the embedding plus the sum of every sublayer's output: a channel each component reads from and adds to, rather than a pipeline of stages.</dd>
 
@@ -1578,16 +1590,22 @@ gradient, which is why training is affordable.</dd>
 
 <dt>Reverse-time SDE <span class="where">XXVIII §36</span></dt>
 <dd>A diffusion run backwards is another diffusion, with a drift involving <span class="m">$\nabla \log p_t$</span>: the score. Learn that one quantity at every noise level and generation is simulation. This is the result the whole of diffusion modelling rests on, and Part XVI's discrete noise ladder is its discretisation.</dd>
+
 <dt>Reward hacking <span class="where">XVIII §39</span></dt>
 <dd>A policy that maximises its reward while failing the intention behind it. Not a malfunction: the reward is a specification and the optimiser is paid to find what it literally says. Measured here at a policy earning 13.9× the proxy return of the correct policy while never reaching the goal.</dd>
 
 <dt>Rewiring <span class="where">XXVI §23</span></dt>
 <dd>Adding, removing or replacing edges to shorten the paths message passing must travel: a virtual node connected to everything, or full attention. It reduces over-squashing and changes the object being modelled, so whether it is legitimate is a question about the problem rather than about the metric.</dd>
+
+<dt>Rich regime <span class="where">XXIII §49</span></dt>
+<dd>Training in which the features themselves change, so the network is not described by its linearisation. The regime in which representation learning happens, and (measurably) the one that generalises better at equal training loss and reaches it in fewer steps. See [[lazy-regime]].</dd>
+
 <dt>Ridge point <span class="where">XIX §3</span></dt>
 <dd>A machine's peak compute divided by its memory bandwidth, in FLOP per byte. Operations below it are memory-bound and their arithmetic units idle.</dd>
 
 <dt>Ring all-reduce <span class="where">XXXII §18</span></dt>
 <dd>Summing a buffer across workers by passing slices around a ring: reduce-scatter, then all-gather. Each worker moves <span class="m">$2(N-1)/N$</span> buffers, <b>bounded by two whatever the worker count</b>, against a naive scheme's linear growth: Figure 4 of Part XXXII measures a factor of 32 at 64 workers. Optimal in volume and not in latency, which is why libraries switch algorithm by message size.</dd>
+
 <dt>Risk <span class="where">VI §3</span></dt>
 <dd>Expected loss on new draws from the true data distribution: what you actually want to minimise. Cannot be computed because the true distribution is never fully observed. Empirical risk is the computable approximation; the generalisation gap is what the approximation costs.</dd>
 
@@ -1600,11 +1618,16 @@ forgetting, which is what makes it work on non-convex problems.</dd>
 
 <dt>Roofline <span class="where">XXXII §4</span></dt>
 <dd>A performance ceiling with two pieces (intensity times bandwidth, or peak arithmetic, whichever is smaller) meeting at the ridge point. Placing a kernel on it takes ten minutes and decides which remedies apply, since the fixes for memory-bound and compute-bound work are disjoint sets.</dd>
+
 <dt>RoPE <span class="where">XII §11</span></dt>
 <dd>Rotating queries and keys by an angle proportional to position, so that <span class="m">$(R_m\mathbf{q})^\top(R_n\mathbf{k}) = \mathbf{q}^\top R_{n-m}\mathbf{k}$</span> and absolute position cancels. Verified at <span class="m">$2.1\times10^{-12}$</span>. Applies at every layer and leaves the values untouched.</dd>
 
 <dt>Rotation equivariance <span class="where">XXVI §35</span></dt>
 <dd>Rotating the input rotates the output. Achieved by keeping scalars and vectors separately at each node and updating vectors only as scalar-weighted sums of relative positions, so every term transforms the same way. Required whenever the prediction has a direction, which invariant distance-only models cannot produce.</dd>
+
+<dt>RRT* <span class="where">XXXIII §28</span></dt>
+<dd>RRT with two additions (connect a new node to the cheapest nearby parent, then rewire neighbours through it when cheaper), which makes the cost converge to the optimum. Requires a rewiring radius shrinking like $(\log n/n)^{1/d}$, where the dimension reappears.</dd>
+
 <dt>Rule of three <span class="where">XXI §27 · XXXI §42</span></dt>
 <dd>After <span class="m"><span class="m">$n$</span></span> trials with zero failures, the 95% upper bound on the failure rate is about <span class="m"><span class="m">$3/n$</span></span>. Equivalently, seeing a failure of rate <span class="m"><span class="m">$p$</span></span> at least once costs about <span class="m"><span class="m">$3/p$</span></span> attempts. The single most useful piece of arithmetic in safety evaluation.</dd>
 
@@ -1625,6 +1648,7 @@ Gaussian with spread <span class="m">$\sigma/\sqrt{n}$</span>.</dd>
 
 <dt>Sampling theorem <span class="where">XXVII §2</span></dt>
 <dd>A signal with no content above <span class="m">$B$</span> is determined completely by samples taken at a rate above <span class="m">$2B$</span>, and can be reconstructed exactly. The reconstruction is explicit, which is what makes this a theorem rather than a rule of thumb, and what makes violating it a definite loss rather than a degradation.</dd>
+
 <dt>SARSA <span class="where">XVIII §18</span></dt>
 <dd>On-policy control: the target uses the action actually taken next rather than the greedy one. Learns the value of the policy being run, exploration included, so it avoids cliff edges that Q-learning walks along and occasionally falls off.</dd>
 
@@ -1658,11 +1682,20 @@ Gaussian with spread <span class="m">$\sigma/\sqrt{n}$</span>.</dd>
 <dt>Selection bias <span class="where">XIII §7</span></dt>
 <dd>The frame differing from the population by a mechanism related to the outcome. Survivorship, self-selection and feedback. The lending case is the sharp one: no statistic computed from the observed data detects it, because the missing records are missing.</dd>
 
+<dt>Selective copying <span class="where">XI §36</span></dt>
+<dd>Recovering the value of the last marked token from a stream of noise. The task selectivity exists to solve: no fixed decay does better than chance-adjacent because it must average in everything it sees, while an input-dependent gate is exact, with the same one number of state in both.</dd>
+
+<dt>Selective state space model <span class="where">XI §36</span></dt>
+<dd>Making a state space model's decay and input matrices functions of the token, so it can hold through irrelevant spans and overwrite on relevant ones. What separates a modern state space model from a classical linear time-invariant one. It costs time invariance, so the FFT route is gone and the associative scan is what remains.</dd>
+
 <dt>Selectivity <span class="where">XV §32</span></dt>
 <dd>Probe accuracy on the real task minus probe accuracy on a [[control-task]]. The quantity that carries a claim about a representation, where accuracy alone does not. A property of the representation <i>and</i> the probe: a powerful enough probe drives selectivity toward zero on any representation that retains example identity.</dd>
 
 <dt>Self-attention <span class="where">XII §7</span></dt>
 <dd>Attention with queries, keys and values all from the same sequence. Path length 1 between any two positions, and no sequential dependency, at a cost of <span class="m">$O(n^2d)$</span> compute and <span class="m">$O(n^2)$</span> memory.</dd>
+
+<dt>Self-consistency <span class="where">XXXIII §39</span></dt>
+<dd>Sampling several answers and returning the most common one. Needs no verifier, and works because independent errors scatter while a correct derivation concentrates. Fails on a systematic misconception, which voting amplifies: removing variance and never bias.</dd>
 
 <dt>Self-supervised learning <span class="where">VI §2 · XV §15</span></dt>
 <dd>Learning a representation from unlabelled data by manufacturing a training signal from the data itself. Its first form, greedy layer-wise pretraining, was abandoned when the optimisation problem it solved was fixed by other means. Its modern forms, contrastive and masked objectives, differ in stating what may be ignored rather than what must be predicted.</dd>
@@ -1672,6 +1705,7 @@ Gaussian with spread <span class="m">$\sigma/\sqrt{n}$</span>.</dd>
 
 <dt>Set prediction <span class="where">XXIX §11</span></dt>
 <dd>Emitting a fixed number of queries and matching them to ground truth by solving an assignment problem, so the loss is permutation-invariant by construction. Removes the suppression step entirely, which is its strongest argument, and trains slowly because the assignment changes between epochs.</dd>
+
 <dt>SGD <span class="where">III §14</span></dt>
 <dd>Gradient descent on minibatch estimates. Noisy per step, enormously cheaper per step,
 and the noise helps escape saddles.</dd>
@@ -1681,6 +1715,7 @@ and the noise helps escape saddles.</dd>
 
 <dt>Shielding <span class="where">XXXI §35</span></dt>
 <dd>Keeping a verified fallback controller and a region from which it can recover, and letting a learned policy act only inside that region. The only one of the three standard safety approaches that yields a statement for a safety case: penalties trade safety against reward at an exchange rate, and constraints bound an expectation, which says nothing about the tail.</dd>
+
 <dt>Shingle <span class="where">XIII §15</span></dt>
 <dd>An overlapping <span class="m">$k$</span>-gram of a document. The set of a document's shingles is what similarity is computed over.</dd>
 
@@ -1694,17 +1729,28 @@ and the noise helps escape saddles.</dd>
 <dd><span class="m">$\sigma(x) = 1/(1+e^{-x})$</span>, squashing the real line into <span class="m">$(0,1)$</span>. Its derivative is
 <span class="m">$\sigma(1-\sigma)$</span>, which peaks at 0.25, the number behind vanishing gradients.</dd>
 
+<dt>Signal propagation <span class="where">XXIII §53</span></dt>
+<dd>How the correlation between two inputs' representations evolves with depth in a randomly initialised network. What initialisation actually chooses is not a variance but a depth scale: the number of layers over which information about the input survives.</dd>
+
 <dt>Simpson's paradox <span class="where">XXII §3</span></dt>
 <dd>When an association within every stratum reverses when the strata are pooled. Not a paradox (two correct answers to two different questions), and which one is wanted is decided by what you intend to do, not by the data.</dd>
 
 <dt>Sim-to-real gap <span class="where">XXXI §23</span></dt>
 <dd>The discrepancy between a simulator a policy was trained in and the world it is deployed in. Crossed by randomising the simulator's parameters, identifying the real ones, learning a residual correction, or (cheapest and most overlooked) closing a fast stabilising loop, which corrects errors before they compound and extends how far any learned model can be trusted.</dd>
+
+<dt>Simulated annealing <span class="where">XXXIII §16</span></dt>
+<dd>Local search that accepts a worsening move of size $\Delta$ with probability $e^{-\Delta/T}$, cooling $T$ over time. The acceptance rule is Metropolis–Hastings, so at fixed temperature the visit distribution is Boltzmann; the schedule that guarantees convergence is too slow to use.</dd>
+
 <dt>Singular matrix <span class="where">I §12, §22</span></dt>
 <dd>Not invertible. Equivalently: zero determinant, a zero eigenvalue, rank-deficient,
 collapses space onto a lower-dimensional set. Six statements, one condition.</dd>
 
 <dt>Singularity (kinematic) <span class="where">XXXI §26</span></dt>
 <dd>A configuration at which a manipulator's Jacobian loses rank, so motion in some direction becomes unavailable and the joint velocity required for a small end-effector motion diverges. Full extension of a two-link arm is the simplest example.</dd>
+
+<dt>Sliding-window attention <span class="where">XI §37</span></dt>
+<dd>Exact attention within a fixed window and nothing beyond it. A fixed cache like a recurrence, trading lossy recall everywhere for exact recall inside the window. The same trade as a linear-state layer at a different point.</dd>
+
 <dt>Soft addressing <span class="where">XI §26</span></dt>
 <dd>Reading every memory cell and taking a softmax-weighted average, because an exact integer address has no gradient. Identical in form to attention, which is how two separate problems converged on one operation.</dd>
 
@@ -1719,6 +1765,9 @@ stable implementation.</dd>
 <dt>Softplus <span class="where">II §19</span></dt>
 <dd><span class="m">$\log(1+e^x)$</span>, a smooth always-positive approximation to ReLU. Its derivative is
 exactly the sigmoid.</dd>
+
+<dt>Space-filling loss <span class="where">XV §43</span></dt>
+<dd>The fixed overhead a quantiser pays for coding one sample at a time rather than long blocks: $\tfrac12\log_2(\pi e/6) \approx 0.2546$ bits per sample for an entropy-coded uniform scalar quantiser. It does not shrink with rate, and going from one dimension to two recovers only about a twelfth of it.</dd>
 
 <dt>Span <span class="where">I §11</span></dt>
 <dd>The set of all vectors reachable by forming linear combinations of a given set: all possible scalings and sums. The span of the columns of a matrix <span class="m">$A$</span> is exactly the set of vectors <span class="m">$A\mathbf{x}$</span> can equal, which determines when <span class="m">$A\mathbf{x} = \mathbf{b}$</span> has a solution.</dd>
@@ -1740,6 +1789,7 @@ exactly the sigmoid.</dd>
 
 <dt>Spectral bias <span class="where">XXVII §29</span></dt>
 <dd>The tendency of a network trained by gradient descent to fit low-frequency components of its target first and fastest. Figure 7 of Part XXVII measures 90% of target reached at step 50 for the slowest component and never, within 20,000 steps, for the fastest, with the ordering set by frequency and not by amplitude. Much of what this book calls implicit regularisation is this one fact, and it is why early stopping keeps the smooth explanation.</dd>
+
 <dt>Spectral radius <span class="where">XI §11</span></dt>
 <dd>The largest absolute eigenvalue of a matrix. Because a recurrence applies the <b>same</b> matrix at every step, <span class="m">$\mathbf{h}^{(t)} = Q\Lambda^t Q^\top\mathbf{h}^{(0)}$</span> and the spectral radius decides whether the state and the gradient vanish or explode. Set near 1 deliberately in a reservoir; suffered everywhere else.</dd>
 
@@ -1750,6 +1800,7 @@ tractable.</dd>
 
 <dt>Spectrogram <span class="where">XXVII §23</span></dt>
 <dd>The magnitude of the transform of successive overlapping windowed segments. Every one commits to a window length, a hop and a window function, and the first of those is a point on a resolution trade that cannot be escaped: Figure 5 of Part XXVII measures the product of time and frequency resolution constant at 1.875 while each factor moves sixteen-fold.</dd>
+
 <dt>Speculative decoding <span class="where">XIX §40</span></dt>
 <dd>A small draft model proposes several tokens; the large model scores them all in one pass (nearly free, because that pass was memory-bound), and a rejection rule accepts a prefix. The rule makes the output distribution <b>exactly</b> the large model's, so it is not an approximation.</dd>
 
@@ -1763,6 +1814,9 @@ tractable.</dd>
 <dt>State space model <span class="where">XI §34</span></dt>
 <dd>A recurrence designed so that a sequential form is available at inference and a parallel form for training. The live descendant of the recurrent line, and an attempt to keep constant memory per step while removing the training bottleneck.</dd>
 
+<dt>State space (search) <span class="where">XXXIII §2</span></dt>
+<dd>States, an initial state, actions, a transition function and a goal test, plus step costs. Almost never written down: it is generated as you go, which is the only reason search is feasible. Choosing it is the modelling; choosing the algorithm afterwards is a short menu.</dd>
+
 <dt>Stationarity <span class="where">XI §8</span></dt>
 <dd>The assumption that the relation between consecutive steps does not depend on <span class="m">$t$</span>. What sharing parameters across time asserts, and false for regime changes, scene cuts and diurnal cycles, with no way for the model to say so. Part XXV §33 covers what differencing costs to obtain it, and why the classical forecasting models require it.</dd>
 
@@ -1774,6 +1828,7 @@ tractable.</dd>
 
 <dt>Straggler <span class="where">XXXII §21</span></dt>
 <dd>The slowest worker in a synchronous step, which sets the pace for the whole job. At scale the tail of the timing distribution matters rather than its mean, so one thermally-throttled machine is a fleet-wide throughput problem.</dd>
+
 <dt>Straight-through estimator <span class="where">XIX §12</span></dt>
 <dd>Passing the gradient through a rounding operation as though it were the identity. A deliberate lie about the derivative that works because the quantity being optimised is the weights, for which the identity gradient points approximately correctly.</dd>
 
@@ -1785,6 +1840,7 @@ tractable.</dd>
 
 <dt>Structure tensor <span class="where">XXIX §22</span></dt>
 <dd>The summed outer product of image gradients over a patch. Its smaller eigenvalue decides whether optical flow is determined there (near zero on an edge, large on a corner), and the same quantity decides where a corner detector fires. Good features to track and solvable flow are the same condition seen from either side.</dd>
+
 <dt>Structured sparsity <span class="where">XIX §20</span></dt>
 <dd>Zeroing weights in a regular pattern (whole rows, channels, heads, or two of every four) so that hardware can exploit it. Delivers real speedups at 50% where unstructured sparsity delivers none at 90%, because a zero in a dense array costs the same as any other number.</dd>
 
@@ -1831,6 +1887,9 @@ of matrices in general.</dd>
 <dt>Target encoding <span class="where">XXV §20</span></dt>
 <dd>Replacing a category with a statistic of the target within it. The best-performing categorical encoding and a leak unless the statistic is computed out-of-fold, because the row being encoded contributes to its own feature.</dd>
 
+<dt>Task vector <span class="where">XX §50</span></dt>
+<dd>The displacement a fine-tune produced, $\tau = \theta_{\text{ft}} - \theta_0$, treated as an object that can be added and subtracted. Addition composes capabilities and loses about a quarter of each; negation removes a behaviour and damages unrelated ones. How well it works is predicted by the angle between the vectors: near-orthogonal composes, aligned interferes.</dd>
+
 <dt>Teacher forcing <span class="where">XI §9</span></dt>
 <dd>Using the <b>true</b> previous token as input during training, rather than the model's own prediction. Not a hack: the correct maximum likelihood objective conditions on the observed sequence, not on the model's output. A side benefit is that steps are decoupled, so the loss can be computed for all positions in parallel rather than sequentially.</dd>
 
@@ -1852,6 +1911,7 @@ transformation-law meaning it has in physics.</dd>
 
 <dt>Threat model <span class="where">XXXII §33</span></dt>
 <dd>A statement of what an adversary can do, wants, and knows. A defence without one is not a claim, and the assumption that fails is always the same: that the adversary does not know the defence. A large fraction of published defences were broken by an attack adapted to them.</dd>
+
 <dt>Toeplitz matrix <span class="where">X §4</span></dt>
 <dd>A matrix in which each row is the row above, shifted. The structure of convolution written as a matrix; in two dimensions the shift happens at two scales and the result is doubly block circulant.</dd>
 
@@ -1871,21 +1931,33 @@ permutation of a product.</dd>
 
 <dt>Treewidth <span class="where">XXVIII §11</span></dt>
 <dd>The size of the largest intermediate factor created by the best elimination order. Exact inference costs exponential time in it, so it decides tractability before any data arrives: 1 for a tree, small for a chain, and growing with the side length of a grid.</dd>
+
 <dt>Triangulation <span class="where">XXIX §29</span></dt>
 <dd>Recovering depth from disparity between two views: <span class="m">$Z = fb/d$</span>. A fixed disparity error becomes a depth error growing as <span class="m">$Z^2/(fb)$</span>: Figure 7 of Part XXIX measures the exponent at <b>2.000</b> and <b>10.4 m</b> of error at 100 m for a 12 cm baseline. Halving the disparity error is worth exactly as much as doubling the baseline, and is usually cheaper.</dd>
+
 <dt>Truncated BPTT <span class="where">XI §6</span></dt>
 <dd>Propagating the gradient back only <span class="m">$k$</span> steps. Unlike minibatch noise this is <b>bias</b> (whole terms are deleted, and averaging does not recover them), so a dependency longer than <span class="m">$k$</span> cannot be learned at all.</dd>
 
 <dt>Trust region <span class="where">XVIII §31</span></dt>
 <dd>A constraint on how far a policy may move in one update, measured in policy space rather than parameter space. Necessary because a policy that steps too far collects worse data, from which it learns a worse policy: a collapse with no fixed dataset to recover against.</dd>
 
+<dt>Two-part code <span class="where">XV §44</span></dt>
+<dd>The decomposition description length rests on: transmit a model, then transmit the data given the model. Dropping the first term turns a selection criterion into a fitting criterion, which is where "it compresses the data better" usually goes wrong. See [[minimum-description-length]].</dd>
+
 <dt>Two-tower model <span class="where">XXX §25</span></dt>
 <dd>Encoding two modalities separately and comparing them with a single dot product, trained so matched pairs beat every other item in the batch. Fast, because each item can be embedded once and indexed, and structurally unable to express anything needing detailed comparison between the inputs: which object a phrase refers to, whether a relation holds, counting. The standard resolution is to retrieve with two towers and rerank with a cross-encoder.</dd>
+
+<dt>UCT <span class="where">XXXIII §31</span></dt>
+<dd>Applying an upper confidence bound at every internal node of a Monte Carlo tree search. What makes the value estimate converge to the value under optimal play rather than to the value of a random player: the exploration constant has an interior optimum that moves with the budget, so one tuned at a small budget is wrong at a large one.</dd>
+
 <dt>Unfolding <span class="where">XI §2</span></dt>
 <dd>Substituting a recurrence into itself until the self-reference is gone, converting a loop into an ordinary directed acyclic computational graph. The result has a fixed architecture (inputs at each time step, shared weights at each step, outputs at each step) and can be differentiated by standard backpropagation. The sharing across time is what allows generalisation to sequence lengths not seen during training.</dd>
 
 <dt>Uniform convergence <span class="where">XXIII §12</span></dt>
 <dd>A bound holding simultaneously for every hypothesis in a class, which is what licenses choosing one after seeing the data. Its failure for modern networks is a theorem rather than a gap: they fit random labels, so the class capacity is maximal and no distribution-free bound over it can say anything.</dd>
+
+<dt>Uniform-cost search <span class="where">XXXIII §4</span></dt>
+<dd>Expand the node of least path cost. Optimal for any non-negative costs, and identical to Dijkstra's algorithm arrived at from the search side rather than the graph side. A* with $h=0$.</dd>
 
 <dt>Universal approximation <span class="where">VII §3</span></dt>
 <dd>A single hidden layer with sufficiently many units can approximate any continuous function on a compact set to arbitrary precision. An existence result only: it says nothing about how many units are needed, whether gradient descent will find the approximating weights, or whether the solution found will generalise. Wide networks that satisfy it are not better in practice than deep ones that do not need it.</dd>
@@ -1895,6 +1967,9 @@ permutation of a product.</dd>
 
 <dt>Uplift <span class="where">XXI §28</span></dt>
 <dd>How much access to a system changes what a specific actor could accomplish, relative to what they could already do. The decision-relevant quantity in a dangerous-capability evaluation, and a difference between two capabilities, so it requires a control group and is an experiment, not a benchmark.</dd>
+
+<dt>Upper confidence bound <span class="where">XXXIII §30</span></dt>
+<dd>$\hat\mu_i + c\sqrt{\ln t/n_i}$: act as though each option is as good as its evidence permits. The bonus shrinks with that arm's pulls and grows with total time, so nothing is abandoned permanently. Gives logarithmic rather than linear regret.</dd>
 
 <dt>Vacuous bound <span class="where">XXIII §23</span></dt>
 <dd>A bound permitting values the quantity cannot take: a generalisation bound above 1, satisfied by a random classifier. Figure 3 of Part XXIII evaluates the standard VC bound at 1.1, 4.5 and 10.0 for ordinary network sizes.</dd>
@@ -1911,6 +1986,7 @@ by at most 0.25, so early layers receive almost nothing.</dd>
 
 <dt>Variable elimination <span class="where">XXVIII §10</span></dt>
 <dd>Computing a marginal by summing out variables one at a time, exploiting the fact that sums distribute over products so factors not mentioning the summed variable stay outside. Forward–backward and the junction tree algorithm are this with structure.</dd>
+
 <dt>Variance <span class="where">II §11</span></dt>
 <dd>Average squared distance from the mean. Its square root, the standard deviation,
 carries the same units as the data and is usually easier to interpret.</dd>
@@ -1923,8 +1999,13 @@ carries the same units as the data and is usually easier to interpret.</dd>
 
 <dt>Vector quantisation <span class="where">XXX §21</span></dt>
 <dd>Replacing a whole vector with the nearest of K codebook entries, rather than rounding each dimension independently. Beats scalar quantisation at matched bitrate by <b>6.19&times;</b> on strongly correlated data, and still by <b>1.51&times;</b> when the dimensions are independent, because a hypercube is a poor cell whatever the data looks like. So decorrelating the data first does not make scalar quantisation equivalent.</dd>
+
+<dt>Verifier <span class="where">XXXIII §40</span></dt>
+<dd>Anything that scores a candidate solution. Sound means it never accepts a wrong answer, complete that it never rejects a right one; soundness is what makes search over its outputs safe. An outcome verifier scores finished answers, a process verifier scores each step, and only the second can guide a search over partial solutions.</dd>
+
 <dt>Vocoder <span class="where">XXX §19</span></dt>
 <dd>A model turning a spectrogram back into a waveform. It is not recovering the phase that was there but generating one consistent with the magnitude and with what it has learned about the signal, which is why a learned vocoder beats the iterative estimate of Figure 2, a different task with a different failure mode.</dd>
+
 <dt>Warmup <span class="where">III §17</span></dt>
 <dd>Ramping the learning rate up from a small value over the first few hundred to few thousand steps, before switching to the main schedule. In adaptive optimisers such as Adam, the squared-gradient accumulators start at zero and their estimates are unreliable early in training; a large initial step can produce a destructively large parameter update. Warmup avoids this while the accumulators fill in.</dd>
 
@@ -1932,11 +2013,15 @@ carries the same units as the data and is usually easier to interpret.</dd>
 <dd>Adding <span class="m">$\lambda\|\mathbf{w}\|_2^2$</span> to the loss to discourage large weights. Equivalent
 to a Gaussian prior on the weights.</dd>
 
+<dt>Weighted A* <span class="where">XXXIII §11</span></dt>
+<dd>A* with $f=g+w\,h$ for $w\ge1$. Inadmissible by construction, so optimality is replaced by a guarantee of at most $w$ times optimal: a bound that in practice sits far above what happens, so the weight should be chosen by measuring rather than by deciding what suboptimality you can tolerate.</dd>
+
 <dt>Weight-space symmetry <span class="where">IX §7</span></dt>
 <dd>Permuting units within a layer, or scaling a ReLU unit's input weights by <span class="m">$\alpha$</span> and its output weights by <span class="m">$1/\alpha$</span>, leaves the function unchanged. Produces <span class="m">$n!^{\,m}$</span> arrangements and a continuum of exactly equivalent minima.</dd>
 
 <dt>Windowing <span class="where">XXVII §21</span></dt>
 <dd>Multiplying a record by a function tapering to zero at both ends, so that the transform's implied periodic extension has no discontinuity. Hann, Hamming and Blackman trade main-lobe width against skirt height. Not optional in a careful spectral measurement: the unwindowed default is a rectangular window, which is the worst of them.</dd>
+
 <dt>Worst-group risk <span class="where">XXIII §43</span></dt>
 <dd>The largest risk over a set of predefined groups, rather than the average over the population. Figure 7 of Part XXIII measures an average-minimising model at 0.215 on the conflicting group (below chance, so systematically inverted), while the group-robust model reaches 0.795 and a better overall score.</dd>
 
@@ -1945,6 +2030,4 @@ to a Gaussian prior on the weights.</dd>
 
 <dt>ZeRO <span class="where">XVII §18</span></dt>
 <dd>Sharding the redundant per-device copies in data-parallel training: stage 1 the optimiser states, stage 2 also the gradients, stage 3 also the parameters. FSDP is stage 3. Activations do not shard, which is why the memory saving flattens well short of the device count.</dd>
-
-
 </dl>

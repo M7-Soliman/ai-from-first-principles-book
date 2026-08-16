@@ -20,6 +20,8 @@ infinity), and then how to choose among everything this part has offered.</p>
 
 <h3><span class="num">§41</span> Optimal transport</h3>
 
+<div class="readnow"><span class="label">Go and read</span><p><span class="src">Peyr&eacute; &amp; Cuturi (2019)</span>, <i>Computational Optimal Transport</i>. Free online, and the reference for this movement; chapter 4 on Sinkhorn is what made transport usable inside a training loop. Then <span class="src">Arjovsky, Chintala &amp; Bottou (2017)</span>, <i>Wasserstein GAN</i>. Read &sect;2 alone: a worked example where the likelihood-ratio divergences give no gradient and the transport distance does. That order, because the second is the first one's argument in a case you already know.</p></div>
+
 <div class="box def">
   <span class="label">Wasserstein</span>
   <p class="m">$$W_p(\mu,\nu) \;=\; \left(\inf_{\gamma \in \Pi(\mu,\nu)} \int \lVert x - y \rVert^p \, d\gamma(x,y)\right)^{1/p}$$</p>

@@ -6,6 +6,8 @@ which nobody expected when it was proposed.</p>
 
 <h3><span class="num">§23</span> Score matching</h3>
 
+<div class="readnow"><span class="label">Go and read</span><p><span class="src">Hyv&auml;rinen (2005)</span>, <i>Estimation of non-normalized statistical models by score matching</i>. The integration by parts that removes both the partition function and the unknown data score. Read it for the derivation, which is three pages, then note the second-derivative cost that kept it unused for a decade.</p></div>
+
 <div class="box def">
   <span class="label">Fit the gradient instead of the density</span>
   <p>Part XV §12 defined the score, $\nabla_{\mathbf{x}} \log p(\mathbf{x})$. The reason to want it
@@ -267,6 +269,8 @@ which nobody expected when it was proposed.</p>
 
 <h3><span class="num">§31</span> The schedule</h3>
 
+<div class="readnow"><span class="label">Go and read</span><p><span class="src">Nichol &amp; Dhariwal (2021)</span>, <i>Improved denoising diffusion probabilistic models</i>. The cosine schedule, and the demonstration that the corruption process is part of the model. A rare case of a large gain from touching no architecture at all.</p></div>
+
 <div class="box why">
   <span class="label">Why this is the hyperparameter that matters</span>
   <p>The schedule decides how much of training is spent at each noise level, and the levels are not
@@ -284,6 +288,8 @@ which nobody expected when it was proposed.</p>
 </div>
 
 <h3><span class="num">§32</span> Flow matching</h3>
+
+<div class="readnow"><span class="label">Go and read</span><p><span class="src">Lipman et al. (2023)</span>, <i>Flow matching for generative modeling</i>. The same destination reached without a Markov chain or a noise schedule. Worth reading after the diffusion papers, so that the simplification is visible rather than merely asserted.</p></div>
 
 <div class="box def">
   <span class="label">The same destination, reached more directly</span>

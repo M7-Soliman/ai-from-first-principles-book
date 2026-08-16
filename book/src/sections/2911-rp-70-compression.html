@@ -8,6 +8,8 @@ usually the one that generalises.</p>
 
 <h3><span class="num">§43</span> Rate and distortion</h3>
 
+<div class="readnow"><span class="label">Go and read</span><p><span class="src">Cover &amp; Thomas</span>, <i>Elements of Information Theory</i>. Chapter 10, where rate&ndash;distortion theory is derived and the Gaussian case Figure 11 measures against is worked in full. The chapter is unusually clear that the function belongs to the source rather than to any method. Then <span class="src">Gersho &amp; Gray</span>, <i>Vector Quantization and Signal Compression</i>. Where the quarter-bit space-filling constant comes from, and the lattice results. Read the second for the distinction Figure 11 turns into a finding: the quantiser that is optimal at a fixed number of levels is not the one that is optimal at a fixed entropy.</p></div>
+
 <div class="box def">
   <span class="label">The two numbers, and the curve between them</span>
   <p>Given a source and a measure of error, the <b>rate–distortion function</b>
@@ -48,6 +50,8 @@ usually the one that generalises.</p>
 
 <h3><span class="num">§44</span> Description length</h3>
 
+<div class="readnow"><span class="label">Go and read</span><p><span class="src">Rissanen (1978)</span>, <i>Modeling by shortest data description</i>. MDL in the original. Short, and the argument that a model is a code for its data is made more plainly here than in most of what followed. Then <span class="src">Gr&uuml;nwald</span>, <i>The Minimum Description Length Principle</i>. The modern treatment, including the part &sect;47 flags: code lengths depend on the code, so MDL relocates arbitrariness rather than removing it. The chapters on universal codes are where that relocation is made rigorous.</p></div>
+
 <div class="box def">
   <span class="label">A model is a code for its data</span>
   <p>To transmit a dataset to someone who has neither, send a <b>model</b> and then send the
@@ -81,6 +85,8 @@ usually the one that generalises.</p>
 </div>
 
 <h3><span class="num">§45</span> The information bottleneck</h3>
+
+<div class="readnow"><span class="label">Go and read</span><p><span class="src">Tishby, Pereira &amp; Bialek (1999)</span>, <i>The information bottleneck method</i>. The objective and its fixed-point iteration, which is what Figure 13 runs. Read it as a statement of what a representation is for; the later claims about deep learning's compression phase are a separate and more contested matter, which &sect;47 takes up.</p></div>
 
 <div class="box def">
   <span class="label">Compressing for a purpose</span>
@@ -155,6 +161,8 @@ usually the one that generalises.</p>
 </div>
 
 <h3><span class="num">§47</span> What the frame does not do</h3>
+
+<div class="readnow"><span class="label">Go and read</span><p><span class="src">Saxe et al. (2019)</span>, <i>On the information bottleneck theory of deep learning</i>. The rebuttal, and the reason this section treats the bottleneck as a description rather than an explanation. Its central point is that mutual information in a deterministic network is either infinite or an artefact of the binning, so the compression phase depends on a choice nobody reports.</p></div>
 
 <div class="box why">
   <span class="label">Three honest limits</span>

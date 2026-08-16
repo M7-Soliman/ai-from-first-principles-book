@@ -20,6 +20,8 @@ subject.</p>
 
 <h3><span class="num">§26</span> Differential privacy</h3>
 
+<div class="readnow"><span class="label">Go and read</span><p><span class="src">Dwork &amp; Roth</span>, <i>The Algorithmic Foundations of Differential Privacy</i>. Free online. Chapters 2 and 3 are the definition and the composition theorems, which is all most readers need, and reading the definition once removes the temptation to treat the privacy budget as a dial.</p></div>
+
 <div class="box def">
   <span class="label">A definition, not a technique</span>
   <p>A randomised algorithm is <span class="m">$(\varepsilon, \delta)$</span>-differentially private
@@ -45,6 +47,8 @@ subject.</p>
 </div>
 
 <h3><span class="num">§27</span> Making training private</h3>
+
+<div class="readnow"><span class="label">Go and read</span><p><span class="src">Abadi et al. (2016)</span>, <i>Deep learning with differential privacy</i>. Clipping, noise, and the accountant that makes a long training run's budget tractable. Read &sect;3 for the mechanism, then note how much of the paper is the accounting rather than the algorithm.</p></div>
 
 <div class="box def">
   <span class="label">Clip, then add noise</span>
@@ -110,6 +114,8 @@ subject.</p>
 
 <h3><span class="num">§30</span> Membership inference</h3>
 
+<div class="readnow"><span class="label">Go and read</span><p><span class="src">Shokri et al. (2017)</span>, <i>Membership inference attacks against machine learning models</i>. The attack, and its connection to overfitting. Worth reading for the experimental design: it is one of the few security papers where the ground truth is available and used.</p></div>
+
 <figure class="illus">
   <img src="figures/sy/06-membership.svg" alt="Schematic of membership-inference success against the train-test gap, rising from chance">
   <figcaption><span class="illus-tag">Illustrative</span><b>Figure 6.</b> The relationship the
@@ -130,6 +136,8 @@ subject.</p>
 </div>
 
 <h3><span class="num">§31</span> Memorisation in large models</h3>
+
+<div class="readnow"><span class="label">Go and read</span><p><span class="src">Carlini et al. (2021)</span>, <i>Extracting training data from large language models</i>. The leak that needs no attack. Read it beside Part XIII &sect;21 on deduplication, which turns out to be the most effective available mitigation.</p></div>
 
 <div class="box pitfall">
   <span class="label">Pitfall: the leak that needs no attack</span>

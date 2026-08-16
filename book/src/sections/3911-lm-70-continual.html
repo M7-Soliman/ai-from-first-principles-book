@@ -35,6 +35,8 @@ four available remedies actually buy.</p>
 
 <h3><span class="num">§47</span> Forgetting</h3>
 
+<div class="readnow"><span class="label">Go and read</span><p><span class="src">French (1999)</span>, <i>Catastrophic forgetting in connectionist networks</i>. The problem stated clearly, long before anyone was doing sequential post-training on production models. Worth reading to see how little the diagnosis has changed and how much the setting has.</p></div>
+
 <figure>
   <img src="figures/lm/05-forgetting.svg" alt="Task A accuracy collapsing to chance within the first few percent of training on task B while task B rises, beside task A accuracy against distance moved in parameter space showing a tight relationship">
   <figcaption><b>Figure 5.</b> A network trained on task A, then trained on task B, with a task
@@ -59,6 +61,8 @@ four available remedies actually buy.</p>
 
 <h3><span class="num">§48</span> Rehearsal</h3>
 
+<div class="readnow"><span class="label">Go and read</span><p><span class="src">Kirkpatrick et al. (2017)</span>, <i>Overcoming catastrophic forgetting in neural networks</i>. Elastic weight consolidation: penalise movement in the directions the old task cared about. Read it as the principled version of &sect;47's finding that forgetting is a distance, with the Fisher information deciding which directions the distance should be measured in.</p></div>
+
 <figure>
   <img src="figures/lm/06-replay.svg" alt="Task A retention rising steeply with a small replay fraction and then flattening, with task B accuracy essentially unchanged across the sweep">
   <figcaption><b>Figure 6.</b> Mixing a fraction of task A's data into task B's training.
@@ -81,6 +85,8 @@ four available remedies actually buy.</p>
 </div>
 
 <h3><span class="num">§49</span> Averaging weights</h3>
+
+<div class="readnow"><span class="label">Go and read</span><p><span class="src">Frankle et al. (2020)</span>, <i>Linear mode connectivity and the lottery ticket hypothesis</i>. Where the barrier in Figure 7 comes from, and the observation that sharing an early portion of training is what puts two models in the same basin. The precondition for everything in this section. Then <span class="src">Wortsman et al. (2022)</span>, <i>Model soups: averaging weights of multiple fine-tuned models</i>. Averaging fine-tunes of one base model, at scale, for a better model at no extra inference cost. Note how carefully the second satisfies the shared-ancestor condition the first establishes; the result does not survive relaxing it.</p></div>
 
 <figure>
   <img src="figures/lm/07-averaging.svg" alt="Interpolation between two runs on the same task, flat for a shared initialisation and dipping sharply for distinct ones, beside barrier height falling with width, beside a merging curve for two different fine-tunes">
@@ -109,6 +115,8 @@ four available remedies actually buy.</p>
 </div>
 
 <h3><span class="num">§50</span> Task arithmetic</h3>
+
+<div class="readnow"><span class="label">Go and read</span><p><span class="src">Ilharco et al. (2023)</span>, <i>Editing models with task arithmetic</i>. Task vectors, added and negated. Figure 8 reproduces the effect and adds the control the claim needs: what each fine-tune already scores on the other task. The interference-against-angle relationship is the part that generalises.</p></div>
 
 <div class="box def">
   <span class="label">Behaviour as a direction</span>
@@ -146,6 +154,8 @@ four available remedies actually buy.</p>
 </div>
 
 <h3><span class="num">§51</span> Editing</h3>
+
+<div class="readnow"><span class="label">Go and read</span><p><span class="src">Meng et al. (2022)</span>, <i>Locating and editing factual associations in GPT</i>. ROME: the rank-one update Figure 9 abstracts. Read it with the follow-up work on sequential editing, which finds the accumulation problem the figure measures &mdash; a single edit is exact and a thousand are a slow deletion. Part XXI &sect;10 returns to its first half as an interpretability method.</p></div>
 
 <figure>
   <img src="figures/lm/09-editing.svg" alt="Error on edited and unedited facts against the number of sequential edits on log axes, with the unedited error rising steadily toward the level of predicting zero">

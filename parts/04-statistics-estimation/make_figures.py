@@ -463,24 +463,10 @@ def fig_double_descent():
     save(fig, "13-double-descent")
 
 
-# ============================================================== fig 14 ======
-def fig_cross_validation():
-    """K-fold: every point is used for validation exactly once."""
-    fig, ax = plt.subplots(figsize=(5.8, 2.5))
-    K, n = 5, 20
-    for k in range(K):
-        for i in range(n):
-            val = (i // (n // K)) == k
-            ax.add_patch(plt.Rectangle((i, K - k - 1), 0.9, 0.86,
-                                       color=(ORANGE if val else "#dbe6f5")))
-    ax.set_xlim(-0.3, n + 0.3); ax.set_ylim(-0.3, K + 0.3)
-    ax.set_yticks([K - k - 0.55 for k in range(K)])
-    ax.set_yticklabels([f"fold {k+1}" for k in range(K)], fontsize=8.5)
-    ax.set_xticks([]); ax.set_aspect("equal")
-    for s in ("top", "right", "left", "bottom"):
-        ax.spines[s].set_visible(False)
-    ax.set_title("orange = held out for validation", fontsize=9.8, pad=8)
-    save(fig, "14-cross-validation")
+# A fig_cross_validation() lived here: a five-by-twenty grid of coloured
+# rectangles showing which fold is held out. It computed nothing, which is why
+# it was never placed in a section, and it emitted an orphan SVG on every run.
+# CONVENTIONS §7 forbids the schematic; cross-validation is taught in Part VI §10.
 
 
 if __name__ == "__main__":
@@ -488,6 +474,6 @@ if __name__ == "__main__":
     for fn in (fig_estimator, fig_bias_variance_quadrants, fig_root_n, fig_coverage,
                fig_bootstrap, fig_pvalues, fig_power, fig_multiple_comparisons,
                fig_test_set_reuse, fig_map_vs_mle, fig_fits, fig_bias_variance_curve,
-               fig_double_descent, fig_cross_validation):
+               fig_double_descent):
         fn()
     print("done.")

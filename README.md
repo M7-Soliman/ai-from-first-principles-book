@@ -4,7 +4,7 @@
 
 Not a companion to anything, not a tutorial, not a reference for people who already know. A treatment that assumes nothing, derives everything, and does not stop until you can do the work yourself.
 
-**[Read the book →](book/artificial-intelligence.pdf)** · 1,501 pages
+**[Read the book →](book/artificial-intelligence.pdf)** · 1,504 pages
 
 ---
 
@@ -31,7 +31,7 @@ The literature splits into tutorials that show you which functions to call, and 
 
 ## The parts
 
-**[The book](book/artificial-intelligence.pdf), 1,501 pages.** Thirty-four parts, from arithmetic through perception, control, the machine underneath, and search.
+**[The book](book/artificial-intelligence.pdf), 1,504 pages.** Thirty-four parts, from arithmetic through perception, control, the machine underneath, and search.
 
 | Part | |
 |---|---|
@@ -70,7 +70,7 @@ The literature splits into tutorials that show you which functions to call, and 
 | **XXXII** | Systems and Security |
 | **XXXIII** | Search and Planning |
 
-**1,287 sections. 312 figures: 303 computed, 9 illustrative. 1,323 drills backed by 881 automated tests across thirty-one harnesses. 619-term glossary. 314 primary sources, 130 of them placed inline where the idea is developed. 31 framework boxes.**
+**1,287 sections. 312 figures: 303 computed, 9 illustrative. 1,323 drills backed by 881 automated tests across thirty-one harnesses. 619-term glossary. 314 primary sources, every one placed inline where its idea is developed. 31 framework boxes.**
 
 
 **Start at Part 0** if your mathematics is rusty: precalculus through gradient descent, assuming nothing but arithmetic. It ends by walking one full backpropagation step by hand, and then showing PyTorch reproduce the same numbers.

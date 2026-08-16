@@ -300,61 +300,61 @@ variable a famous comparison was actually varying is a skill that transfers.</p>
 </div>
 
 <div class="drill">
-  <div class="head"><span class="tier warm">Warm-up</span>W12 &middot; Where the quadratic cost actually hurts</div>
+  <div class="head"><span class="tier warm">Warm-up</span>W11 &middot; Where the quadratic cost actually hurts</div>
   <p>If attention is often cheaper in training arithmetic, why does anyone want a recurrent layer?</p>
   <div class="ans"><b>Answer.</b> Generation. Attention's cost for the next token grows with the context already produced, and so does the KV cache; a fixed state makes both constant. The case for recurrence is an inference case, and quoting "linear versus quadratic" without saying which workload hides that.</div>
 </div>
 
 <div class="drill">
-  <div class="head"><span class="tier warm">Warm-up</span>W13 &middot; Why the softmax blocks factorisation</div>
+  <div class="head"><span class="tier warm">Warm-up</span>W12 &middot; Why the softmax blocks factorisation</div>
   <p>What exactly stops attention being computed as a running sum?</p>
   <div class="ans"><b>Answer.</b> <span class="m">$\exp(q\cdot k)$</span> does not factor into a function of <span class="m">$q$</span> times a function of <span class="m">$k$</span>, so every pair must be formed. Replace it with <span class="m">$\phi(q)\cdot\phi(k)$</span> and the sum over keys can be accumulated once, which is the same thing as a matrix-valued recurrence.</div>
 </div>
 
 <div class="drill">
-  <div class="head"><span class="tier warm">Warm-up</span>W14 &middot; Why linearity is the price</div>
+  <div class="head"><span class="tier warm">Warm-up</span>W13 &middot; Why linearity is the price</div>
   <p>Why did the recurrence have to become linear to be parallelised?</p>
   <div class="ans"><b>Answer.</b> Only an associative composition can be evaluated by a scan, and <span class="m">$h_t=a_th_{t-1}+b_t$</span> composes associatively while a gated nonlinear recurrence does not. §16's gates bought gradient behaviour with nonlinearity; giving that up is what buys the log-depth evaluation, and gating then has to be recovered as an input-dependent decay instead.</div>
 </div>
 
 <div class="drill">
-  <div class="head"><span class="tier core">Core</span>C21 &middot; Count the crossover yourself</div>
+  <div class="head"><span class="tier core">Core</span>C15 &middot; Count the crossover yourself</div>
   <p>Write out the FLOP counts for attention and a linear-state layer and solve for the crossover length. Check it against Figure 10 at two model dimensions.</p>
   <div class="ans"><b>Answer.</b> <span class="m">$4L^2d+6Ld^2 = 10Ld^2$</span> reduces to <span class="m">$4L^2d = 4Ld^2$</span>, so <span class="m">$L=d$</span>: the projections cancel entirely. Drop them from only one side and you get 2.5d. Counting arithmetic rather than timing it is deliberate: a FLOP count is a property of the algorithm and transfers, and a wall-clock number would belong to one machine, the argument Part XXXII makes at length.</div>
 </div>
 
 <div class="drill">
-  <div class="head"><span class="tier core">Core</span>C22 &middot; Linear attention as a recurrence</div>
+  <div class="head"><span class="tier core">Core</span>C16 &middot; Linear attention as a recurrence</div>
   <p>Implement linear attention twice (once as a quadratic-form attention matrix, once as a running matrix state) and assert the outputs agree to floating-point tolerance.</p>
   <div class="ans"><b>Answer.</b> They must agree exactly, because reassociating a sum is an identity rather than an approximation. If they differ, the usual cause is the normaliser: it is a separate running sum <span class="m">$\sum_j\phi(k_j)$</span> and must be accumulated alongside the state. Writing both forms is what makes "linear attention is an RNN" stop being a slogan.</div>
 </div>
 
 <div class="drill">
-  <div class="head"><span class="tier core">Core</span>C23 &middot; Measure how sharply a layer can point</div>
+  <div class="head"><span class="tier core">Core</span>C17 &middot; Measure how sharply a layer can point</div>
   <p>Reproduce Figure 11: set the query equal to a target key and measure the largest achievable weight, for softmax and for a positive feature map, across lengths. Then sweep the dimension.</p>
   <div class="ans"><b>Answer.</b> Softmax stays near one; linear attention stays near <span class="m">$1/L$</span>, and the gap widens with length. The dimension sweep is the surprise: it does nothing for linear attention, because a positive feature map makes every score a sum of positive terms with a large common component. Use <span class="m">$O(1)$</span> entries for keys and queries: scaling them down drives <span class="m">$\phi(k)$</span> toward a constant and every key scores the same, which produces the right-looking flat line for the wrong reason.</div>
 </div>
 
 <div class="drill">
-  <div class="head"><span class="tier core">Core</span>C24 &middot; Write an associative scan</div>
+  <div class="head"><span class="tier core">Core</span>C18 &middot; Write an associative scan</div>
   <p>Implement <span class="m">$h_t=a_th_{t-1}+b_t$</span> sequentially and by a scan. Assert they agree, then count depth and work for each.</p>
   <div class="ans"><b>Answer.</b> The composition is <span class="m">$(a_1,b_1)\circ(a_2,b_2)=(a_1a_2,\;a_2b_1+b_2)$</span>. Depth falls from <span class="m">$L$</span> to <span class="m">$\log_2 L$</span>; work rises. Note which scan you wrote: Hillis&ndash;Steele is <span class="m">$O(L\log L)$</span> work and Blelloch is <span class="m">$O(L)$</span>, both are called "parallel scan", and the difference is a factor of <span class="m">$\log L$</span> in arithmetic.</div>
 </div>
 
 <div class="drill">
-  <div class="head"><span class="tier core">Core</span>C25 &middot; Discretise a state space model</div>
+  <div class="head"><span class="tier core">Core</span>C19 &middot; Discretise a state space model</div>
   <p>Take <span class="m">$h'=Ah+Bx$</span> and discretise it with step <span class="m">$\Delta$</span>. Show the unrolled system is a convolution and write down its kernel.</p>
   <div class="ans"><b>Answer.</b> <span class="m">$\bar{A}=\exp(\Delta A)$</span>, and the kernel is <span class="m">$(C\bar{B},\,C\bar{A}\bar{B},\,C\bar{A}^2\bar{B},\dots)$</span>, so training can use an FFT. The eigenvalues of <span class="m">$A$</span> are the timescales: §12's vanishing gradient restated as a choice about where to put them.</div>
 </div>
 
 <div class="drill">
-  <div class="head"><span class="tier core">Core</span>C26 &middot; Measure a state's capacity</div>
+  <div class="head"><span class="tier core">Core</span>C20 &middot; Measure a state's capacity</div>
   <p>Store <span class="m">$L$</span> key&ndash;value pairs in an outer-product memory and measure recall as <span class="m">$L$</span> grows, for several state sizes. Find the length at which recall halves.</p>
   <div class="ans"><b>Answer.</b> It is proportional to the state size: doubling the state doubles the usable length, with no fitted constant. No training is involved, which is the point: the limit is a property of the representation, not of an optimiser. Bracket the transition with your length grid, or the width you report is a property of the grid.</div>
 </div>
 
 <div class="drill">
-  <div class="head"><span class="tier core">Core</span>C27 &middot; A fixed decay's half-life</div>
+  <div class="head"><span class="tier core">Core</span>C21 &middot; A fixed decay's half-life</div>
   <p>Derive the half-life of <span class="m">$h_t=\lambda h_{t-1}$</span> and check it numerically for several <span class="m">$\lambda$</span>.</p>
   <div class="ans"><b>Answer.</b> Exactly, the <span class="m">$h$</span> solving <span class="m">$\lambda^h=1/2$</span>, which is <span class="m">$-\ln 2/\ln\lambda$</span>. The familiar <span class="m">$\ln 2/(1-\lambda)$</span> is its limit as <span class="m">$\lambda\to1$</span> and is 5% high already at <span class="m">$\lambda=0.9$</span>. Either way the effective memory scales as <span class="m">$1/(1-\lambda)$</span> and the half-life is <span class="m">$\ln 2$</span> of it: about seven steps at 0.9, thirty-five at 0.98.</div>
 </div>

@@ -29,6 +29,8 @@ consequence.</p>
 
 <h3><span class="num">§39</span> The degenerate case, which is most of the field</h3>
 
+<div class="readnow"><span class="label">Go and read</span><p><span class="src">Wang et al. (2023)</span>, <i>Self-consistency improves chain of thought reasoning in language models</i>. Majority voting over sampled derivations, with no verifier anywhere. Read it beside Part VIII &sect;18: it removes variance and cannot remove bias, which predicts exactly where it stops helping.</p></div>
+
 <div class="box shapes">
   <span class="label">Three things you can do with <span class="m">$k$</span> samples</span>
   <p><b>Best-of-<span class="m">$n$</span>.</b> Sample <span class="m">$k$</span>, score each with a
@@ -46,6 +48,8 @@ consequence.</p>
 </div>
 
 <h3><span class="num">§40</span> Verifiers</h3>
+
+<div class="readnow"><span class="label">Go and read</span><p><span class="src">Cobbe et al. (2021)</span>, <i>Training verifiers to solve math word problems</i>. Where the generator-plus-verifier shape enters the language-model literature. The result that a verifier beats fine-tuning at equal compute is the one that made everything in this movement worth building. Then <span class="src">Lightman et al. (2023)</span>, <i>Let's verify step by step</i>. Process supervision against outcome supervision, measured. The reason to pay for step-level labels is not accuracy alone: only a process verifier has an opinion about an unfinished solution, which is what a tree search needs.</p></div>
 
 <div class="box def">
   <span class="label">Two kinds, and the asymmetry that makes them useful</span>
@@ -73,6 +77,8 @@ consequence.</p>
 </div>
 
 <h3><span class="num">§41</span> How good a verifier has to be</h3>
+
+<div class="readnow"><span class="label">Go and read</span><p><span class="src">Stroebl, Kapoor &amp; Narayanan (2024)</span>, <i>Inference scaling flaws: the limits of LLM resampling with imperfect verifiers</i>. Figure 8's result argued from the other direction. That resampling against an imperfect verifier cannot reach the ceiling, and past a point moves away from it, is the single most useful correction to the &ldquo;just sample more&rdquo; reflex.</p></div>
 
 <figure>
   <img src="figures/se/08-verifier.svg" alt="Solve rate against measured verifier accuracy for several candidate counts, most curves crossing below the first-sample baseline, beside the break-even accuracy rising with the number of candidates">
@@ -106,6 +112,8 @@ consequence.</p>
 </div>
 
 <h3><span class="num">§42</span> Test-time compute is a search budget</h3>
+
+<div class="readnow"><span class="label">Go and read</span><p><span class="src">Snell, Lee, Xu &amp; Kumar (2024)</span>, <i>Scaling LLM test-time compute optimally can be more effective than scaling model parameters</i>. The budget-allocation question stated as a budget-allocation question. Its finding that the best way to spend test-time compute depends on the difficulty of the question is &sect;44's fourth test in a different vocabulary.</p></div>
 
 <div class="box why">
   <span class="label">An old quantity with a new name</span>

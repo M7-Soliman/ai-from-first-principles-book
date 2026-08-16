@@ -17,6 +17,8 @@ long a kernel takes is usually not the one anybody counted.</p>
 
 <h3><span class="num">§2</span> The hierarchy</h3>
 
+<div class="readnow"><span class="label">Go and read</span><p><span class="src">Hennessy &amp; Patterson</span>, <i>Computer Architecture: A Quantitative Approach</i>. The reference for this movement. Read the memory-hierarchy chapter; everything else in this part's first half is a consequence of it.</p></div>
+
 <div class="box shapes">
   <span class="label">Five levels, each roughly an order of magnitude apart</span>
   <p><b>Registers</b>: a few kilobytes, immediate. <b>L1</b>: tens of kilobytes, a few cycles.
@@ -43,6 +45,8 @@ long a kernel takes is usually not the one anybody counted.</p>
 </div>
 
 <h3><span class="num">§4</span> The roofline</h3>
+
+<div class="readnow"><span class="label">Go and read</span><p><span class="src">Williams, Waterman &amp; Patterson (2009)</span>, <i>Roofline: an insightful visual performance model</i>. Where the model below comes from, and short. Its argument is that a single plot answers &ldquo;what should I work on&rdquo; better than a profile does, which is still true fifteen years later.</p></div>
 
 <div class="box def">
   <span class="label">A ceiling with two pieces</span>

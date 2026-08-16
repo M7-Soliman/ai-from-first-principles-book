@@ -26,6 +26,8 @@ why.</p>
 
 <h3><span class="num">§47</span> The neural tangent kernel</h3>
 
+<div class="readnow"><span class="label">Go and read</span><p><span class="src">Jacot, Gabriel &amp; Hongler (2018)</span>, <i>Neural tangent kernel: convergence and generalization in neural networks</i>. The result itself: in the infinite-width limit the tangent kernel is deterministic and constant during training, so gradient descent on a network is kernel regression. Read it for the derivation, then read &sect;48 and &sect;49 for what the limit costs.</p></div>
+
 <div class="box def">
   <span class="label">Linearise around the initialisation</span>
   <p>Write <span class="m">$f(x;\theta)$</span> for the network. First-order Taylor expansion in the
@@ -49,6 +51,8 @@ free, and it is why the result mattered.</p>
 
 <h3><span class="num">§48</span> How constant is constant</h3>
 
+<div class="readnow"><span class="label">Go and read</span><p><span class="src">Lee et al. (2019)</span>, <i>Wide neural networks of any depth evolve as linear models under gradient descent</i>. The empirical companion, and the more useful of the two here because it measures the approximation rather than only proving it. The finite-width corrections it reports are the same phenomenon Figure 8 measures.</p></div>
+
 <figure>
   <img src="figures/lt/08-ntk-freeze.svg" alt="Relative change in the neural tangent kernel during training against width on log axes, falling as a power law with a fitted slope near minus two thirds">
   <figcaption><b>Figure 8.</b> The empirical NTK before and after training, measured on networks whose
@@ -71,6 +75,8 @@ free, and it is why the result mattered.</p>
 </div>
 
 <h3><span class="num">§49</span> Lazy and rich</h3>
+
+<div class="readnow"><span class="label">Go and read</span><p><span class="src">Chizat, Oyallon &amp; Bach (2019)</span>, <i>On lazy training in differentiable programming</i>. Where the word comes from, and the argument that laziness is a property of the output scale rather than of the architecture &mdash; which is what makes Figure 9's sweep possible at fixed width. The paper's point is that the lazy limit is a choice, and usually not the one you want.</p></div>
 
 <div class="box def">
   <span class="label">The regime is a property of the scale, not the architecture</span>
@@ -111,6 +117,8 @@ free, and it is why the result mattered.</p>
 </div>
 
 <h3><span class="num">§50</span> Three parameterisations</h3>
+
+<div class="readnow"><span class="label">Go and read</span><p><span class="src">Yang &amp; Hu (2021)</span>, <i>Tensor Programs IV: feature learning in infinite-width neural networks</i>. Proves that the standard infinite-width limits cannot learn features, and constructs the parameterisation that can. The classification of what each choice of exponent gives you is the part to read; it is why &mu;P is one solution to a system of constraints rather than a set of tricks.</p></div>
 
 <div class="box shapes">
   <span class="label">Where the width shows up decides what the limit is</span>
@@ -162,6 +170,8 @@ free, and it is why the result mattered.</p>
 
 <h3><span class="num">§52</span> Why hyperparameters transfer</h3>
 
+<div class="readnow"><span class="label">Go and read</span><p><span class="src">Yang et al. (2022)</span>, <i>Tensor programs V: tuning large neural networks via zero-shot hyperparameter transfer</i>. Already read at Part XVII &sect;34 for the practical claim; read here for why it holds. Figure 11 is its central result at a scale a figure script can reach, where the paper's is at a scale where the saving is measured in millions of dollars. The coordinate-check procedure in its appendix is the practical contribution.</p></div>
+
 <figure>
   <img src="figures/lt/11-transfer.svg" alt="Test error against learning rate for five widths, with the optimum shifting steadily left under standard parameterisation and sitting at the same place under muP">
   <figcaption><b>Figure 11.</b> Test error against learning rate at five widths. Under standard
@@ -187,6 +197,8 @@ free, and it is why the result mattered.</p>
 </div>
 
 <h3><span class="num">§53</span> Depth, and what a random network does to a signal</h3>
+
+<div class="readnow"><span class="label">Go and read</span><p><span class="src">Poole et al. (2016)</span>, <i>Exponential expressivity in deep neural networks through transient chaos</i>. The order-to-chaos transition and the correlation map, derived. Read it beside Figure 12's first panel; the depth scale it defines is what initialisation is really choosing.</p></div>
 
 <div class="box def">
   <span class="label">Two inputs, many layers</span>
@@ -227,6 +239,8 @@ free, and it is why the result mattered.</p>
 </div>
 
 <h3><span class="num">§54</span> What initialisation is choosing</h3>
+
+<div class="readnow"><span class="label">Go and read</span><p><span class="src">Schoenholz et al. (2017)</span>, <i>Deep information propagation</i>. Turns the phase diagram into a prediction about trainability. Worth reading alongside Figure 12's third panel, which reproduces its ordered-phase prediction and not its chaotic-phase one &mdash; the asymmetry being that the ordered phase destroys information while the chaotic phase only destroys scale.</p></div>
 
 <div class="box why">
   <span class="label">Not a number, a depth scale</span>

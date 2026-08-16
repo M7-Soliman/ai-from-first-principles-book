@@ -62,6 +62,8 @@ survives that, and it is the part of the classical tradition that never went out
 
 <h3><span class="num">§26</span> Probabilistic roadmaps</h3>
 
+<div class="readnow"><span class="label">Go and read</span><p><span class="src">Kavraki, &Scaron;vestka, Latombe &amp; Overmars (1996)</span>, <i>Probabilistic roadmaps for path planning in high-dimensional configuration spaces</i>. The paper that made motion planning practical by refusing to represent the free space. The narrow-passage problem is stated honestly here, which is more than most of the follow-up literature does.</p></div>
+
 <div class="box def">
   <span class="label">Build the graph once, query it many times</span>
   <p><b>Learning phase.</b> Sample <span class="m">$N$</span> free configurations. Connect each to its
@@ -83,6 +85,8 @@ toward the obstacle boundary or toward regions where connection attempts fail. A
 a weighting choice that is arbitrary, consequential, and almost never reported.</p>
 
 <h3><span class="num">§27</span> Rapidly-exploring random trees</h3>
+
+<div class="readnow"><span class="label">Go and read</span><p><span class="src">LaValle &amp; Kuffner (2001)</span>, <i>Randomized kinodynamic planning</i>. RRTs, including the Voronoi-bias argument for why the tree explores without being told to. The kinodynamic half is the part that matters for anything with a body, and it is the half usually skipped.</p></div>
 
 <div class="box def">
   <span class="label">Grow toward the parts you have not been</span>
@@ -107,6 +111,8 @@ a weighting choice that is arbitrary, consequential, and almost never reported.<
 </div>
 
 <h3><span class="num">§28</span> Optimality, dynamics, and the real stack</h3>
+
+<div class="readnow"><span class="label">Go and read</span><p><span class="src">Karaman &amp; Frazzoli (2011)</span>, <i>Sampling-based algorithms for optimal motion planning</i>. Proves that RRT converges to a suboptimal path with probability one, then fixes it. The shrinking connection radius and its <span class="m">$1/d$</span> exponent are where the dimension reappears after sampling seemed to have removed it.</p></div>
 
 <div class="box shapes">
   <span class="label">Three things the basic algorithm does not have</span>
